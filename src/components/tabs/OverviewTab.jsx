@@ -170,12 +170,6 @@ export default function OverviewTab() {
         {/* Countdowns */}
         <div className="space-y-3">
           <CountdownDisplay targetDate={trip.startDate} label="⏱ Days to departure" />
-          {priorityBooking && (
-            <CountdownDisplay
-              targetDate={priorityBooking.bookByDate || trip.startDate}
-              label={`⭐ ${priorityBooking.name}`}
-            />
-          )}
         </div>
       </div>
 

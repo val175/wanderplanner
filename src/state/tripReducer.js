@@ -26,15 +26,18 @@ export const ACTIONS = {
   ADD_DAY: 'ADD_DAY',
   REMOVE_DAY: 'REMOVE_DAY',
   UPDATE_DAY: 'UPDATE_DAY',
+  REORDER_DAYS: 'REORDER_DAYS',
   ADD_ACTIVITY: 'ADD_ACTIVITY',
   UPDATE_ACTIVITY: 'UPDATE_ACTIVITY',
   DELETE_ACTIVITY: 'DELETE_ACTIVITY',
+  REORDER_ACTIVITIES: 'REORDER_ACTIVITIES',
 
   // Bookings
   ADD_BOOKING: 'ADD_BOOKING',
   UPDATE_BOOKING: 'UPDATE_BOOKING',
   DELETE_BOOKING: 'DELETE_BOOKING',
   CYCLE_BOOKING_STATUS: 'CYCLE_BOOKING_STATUS',
+  SET_BOOKING_STATUS: 'SET_BOOKING_STATUS',
 
   // Budget
   UPDATE_BUDGET_CATEGORY: 'UPDATE_BUDGET_CATEGORY',
@@ -58,6 +61,8 @@ export const ACTIONS = {
 
   // Cities
   UPDATE_CITY: 'UPDATE_CITY',
+  ADD_CITY: 'ADD_CITY',
+  DELETE_CITY: 'DELETE_CITY',
 
   // Notes
   UPDATE_NOTES: 'UPDATE_NOTES',
@@ -170,6 +175,15 @@ export function tripReducer(state, action) {
         itinerary: trip.itinerary.map(d => d.id === payload.dayId ? { ...d, ...payload.updates } : d),
       }))
 
+    // payload: { fromIndex, toIndex }
+    case ACTIONS.REORDER_DAYS:
+      return updateTrip(state, activeTripId, trip => {
+        const itinerary = [...trip.itinerary]
+        const [moved] = itinerary.splice(payload.fromIndex, 1)
+        itinerary.splice(payload.toIndex, 0, moved)
+        return { ...trip, itinerary: itinerary.map((d, i) => ({ ...d, dayNumber: i + 1 })) }
+      })
+
     case ACTIONS.ADD_ACTIVITY:
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
@@ -200,11 +214,25 @@ export function tripReducer(state, action) {
         ),
       }))
 
+    // payload: { dayId, fromIndex, toIndex }
+    case ACTIONS.REORDER_ACTIVITIES:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        itinerary: trip.itinerary.map(d => {
+          if (d.id !== payload.dayId) return d
+          const activities = [...d.activities]
+          const [moved] = activities.splice(payload.fromIndex, 1)
+          activities.splice(payload.toIndex, 0, moved)
+          return { ...d, activities }
+        }),
+      }))
+
     // ─── Bookings ───
     case ACTIONS.ADD_BOOKING:
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
-        bookings: [...trip.bookings, { id: generateId(), status: 'not_started', priority: false, amountPaid: 0, confirmationNumber: '', currency: trip.currency, ...payload }],
+        // prepend so newest appears at top
+        bookings: [{ id: generateId(), status: 'not_started', priority: false, amountPaid: 0, confirmationNumber: '', currency: trip.currency, ...payload }, ...trip.bookings],
       }))
 
     case ACTIONS.UPDATE_BOOKING:
@@ -230,6 +258,13 @@ export function tripReducer(state, action) {
         }),
       }))
 
+    // payload: { id, status }
+    case ACTIONS.SET_BOOKING_STATUS:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        bookings: trip.bookings.map(b => b.id === payload.id ? { ...b, status: payload.status } : b),
+      }))
+
     // ─── Budget ───
     case ACTIONS.UPDATE_BUDGET_CATEGORY:
       return updateTrip(state, activeTripId, trip => ({
@@ -249,17 +284,31 @@ export function tripReducer(state, action) {
         budget: trip.budget.filter(b => b.id !== payload),
       }))
 
+    // ADD_SPENDING: log entry AND update the matching budget category's actual spend
     case ACTIONS.ADD_SPENDING:
-      return updateTrip(state, activeTripId, trip => ({
-        ...trip,
-        spendingLog: [...trip.spendingLog, { id: generateId(), date: new Date().toISOString().slice(0, 10), ...payload }],
-      }))
+      return updateTrip(state, activeTripId, trip => {
+        const entry = { id: generateId(), date: new Date().toISOString().slice(0, 10), ...payload }
+        // Update matching category's actual by adding the amount
+        const budget = trip.budget.map(b =>
+          b.name === payload.category
+            ? { ...b, actual: (b.actual || 0) + (payload.amount || 0) }
+            : b
+        )
+        return { ...trip, spendingLog: [...trip.spendingLog, entry], budget }
+      })
 
+    // DELETE_SPENDING: remove entry AND subtract from matching budget category's actual
     case ACTIONS.DELETE_SPENDING:
-      return updateTrip(state, activeTripId, trip => ({
-        ...trip,
-        spendingLog: trip.spendingLog.filter(s => s.id !== payload),
-      }))
+      return updateTrip(state, activeTripId, trip => {
+        const entry = trip.spendingLog.find(s => s.id === payload)
+        if (!entry) return { ...trip, spendingLog: trip.spendingLog.filter(s => s.id !== payload) }
+        const budget = trip.budget.map(b =>
+          b.name === entry.category
+            ? { ...b, actual: Math.max(0, (b.actual || 0) - (entry.amount || 0)) }
+            : b
+        )
+        return { ...trip, spendingLog: trip.spendingLog.filter(s => s.id !== payload), budget }
+      })
 
     // ─── Todos ───
     case ACTIONS.ADD_TODO:
@@ -316,6 +365,29 @@ export function tripReducer(state, action) {
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
         cities: trip.cities.map(c => c.id === payload.id ? { ...c, ...payload.updates } : c),
+      }))
+
+    // payload: { city, country, flag }
+    case ACTIONS.ADD_CITY:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        cities: [...(trip.cities || []), {
+          id: generateId(),
+          city: payload.city || 'New City',
+          country: payload.country || '',
+          flag: payload.flag || '🌍',
+          highlights: '',
+          mustDo: '',
+          weather: '',
+          currencyTip: '',
+          notes: '',
+        }],
+      }))
+
+    case ACTIONS.DELETE_CITY:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        cities: trip.cities.filter(c => c.id !== payload),
       }))
 
     // ─── Notes ───

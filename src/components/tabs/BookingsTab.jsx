@@ -4,40 +4,45 @@ import EditableText from '../shared/EditableText'
 import ProgressBar from '../shared/ProgressBar'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
-import { BOOKING_CATEGORIES, BOOKING_STATUSES } from '../../constants/tabs'
+import { BOOKING_CATEGORIES } from '../../constants/tabs'
 import { formatCurrency } from '../../utils/helpers'
 
-function StatusChip({ status, onClick }) {
-  const config = BOOKING_STATUSES.find(s => s.id === status) || BOOKING_STATUSES[0]
-  const colors = {
-    not_started: 'bg-text-muted/10 text-text-muted border-text-muted/20',
-    in_progress: 'bg-warning/10 text-warning border-warning/20',
-    booked: 'bg-success/10 text-success border-success/20',
+const STATUS_OPTIONS = [
+  { value: 'not_started', label: 'Not Started', colors: 'bg-text-muted/10 text-text-muted border-text-muted/20' },
+  { value: 'in_progress', label: 'In Progress', colors: 'bg-warning/10 text-warning border-warning/20' },
+  { value: 'booked', label: 'Booked ✓', colors: 'bg-success/10 text-success border-success/20' },
+]
+
+function StatusDropdown({ status, bookingId }) {
+  const { dispatch, showToast } = useTripContext()
+  const current = STATUS_OPTIONS.find(s => s.value === status) || STATUS_OPTIONS[0]
+
+  const handleChange = (e) => {
+    const newStatus = e.target.value
+    dispatch({ type: ACTIONS.SET_BOOKING_STATUS, payload: { id: bookingId, status: newStatus } })
+    if (newStatus === 'booked') showToast('Booked! ✓ One less thing to worry about.')
   }
+
   return (
-    <button
-      onClick={onClick}
-      className={`px-2.5 py-1 text-xs font-medium rounded-[var(--radius-pill)] border transition-all
-        hover:scale-105 active:scale-95 ${colors[status] || colors.not_started}`}
-      title="Click to cycle status"
-    >
-      {config.label}
-    </button>
+    <div className="relative inline-block">
+      <select
+        value={status}
+        onChange={handleChange}
+        className={`appearance-none cursor-pointer pl-2.5 pr-6 py-1 text-xs font-medium rounded-[var(--radius-pill)]
+          border transition-all hover:opacity-80 ${current.colors}`}
+      >
+        {STATUS_OPTIONS.map(opt => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+      <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] opacity-60">▾</span>
+    </div>
   )
 }
 
 function BookingCard({ booking, currency }) {
-  const { dispatch, showToast } = useTripContext()
+  const { dispatch } = useTripContext()
   const categoryConfig = BOOKING_CATEGORIES.find(c => c.id === booking.category) || BOOKING_CATEGORIES[5]
-
-  const handleCycleStatus = () => {
-    dispatch({ type: ACTIONS.CYCLE_BOOKING_STATUS, payload: booking.id })
-    const statuses = ['not_started', 'in_progress', 'booked']
-    const nextIndex = (statuses.indexOf(booking.status) + 1) % statuses.length
-    if (statuses[nextIndex] === 'booked') {
-      showToast("Booked! ✓ One less thing to worry about.")
-    }
-  }
 
   return (
     <Card hover className="animate-fade-in">
@@ -57,7 +62,7 @@ function BookingCard({ booking, currency }) {
               <span className="text-xs px-2 py-0.5 bg-bg-hover rounded-[var(--radius-pill)] text-text-muted">
                 {categoryConfig.label}
               </span>
-              <StatusChip status={booking.status} onClick={handleCycleStatus} />
+              <StatusDropdown status={booking.status} bookingId={booking.id} />
             </div>
           </div>
         </div>
@@ -163,10 +168,9 @@ function AddBookingForm({ onAdd, onCancel }) {
 }
 
 export default function BookingsTab() {
-  const { activeTrip } = useTripContext()
+  const { activeTrip, dispatch, showToast } = useTripContext()
   const [filter, setFilter] = useState('all')
   const [adding, setAdding] = useState(false)
-  const { dispatch, showToast } = useTripContext()
 
   if (!activeTrip) return null
   const trip = activeTrip
@@ -179,7 +183,7 @@ export default function BookingsTab() {
     if (filter !== 'all') {
       bookings = bookings.filter(b => b.category === filter)
     }
-    // Sort: unconfirmed first, then by priority
+    // Unconfirmed first, then by priority
     return bookings.sort((a, b) => {
       if (a.status === 'booked' && b.status !== 'booked') return 1
       if (b.status === 'booked' && a.status !== 'booked') return -1

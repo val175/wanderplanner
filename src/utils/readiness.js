@@ -1,26 +1,27 @@
 /**
  * Calculate Trip Readiness Score (0-100)
  * Weighted: Bookings 40%, Todos 35%, Packing 25%
+ * Empty lists score 0 (not started) rather than 1 (complete).
  */
 export function calculateReadiness(trip) {
   if (!trip) return 0
 
   const weights = { bookings: 0.4, todos: 0.35, packing: 0.25 }
 
-  // Bookings score
+  // Bookings score — 0 if no bookings yet
   const totalBookings = trip.bookings?.length || 0
   const confirmedBookings = trip.bookings?.filter(b => b.status === 'booked').length || 0
-  const bookingScore = totalBookings > 0 ? confirmedBookings / totalBookings : 1
+  const bookingScore = totalBookings > 0 ? confirmedBookings / totalBookings : 0
 
-  // Todos score
+  // Todos score — 0 if no todos yet
   const totalTodos = trip.todos?.length || 0
   const completedTodos = trip.todos?.filter(t => t.done).length || 0
-  const todoScore = totalTodos > 0 ? completedTodos / totalTodos : 1
+  const todoScore = totalTodos > 0 ? completedTodos / totalTodos : 0
 
-  // Packing score
+  // Packing score — 0 if no packing items yet
   const totalPacking = trip.packingList?.length || 0
   const packedItems = trip.packingList?.filter(p => p.packed).length || 0
-  const packingScore = totalPacking > 0 ? packedItems / totalPacking : 1
+  const packingScore = totalPacking > 0 ? packedItems / totalPacking : 0
 
   const score = Math.round(
     (bookingScore * weights.bookings +
