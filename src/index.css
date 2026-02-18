@@ -1,0 +1,243 @@
+@import "tailwindcss";
+
+/* ─── Anthropic Proprietary Fonts (exact same files as anthropic.com) ─── */
+/* Anthropic Sans — variable sans-serif, used for headings, UI labels, buttons */
+@font-face {
+  font-family: "Anthropic Sans";
+  font-weight: 300 800;
+  font-style: normal;
+  font-display: swap;
+  src: url("https://cdn.prod.website-files.com/67ce28cfec624e2b733f8a52/6931e8a95706378cf227c83d_AnthropicSans-Roman-Web.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Anthropic Sans";
+  font-weight: 300 800;
+  font-style: italic;
+  font-display: swap;
+  src: url("https://cdn.prod.website-files.com/67ce28cfec624e2b733f8a52/6931e8a96f4a2fb0fac5769d_AnthropicSans-Italic-Web.woff2") format("woff2");
+}
+
+/* Anthropic Serif — variable serif, used for body copy, paragraph text */
+@font-face {
+  font-family: "Anthropic Serif";
+  font-weight: 300 800;
+  font-style: normal;
+  font-display: swap;
+  src: url("https://cdn.prod.website-files.com/67ce28cfec624e2b733f8a52/6931e8aa15739b7c09d56ee1_AnthropicSerif-Roman-Web.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Anthropic Serif";
+  font-weight: 300 800;
+  font-style: italic;
+  font-display: swap;
+  src: url("https://cdn.prod.website-files.com/67ce28cfec624e2b733f8a52/6931e8aaff2421cbb9f4cebe_AnthropicSerif-Italic-Web.woff2") format("woff2");
+}
+
+/* ─── Anthropic / Wanderplan Design System ─── */
+@theme {
+  /* Light mode colors (defaults) */
+  --color-bg-primary:   #FAF9F5;
+  --color-bg-secondary: #F2F0EB;
+  --color-bg-sidebar:   #EDEAE3;
+  --color-bg-hover:     #E5E2DA;
+  --color-bg-input:     #FFFFFF;
+
+  --color-accent:       #D97757;
+  --color-accent-hover: #C15F3C;
+  --color-accent-muted: oklch(0.70 0.14 45 / 0.12);
+
+  --color-text-primary:   #1A1A18;
+  --color-text-secondary: #3D3929;
+  --color-text-muted:     #9B9A93;
+  --color-text-inverse:   #FAF9F5;
+
+  --color-border:       #DDD9D0;
+  --color-border-strong: #C8C4BA;
+
+  --color-success:  #788C5D;
+  --color-info:     #6A9BCC;
+  --color-warning:  #D4A72C;
+  --color-danger:   #C15F3C;
+
+  --color-concert-dark:   #141413;
+  --color-concert-red:    #8B0000;
+  --color-concert-accent: #DC2626;
+
+  /* Typography — matching anthropic.com exactly:
+     Headings / UI / buttons → Anthropic Sans (sans-serif)
+     Body copy / paragraphs  → Anthropic Serif (serif)            */
+  --font-heading: "Anthropic Sans", Arial, sans-serif;
+  --font-body:    "Anthropic Serif", Georgia, serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  /* Flat design — no shadows at all */
+  --shadow-sm:         none;
+  --shadow-card:       none;
+  --shadow-card-hover: none;
+  --shadow-modal:      none;
+  --shadow-md:         none;
+
+  /* Border radius */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   20px;
+  --radius-pill: 999px;
+
+  /* Layout */
+  --sidebar-width: 272px;
+}
+
+/* ─── Dark Mode ─── */
+.dark {
+  --color-bg-primary:   #1A1918;
+  --color-bg-secondary: #232220;
+  --color-bg-sidebar:   #141413;
+  --color-bg-hover:     #2C2B28;
+  --color-bg-input:     #2C2B28;
+
+  --color-accent-muted: oklch(0.70 0.14 45 / 0.15);
+
+  --color-text-primary:   #FAF9F5;
+  --color-text-secondary: #D4D1C7;
+  --color-text-muted:     #706E67;
+
+  --color-border:       #363430;
+  --color-border-strong: #46443E;
+}
+
+/* ─── Base Styles ─── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  /* Anthropic Sans is the UI default — all chrome, tabs, buttons, labels */
+  font-family: var(--font-heading);
+  background: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+/* Explicit serif class — apply to prose/editorial paragraphs only */
+.font-serif,
+.font-body {
+  font-family: var(--font-body);
+}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ─── Animations ─── */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes slide-out-left {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes progress-fill {
+  from { stroke-dashoffset: var(--circumference); }
+  to   { stroke-dashoffset: var(--target-offset); }
+}
+
+/* Flat pulse — color only, no box-shadow */
+@keyframes pulse-warm {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+@keyframes confetti-fall {
+  0%   { transform: translateY(-10vh) rotate(0deg) scale(1); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg) scale(0.5); opacity: 0; }
+}
+
+@keyframes check-pop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(12px) translateX(-50%); }
+  to   { opacity: 1; transform: translateY(0) translateX(-50%); }
+}
+
+@keyframes toast-out {
+  from { opacity: 1; transform: translateY(0) translateX(-50%); }
+  to   { opacity: 0; transform: translateY(12px) translateX(-50%); }
+}
+
+.animate-fade-in     { animation: fade-in 0.25s ease-out both; }
+.animate-fade-in-up  { animation: fade-in-up 0.35s ease-out both; }
+.animate-slide-in    { animation: slide-in-left 0.25s ease-out both; }
+.animate-slide-out   { animation: slide-out-left 0.25s ease-in both; }
+.animate-scale-in    { animation: scale-in 0.2s ease-out both; }
+.animate-pulse-warm  { animation: pulse-warm 2s ease-in-out infinite; }
+.animate-check-pop   { animation: check-pop 0.3s ease-out; }
+.animate-toast-in    { animation: toast-in 0.25s ease-out both; }
+.animate-toast-out   { animation: toast-out 0.25s ease-in both; }
+
+/* Staggered animation delays */
+.delay-1 { animation-delay: 0.05s; }
+.delay-2 { animation-delay: 0.1s; }
+.delay-3 { animation-delay: 0.15s; }
+.delay-4 { animation-delay: 0.2s; }
+.delay-5 { animation-delay: 0.25s; }
+
+/* ─── Confetti Piece ─── */
+.confetti-piece {
+  position: fixed;
+  top: -10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  animation: confetti-fall 2.5s ease-in forwards;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* ─── Concert Theme Override ─── */
+.concert-theme {
+  --color-bg-primary:   #141413;
+  --color-bg-secondary: #1C1C1A;
+  --color-text-primary:   #FAF9F5;
+  --color-text-secondary: #D4D1C7;
+  --color-accent:  #DC2626;
+  --color-border:  #2A2A28;
+}
