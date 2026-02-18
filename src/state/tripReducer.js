@@ -64,6 +64,9 @@ export const ACTIONS = {
 
   // Activity Log
   LOG_ACTIVITY: 'LOG_ACTIVITY',
+
+  // Firestore sync — replaces entire trips map from remote snapshot
+  SET_TRIPS_FROM_FIRESTORE: 'SET_TRIPS_FROM_FIRESTORE',
 }
 
 const STATUS_CYCLE = ['not_started', 'in_progress', 'booked']
@@ -318,6 +321,22 @@ export function tripReducer(state, action) {
     // ─── Notes ───
     case ACTIONS.UPDATE_NOTES:
       return updateTrip(state, activeTripId, { notes: payload })
+
+    // ─── Firestore sync ───
+    // Replaces the entire trips map with data from a Firestore snapshot.
+    // Preserves activeTripId if the active trip still exists in the new map.
+    case ACTIONS.SET_TRIPS_FROM_FIRESTORE: {
+      const newTrips = payload
+      const ids = Object.keys(newTrips)
+      const currentActiveId = state.activeTripId
+      const newActiveId =
+        currentActiveId && newTrips[currentActiveId]
+          ? currentActiveId
+          : ids.length > 0
+          ? ids[0]
+          : null
+      return { ...state, trips: newTrips, activeTripId: newActiveId }
+    }
 
     default:
       return state

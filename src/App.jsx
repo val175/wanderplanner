@@ -1,8 +1,12 @@
 import { useState, useCallback } from 'react'
 import { TripContext } from './context/TripContext'
-import { useTrips } from './hooks/useTrips'
+import { useAuth } from './hooks/useAuth'
+import { useFirestoreTrips } from './hooks/useFirestoreTrips'
 import { useMediaQuery } from './hooks/useMediaQuery'
 import { ACTIONS } from './state/tripReducer'
+
+// Auth
+import AuthScreen from './components/auth/AuthScreen'
 
 // Layout components
 import Sidebar from './components/sidebar/Sidebar'
@@ -27,8 +31,6 @@ import ConcertTab from './components/tabs/ConcertTab'
 
 /* ─────────────────────────────────────────────────────────────
    Tab panel renderer
-   Centralizes which component maps to which tab id.
-   concert-theme CSS class applies the dark red concert aesthetic.
 ───────────────────────────────────────────────────────────── */
 function TabPanel({ activeTab }) {
   switch (activeTab) {
@@ -45,15 +47,13 @@ function TabPanel({ activeTab }) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Empty state — shown when no trips exist at all
+   Empty state — shown when no trips exist
 ───────────────────────────────────────────────────────────── */
 function EmptyState({ onNewTrip }) {
   return (
     <div className="flex-1 flex items-center justify-center p-8 animate-fade-in-up">
       <div className="text-center max-w-sm">
-        {/* Illustration */}
         <div className="text-7xl mb-6 animate-pulse-warm">🧳</div>
-
         <h2 className="font-heading text-2xl font-bold text-text-primary mb-3">
           No trips yet
         </h2>
@@ -61,13 +61,11 @@ function EmptyState({ onNewTrip }) {
           Every great adventure starts with a plan. Create your first trip and let
           Wanderplan help you make it unforgettable.
         </p>
-
         <button
           onClick={onNewTrip}
           className="inline-flex items-center gap-2 px-6 py-3
                      bg-accent hover:bg-accent-hover text-text-inverse
                      font-semibold text-sm rounded-[var(--radius-md)]
-                     
                      transition-all duration-200 active:scale-[0.98]"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -84,8 +82,7 @@ function EmptyState({ onNewTrip }) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Mobile hamburger button — renders only on small screens.
-   Dispatches SET_SIDEBAR to toggle the slide-in drawer.
+   Mobile hamburger button
 ───────────────────────────────────────────────────────────── */
 function HamburgerButton({ onClick }) {
   return (
@@ -111,58 +108,55 @@ function HamburgerButton({ onClick }) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Inner app — consumes TripContext.
-   Separated so it sits inside the context provider.
+   Loading screen — shown while auth or Firestore is initialising
 ───────────────────────────────────────────────────────────── */
-function AppInner() {
-  const { state, dispatch, activeTrip, sortedTrips, showToast } = useTrips()
-  const isMobile = useMediaQuery('(max-width: 767px)')
+function LoadingScreen({ message = 'Loading…' }) {
+  return (
+    <div className="flex h-screen items-center justify-center bg-bg-primary">
+      <div className="text-center">
+        <div className="text-4xl mb-4 animate-pulse-warm">🗺️</div>
+        <p className="text-text-muted text-sm animate-pulse">{message}</p>
+      </div>
+    </div>
+  )
+}
 
-  // Modal open/close state lives here so Sidebar can open it
+/* ─────────────────────────────────────────────────────────────
+   Authenticated app — only mounts AFTER the user is signed in.
+   Keeping it separate means useFirestoreTrips only runs when
+   we have a valid auth session (Firestore rules require auth).
+───────────────────────────────────────────────────────────── */
+function AuthenticatedApp({ signOutUser }) {
+  const { state, dispatch, activeTrip, sortedTrips, showToast, firestoreLoading } = useFirestoreTrips()
+  const isMobile = useMediaQuery('(max-width: 767px)')
   const [showNewTripModal, setShowNewTripModal] = useState(false)
 
   const handleNewTrip = useCallback(() => {
     setShowNewTripModal(true)
-    // On mobile, also close the sidebar drawer when modal opens
-    if (isMobile) {
-      dispatch({ type: ACTIONS.SET_SIDEBAR, payload: false })
-    }
+    if (isMobile) dispatch({ type: ACTIONS.SET_SIDEBAR, payload: false })
   }, [isMobile, dispatch])
 
-  const handleCloseModal = useCallback(() => {
-    setShowNewTripModal(false)
-  }, [])
-
-  const handleOpenSidebar = useCallback(() => {
-    dispatch({ type: ACTIONS.SET_SIDEBAR, payload: true })
-  }, [dispatch])
+  const handleCloseModal = useCallback(() => setShowNewTripModal(false), [])
+  const handleOpenSidebar = useCallback(() => dispatch({ type: ACTIONS.SET_SIDEBAR, payload: true }), [dispatch])
 
   const isConcertTab = state.activeTab === 'concert'
 
+  if (firestoreLoading) {
+    return <LoadingScreen message="Loading your trips…" />
+  }
+
   return (
-    // TripContext.Provider wraps everything — all child components
-    // access state/dispatch/activeTrip/etc via useTripContext()
-    <TripContext.Provider value={{ state, dispatch, activeTrip, sortedTrips, showToast }}>
-      {/* Root layout: flex row — sidebar + main panel */}
+    <TripContext.Provider value={{ state, dispatch, activeTrip, sortedTrips, showToast, signOutUser }}>
       <div className="flex h-screen overflow-hidden bg-bg-primary text-text-secondary">
 
-        {/* ── Sidebar ─────────────────────────────────── */}
-        {/* Desktop: always visible. Mobile: slide-in drawer. */}
-        {/* We pass onNewTrip so Sidebar opens the modal wizard
-            instead of calling createEmptyTrip() directly. */}
         <Sidebar
           isMobile={isMobile}
           isOpen={state.sidebarOpen}
           onNewTrip={handleNewTrip}
         />
 
-        {/* ── Mobile hamburger ────────────────────────── */}
-        {isMobile && (
-          <HamburgerButton onClick={handleOpenSidebar} />
-        )}
+        {isMobile && <HamburgerButton onClick={handleOpenSidebar} />}
 
-        {/* ── Main content panel ──────────────────────── */}
-        {/* concert-theme CSS class overrides design tokens for dark red aesthetic */}
         <main
           className={`
             flex-1 flex flex-col overflow-hidden bg-bg-primary
@@ -172,13 +166,8 @@ function AppInner() {
         >
           {activeTrip ? (
             <>
-              {/* Trip header: emoji, name, destination chain, readiness, countdowns */}
               <TripHeader />
-
-              {/* Tab navigation bar — sticky, scrollable on mobile */}
               <TabBar />
-
-              {/* Tab content — scrollable area */}
               <div
                 id={`panel-${state.activeTab}`}
                 role="tabpanel"
@@ -190,20 +179,12 @@ function AppInner() {
               </div>
             </>
           ) : (
-            /* No trips at all — show welcome empty state */
             <EmptyState onNewTrip={handleNewTrip} />
           )}
         </main>
 
-        {/* ── New Trip Modal ──────────────────────────── */}
-        {/* 4-step wizard modal. isOpen/onClose controlled by App state. */}
-        <NewTripModal
-          isOpen={showNewTripModal}
-          onClose={handleCloseModal}
-        />
+        <NewTripModal isOpen={showNewTripModal} onClose={handleCloseModal} />
 
-        {/* ── Toast notifications ─────────────────────── */}
-        {/* Fixed bottom-center, auto-dismisses via useTrips hook */}
         <Toast
           message={state.toast.message}
           type={state.toast.type}
@@ -215,9 +196,43 @@ function AppInner() {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   App root — kept thin intentionally.
-   AppInner does the heavy lifting inside the context boundary.
+   App root — handles auth gating.
+   useAuth lives here; AuthenticatedApp only mounts when signed in.
 ───────────────────────────────────────────────────────────── */
 export default function App() {
-  return <AppInner />
+  const { user, authLoading, signInWithGoogle, signOutUser } = useAuth()
+
+  if (authLoading) {
+    return <LoadingScreen message="Loading…" />
+  }
+
+  if (!user) {
+    return <AuthScreen onSignIn={signInWithGoogle} />
+  }
+
+  // Email allowlist — only these two accounts can access the app
+  const ALLOWED_EMAILS = ['valentin.bonite@gmail.com', 'juliannsibi@gmail.com']
+  if (!ALLOWED_EMAILS.includes(user.email)) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-bg-primary">
+        <div className="text-center max-w-sm px-8">
+          <div className="text-5xl mb-5">🔒</div>
+          <h2 className="font-heading text-xl font-bold text-text-primary mb-2">
+            Access restricted
+          </h2>
+          <p className="text-text-muted text-sm mb-6 leading-relaxed">
+            This app is private. You signed in as <span className="text-text-primary font-medium">{user.email}</span>, which isn't on the access list.
+          </p>
+          <button
+            onClick={signOutUser}
+            className="text-sm text-accent hover:underline"
+          >
+            Sign out and try another account
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return <AuthenticatedApp signOutUser={signOutUser} />
 }

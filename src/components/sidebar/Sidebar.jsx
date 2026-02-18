@@ -2,11 +2,13 @@ import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import TripCard from './TripCard'
 import SidebarFooter from './SidebarFooter'
+import { useAuth } from '../../hooks/useAuth'
 
 // onNewTrip is passed from App.jsx — it opens the 4-step NewTripModal wizard
 // rather than creating an empty trip directly (separation of concerns).
 export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
   const { state, dispatch, sortedTrips } = useTripContext()
+  const { signOutUser } = useAuth()
 
   const handleNewTrip = () => {
     if (onNewTrip) {
@@ -101,7 +103,7 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
       </div>
 
       {/* Footer */}
-      <SidebarFooter count={sortedTrips.length} />
+      <SidebarFooter count={sortedTrips.length} onSignOut={signOutUser} />
     </aside>
   )
 
