@@ -416,63 +416,83 @@ function StepBasics({ form, setForm }) {
  * Selecting a suggestion auto-fills city, country, and flag.
  * Free-text entry is also allowed for unlisted cities.
  */
-function CityCombobox({ value, country, flag, onChange, index }) {
+function CityCombobox({ value, country, flag, onChange }) {
+  // `query` is local — the uncommitted text in the input.
+  // We only sync FROM parent when the parent resets (value becomes '').
   const [query, setQuery] = useState(value)
   const [open, setOpen] = useState(false)
-  const wrapperRef = useRef(null)
+  // Position of the dropdown in viewport coords (avoids overflow-clip from Modal)
+  const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 0 })
+  const inputRef = useRef(null)
 
-  // Sync external value changes (e.g., clearing the form)
-  useEffect(() => { setQuery(value) }, [value])
-
-  // Close dropdown on outside click
+  // Only sync down when parent clears the field (modal reset)
   useEffect(() => {
-    function handleOutside(e) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) setOpen(false)
+    if (value === '') setQuery('')
+  }, [value])
+
+  // Reposition dropdown whenever it opens
+  useEffect(() => {
+    if (open && inputRef.current) {
+      const r = inputRef.current.getBoundingClientRect()
+      setDropPos({ top: r.bottom + 4, left: r.left, width: r.width })
     }
-    document.addEventListener('mousedown', handleOutside)
-    return () => document.removeEventListener('mousedown', handleOutside)
-  }, [])
+  }, [open])
 
   const suggestions = useMemo(() => {
-    if (!query.trim() || query.length < 1) return []
+    if (!query.trim()) return []
     const q = query.toLowerCase()
-    return CITY_DB.filter(c =>
-      c.city.toLowerCase().startsWith(q) ||
-      c.city.toLowerCase().includes(q) ||
-      c.country.toLowerCase().startsWith(q)
-    ).slice(0, 8)
+    // Prioritise prefix matches, then substring matches
+    const prefix = CITY_DB.filter(c => c.city.toLowerCase().startsWith(q))
+    const substr = CITY_DB.filter(c =>
+      !c.city.toLowerCase().startsWith(q) && (
+        c.city.toLowerCase().includes(q) ||
+        c.country.toLowerCase().startsWith(q)
+      )
+    )
+    return [...prefix, ...substr].slice(0, 8)
   }, [query])
 
-  const handleInputChange = (e) => {
-    const val = e.target.value
-    setQuery(val)
-    setOpen(true)
-    // Pass free-text city update (no country/flag change for unmatched input)
-    onChange({ city: val, country, flag })
-  }
-
-  const handleSelect = (entry) => {
+  const commitSelection = (entry) => {
     const derivedFlag = flagFromCity(entry)
     setQuery(entry.city)
     setOpen(false)
     onChange({ city: entry.city, country: entry.country, flag: derivedFlag })
   }
 
+  const handleInputChange = (e) => {
+    const val = e.target.value
+    setQuery(val)
+    setOpen(true)
+    // Push free-text to parent immediately so country field stays in sync
+    onChange({ city: val, country, flag })
+  }
+
+  const handleBlur = () => {
+    // Small delay so mousedown on a suggestion fires before blur closes dropdown
+    setTimeout(() => setOpen(false), 150)
+  }
+
   const handleKeyDown = (e) => {
-    if (e.key === 'Escape') setOpen(false)
+    if (e.key === 'Escape') { setOpen(false); return }
     if (e.key === 'Enter' && suggestions.length > 0) {
       e.preventDefault()
-      handleSelect(suggestions[0])
+      commitSelection(suggestions[0])
+    }
+    if (e.key === 'ArrowDown' && suggestions.length > 0) {
+      e.preventDefault()
+      setOpen(true)
     }
   }
 
   return (
-    <div ref={wrapperRef} className="relative flex-1">
+    <div className="relative flex-1">
       <input
+        ref={inputRef}
         type="text"
         value={query}
         onChange={handleInputChange}
-        onFocus={() => query.length > 0 && setOpen(true)}
+        onFocus={() => query.trim().length > 0 && setOpen(true)}
+        onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         placeholder="City"
         autoComplete="off"
@@ -481,14 +501,17 @@ function CityCombobox({ value, country, flag, onChange, index }) {
                    focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
       />
       {open && suggestions.length > 0 && (
-        <ul className="absolute top-full left-0 right-0 mt-1 z-50
-                        bg-bg-primary border border-border rounded-[var(--radius-md)]
-                        overflow-hidden shadow-lg max-h-52 overflow-y-auto">
+        <ul
+          style={{ position: 'fixed', top: dropPos.top, left: dropPos.left, width: dropPos.width }}
+          className="z-[9999] bg-bg-primary border border-border rounded-[var(--radius-md)]
+                     overflow-hidden shadow-xl max-h-52 overflow-y-auto"
+        >
           {suggestions.map((entry, i) => (
             <li key={i}>
               <button
                 type="button"
-                onMouseDown={(e) => { e.preventDefault(); handleSelect(entry) }}
+                // Use click (not mousedown) — handleBlur delay gives time for this to fire
+                onClick={() => commitSelection(entry)}
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left
                            hover:bg-bg-hover transition-colors"
               >
