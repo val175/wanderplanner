@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react'
 import Modal from '../shared/Modal'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
@@ -137,6 +137,9 @@ const CITY_DB = [
   { city: 'Zurich', country: 'Switzerland', iso: 'CH' },
   { city: 'Geneva', country: 'Switzerland', iso: 'CH' },
   { city: 'Interlaken', country: 'Switzerland', iso: 'CH' },
+  { city: 'Grindelwald', country: 'Switzerland', iso: 'CH' },
+  { city: 'Zermatt', country: 'Switzerland', iso: 'CH' },
+  { city: 'Lucerne', country: 'Switzerland', iso: 'CH' },
   { city: 'Bern', country: 'Switzerland', iso: 'CH' },
   // Europe — Southern
   { city: 'Rome', country: 'Italy', iso: 'IT' },
@@ -267,6 +270,21 @@ function flagFromCity(cityEntry) {
 const COUNTRY_FLAGS_MAP = Object.fromEntries(
   CITY_DB.map(e => [e.country, isoToFlag(e.iso)])
 )
+
+// Best-effort resolution: given whatever the user typed, return { city, country, flag }
+// Priority: CITY_DB exact match → country name lookup → keep whatever we have
+function resolveCity(cityName, country, flag) {
+  const cityTrimmed = cityName.trim()
+  const countryTrimmed = country.trim()
+  // Exact city-name match in DB (case-insensitive)
+  const dbMatch = CITY_DB.find(c => c.city.toLowerCase() === cityTrimmed.toLowerCase())
+  if (dbMatch) {
+    return { city: cityTrimmed, country: dbMatch.country, flag: isoToFlag(dbMatch.iso) }
+  }
+  // No city match — try to derive flag from country name
+  const derivedFlag = COUNTRY_FLAGS_MAP[countryTrimmed] || flag || '🌍'
+  return { city: cityTrimmed, country: countryTrimmed, flag: derivedFlag }
+}
 
 /* ─────────────────── Step Indicator ─────────────────── */
 function StepIndicator({ currentStep }) {
@@ -430,11 +448,22 @@ function CityCombobox({ value, country, flag, onChange }) {
     if (value === '') setQuery('')
   }, [value])
 
-  // Reposition dropdown whenever it opens
-  useEffect(() => {
-    if (open && inputRef.current) {
+  // Reposition dropdown — useLayoutEffect fires before paint so the dropdown
+  // never renders with width:0 on its first visible frame.
+  // Recompute on both open-change and query-change (suggestions list may vary in height).
+  useLayoutEffect(() => {
+    if (!open || !inputRef.current) return
+    const reposition = () => {
+      if (!inputRef.current) return
       const r = inputRef.current.getBoundingClientRect()
       setDropPos({ top: r.bottom + 4, left: r.left, width: r.width })
+    }
+    reposition()
+    window.addEventListener('scroll', reposition, true)
+    window.addEventListener('resize', reposition)
+    return () => {
+      window.removeEventListener('scroll', reposition, true)
+      window.removeEventListener('resize', reposition)
     }
   }, [open])
 
@@ -468,8 +497,19 @@ function CityCombobox({ value, country, flag, onChange }) {
   }
 
   const handleBlur = () => {
-    // Small delay so mousedown on a suggestion fires before blur closes dropdown
-    setTimeout(() => setOpen(false), 150)
+    // Delay so click on a dropdown suggestion fires before blur closes it
+    setTimeout(() => {
+      setOpen(false)
+      // On blur, attempt to resolve the typed city against CITY_DB
+      // so free-typed known city names get their country+flag auto-filled
+      if (query.trim()) {
+        const resolved = resolveCity(query, country, flag)
+        if (resolved.flag !== flag || resolved.country !== country) {
+          setQuery(resolved.city)
+          onChange(resolved)
+        }
+      }
+    }, 150)
   }
 
   const handleKeyDown = (e) => {
@@ -788,13 +828,11 @@ export default function NewTripModal({ isOpen, onClose }) {
   }, [step, form])
 
   const handleCreate = () => {
+    // resolveCity ensures every destination has the best available country + flag,
+    // even if the user typed freely without selecting from the autocomplete dropdown
     const destinations = form.destinations
       .filter(d => d.city.trim())
-      .map(d => ({
-        city: d.city.trim(),
-        country: d.country.trim(),
-        flag: d.flag || COUNTRY_FLAGS_MAP[d.country.trim()] || '🌍',
-      }))
+      .map(d => resolveCity(d.city, d.country, d.flag))
 
     // Mirror destinations into CitiesTab city cards (deduplicated by city name)
     const seen = new Map()
