@@ -5,8 +5,9 @@
  * so every response is grounded in the user's actual trip data.
  */
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`
+// Requests go to our Cloudflare Worker proxy — the Gemini API key
+// lives there as an encrypted secret, never in the frontend bundle.
+const PROXY_URL = 'https://wanderplan-ai.valentin-bonite.workers.dev/ai'
 
 /**
  * Build a rich system prompt from the active trip.
@@ -84,8 +85,6 @@ Your role:
  * @returns {Promise<string>} The AI's reply text
  */
 export async function sendMessage(systemPrompt, history, userMessage) {
-  if (!API_KEY) throw new Error('Gemini API key not configured')
-
   // Gemini uses 'contents' array for history; 'user' and 'model' roles
   const contents = [
     ...history.map(msg => ({
@@ -109,7 +108,8 @@ export async function sendMessage(systemPrompt, history, userMessage) {
     },
   }
 
-  const res = await fetch(API_URL, {
+  // Call our Worker proxy — not Gemini directly
+  const res = await fetch(PROXY_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
