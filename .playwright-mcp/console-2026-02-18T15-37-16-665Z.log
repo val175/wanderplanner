@@ -1,3 +1,0 @@
-[   16319ms] [WARNING] Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://www.youtube.com') does not match the recipient window's origin ('https://www.google.com'). @ https://www.youtube.com/s/player/1798f86c/www-widgetapi.vflset/www-widgetapi.js:209
-[   50431ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ0iB6owLoaLGRB7XuJ37QRe67vbYEDfv6S58eSFJlyKFt1KxIWz-vQ-34&s:0
-[   51321ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRnkKPx5KcdjrJH-8p2M40gWhS0Ssu-QPAuPm0ZKr0G3Zvp5FN6M2haDzs&s:0
