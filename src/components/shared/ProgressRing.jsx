@@ -7,6 +7,9 @@ export default function ProgressRing({
   className = '',
   showLabel = true,
   labelClassName = '',
+  pulse = false,       // glow-pulse when true (used at 0% to signal "needs attention")
+  onClick = null,      // if provided, ring becomes a clickable button
+  tooltip = null,      // optional hover tooltip text
 }) {
   const [animatedValue, setAnimatedValue] = useState(0)
   const radius = (size - strokeWidth) / 2
@@ -18,7 +21,6 @@ export default function ProgressRing({
     return () => clearTimeout(timer)
   }, [value])
 
-  // Color based on progress
   const getColor = (val) => {
     if (val >= 80) return 'var(--color-success)'
     if (val >= 50) return 'var(--color-accent)'
@@ -26,10 +28,20 @@ export default function ProgressRing({
     return 'var(--color-text-muted)'
   }
 
-  return (
-    <div className={`relative inline-flex items-center justify-center ${className}`}>
+  const inner = (
+    <div
+      className={`relative inline-flex items-center justify-center ${className}`}
+      title={tooltip || undefined}
+    >
+      {/* Pulse ring behind SVG for 0% state */}
+      {pulse && (
+        <span
+          className="absolute inset-0 rounded-full animate-ping opacity-20"
+          style={{ background: 'var(--color-accent)' }}
+        />
+      )}
       <svg width={size} height={size} className="-rotate-90">
-        {/* Background circle */}
+        {/* Background track */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -38,7 +50,7 @@ export default function ProgressRing({
           stroke="var(--color-border)"
           strokeWidth={strokeWidth}
         />
-        {/* Progress circle */}
+        {/* Progress arc */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -49,16 +61,34 @@ export default function ProgressRing({
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           strokeLinecap="round"
-          style={{
-            transition: 'stroke-dashoffset 0.8s ease-out, stroke 0.3s ease',
-          }}
+          style={{ transition: 'stroke-dashoffset 0.8s ease-out, stroke 0.3s ease' }}
         />
       </svg>
       {showLabel && (
-        <span className={`absolute text-text-primary font-semibold ${labelClassName}`} style={{ fontSize: size * 0.22 }}>
+        <span
+          className={`absolute text-text-primary font-semibold ${labelClassName}`}
+          style={{ fontSize: size * 0.22 }}
+        >
           {Math.round(animatedValue)}%
         </span>
       )}
     </div>
   )
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50
+                   hover:opacity-80 active:scale-95 transition-all duration-150 cursor-pointer"
+        title={tooltip || undefined}
+        aria-label={tooltip || `Trip readiness: ${value}%`}
+      >
+        {inner}
+      </button>
+    )
+  }
+
+  return inner
 }

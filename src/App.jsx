@@ -33,9 +33,9 @@ import ConcertTab from './components/tabs/ConcertTab'
 /* ─────────────────────────────────────────────────────────────
    Tab panel renderer
 ───────────────────────────────────────────────────────────── */
-function TabPanel({ activeTab }) {
+function TabPanel({ activeTab, onTabSwitch }) {
   switch (activeTab) {
-    case 'overview':    return <OverviewTab />
+    case 'overview':    return <OverviewTab onTabSwitch={onTabSwitch} />
     case 'itinerary':  return <ItineraryTab />
     case 'bookings':   return <BookingsTab />
     case 'budget':     return <BudgetTab />
@@ -43,7 +43,7 @@ function TabPanel({ activeTab }) {
     case 'cities':     return <CitiesTab />
     case 'packing':    return <PackingTab />
     case 'concert':    return <ConcertTab />
-    default:           return <OverviewTab />
+    default:           return <OverviewTab onTabSwitch={onTabSwitch} />
   }
 }
 
@@ -140,6 +140,13 @@ function AuthenticatedApp({ signOutUser }) {
   const handleCloseModal = useCallback(() => setShowNewTripModal(false), [])
   const handleOpenSidebar = useCallback(() => dispatch({ type: ACTIONS.SET_SIDEBAR, payload: true }), [dispatch])
 
+  // Maps tab labels (used in QuickStart cards) → tab IDs
+  const TAB_LABEL_TO_ID = { Overview: 'overview', Itinerary: 'itinerary', Bookings: 'bookings', Budget: 'budget', 'To-Do': 'todo', Cities: 'cities', Packing: 'packing' }
+  const handleTabSwitch = useCallback((tabLabel) => {
+    const id = TAB_LABEL_TO_ID[tabLabel]
+    if (id) dispatch({ type: ACTIONS.SET_TAB, payload: id })
+  }, [dispatch])
+
   const isConcertTab = state.activeTab === 'concert'
 
   if (firestoreLoading) {
@@ -175,7 +182,7 @@ function AuthenticatedApp({ signOutUser }) {
                 className="flex-1 overflow-y-auto"
               >
                 <div className="px-8 py-7 max-w-4xl mx-auto">
-                  <TabPanel activeTab={state.activeTab} />
+                  <TabPanel activeTab={state.activeTab} onTabSwitch={handleTabSwitch} />
                 </div>
               </div>
             </>

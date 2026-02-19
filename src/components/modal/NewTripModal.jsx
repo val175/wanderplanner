@@ -543,7 +543,14 @@ function CityCombobox({ value, country, flag, onChange }) {
       />
       {open && suggestions.length > 0 && createPortal(
         <ul
-          style={{ position: 'fixed', top: dropPos.top, left: dropPos.left, width: dropPos.width }}
+          style={{
+            position: 'fixed',
+            top: dropPos.top,
+            left: dropPos.left,
+            minWidth: '260px',
+            width: 'max-content',
+            maxWidth: '340px',
+          }}
           className="z-[9999] bg-bg-primary border border-border rounded-[var(--radius-md)]
                      shadow-xl max-h-52 overflow-y-auto"
         >
@@ -551,14 +558,15 @@ function CityCombobox({ value, country, flag, onChange }) {
             <li key={i}>
               <button
                 type="button"
-                // Use click (not mousedown) — handleBlur delay gives time for this to fire
                 onClick={() => commitSelection(entry)}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left
+                className="w-full flex items-center gap-3 px-3 py-2.5 text-left
                            hover:bg-bg-hover transition-colors"
               >
-                <span className="text-base w-6 text-center flex-shrink-0">{flagFromCity(entry)}</span>
-                <span className="text-text-primary font-medium">{entry.city}</span>
-                <span className="text-text-muted text-xs ml-auto flex-shrink-0">{entry.country}</span>
+                <span className="text-lg flex-shrink-0 w-7 text-center">{flagFromCity(entry)}</span>
+                <span className="flex flex-col min-w-0">
+                  <span className="text-sm font-semibold text-text-primary leading-tight">{entry.city}</span>
+                  <span className="text-xs text-text-muted leading-tight mt-0.5">{entry.country}</span>
+                </span>
               </button>
             </li>
           ))}

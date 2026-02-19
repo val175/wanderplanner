@@ -7,11 +7,11 @@ import { buildTripSystemPrompt, sendMessage } from '../../hooks/useAI'
 ───────────────────────────────────────────────────────────── */
 const PROMPT_CHIPS = [
   { label: '🗺️ Optimize itinerary', text: 'Can you review my itinerary and suggest any improvements or optimizations?' },
-  { label: '🍽️ Restaurant tips', text: 'What are the best restaurants or food experiences I should try on this trip?' },
-  { label: '🧳 Packing advice', text: 'Based on my destinations and dates, what should I make sure to pack?' },
-  { label: '💰 Budget check', text: 'How is my budget looking? Any tips to save money or where to splurge?' },
-  { label: '⚡ Hidden gems', text: 'What are some lesser-known hidden gems or local tips for my destinations?' },
-  { label: '📅 Day plan', text: 'Can you suggest a perfect day itinerary for one of my destinations?' },
+  { label: '🍽️ Restaurant tips',    text: 'What are the best restaurants or food experiences I should try on this trip?' },
+  { label: '🧳 Packing advice',     text: 'Based on my destinations and dates, what should I make sure to pack?' },
+  { label: '💰 Budget check',       text: 'How is my budget looking? Any tips to save money or where to splurge?' },
+  { label: '⚡ Hidden gems',        text: 'What are some lesser-known hidden gems or local tips for my destinations?' },
+  { label: '📅 Day plan',           text: 'Can you suggest a perfect day itinerary for one of my destinations?' },
 ]
 
 /* ─────────────────────────────────────────────────────────────
@@ -65,27 +65,30 @@ function TypingIndicator() {
 export default function AIAssistant() {
   const { activeTrip } = useTripContext()
   const [isOpen, setIsOpen] = useState(false)
-  const [messages, setMessages] = useState([]) // { role: 'user'|'model', text: string }
+  const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [showChips, setShowChips] = useState(true)
+  // Track whether this is the very first mount so we can play bounce-in once
+  const [mounted, setMounted] = useState(false)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
 
-  // Auto-scroll to bottom when new messages arrive
+  // Trigger bounce-in on first mount with a tiny delay
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 200)
+    return () => clearTimeout(t)
+  }, [])
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
-  // Focus input when panel opens
   useEffect(() => {
-    if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 150)
-    }
+    if (isOpen) setTimeout(() => inputRef.current?.focus(), 150)
   }, [isOpen])
 
-  // Rebuild system prompt whenever activeTrip changes
   const systemPrompt = buildTripSystemPrompt(activeTrip)
 
   async function handleSend(text) {
@@ -102,64 +105,60 @@ export default function AIAssistant() {
     setLoading(true)
 
     try {
-      // Pass history (excluding the just-added user message) to sendMessage
-      const history = messages // history is everything before this new message
+      const history = messages
       const reply = await sendMessage(systemPrompt, history, message)
       setMessages(prev => [...prev, { role: 'model', text: reply }])
     } catch (err) {
       setError(err.message || 'Something went wrong. Try again.')
-      // Remove the user message we optimistically added on error
       setMessages(prev => prev.slice(0, -1))
     } finally {
       setLoading(false)
     }
   }
 
-  function handleChipClick(chip) {
-    handleSend(chip.text)
-  }
+  function handleChipClick(chip) { handleSend(chip.text) }
 
   function handleKeyDown(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
   }
 
-  function handleClear() {
-    setMessages([])
-    setError(null)
-    setShowChips(true)
-  }
+  function handleClear() { setMessages([]); setError(null); setShowChips(true) }
 
   const hasMessages = messages.length > 0
 
   return (
     <>
-      {/* ── Floating button ── */}
-      <button
-        onClick={() => setIsOpen(o => !o)}
-        className={`
-          fixed bottom-6 right-6 z-40
-          w-13 h-13 rounded-full
-          flex items-center justify-center text-xl
-          shadow-lg border border-border
-          transition-all duration-200 active:scale-95
-          ${isOpen
-            ? 'bg-bg-secondary text-text-secondary rotate-0 hover:bg-bg-tertiary'
-            : 'bg-accent hover:bg-accent-hover text-text-inverse'
-          }
-        `}
-        title={isOpen ? 'Close AI assistant' : 'Ask Wanda AI'}
-        aria-label={isOpen ? 'Close AI assistant' : 'Open AI assistant'}
-      >
-        {isOpen ? '✕' : '🪄'}
-      </button>
+      {/* ── Pill FAB ── */}
+      {mounted && (
+        <button
+          onClick={() => setIsOpen(o => !o)}
+          className={`
+            fixed bottom-6 right-6 z-40
+            flex items-center gap-2 px-4 py-2.5
+            rounded-full shadow-lg border border-border
+            text-sm font-semibold
+            transition-all duration-200 active:scale-95
+            animate-bounce-in
+            ${isOpen
+              ? 'bg-bg-secondary text-text-secondary hover:bg-bg-tertiary'
+              : 'bg-accent hover:bg-accent-hover text-text-inverse'
+            }
+          `}
+          title={isOpen ? 'Close Wanda' : 'Ask Wanda AI'}
+          aria-label={isOpen ? 'Close AI assistant' : 'Open AI assistant'}
+        >
+          <span className="text-base leading-none">{isOpen ? '✕' : '✨'}</span>
+          <span>{isOpen ? 'Close' : 'Ask Wanda'}</span>
+        </button>
+      )}
 
-      {/* ── Chat panel ── */}
+      {/* ── Chat panel ──
+          Desktop: anchored above the FAB (bottom-20), right-aligned.
+          We give it a bit more bottom clearance so it doesn't overlap the pill.
+      ── */}
       <div
         className={`
-          fixed bottom-24 right-6 z-40
+          fixed bottom-20 right-6 z-40
           w-[min(380px,calc(100vw-3rem))]
           bg-bg-primary border border-border rounded-[var(--radius-lg)]
           shadow-2xl flex flex-col
@@ -169,7 +168,7 @@ export default function AIAssistant() {
             : 'opacity-0 translate-y-4 pointer-events-none'
           }
         `}
-        style={{ maxHeight: 'min(540px, calc(100dvh - 10rem))' }}
+        style={{ maxHeight: 'min(560px, calc(100dvh - 8rem))' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
@@ -198,8 +197,6 @@ export default function AIAssistant() {
 
         {/* Messages area */}
         <div className="flex-1 overflow-y-auto px-4 py-3 min-h-0">
-
-          {/* Empty state with chips */}
           {!hasMessages && showChips && (
             <div>
               <p className="text-xs text-text-muted text-center mb-4 leading-relaxed">
@@ -223,15 +220,12 @@ export default function AIAssistant() {
             </div>
           )}
 
-          {/* Conversation */}
           {messages.map((msg, i) => (
             <MessageBubble key={i} msg={msg} />
           ))}
 
-          {/* Typing indicator */}
           {loading && <TypingIndicator />}
 
-          {/* Error */}
           {error && (
             <div className="text-xs text-center text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2 mb-2">
               {error}
@@ -241,7 +235,7 @@ export default function AIAssistant() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Quick chips after conversation started */}
+        {/* Quick chips mid-conversation */}
         {hasMessages && !loading && (
           <div className="px-4 pb-2 flex gap-1.5 overflow-x-auto flex-shrink-0 scrollbar-none">
             {PROMPT_CHIPS.slice(0, 3).map(chip => (
