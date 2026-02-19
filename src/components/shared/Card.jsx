@@ -4,9 +4,8 @@ export default function Card({ children, className = '', hover = false, onClick,
       onClick={onClick}
       className={`
         bg-[var(--color-bg-card)] border border-border rounded-[14px]
-        shadow-[var(--shadow-card)]
-        ${hover ? 'hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-[1px] cursor-pointer' : ''}
-        transition-all duration-200
+        ${hover ? 'hover:border-border-strong cursor-pointer' : ''}
+        transition-colors duration-200
         ${padding}
         ${className}
       `}

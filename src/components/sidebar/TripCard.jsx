@@ -43,8 +43,8 @@ export default function TripCard({ trip, isActive, isMobile }) {
         rounded-[var(--radius-md)] cursor-pointer
         transition-all duration-150
         ${isActive
-          ? 'bg-accent-muted border-l-[3px] border-l-accent'
-          : 'border-l-[3px] border-l-transparent hover:bg-bg-hover'
+          ? 'bg-accent-muted border border-accent/40'
+          : 'border border-transparent hover:bg-bg-hover hover:border-border'
         }
       `}
       onClick={handleClick}

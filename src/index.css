@@ -41,11 +41,11 @@
      Matches the Fixoria reference: warm greige canvas, slightly lighter
      sidebar, pure white cards that visibly lift off both surfaces.
   ────────────────────────────────────────────────────────────────────────── */
-  --color-bg-primary:   #ECEAE4;   /* main canvas — warm greige */
-  --color-bg-secondary: #E4E2DB;   /* subtle inset / secondary areas */
-  --color-bg-sidebar:   #F5F3EF;   /* sidebar — slightly lighter than canvas */
-  --color-bg-card:      #FFFFFF;   /* card surface — pure white, lifts off canvas */
-  --color-bg-hover:     #EFEEED;   /* hover over rows / list items */
+  --color-bg-primary:   #F4F2EF;   /* main canvas */
+  --color-bg-secondary: #ECEAE5;   /* subtle inset / secondary areas */
+  --color-bg-sidebar:   #FAFAF8;   /* sidebar — slightly lighter than canvas */
+  --color-bg-card:      #FFFFFF;   /* card surface — pure white */
+  --color-bg-hover:     #F0EEE9;   /* hover over rows / list items */
   --color-bg-input:     #FFFFFF;   /* form inputs */
 
   --color-accent:       #D97757;
