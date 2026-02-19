@@ -15,14 +15,14 @@ export default function TripCard({ trip, isActive, isMobile }) {
   const readiness = calculateReadiness(trip)
   const dateRange = formatDateRange(trip.startDate, trip.endDate)
 
-  // Build destination abbreviation string (e.g. "SG . TH . MY")
-  const destinationAbbrev = trip.destinations && trip.destinations.length > 0
-    ? [...new Set(trip.destinations.map((d) => {
-        if (d.flag) return d.flag
-        // Fallback: first 2 chars of country
-        return d.country ? d.country.slice(0, 2).toUpperCase() : ''
-      }))].join(' \u00b7 ')
-    : ''
+  // Build flag list with +N overflow badge
+  const MAX_FLAGS = 3
+  const allFlags = trip.destinations && trip.destinations.length > 0
+    ? [...new Set(trip.destinations.map(d => d.flag || (d.country ? d.country.slice(0, 2) : '')))]
+        .filter(Boolean)
+    : []
+  const visibleFlags = allFlags.slice(0, MAX_FLAGS)
+  const hiddenFlagCount = allFlags.length - MAX_FLAGS
 
   const handleClick = () => {
     dispatch({ type: ACTIONS.SET_ACTIVE_TRIP, payload: trip.id })
@@ -84,11 +84,19 @@ export default function TripCard({ trip, isActive, isMobile }) {
           </button>
         </div>
 
-        {/* Destination abbreviations */}
-        {destinationAbbrev && (
-          <p className="text-xs text-text-muted truncate mt-0.5">
-            {destinationAbbrev}
-          </p>
+        {/* Flag row with +N overflow badge */}
+        {allFlags.length > 0 && (
+          <div className="flex items-center gap-0.5 mt-0.5">
+            {visibleFlags.map((flag, i) => (
+              <span key={i} className="text-sm leading-none">{flag}</span>
+            ))}
+            {hiddenFlagCount > 0 && (
+              <span className="text-[10px] text-text-muted font-medium px-1 py-0.5
+                               bg-bg-hover rounded-[var(--radius-sm)] leading-none ml-0.5">
+                +{hiddenFlagCount}
+              </span>
+            )}
+          </div>
         )}
 
         {/* Date range + status + readiness row */}

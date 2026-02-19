@@ -25,7 +25,8 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
   }
 
   const sidebarContent = (
-    <aside className="flex flex-col h-full bg-bg-sidebar border-r border-border-strong w-[var(--sidebar-width)]">
+    <aside className="flex flex-col h-full bg-bg-sidebar border-r border-border-strong w-[var(--sidebar-width)]
+                       dark:shadow-[inset_-1px_0_0_var(--color-border-strong)]">
       {/* Header */}
       <div className="px-5 pt-7 pb-5">
         <div className="flex items-center justify-between mb-1">
