@@ -8,9 +8,11 @@ export default function TripContextMenu({ tripId, tripName, onClose }) {
   const menuRef = useRef(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
-  // Close on click outside
+  // Close on click outside — but not while the confirm dialog is open
+  // (the confirm backdrop is outside menuRef and would prematurely unmount everything)
   useEffect(() => {
     function handleClickOutside(e) {
+      if (showDeleteConfirm) return          // let ConfirmDialog handle its own clicks
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         onClose()
       }
@@ -18,7 +20,11 @@ export default function TripContextMenu({ tripId, tripName, onClose }) {
 
     function handleEscape(e) {
       if (e.key === 'Escape') {
-        onClose()
+        if (showDeleteConfirm) {
+          setShowDeleteConfirm(false)        // close dialog, keep menu
+        } else {
+          onClose()
+        }
       }
     }
 
@@ -28,7 +34,7 @@ export default function TripContextMenu({ tripId, tripName, onClose }) {
       document.removeEventListener('mousedown', handleClickOutside)
       document.removeEventListener('keydown', handleEscape)
     }
-  }, [onClose])
+  }, [onClose, showDeleteConfirm])
 
   const handleRename = (e) => {
     e.stopPropagation()
@@ -58,6 +64,7 @@ export default function TripContextMenu({ tripId, tripName, onClose }) {
   const handleDeleteConfirm = () => {
     dispatch({ type: ACTIONS.DELETE_TRIP, payload: tripId })
     showToast('Trip deleted', 'info')
+    setShowDeleteConfirm(false)
     onClose()
   }
 
@@ -125,10 +132,7 @@ export default function TripContextMenu({ tripId, tripName, onClose }) {
 
       <ConfirmDialog
         isOpen={showDeleteConfirm}
-        onClose={() => {
-          setShowDeleteConfirm(false)
-          onClose()
-        }}
+        onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleDeleteConfirm}
         title="Delete trip?"
         message={`Are you sure you want to delete "${tripName}"? This action cannot be undone.`}
