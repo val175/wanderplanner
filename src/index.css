@@ -35,12 +35,18 @@
 
 /* ─── Anthropic / Wanderplan Design System ─── */
 @theme {
-  /* Light mode colors (defaults) */
-  --color-bg-primary:   #FAF9F5;
-  --color-bg-secondary: #F2F0EB;
-  --color-bg-sidebar:   #EDEAE3;
-  --color-bg-hover:     #E5E2DA;
-  --color-bg-input:     #FFFFFF;
+  /* ── Light Mode ────────────────────────────────────────────────────────────
+     Depth hierarchy (lightest → most elevated):
+       canvas/main (#ECEAE4)  →  sidebar (#F5F3EF)  →  cards (#FFFFFF)
+     Matches the Fixoria reference: warm greige canvas, slightly lighter
+     sidebar, pure white cards that visibly lift off both surfaces.
+  ────────────────────────────────────────────────────────────────────────── */
+  --color-bg-primary:   #ECEAE4;   /* main canvas — warm greige */
+  --color-bg-secondary: #E4E2DB;   /* subtle inset / secondary areas */
+  --color-bg-sidebar:   #F5F3EF;   /* sidebar — slightly lighter than canvas */
+  --color-bg-card:      #FFFFFF;   /* card surface — pure white, lifts off canvas */
+  --color-bg-hover:     #EFEEED;   /* hover over rows / list items */
+  --color-bg-input:     #FFFFFF;   /* form inputs */
 
   --color-accent:       #D97757;
   --color-accent-hover: #C15F3C;
@@ -51,8 +57,8 @@
   --color-text-muted:     #9B9A93;
   --color-text-inverse:   #FAF9F5;
 
-  --color-border:       #DDD9D0;
-  --color-border-strong: #C8C4BA;
+  --color-border:        #E0DDD6;
+  --color-border-strong: #CCC8BF;
 
   --color-success:  #788C5D;
   --color-info:     #6A9BCC;
@@ -70,12 +76,12 @@
   --font-body:    "Anthropic Serif", Georgia, serif;
   --font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", monospace;
 
-  /* Flat design — no shadows at all */
-  --shadow-sm:         none;
-  --shadow-card:       none;
-  --shadow-card-hover: none;
-  --shadow-modal:      none;
-  --shadow-md:         none;
+  /* Subtle card shadow — gives lift without being heavy */
+  --shadow-card:       0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  --shadow-card-hover: 0 4px 12px 0 rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+  --shadow-modal:      0 20px 60px 0 rgb(0 0 0 / 0.14), 0 8px 24px -4px rgb(0 0 0 / 0.08);
+  --shadow-sm:         0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md:         0 4px 8px 0 rgb(0 0 0 / 0.08);
 
   /* Border radius */
   --radius-sm:   6px;
@@ -88,12 +94,16 @@
   --sidebar-width: 300px;
 }
 
-/* ─── Dark Mode ─── */
+/* ─── Dark Mode ────────────────────────────────────────────────────────────
+   Same 3-level depth hierarchy, just darker absolute values.
+   Canvas darkest → sidebar slightly lighter → cards most lifted.
+────────────────────────────────────────────────────────────────────────── */
 .dark {
-  --color-bg-primary:   #1A1918;
-  --color-bg-secondary: #232220;
-  --color-bg-sidebar:   #141413;
-  --color-bg-hover:     #2C2B28;
+  --color-bg-primary:   #1A1918;   /* main canvas */
+  --color-bg-secondary: #232220;   /* inset / secondary */
+  --color-bg-sidebar:   #211F1E;   /* sidebar — slightly lighter than canvas */
+  --color-bg-card:      #2C2B28;   /* card — most elevated surface */
+  --color-bg-hover:     #302F2C;
   --color-bg-input:     #2C2B28;
 
   --color-accent-muted: oklch(0.70 0.14 45 / 0.15);
@@ -102,8 +112,15 @@
   --color-text-secondary: #D4D1C7;
   --color-text-muted:     #706E67;
 
-  --color-border:       #363430;
+  --color-border:        #363430;
   --color-border-strong: #46443E;
+
+  /* Softer shadows in dark mode */
+  --shadow-card:       0 1px 3px 0 rgb(0 0 0 / 0.20), 0 1px 2px -1px rgb(0 0 0 / 0.16);
+  --shadow-card-hover: 0 4px 12px 0 rgb(0 0 0 / 0.28), 0 2px 4px -2px rgb(0 0 0 / 0.20);
+  --shadow-modal:      0 20px 60px 0 rgb(0 0 0 / 0.50), 0 8px 24px -4px rgb(0 0 0 / 0.30);
+  --shadow-sm:         0 1px 2px 0 rgb(0 0 0 / 0.18);
+  --shadow-md:         0 4px 8px 0 rgb(0 0 0 / 0.24);
 }
 
 /* ─── Base Styles ─── */

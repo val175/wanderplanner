@@ -1,0 +1,3 @@
+[    5850ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://identitytoolkit.googleapis.com/v1/projects?key=AIzaSyCLnLTVNRck2Ezz1z3VTTNobarWy7l_TMs:0
+[    7672ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://www.googleapis.com/identitytoolkit/v3/relyingparty/getProjectConfig?key=AIzaSyCLnLTVNRck2Ezz1z3VTTNobarWy7l_TMs&cb=1771427634269:0
+[    7674ms] [WARNING] {"error":{"code":400,"message":"CONFIGURATION_NOT_FOUND","errors":[{"message":"CONFIGURATION_NOT_FOUND","domain":"global","reason":"invalid"}]}} @ https://wanderplanner-dbee7.firebaseapp.com/__/auth/iframe.js:310

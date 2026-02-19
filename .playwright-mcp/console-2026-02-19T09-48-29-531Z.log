@@ -1,0 +1,4 @@
+[      86ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://wanderplanner-dbee7.firebaseapp.com/favicon.ico:0
+[     725ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://wanderplanner-dbee7.firebaseapp.com/__/firebase/init.json:0
+[    2118ms] [ERROR] Cross-Origin-Opener-Policy policy would block the window.frames call. @ https://wanderplanner-dbee7.firebaseapp.com/__/auth/handler.js:544
+[    2118ms] [ERROR] Cross-Origin-Opener-Policy policy would block the window.frames call. @ https://wanderplanner-dbee7.firebaseapp.com/__/auth/handler.js:544

@@ -70,7 +70,7 @@ export default function TripCard({ trip, isActive, isMobile }) {
           <button
             onClick={handleMenuToggle}
             className={`shrink-0 p-0.5 rounded-[var(--radius-sm)]
-                        text-text-muted hover:text-text-primary hover:bg-bg-hover
+                        text-text-muted hover:text-text-primary hover:bg-bg-secondary
                         transition-all duration-150
                         ${isHovered || showMenu ? 'opacity-100' : 'opacity-0'}
                       `}
@@ -92,7 +92,7 @@ export default function TripCard({ trip, isActive, isMobile }) {
             ))}
             {hiddenFlagCount > 0 && (
               <span className="text-[10px] text-text-muted font-medium px-1 py-0.5
-                               bg-bg-hover rounded-[var(--radius-sm)] leading-none ml-0.5">
+                               bg-bg-secondary rounded-[var(--radius-sm)] leading-none ml-0.5">
                 +{hiddenFlagCount}
               </span>
             )}

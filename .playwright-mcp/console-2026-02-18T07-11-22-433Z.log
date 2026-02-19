@@ -1,0 +1,2 @@
+[ 1043906ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5175/src/components/header/TripHeader.jsx?t=1771399726332:0
+[ 1043906ms] [ERROR] [vite] Failed to reload /src/components/header/TripHeader.jsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5175/@vite/client:881
