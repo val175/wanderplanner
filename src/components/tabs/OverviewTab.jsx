@@ -8,15 +8,16 @@ import { calculateReadiness, getReadinessBreakdown } from '../../utils/readiness
 import { formatDateRange, formatCurrency, daysUntil, daysBetween } from '../../utils/helpers'
 
 /* ─────────────────────────────────────────────────────────────
-   Full countdown unit — used in Overview only
+   Weeks + Days countdown — used in Overview only.
+   Simpler than hrs:min:sec — gives a "big picture" feel.
 ───────────────────────────────────────────────────────────── */
 function CountdownUnit({ value, label }) {
   return (
-    <div className="text-center">
-      <div className="text-3xl font-heading font-bold text-text-primary tabular-nums">
-        {String(value).padStart(2, '0')}
+    <div className="text-center px-4 py-3 bg-bg-hover rounded-[var(--radius-lg)]">
+      <div className="text-4xl font-heading font-bold text-text-primary tabular-nums leading-none">
+        {value}
       </div>
-      <div className="text-xs text-text-muted uppercase tracking-wider mt-0.5">{label}</div>
+      <div className="text-xs text-text-muted uppercase tracking-wider mt-1.5">{label}</div>
     </div>
   )
 }
@@ -35,18 +36,23 @@ function CountdownDisplay({ targetDate, label }) {
     )
   }
 
+  // Derive weeks + leftover days from total days
+  const totalDays = countdown.days
+  const weeks = Math.floor(totalDays / 7)
+  const days = totalDays % 7
+
   return (
     <Card className="text-center">
-      <p className="text-text-muted text-sm mb-3">{label}</p>
-      <div className="flex justify-center gap-4">
-        <CountdownUnit value={countdown.days} label="days" />
-        <span className="text-text-muted text-2xl font-light self-start mt-1">:</span>
-        <CountdownUnit value={countdown.hours} label="hrs" />
-        <span className="text-text-muted text-2xl font-light self-start mt-1">:</span>
-        <CountdownUnit value={countdown.minutes} label="min" />
-        <span className="text-text-muted text-2xl font-light self-start mt-1">:</span>
-        <CountdownUnit value={countdown.seconds} label="sec" />
+      <p className="text-text-muted text-sm mb-4">{label}</p>
+      <div className="flex justify-center gap-3">
+        {weeks > 0 && (
+          <CountdownUnit value={weeks} label={weeks === 1 ? 'week' : 'weeks'} />
+        )}
+        <CountdownUnit value={days} label={days === 1 ? 'day' : 'days'} />
       </div>
+      {totalDays === 0 && (
+        <p className="text-xs text-text-muted mt-3">Departing today!</p>
+      )}
     </Card>
   )
 }

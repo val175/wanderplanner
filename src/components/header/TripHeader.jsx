@@ -116,9 +116,7 @@ function CityBreadcrumbs({ destinations }) {
   const [expanded, setExpanded] = useState(false)
   if (!destinations?.length) return null
 
-  const MAX_MOBILE = 2
-  const hiddenCount = destinations.length - MAX_MOBILE
-  const showCollapse = destinations.length > MAX_MOBILE
+  const count = destinations.length
 
   const DestChain = ({ dests }) => (
     <div className="flex items-center flex-wrap gap-x-0.5 gap-y-1">
@@ -136,31 +134,40 @@ function CityBreadcrumbs({ destinations }) {
 
   return (
     <>
-      {/* Mobile */}
+      {/* Mobile: collapsed → "N cities" pill, expanded → full chain */}
       <div className="sm:hidden">
-        <div className="flex items-center flex-wrap gap-x-0.5 gap-y-1">
-          <DestChain dests={expanded ? destinations : destinations.slice(0, MAX_MOBILE)} />
-          {showCollapse && !expanded && (
-            <button
-              onClick={() => setExpanded(true)}
-              className="inline-flex items-center gap-1 text-xs text-text-muted hover:text-text-secondary
-                         px-2 py-0.5 ml-1 rounded-full border border-border hover:border-border-strong
-                         transition-colors duration-150"
-            >
-              +{hiddenCount} {hiddenCount === 1 ? 'city' : 'cities'}
-            </button>
-          )}
-          {showCollapse && expanded && (
+        {!expanded ? (
+          /* Collapsed summary pill */
+          <button
+            onClick={() => setExpanded(true)}
+            className="inline-flex items-center gap-1.5 text-sm text-text-secondary
+                       px-2.5 py-0.5 rounded-full border border-border hover:border-border-strong
+                       hover:bg-bg-hover transition-colors duration-150"
+          >
+            <span className="text-base leading-none">
+              {destinations[0]?.flag}{count > 1 ? '…' : ''}
+            </span>
+            <span className="font-medium">{count} {count === 1 ? 'city' : 'cities'}</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              className="text-text-muted">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+        ) : (
+          /* Expanded full chain */
+          <div className="flex flex-col gap-1">
+            <DestChain dests={destinations} />
             <button
               onClick={() => setExpanded(false)}
-              className="text-xs text-text-muted hover:text-text-secondary transition-colors ml-1"
+              className="text-xs text-text-muted hover:text-text-secondary transition-colors self-start mt-0.5"
             >
-              less
+              ↑ collapse
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
-      {/* Desktop: always full */}
+      {/* Desktop: always full chain */}
       <div className="hidden sm:block">
         <DestChain dests={destinations} />
       </div>

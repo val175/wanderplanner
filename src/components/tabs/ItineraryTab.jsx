@@ -6,9 +6,37 @@ import { ACTIONS } from '../../state/tripReducer'
 import { formatDate } from '../../utils/helpers'
 import { ACTIVITY_EMOJIS } from '../../constants/emojis'
 
+// ── Activity type → left-border accent color ───────────────────────────────
+// Maps emoji to a CSS left-border color token so each activity type is
+// instantly scannable without reading the text.
+function getActivityAccent(emoji) {
+  const map = {
+    '✈️': 'border-l-info',        // flight — blue
+    '🛫': 'border-l-info',
+    '🛬': 'border-l-info',
+    '🏨': 'border-l-success',     // hotel — green
+    '🛏️': 'border-l-success',
+    '🍜': 'border-l-warning',     // food — gold
+    '🍽️': 'border-l-warning',
+    '🥘': 'border-l-warning',
+    '🍺': 'border-l-warning',
+    '☕': 'border-l-warning',
+    '🎵': 'border-l-accent',      // concert/music — terra cotta
+    '🎸': 'border-l-accent',
+    '🎤': 'border-l-accent',
+    '🎯': 'border-l-accent',      // experience
+    '🏛️': 'border-l-accent',
+    '🚕': 'border-l-[var(--color-text-muted)]', // transport — neutral
+    '🚂': 'border-l-[var(--color-text-muted)]',
+    '⛴️': 'border-l-[var(--color-text-muted)]',
+  }
+  return map[emoji] || 'border-l-border'
+}
+
 // ── Activity Item with drag reorder ────────────────────────────────────────
 function ActivityItem({ activity, dayId, index, onUpdate, onDelete, onReorder }) {
   const [dragOver, setDragOver] = useState(false)
+  const accentBorder = getActivityAccent(activity.emoji)
 
   return (
     <div
@@ -21,33 +49,39 @@ function ActivityItem({ activity, dayId, index, onUpdate, onDelete, onReorder })
         const fromIndex = Number(e.dataTransfer.getData('activityIndex'))
         if (fromIndex !== index) onReorder(fromIndex, index)
       }}
-      className={`flex items-start gap-2 group py-2 rounded transition-all cursor-default
-        ${dragOver ? 'border-t-2 border-accent' : ''}`}
+      className={`flex items-start gap-2 group py-2 pl-2 rounded transition-all cursor-default
+        border-l-2 ${accentBorder}
+        ${dragOver ? 'bg-bg-hover' : ''}`}
     >
       <span className="flex-shrink-0 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-30 mt-1 text-text-muted select-none text-base">⠿</span>
-      <div className="flex-shrink-0 w-14 text-right">
+      {/* Monospaced time — tabular-nums for vertical alignment */}
+      <div className="flex-shrink-0 w-14 text-right pt-0.5">
         <EditableText
           value={activity.time}
           onSave={val => onUpdate({ time: val })}
-          className="text-sm text-text-muted font-mono"
+          className="text-xs text-text-muted font-mono tabular-nums"
           placeholder="--:--"
         />
       </div>
       <span className="text-lg flex-shrink-0 mt-0.5">{activity.emoji}</span>
       <div className="flex-1 min-w-0">
+        {/* Activity title */}
         <EditableText
           value={activity.name}
           onSave={val => onUpdate({ name: val })}
-          className="text-text-primary font-medium text-sm"
+          className="text-text-primary font-medium text-sm leading-snug"
           placeholder="Activity name"
         />
-        <EditableText
-          value={activity.notes || ''}
-          onSave={val => onUpdate({ notes: val })}
-          className="text-xs text-text-muted mt-0.5"
-          placeholder="Add notes…"
-          multiline
-        />
+        {/* Notes on its own line, clearly subordinate */}
+        {(activity.notes || activity.notes === '') && (
+          <EditableText
+            value={activity.notes || ''}
+            onSave={val => onUpdate({ notes: val })}
+            className="text-xs text-text-muted mt-0.5 leading-relaxed"
+            placeholder="Add notes…"
+            multiline
+          />
+        )}
       </div>
       <button
         onClick={onDelete}

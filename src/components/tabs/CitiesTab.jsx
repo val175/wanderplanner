@@ -1,29 +1,15 @@
 import { useState } from 'react'
 import Card from '../shared/Card'
 import EditableText from '../shared/EditableText'
+import CityCombobox, { resolveCity } from '../shared/CityCombobox'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
-
-const COUNTRY_FLAGS = {
-  'Philippines': '🇵🇭', 'Singapore': '🇸🇬', 'Thailand': '🇹🇭', 'Malaysia': '🇲🇾',
-  'Indonesia': '🇮🇩', 'Vietnam': '🇻🇳', 'Japan': '🇯🇵', 'South Korea': '🇰🇷',
-  'Taiwan': '🇹🇼', 'Cambodia': '🇰🇭', 'India': '🇮🇳', 'China': '🇨🇳',
-  'Hong Kong': '🇭🇰', 'Australia': '🇦🇺', 'New Zealand': '🇳🇿', 'USA': '🇺🇸',
-  'UK': '🇬🇧', 'France': '🇫🇷', 'Italy': '🇮🇹', 'Spain': '🇪🇸',
-  'Germany': '🇩🇪', 'Netherlands': '🇳🇱', 'Greece': '🇬🇷', 'Turkey': '🇹🇷',
-  'UAE': '🇦🇪', 'Mexico': '🇲🇽', 'Brazil': '🇧🇷', 'Canada': '🇨🇦',
-}
 
 function CityCard({ city }) {
   const { dispatch } = useTripContext()
 
   const updateCity = (updates) => {
     dispatch({ type: ACTIONS.UPDATE_CITY, payload: { id: city.id, updates } })
-  }
-
-  const handleCountryChange = (val) => {
-    const flag = COUNTRY_FLAGS[val.trim()] || city.flag || '🌍'
-    updateCity({ country: val, flag })
   }
 
   return (
@@ -40,7 +26,7 @@ function CityCard({ city }) {
           />
           <EditableText
             value={city.country}
-            onSave={handleCountryChange}
+            onSave={val => updateCity({ country: val })}
             className="text-sm text-text-muted mt-0.5"
             placeholder="Country"
           />
@@ -85,32 +71,65 @@ function CityCard({ city }) {
 }
 
 function AddCityForm({ onAdd, onCancel }) {
-  const [city, setCity] = useState('')
-  const [country, setCountry] = useState('')
+  const [cityData, setCityData] = useState({ city: '', country: '', flag: '' })
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!city.trim()) return
-    const flag = COUNTRY_FLAGS[country.trim()] || '🌍'
-    onAdd({ city: city.trim(), country: country.trim(), flag })
+    if (!cityData.city.trim()) return
+    // Resolve to get best country + flag before adding
+    const resolved = resolveCity(cityData.city, cityData.country, cityData.flag)
+    onAdd(resolved)
   }
 
   return (
     <Card>
-      <form onSubmit={handleSubmit} className="flex flex-wrap gap-2 items-end">
-        <div className="flex-1 min-w-[140px]">
-          <label className="text-xs text-text-muted block mb-1">City</label>
-          <input value={city} onChange={e => setCity(e.target.value)} placeholder="e.g., Bangkok"
-            className="w-full px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary placeholder:text-text-muted"
-            autoFocus />
+      <form onSubmit={handleSubmit}>
+        <div className="flex flex-wrap gap-2 items-end">
+          {/* Flag preview */}
+          <div className="flex items-center justify-center w-10 h-10 text-2xl mt-auto mb-0.5">
+            {cityData.flag || <span className="text-text-muted text-base">📍</span>}
+          </div>
+
+          {/* City autocomplete */}
+          <div className="flex-1 min-w-[160px]">
+            <label className="text-xs text-text-muted block mb-1">City</label>
+            <CityCombobox
+              value={cityData.city}
+              country={cityData.country}
+              flag={cityData.flag}
+              onChange={updates => setCityData(prev => ({ ...prev, ...updates }))}
+              placeholder="e.g., Bangkok"
+              autoFocus
+            />
+          </div>
+
+          {/* Country — auto-filled by CityCombobox, still manually editable */}
+          <div className="flex-1 min-w-[140px]">
+            <label className="text-xs text-text-muted block mb-1">Country</label>
+            <input
+              value={cityData.country}
+              onChange={e => setCityData(prev => ({ ...prev, country: e.target.value }))}
+              placeholder="e.g., Thailand"
+              className="w-full px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
+            />
+          </div>
+
+          <div className="flex gap-2 items-end">
+            <button
+              type="submit"
+              className="px-4 py-2 text-sm bg-accent text-white rounded-[var(--radius-sm)] hover:bg-accent-hover transition-colors"
+            >
+              Add
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-4 py-2 text-sm text-text-muted hover:text-text-secondary transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
-        <div className="flex-1 min-w-[140px]">
-          <label className="text-xs text-text-muted block mb-1">Country</label>
-          <input value={country} onChange={e => setCountry(e.target.value)} placeholder="e.g., Thailand"
-            className="w-full px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary placeholder:text-text-muted" />
-        </div>
-        <button type="submit" className="px-4 py-2 text-sm bg-accent text-white rounded-[var(--radius-sm)] hover:bg-accent-hover">Add</button>
-        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-text-muted hover:text-text-secondary">Cancel</button>
       </form>
     </Card>
   )
@@ -137,7 +156,10 @@ export default function CitiesTab() {
 
       {adding && (
         <AddCityForm
-          onAdd={data => { dispatch({ type: ACTIONS.ADD_CITY, payload: data }); setAdding(false) }}
+          onAdd={data => {
+            dispatch({ type: ACTIONS.ADD_CITY, payload: data })
+            setAdding(false)
+          }}
           onCancel={() => setAdding(false)}
         />
       )}
