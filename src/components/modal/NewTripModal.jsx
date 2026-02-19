@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react'
+import { createPortal } from 'react-dom'
 import Modal from '../shared/Modal'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
@@ -540,11 +541,11 @@ function CityCombobox({ value, country, flag, onChange }) {
                    text-text-primary placeholder:text-text-muted text-sm
                    focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
       />
-      {open && suggestions.length > 0 && (
+      {open && suggestions.length > 0 && createPortal(
         <ul
           style={{ position: 'fixed', top: dropPos.top, left: dropPos.left, width: dropPos.width }}
           className="z-[9999] bg-bg-primary border border-border rounded-[var(--radius-md)]
-                     overflow-hidden shadow-xl max-h-52 overflow-y-auto"
+                     shadow-xl max-h-52 overflow-y-auto"
         >
           {suggestions.map((entry, i) => (
             <li key={i}>
@@ -561,7 +562,8 @@ function CityCombobox({ value, country, flag, onChange }) {
               </button>
             </li>
           ))}
-        </ul>
+        </ul>,
+        document.body
       )}
     </div>
   )
