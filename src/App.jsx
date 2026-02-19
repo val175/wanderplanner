@@ -18,6 +18,7 @@ import NewTripModal from './components/modal/NewTripModal'
 
 // Shared
 import Toast from './components/shared/Toast'
+import AIAssistant from './components/shared/AIAssistant'
 
 // Tab components
 import OverviewTab from './components/tabs/OverviewTab'
@@ -184,6 +185,8 @@ function AuthenticatedApp({ signOutUser }) {
         </main>
 
         <NewTripModal isOpen={showNewTripModal} onClose={handleCloseModal} />
+
+        <AIAssistant />
 
         <Toast
           message={state.toast.message}
