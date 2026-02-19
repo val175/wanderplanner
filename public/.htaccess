@@ -1,0 +1,10 @@
+Options -MultiViews
+
+# Correct MIME types — required for ES module scripts
+AddType application/javascript .js .mjs
+AddType text/css .css
+
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [L]
