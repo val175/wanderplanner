@@ -72,14 +72,26 @@ function ActivityItem({ activity, dayId, index, onUpdate, onDelete, onReorder })
         ${dragOver ? 'bg-bg-hover' : ''}`}
     >
       <span className="flex-shrink-0 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-30 mt-1 text-text-muted select-none text-base">⠿</span>
-      {/* Native time picker — styled to match design system */}
-      <div className="flex-shrink-0 pt-0.5">
-        <input
-          type="time"
-          value={activity.time || ''}
-          onChange={e => onUpdate({ time: e.target.value })}
-          className="text-xs text-text-muted font-mono tabular-nums bg-transparent border-none outline-none w-[4.5rem] cursor-pointer hover:text-text-secondary transition-colors"
-        />
+      {/* Time — shown inline when set, ghost trigger when empty */}
+      <div className="flex-shrink-0 w-[4.5rem] pt-0.5 text-right">
+        {activity.time ? (
+          <input
+            type="time"
+            value={activity.time}
+            onChange={e => onUpdate({ time: e.target.value })}
+            className="text-xs text-text-muted font-mono tabular-nums bg-transparent border-none outline-none w-full cursor-pointer hover:text-text-secondary transition-colors"
+          />
+        ) : (
+          <label className="text-xs text-text-muted opacity-0 group-hover:opacity-40 cursor-pointer transition-opacity select-none">
+            ＋time
+            <input
+              type="time"
+              value=""
+              onChange={e => onUpdate({ time: e.target.value })}
+              className="absolute opacity-0 w-0 h-0 pointer-events-none"
+            />
+          </label>
+        )}
       </div>
       <span className="text-lg flex-shrink-0 mt-0.5">{activity.emoji}</span>
       <div className="flex-1 min-w-0">
