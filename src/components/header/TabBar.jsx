@@ -4,14 +4,15 @@ import { ACTIONS } from '../../state/tripReducer'
 import { TAB_CONFIG } from '../../constants/tabs'
 
 /* ─────────────────────────────────────────────────────────────
-   TabBar
-   - Horizontal scroll with scroll-snap on mobile/medium viewports
-   - CSS fade masks on left/right edges when scrollable
-   - "More ▾" dropdown for overflow tabs detected via IntersectionObserver
-   - Active tab always scrolled into view
+   TabBar — glass morphism pill design
+   - Sticky glass nav with backdrop-blur
+   - Active tab = filled white/bg-card pill (no underline)
+   - Inactive tabs = transparent text, no border
+   - Same scroll / overflow / IntersectionObserver logic retained
+   - "More ▾" dropdown updated to match pill aesthetic
 ───────────────────────────────────────────────────────────── */
 export default function TabBar() {
-  const { state, activeTrip, dispatch } = useTripContext()
+  const { state, dispatch } = useTripContext()
   const activeTab = state.activeTab
   const scrollRef = useRef(null)
   const activeTabRef = useRef(null)
@@ -23,6 +24,8 @@ export default function TabBar() {
   const [overflowTabs, setOverflowTabs] = useState([])
   const [showMore, setShowMore] = useState(false)
 
+  // Derive hasConcert from activeTrip bookings
+  const { activeTrip } = useTripContext()
   const hasConcert = activeTrip?.bookings?.some(b => b.category === 'concert') || false
 
   const visibleTabs = TAB_CONFIG.filter(tab => {
@@ -35,7 +38,7 @@ export default function TabBar() {
     setShowMore(false)
   }
 
-  // Update scroll masks based on scroll position
+  // Update scroll fade masks
   const updateMasks = useCallback(() => {
     const el = scrollRef.current
     if (!el) return
@@ -43,26 +46,20 @@ export default function TabBar() {
     setShowRightMask(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
   }, [])
 
-  // Detect which tabs are clipped (overflow) using IntersectionObserver
+  // IntersectionObserver to detect clipped tabs → "More" dropdown
   useEffect(() => {
     const container = scrollRef.current
     if (!container) return
-
-    // Disconnect previous observer
     if (observerRef.current) observerRef.current.disconnect()
 
     const hidden = new Set()
-
     observerRef.current = new IntersectionObserver(
       (entries) => {
         entries.forEach(entry => {
           const tabId = entry.target.dataset.tabId
           if (!tabId) return
-          if (entry.intersectionRatio < 0.9) {
-            hidden.add(tabId)
-          } else {
-            hidden.delete(tabId)
-          }
+          if (entry.intersectionRatio < 0.9) hidden.add(tabId)
+          else hidden.delete(tabId)
         })
         setOverflowTabs(visibleTabs.filter(t => hidden.has(t.id)))
       },
@@ -76,7 +73,7 @@ export default function TabBar() {
     return () => observerRef.current?.disconnect()
   }, [visibleTabs.length, hasConcert])
 
-  // Initial mask state + scroll listener
+  // Scroll listener + resize
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
@@ -89,7 +86,7 @@ export default function TabBar() {
     }
   }, [updateMasks])
 
-  // Scroll active tab into view when it changes
+  // Scroll active tab into view on change
   useEffect(() => {
     if (activeTabRef.current && scrollRef.current) {
       const container = scrollRef.current
@@ -116,73 +113,77 @@ export default function TabBar() {
   const activeIsOverflow = overflowTabs.some(t => t.id === activeTab)
 
   return (
-    <nav className="border-b border-border bg-bg-primary/80 backdrop-blur-sm sticky top-0 z-20">
-      <div className="relative flex items-stretch">
+    /* ── Glass nav bar ── */
+    <nav
+      className="sticky top-0 z-20"
+      style={{
+        background: 'var(--color-bg-primary)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        borderBottom: '1px solid var(--color-border)',
+      }}
+    >
+      {/* Inner pill track — adds a subtle inset groove for the pills to sit in */}
+      <div className="relative flex items-center min-h-[48px]">
 
         {/* Left fade mask */}
         {showLeftMask && (
           <div
-            className="absolute left-0 top-0 bottom-0 w-8 z-10 pointer-events-none"
-            style={{
-              background: 'linear-gradient(to right, var(--color-bg-primary), transparent)',
-            }}
+            className="absolute left-0 top-0 bottom-0 w-10 z-10 pointer-events-none"
+            style={{ background: 'linear-gradient(to right, var(--color-bg-primary), transparent)' }}
             aria-hidden="true"
           />
         )}
 
-        {/* Scrollable tab strip */}
+        {/* Scrollable strip */}
         <div
           ref={scrollRef}
-          className="flex overflow-x-auto scrollbar-hide flex-1"
+          className="flex overflow-x-auto scrollbar-hide flex-1 items-center"
           style={{ scrollSnapType: 'x mandatory' }}
           role="tablist"
           aria-label="Trip sections"
         >
-          {/* Left padding spacer */}
-          <div className="w-4 md:w-8 shrink-0" />
+          {/* Left padding */}
+          <div className="w-3 md:w-5 shrink-0" />
 
-          {visibleTabs.map((tab) => {
-            const isActive = activeTab === tab.id
-            const isOverflowing = overflowTabs.some(t => t.id === tab.id)
-            return (
-              <button
-                key={tab.id}
-                ref={el => {
-                  tabRefs.current[tab.id] = el
-                  if (isActive) activeTabRef.current = el
-                }}
-                data-tab-id={tab.id}
-                role="tab"
-                aria-selected={isActive}
-                aria-controls={`panel-${tab.id}`}
-                onClick={() => handleTabClick(tab.id)}
-                style={{ scrollSnapAlign: 'start' }}
-                className={`
-                  relative flex items-center gap-1.5 px-3.5 py-3.5 text-sm font-medium
-                  whitespace-nowrap transition-colors duration-150
-                  shrink-0
-                  ${isActive
-                    ? 'text-accent'
-                    : 'text-text-muted hover:text-text-secondary'
-                  }
-                `}
-              >
-                <span className="text-base leading-none">{tab.emoji}</span>
-                <span className="hidden sm:inline">{tab.label}</span>
+          {/* Pill row */}
+          <div className="flex items-center gap-0.5 py-2">
+            {visibleTabs.map((tab) => {
+              const isActive = activeTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  ref={el => {
+                    tabRefs.current[tab.id] = el
+                    if (isActive) activeTabRef.current = el
+                  }}
+                  data-tab-id={tab.id}
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-controls={`panel-${tab.id}`}
+                  onClick={() => handleTabClick(tab.id)}
+                  style={{ scrollSnapAlign: 'start' }}
+                  className={`
+                    relative flex items-center gap-1.5 px-3 py-1.5
+                    rounded-full text-sm font-medium whitespace-nowrap
+                    transition-all duration-200 shrink-0
+                    ${isActive
+                      /* Active: solid white pill — card elevation above the glass nav */
+                      ? 'bg-[var(--color-bg-card)] text-[var(--color-text-primary)] shadow-sm'
+                      /* Inactive: ghost — just text, no background */
+                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]'
+                    }
+                  `}
+                >
+                  <span className="text-[15px] leading-none">{tab.emoji}</span>
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </button>
+              )
+            })}
+          </div>
 
-                {/* Active indicator */}
-                {isActive && (
-                  <span
-                    className="absolute bottom-0 left-1.5 right-1.5 h-[2.5px] bg-accent rounded-full"
-                    aria-hidden="true"
-                  />
-                )}
-              </button>
-            )
-          })}
-
-          {/* Right padding spacer */}
-          <div className="w-4 md:w-8 shrink-0" />
+          {/* Right padding */}
+          <div className="w-3 md:w-5 shrink-0" />
         </div>
 
         {/* Right fade mask */}
@@ -197,17 +198,17 @@ export default function TabBar() {
           />
         )}
 
-        {/* "More ▾" button — only when tabs are truly clipped */}
+        {/* "More ▾" — pill-style, consistent with active tab treatment */}
         {hasOverflow && (
           <div className="relative shrink-0 flex items-center pr-3 pl-1 z-20" data-more-menu>
             <button
               onClick={() => setShowMore(o => !o)}
               className={`
-                flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-[var(--radius-sm)]
-                transition-colors duration-150
+                flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-full
+                transition-all duration-200
                 ${activeIsOverflow
-                  ? 'text-accent bg-accent/10'
-                  : 'text-text-muted hover:text-text-secondary hover:bg-bg-secondary'
+                  ? 'bg-[var(--color-bg-card)] text-[var(--color-text-primary)] shadow-sm'
+                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]'
                 }
               `}
               aria-haspopup="true"
@@ -218,7 +219,7 @@ export default function TabBar() {
                 : <span>More</span>
               }
               <svg
-                width="10" height="10" viewBox="0 0 24 24" fill="none"
+                width="9" height="9" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2.5"
                 strokeLinecap="round" strokeLinejoin="round"
                 className={`transition-transform duration-150 ${showMore ? 'rotate-180' : ''}`}
@@ -227,9 +228,18 @@ export default function TabBar() {
               </svg>
             </button>
 
-            {/* Dropdown */}
+            {/* Dropdown — glass card */}
             {showMore && (
-              <div className="absolute top-full right-0 mt-1 min-w-[140px] bg-bg-primary border border-border rounded-[var(--radius-md)] shadow-lg py-1 z-50">
+              <div
+                className="absolute top-full right-0 mt-2 min-w-[148px] py-1.5 z-50 rounded-[var(--radius-md)]"
+                style={{
+                  background: 'var(--color-bg-card)',
+                  border: '1px solid var(--color-border)',
+                  boxShadow: 'var(--shadow-modal)',
+                  backdropFilter: 'blur(8px)',
+                  WebkitBackdropFilter: 'blur(8px)',
+                }}
+              >
                 {overflowTabs.map(tab => {
                   const isActive = activeTab === tab.id
                   return (
@@ -238,17 +248,17 @@ export default function TabBar() {
                       onClick={() => handleTabClick(tab.id)}
                       className={`
                         w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left
-                        transition-colors duration-100
+                        transition-colors duration-100 rounded-[6px] mx-0.5
                         ${isActive
-                          ? 'text-accent bg-accent/8 font-medium'
-                          : 'text-text-secondary hover:bg-bg-secondary'
+                          ? 'text-accent font-medium bg-accent/8'
+                          : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]'
                         }
                       `}
                     >
                       <span>{tab.emoji}</span>
-                      <span>{tab.label}</span>
+                      <span className="flex-1">{tab.label}</span>
                       {isActive && (
-                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-accent" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
                       )}
                     </button>
                   )

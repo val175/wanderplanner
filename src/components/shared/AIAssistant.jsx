@@ -128,22 +128,30 @@ export default function AIAssistant() {
 
   return (
     <>
-      {/* ── Pill FAB ── */}
+      {/* ── Centered glass pill FAB ── */}
       {mounted && (
         <button
           onClick={() => setIsOpen(o => !o)}
           className={`
-            fixed bottom-6 right-6 z-40
-            flex items-center gap-2 px-4 py-2.5
-            rounded-full shadow-lg border border-border
-            text-sm font-semibold
+            fixed bottom-6 left-1/2 -translate-x-1/2 z-40
+            flex items-center gap-2 px-5 py-2.5
+            rounded-full text-sm font-semibold
             transition-all duration-200 active:scale-95
             animate-bounce-in
             ${isOpen
-              ? 'bg-bg-secondary text-text-secondary hover:bg-bg-tertiary'
-              : 'bg-accent hover:bg-accent-hover text-text-inverse'
+              ? 'text-text-secondary'
+              : 'text-text-primary'
             }
           `}
+          style={{
+            background: isOpen
+              ? 'var(--color-bg-secondary)'
+              : 'var(--color-bg-card)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: '1px solid var(--color-border)',
+            boxShadow: '0 4px 24px 0 rgb(0 0 0 / 0.10), 0 1px 4px 0 rgb(0 0 0 / 0.06)',
+          }}
           title={isOpen ? 'Close Wanda' : 'Ask Wanda AI'}
           aria-label={isOpen ? 'Close AI assistant' : 'Open AI assistant'}
         >
@@ -152,15 +160,12 @@ export default function AIAssistant() {
         </button>
       )}
 
-      {/* ── Chat panel ──
-          Desktop: anchored above the FAB (bottom-20), right-aligned.
-          We give it a bit more bottom clearance so it doesn't overlap the pill.
-      ── */}
+      {/* ── Chat panel — centered above the pill ── */}
       <div
         className={`
-          fixed bottom-20 right-6 z-40
-          w-[min(380px,calc(100vw-3rem))]
-          bg-bg-primary border border-border rounded-[var(--radius-lg)]
+          fixed bottom-20 left-1/2 -translate-x-1/2 z-40
+          w-[min(400px,calc(100vw-2rem))]
+          border border-border rounded-[var(--radius-lg)]
           shadow-2xl flex flex-col
           transition-all duration-300 ease-out
           ${isOpen
@@ -168,7 +173,12 @@ export default function AIAssistant() {
             : 'opacity-0 translate-y-4 pointer-events-none'
           }
         `}
-        style={{ maxHeight: 'min(560px, calc(100dvh - 8rem))' }}
+        style={{
+          maxHeight: 'min(560px, calc(100dvh - 8rem))',
+          background: 'var(--color-bg-primary)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+        }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
