@@ -24,15 +24,12 @@ function CityCard({ city }) {
             className="font-heading text-xl text-text-primary font-bold"
             placeholder="City name"
           />
-          <div className="flex items-baseline gap-1.5 mt-0.5">
-            {city.city && city.country && <span className="text-text-muted text-xs select-none">·</span>}
-            <EditableText
-              value={city.country}
-              onSave={val => updateCity({ country: val })}
-              className="text-sm text-text-muted"
-              placeholder="Country"
-            />
-          </div>
+          <EditableText
+            value={city.country}
+            onSave={val => updateCity({ country: val })}
+            className="text-sm text-text-muted mt-0.5"
+            placeholder="Country"
+          />
         </div>
         <button
           onClick={() => dispatch({ type: ACTIONS.DELETE_CITY, payload: city.id })}
