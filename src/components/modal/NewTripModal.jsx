@@ -2,11 +2,13 @@ import { useState, useMemo } from 'react'
 import Modal from '../shared/Modal'
 import CityCombobox, { COUNTRY_FLAGS_MAP, resolveCity } from '../shared/CityCombobox'
 import { useTripContext } from '../../context/TripContext'
+import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { TRIP_EMOJIS } from '../../constants/emojis'
 import { CURRENCIES } from '../../constants/currencies'
 import { createEmptyTrip } from '../../data/defaultTrip'
 import { formatDate } from '../../utils/helpers'
+import AvatarCircle from '../shared/AvatarCircle'
 
 const TOTAL_STEPS = 4
 
@@ -54,6 +56,7 @@ function StepIndicator({ currentStep }) {
 /* ─────────────────── Step 1: Basics ─────────────────── */
 function StepBasics({ form, setForm }) {
   const [customEmoji, setCustomEmoji] = useState('')
+  const { profiles } = useProfiles()
 
   const handleCustomEmoji = (val) => {
     const match = val.match(/\p{Emoji}/u)
@@ -63,6 +66,14 @@ function StepBasics({ form, setForm }) {
     } else {
       setCustomEmoji(val)
     }
+  }
+
+  const toggleTraveler = (id) => {
+    setForm(f => {
+      const ids = f.travelerIds || []
+      const next = ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]
+      return { ...f, travelerIds: next, travelers: Math.max(next.length, 1) }
+    })
   }
 
   return (
@@ -121,23 +132,54 @@ function StepBasics({ form, setForm }) {
         </div>
       </div>
 
-      {/* Travelers */}
+      {/* Travelers — avatar picker if profiles exist, else number stepper */}
       <div>
-        <label className="block text-sm font-medium text-text-secondary mb-1.5">Travelers</label>
-        <div className="flex items-center gap-3">
-          <button type="button"
-            onClick={() => setForm(f => ({ ...f, travelers: Math.max(1, f.travelers - 1) }))}
-            disabled={form.travelers <= 1}
-            className="w-9 h-9 flex items-center justify-center rounded-[var(--radius-md)] bg-bg-secondary border border-border text-text-secondary hover:bg-bg-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-lg font-medium"
-          >-</button>
-          <span className="w-10 text-center text-lg font-heading font-bold text-text-primary">{form.travelers}</span>
-          <button type="button"
-            onClick={() => setForm(f => ({ ...f, travelers: Math.min(20, f.travelers + 1) }))}
-            disabled={form.travelers >= 20}
-            className="w-9 h-9 flex items-center justify-center rounded-[var(--radius-md)] bg-bg-secondary border border-border text-text-secondary hover:bg-bg-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-lg font-medium"
-          >+</button>
-          <span className="text-sm text-text-muted">{form.travelers === 1 ? 'traveler' : 'travelers'}</span>
-        </div>
+        <label className="block text-sm font-medium text-text-secondary mb-2">Travelers</label>
+        {profiles.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {profiles.map(p => {
+              const selected = (form.travelerIds || []).includes(p.id)
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => toggleTraveler(p.id)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-pill)] border text-sm transition-all duration-150
+                    ${selected
+                      ? 'bg-accent/10 border-accent/40 text-text-primary'
+                      : 'bg-bg-secondary border-border text-text-muted hover:border-accent/30 hover:text-text-secondary'
+                    }`}
+                >
+                  <AvatarCircle profile={p} size={22} />
+                  <span className="font-medium">{p.name}</span>
+                  {selected && (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <button type="button"
+              onClick={() => setForm(f => ({ ...f, travelers: Math.max(1, f.travelers - 1) }))}
+              disabled={form.travelers <= 1}
+              className="w-9 h-9 flex items-center justify-center rounded-[var(--radius-md)] bg-bg-secondary border border-border text-text-secondary hover:bg-bg-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-lg font-medium"
+            >-</button>
+            <span className="w-10 text-center text-lg font-heading font-bold text-text-primary">{form.travelers}</span>
+            <button type="button"
+              onClick={() => setForm(f => ({ ...f, travelers: Math.min(20, f.travelers + 1) }))}
+              disabled={form.travelers >= 20}
+              className="w-9 h-9 flex items-center justify-center rounded-[var(--radius-md)] bg-bg-secondary border border-border text-text-secondary hover:bg-bg-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-lg font-medium"
+            >+</button>
+            <span className="text-sm text-text-muted">{form.travelers === 1 ? 'traveler' : 'travelers'}</span>
+          </div>
+        )}
+        {profiles.length > 0 && (form.travelerIds || []).length === 0 && (
+          <p className="text-xs text-text-muted mt-1.5">Select who's coming on this trip</p>
+        )}
       </div>
 
       {/* Dates */}
@@ -335,11 +377,13 @@ function StepBudget({ form, setForm }) {
 
 /* ─────────────────── Step 4: Review ─────────────────── */
 function StepReview({ form }) {
+  const { profiles } = useProfiles()
   const currencyObj = CURRENCIES.find(c => c.code === form.currency)
   const symbol = currencyObj ? currencyObj.symbol : form.currency
   const totalMin = form.budgetCategories.reduce((s, c) => s + (c.min || 0), 0)
   const totalMax = form.budgetCategories.reduce((s, c) => s + (c.max || 0), 0)
   const validDests = form.destinations.filter(d => d.city.trim())
+  const selectedProfiles = profiles.filter(p => (form.travelerIds || []).includes(p.id))
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -353,7 +397,14 @@ function StepReview({ form }) {
             <span className="text-4xl">{form.emoji}</span>
             <div>
               <h3 className="font-heading text-lg font-bold text-text-primary">{form.name || 'Untitled Trip'}</h3>
-              <p className="text-sm text-text-muted">{form.travelers} {form.travelers === 1 ? 'traveler' : 'travelers'}</p>
+              {selectedProfiles.length > 0 ? (
+                <div className="flex items-center gap-1.5 mt-1">
+                  {selectedProfiles.map(p => <AvatarCircle key={p.id} profile={p} size={22} ring />)}
+                  <span className="text-xs text-text-muted ml-1">{selectedProfiles.map(p => p.name).join(', ')}</span>
+                </div>
+              ) : (
+                <p className="text-sm text-text-muted">{form.travelers} {form.travelers === 1 ? 'traveler' : 'travelers'}</p>
+              )}
             </div>
           </div>
         </div>
@@ -401,6 +452,7 @@ export default function NewTripModal({ isOpen, onClose }) {
       name: '',
       emoji: '✈️',
       travelers: 1,
+      travelerIds: [],
       startDate: '',
       endDate: '',
       destinations: [{ city: '', country: '', flag: '' }],
@@ -453,6 +505,7 @@ export default function NewTripModal({ isOpen, onClose }) {
       name: form.name.trim() || 'New Trip',
       emoji: form.emoji,
       travelers: form.travelers,
+      travelerIds: form.travelerIds || [],
       startDate: form.startDate,
       endDate: form.endDate,
       destinations,

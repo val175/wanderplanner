@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { TripContext } from './context/TripContext'
+import { ProfileProvider } from './context/ProfileContext'
 import { useAuth } from './hooks/useAuth'
 import { useFirestoreTrips } from './hooks/useFirestoreTrips'
 import { useMediaQuery } from './hooks/useMediaQuery'
@@ -244,5 +245,9 @@ export default function App() {
     )
   }
 
-  return <AuthenticatedApp signOutUser={signOutUser} />
+  return (
+    <ProfileProvider>
+      <AuthenticatedApp signOutUser={signOutUser} />
+    </ProfileProvider>
+  )
 }

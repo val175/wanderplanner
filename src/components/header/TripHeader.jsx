@@ -1,6 +1,8 @@
 import { useMemo, useState, useRef, useEffect } from 'react'
 import ProgressRing from '../shared/ProgressRing'
+import AvatarCircle from '../shared/AvatarCircle'
 import { useTripContext } from '../../context/TripContext'
+import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { calculateReadiness } from '../../utils/readiness'
 import { formatDateRange } from '../../utils/helpers'
@@ -181,6 +183,7 @@ function CityBreadcrumbs({ destinations }) {
 ───────────────────────────────────────────────────────────── */
 export default function TripHeader() {
   const { activeTrip, dispatch } = useTripContext()
+  const { profiles } = useProfiles()
 
   const readiness = useMemo(() => calculateReadiness(activeTrip), [activeTrip])
 
@@ -190,6 +193,11 @@ export default function TripHeader() {
   const dateRange = formatDateRange(trip.startDate, trip.endDate)
   const travelerCount = trip.travelers || 1
   const destinations = trip.destinations || []
+
+  // Resolve avatar profiles for this trip (travelerIds → profile objects)
+  const travelerProfiles = (trip.travelerIds || [])
+    .map(id => profiles.find(p => p.id === id))
+    .filter(Boolean)
 
   const handleRename = (newName) => {
     if (newName) dispatch({ type: ACTIONS.RENAME_TRIP, payload: { id: trip.id, name: newName } })
@@ -225,17 +233,32 @@ export default function TripHeader() {
                   {dateRange}
                 </span>
               )}
-              <span className="inline-flex items-center gap-1.5 text-sm text-text-muted">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                  className="shrink-0">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-                {travelerCount} {travelerCount === 1 ? 'traveler' : 'travelers'}
-              </span>
+              {travelerProfiles.length > 0 ? (
+                /* Stacked avatar circles */
+                <span className="inline-flex items-center">
+                  {travelerProfiles.map((p, i) => (
+                    <span key={p.id} style={{ marginLeft: i === 0 ? 0 : -8 }} className="inline-flex">
+                      <AvatarCircle profile={p} size={26} ring />
+                    </span>
+                  ))}
+                  <span className="ml-2 text-sm text-text-muted">
+                    {travelerProfiles.map(p => p.name.split(' ')[0]).join(' & ')}
+                  </span>
+                </span>
+              ) : (
+                /* Fallback: person icon + count */
+                <span className="inline-flex items-center gap-1.5 text-sm text-text-muted">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                    className="shrink-0">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                  {travelerCount} {travelerCount === 1 ? 'traveler' : 'travelers'}
+                </span>
+              )}
               {trip.startDate && (
                 <CountdownBadge targetDate={trip.startDate} emoji="✈️" />
               )}
