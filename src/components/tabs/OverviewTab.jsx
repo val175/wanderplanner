@@ -1,10 +1,39 @@
 import { useMemo, useState, useEffect } from 'react'
-import Card from '../shared/Card'
 import ProgressRing from '../shared/ProgressRing'
 import ProgressBar from '../shared/ProgressBar'
 import { useTripContext } from '../../context/TripContext'
 import { calculateReadiness, getReadinessBreakdown } from '../../utils/readiness'
 import { formatCurrency, daysUntil, daysBetween, formatDate } from '../../utils/helpers'
+
+/* ─────────────────────────────────────────────────────────────
+   Shared bento card shell — white surface, uniform radius/shadow,
+   fills its grid cell completely.
+───────────────────────────────────────────────────────────── */
+function BentoCard({ children, className = '', onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      className={`
+        bg-[var(--color-bg-card)] rounded-[var(--radius-lg)]
+        border border-[var(--color-border)]
+        flex flex-col h-full overflow-hidden
+        ${onClick ? 'cursor-pointer hover:border-[var(--color-border-strong)] transition-colors duration-150' : ''}
+        ${className}
+      `}
+    >
+      {children}
+    </div>
+  )
+}
+
+/* Consistent label style used across all cells */
+function Label({ children }) {
+  return (
+    <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-[0.14em]">
+      {children}
+    </span>
+  )
+}
 
 /* ─────────────────────────────────────────────────────────────
    WMO weather code → emoji + label
@@ -23,10 +52,9 @@ function wmoToDescription(code) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   WeatherWidget — live weather for first destination.
-   Uses Open-Meteo (free, no API key, CORS-enabled).
+   Weather bento cell
 ───────────────────────────────────────────────────────────── */
-function WeatherWidget({ destinations }) {
+function WeatherCell({ destinations }) {
   const [weather, setWeather] = useState(null)
   const [status, setStatus] = useState('loading')
   const firstDest = destinations?.[0]
@@ -34,551 +62,461 @@ function WeatherWidget({ destinations }) {
   useEffect(() => {
     if (!firstDest) { setStatus('error'); return }
     let cancelled = false
-    setStatus('loading')
-    setWeather(null)
+    setStatus('loading'); setWeather(null)
 
-    async function fetchWeather() {
+    async function fetch_() {
       try {
-        const geoRes = await fetch(
-          `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(firstDest.city)}&count=1&language=en&format=json`
-        )
-        const geoData = await geoRes.json()
-        if (!geoData.results?.length) throw new Error('City not found')
-        const { latitude, longitude } = geoData.results[0]
-
-        const wxRes = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
-          `&current=temperature_2m,apparent_temperature,relative_humidity_2m,weathercode` +
-          `&temperature_unit=celsius&timezone=auto`
-        )
-        const wxData = await wxRes.json()
-        const cur = wxData.current
-        if (!cancelled) {
-          setWeather({
-            temp: Math.round(cur.temperature_2m),
-            feelsLike: Math.round(cur.apparent_temperature),
-            humidity: cur.relative_humidity_2m,
-            wmo: cur.weathercode,
-            city: firstDest.city,
-            flag: firstDest.flag,
-          })
-          setStatus('ok')
-        }
-      } catch {
-        if (!cancelled) setStatus('error')
-      }
+        const g = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(firstDest.city)}&count=1&language=en&format=json`)
+        const gd = await g.json()
+        if (!gd.results?.length) throw new Error('not found')
+        const { latitude, longitude } = gd.results[0]
+        const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,weathercode&temperature_unit=celsius&timezone=auto`)
+        const wd = await w.json()
+        const c = wd.current
+        if (!cancelled) { setWeather({ temp: Math.round(c.temperature_2m), feelsLike: Math.round(c.apparent_temperature), wmo: c.weathercode, city: firstDest.city, flag: firstDest.flag }); setStatus('ok') }
+      } catch { if (!cancelled) setStatus('error') }
     }
-
-    fetchWeather()
+    fetch_()
     return () => { cancelled = true }
   }, [firstDest?.city])
 
-  if (status === 'error' || !firstDest) return null
-
-  if (status === 'loading') {
-    return (
-      <div className="flex items-center gap-3 animate-pulse">
-        <div className="w-8 h-8 rounded-full bg-bg-hover shrink-0" />
-        <div className="space-y-1.5 flex-1">
-          <div className="h-2.5 bg-bg-hover rounded w-20" />
-          <div className="h-2 bg-bg-hover rounded w-14" />
-        </div>
-      </div>
-    )
-  }
-
-  const { emoji, label } = wmoToDescription(weather.wmo)
   return (
-    <div className="flex items-center gap-3">
-      <span className="text-3xl leading-none shrink-0">{emoji}</span>
-      <div>
-        <div className="flex items-baseline gap-1">
-          <span className="font-heading font-bold text-xl text-text-primary">{weather.temp}°</span>
-          <span className="text-xs text-text-muted">feels {weather.feelsLike}°</span>
-        </div>
-        <div className="text-xs text-text-muted">
-          {label} · {weather.flag} {weather.city}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/* ─────────────────────────────────────────────────────────────
-   Priority Action Board — "Needs Attention"
-   Borderless row treatment: alignment + negative space only.
-───────────────────────────────────────────────────────────── */
-const URGENCY_HIGH = 'high'
-const URGENCY_MED  = 'med'
-
-function buildAttentionItems(trip) {
-  const items = []
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  // High-priority / due-soon todos
-  const urgentTodos = (trip.todos || []).filter(t => {
-    if (t.done) return false
-    if (t.priority === 'high') return true
-    if (t.dueDate) {
-      const diff = Math.ceil((new Date(t.dueDate + 'T00:00:00') - today) / 86400000)
-      return diff <= 14
-    }
-    return false
-  }).slice(0, 3)
-
-  urgentTodos.forEach(t => {
-    const dueD = t.dueDate ? Math.ceil((new Date(t.dueDate + 'T00:00:00') - today) / 86400000) : null
-    const overdue = dueD !== null && dueD < 0
-    items.push({
-      id: `todo-${t.id}`,
-      urgency: (t.priority === 'high' || overdue) ? URGENCY_HIGH : URGENCY_MED,
-      icon: overdue ? '🚨' : t.priority === 'high' ? '⚡' : '📋',
-      title: t.text,
-      subtitle: overdue
-        ? `Overdue by ${Math.abs(dueD)} day${Math.abs(dueD) !== 1 ? 's' : ''}`
-        : dueD !== null
-        ? `Due in ${dueD} day${dueD !== 1 ? 's' : ''}`
-        : t.category,
-      tab: 'todo',
-    })
-  })
-
-  // Unconfirmed / deadline-bound bookings
-  const urgentBookings = (trip.bookings || []).filter(b => {
-    if (b.status === 'booked') return false
-    if (b.priority) return true
-    if (b.bookByDate) {
-      const diff = Math.ceil((new Date(b.bookByDate + 'T00:00:00') - today) / 86400000)
-      return diff <= 21
-    }
-    return false
-  }).slice(0, 3)
-
-  urgentBookings.forEach(b => {
-    const dueD = b.bookByDate
-      ? Math.ceil((new Date(b.bookByDate + 'T00:00:00') - today) / 86400000)
-      : null
-    const overdue = dueD !== null && dueD < 0
-    const catIcon = { flight: '✈️', hotel: '🏨', concert: '🎸', experience: '🎯' }[b.category] || '🎫'
-    items.push({
-      id: `booking-${b.id}`,
-      urgency: (b.priority || overdue) ? URGENCY_HIGH : URGENCY_MED,
-      icon: catIcon,
-      title: b.name,
-      subtitle: b.status === 'researching' ? 'Not yet booked'
-        : b.status === 'pending' ? 'Pending confirmation'
-        : overdue ? `Book-by passed ${Math.abs(dueD)}d ago`
-        : dueD !== null ? `Book by: ${formatDate(b.bookByDate, 'short')}`
-        : 'Unconfirmed',
-      tab: 'bookings',
-    })
-  })
-
-  // Missing flights
-  const hasFlights = (trip.bookings || []).some(b => b.category === 'flight')
-  if (!hasFlights && (trip.destinations?.length || 0) > 1) {
-    items.push({
-      id: 'missing-flights',
-      urgency: URGENCY_MED,
-      icon: '✈️',
-      title: 'No flights added yet',
-      subtitle: `${(trip.destinations?.length || 0) - 1} route${(trip.destinations?.length || 0) > 2 ? 's' : ''} to book`,
-      tab: 'bookings',
-    })
-  }
-
-  // Missing accommodation
-  const hasHotel = (trip.bookings || []).some(b => b.category === 'hotel')
-  if (!hasHotel && (trip.destinations?.length || 0) > 0) {
-    items.push({
-      id: 'missing-hotels',
-      urgency: URGENCY_MED,
-      icon: '🏨',
-      title: 'No accommodation added',
-      subtitle: 'Add hotels or rentals',
-      tab: 'bookings',
-    })
-  }
-
-  // Packing not started, close to trip
-  const totalPacking = trip.packingList?.length || 0
-  const packedItems  = trip.packingList?.filter(p => p.packed).length || 0
-  const daysOut      = daysUntil(trip.startDate)
-  if (totalPacking > 0 && packedItems === 0 && daysOut !== null && daysOut <= 30) {
-    items.push({
-      id: 'packing-notstarted',
-      urgency: daysOut <= 7 ? URGENCY_HIGH : URGENCY_MED,
-      icon: '🧳',
-      title: 'Packing not started',
-      subtitle: `${totalPacking} items · ${daysOut} day${daysOut !== 1 ? 's' : ''} to go`,
-      tab: 'packing',
-    })
-  }
-
-  return items
-    .sort((a, b) => (a.urgency === URGENCY_HIGH ? -1 : b.urgency === URGENCY_HIGH ? 1 : 0))
-    .slice(0, 5)
-}
-
-function PriorityActionBoard({ trip, onTabSwitch }) {
-  const items    = useMemo(() => buildAttentionItems(trip), [trip])
-  const highCount = items.filter(i => i.urgency === URGENCY_HIGH).length
-
-  if (items.length === 0) {
-    return (
-      <div className="flex items-center gap-3 py-3">
-        <span className="text-xl">🎉</span>
-        <div>
-          <p className="text-sm font-semibold text-text-primary">Nothing urgent right now</p>
-          <p className="text-xs text-text-muted mt-0.5">All key items are on track</p>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div>
-      {/* Header row — label + count badge, no card frame */}
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-bold text-text-muted uppercase tracking-[0.14em]">
-          Needs Attention
-        </span>
-        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full
-          ${highCount > 0
-            ? 'bg-danger/10 text-danger'
-            : 'bg-warning/10 text-warning'}`}>
-          {highCount > 0 ? `${highCount} urgent` : `${items.length} items`}
-        </span>
-      </div>
-
-      {/* Borderless rows — divide only */}
-      <div className="divide-y divide-border -mx-5">
-        {items.map(item => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onTabSwitch?.(item.tab)}
-            className="w-full flex items-center gap-3 px-5 py-3 text-left
-                       hover:bg-bg-hover transition-colors duration-150 group"
-          >
-            {/* Urgency stripe — semantic colour only */}
-            <div className={`w-0.5 h-7 rounded-full shrink-0
-              ${item.urgency === URGENCY_HIGH ? 'bg-danger' : 'bg-warning'}`}
-            />
-            <span className="text-lg shrink-0 leading-none">{item.icon}</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-text-primary truncate leading-tight">{item.title}</p>
-              <p className="text-xs text-text-muted mt-0.5">{item.subtitle}</p>
+    <BentoCard>
+      <div className="p-4 flex flex-col h-full">
+        <Label>Right Now</Label>
+        {status === 'loading' && (
+          <div className="flex-1 flex items-center gap-3 animate-pulse mt-3">
+            <div className="w-10 h-10 rounded-full bg-[var(--color-bg-hover)] shrink-0" />
+            <div className="space-y-1.5 flex-1">
+              <div className="h-3 bg-[var(--color-bg-hover)] rounded w-16" />
+              <div className="h-2 bg-[var(--color-bg-hover)] rounded w-12" />
             </div>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-              className="text-text-muted shrink-0 opacity-0 group-hover:opacity-50 transition-opacity">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </button>
-        ))}
+          </div>
+        )}
+        {status === 'ok' && weather && (() => {
+          const { emoji, label } = wmoToDescription(weather.wmo)
+          return (
+            <div className="flex-1 flex flex-col justify-center mt-3">
+              <div className="text-4xl leading-none mb-2">{emoji}</div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="font-heading font-bold text-2xl text-[var(--color-text-primary)]">{weather.temp}°</span>
+                <span className="text-xs text-[var(--color-text-muted)]">feels {weather.feelsLike}°</span>
+              </div>
+              <div className="text-xs text-[var(--color-text-muted)] mt-0.5">{label}</div>
+              <div className="text-[10px] text-[var(--color-text-muted)] mt-2 opacity-50">{weather.flag} {weather.city} · Open-Meteo</div>
+            </div>
+          )
+        })()}
+        {status === 'error' && (
+          <div className="flex-1 flex items-center justify-center mt-3">
+            <span className="text-xs text-[var(--color-text-muted)]">Unavailable</span>
+          </div>
+        )}
       </div>
-    </div>
+    </BentoCard>
   )
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Route Tracker — full-width node → connector timeline
+   Route bento cell — horizontal node chain
 ───────────────────────────────────────────────────────────── */
 function guessTransit(from, to) {
-  if (!from || !to) return { icon: '✈️', label: 'Flight' }
-  return from.country !== to.country
-    ? { icon: '✈️', label: 'Flight' }
-    : { icon: '🚌', label: 'Ground' }
+  if (!from || !to) return '✈️'
+  return from.country !== to.country ? '✈️' : '🚌'
 }
 
-function RouteTracker({ trip }) {
+function RouteCell({ trip }) {
   const dests = trip.destinations || []
-  if (dests.length < 2) return null
 
   const destDates = useMemo(() => {
     const map = {}
     ;(trip.itinerary || []).forEach(day => {
       const loc = (day.location || '').toLowerCase()
       dests.forEach(d => {
-        if (!map[d.city] && loc.includes(d.city.toLowerCase())) {
-          map[d.city] = day.date
-        }
+        if (!map[d.city] && loc.includes(d.city.toLowerCase())) map[d.city] = day.date
       })
     })
     return map
   }, [trip.itinerary, dests])
 
   return (
-    <div>
-      {/* Section label */}
-      <span className="text-xs font-bold text-text-muted uppercase tracking-[0.14em] mb-4 block">
-        Route
-      </span>
-
-      {/* Scrollable node chain */}
-      <div className="overflow-x-auto scrollbar-hide -mx-5 px-5">
-        <div className="flex items-start min-w-max pb-1">
-          {dests.map((dest, i) => {
-            const isLast    = i === dests.length - 1
-            const isFirst   = i === 0
-            const transit   = isLast ? null : guessTransit(dest, dests[i + 1])
-            const date      = destDates[dest.city]
-
-            return (
-              <div key={i} className="flex items-start">
-                {/* Destination node */}
-                <div className="flex flex-col items-center text-center w-[68px]">
-                  {/* Date label above */}
-                  <div className="text-[10px] text-text-muted font-medium mb-2 h-3 leading-none">
-                    {date ? formatDate(date, 'short') : ''}
-                  </div>
-                  {/* Flag node */}
-                  <div className={`
-                    w-9 h-9 rounded-full flex items-center justify-center text-base
-                    border-2 transition-colors
-                    ${isFirst
-                      ? 'border-accent bg-accent/10'
-                      : isLast
-                      ? 'border-success bg-success/10'
-                      : 'border-border-strong bg-bg-secondary'
-                    }
-                  `}>
-                    {dest.flag}
-                  </div>
-                  {/* City name */}
-                  <p className="text-[11px] font-semibold text-text-primary mt-1.5 leading-tight">{dest.city}</p>
-                  <p className="text-[9px] text-text-muted leading-tight">{dest.country}</p>
-                </div>
-
-                {/* Connector */}
-                {!isLast && (
-                  <div className="flex flex-col items-center pt-3 mx-0.5 w-12">
-                    <div className="text-xs leading-none mb-1.5">{transit.icon}</div>
-                    <div className="w-full h-0.5 border-t-2 border-dashed border-border-strong" />
-                    <div className="text-[8px] text-text-muted mt-1 font-medium uppercase tracking-wide">
-                      {transit.label}
+    <BentoCard>
+      <div className="p-4 flex flex-col h-full">
+        <Label>Route</Label>
+        {dests.length < 2 ? (
+          <div className="flex-1 flex items-center">
+            <span className="text-xs text-[var(--color-text-muted)]">Add destinations to see your route</span>
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center mt-4 overflow-x-auto scrollbar-hide -mx-1 px-1">
+            <div className="flex items-center min-w-max">
+              {dests.map((dest, i) => {
+                const isLast  = i === dests.length - 1
+                const isFirst = i === 0
+                const date    = destDates[dest.city]
+                return (
+                  <div key={i} className="flex items-center">
+                    {/* Node */}
+                    <div className="flex flex-col items-center text-center w-14">
+                      <div className="text-[9px] text-[var(--color-text-muted)] mb-1.5 h-3 leading-none font-medium">
+                        {date ? formatDate(date, 'short') : ''}
+                      </div>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm border-2
+                        ${isFirst ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10'
+                          : isLast ? 'border-[var(--color-success)] bg-[var(--color-success)]/10'
+                          : 'border-[var(--color-border-strong)] bg-[var(--color-bg-secondary)]'}`}>
+                        {dest.flag}
+                      </div>
+                      <p className="text-[10px] font-semibold text-[var(--color-text-primary)] mt-1 leading-tight">{dest.city}</p>
                     </div>
+                    {/* Connector */}
+                    {!isLast && (
+                      <div className="flex flex-col items-center w-10 shrink-0">
+                        <div className="text-[10px] mb-1">{guessTransit(dest, dests[i + 1])}</div>
+                        <div className="w-full border-t-2 border-dashed border-[var(--color-border-strong)]" />
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+    </BentoCard>
   )
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Stat strip — horizontal, no card border (alignment-only)
+   Stat cells — each number lives in its own bento box
 ───────────────────────────────────────────────────────────── */
-function StatStrip({ trip }) {
-  const totalDays = daysBetween(trip.startDate, trip.endDate)
-  const uniqueCities = (trip.destinations || []).filter((d, i, arr) =>
-    arr.findIndex(x => x.city === d.city) === i
-  ).length
-  const flightsCount   = trip.bookings?.filter(b => b.category === 'flight').length || 0
-  const confirmedCount = trip.bookings?.filter(b => b.status === 'booked').length || 0
-  const totalBookings  = trip.bookings?.length || 0
+function StatCell({ value, label, sub }) {
+  return (
+    <BentoCard>
+      <div className="p-4 flex flex-col justify-between h-full">
+        <Label>{label}</Label>
+        <div className="mt-2">
+          <span
+            className="font-heading text-[var(--color-text-primary)] leading-none block"
+            style={{ fontSize: '2rem', fontWeight: 200, letterSpacing: '-0.03em' }}
+          >
+            {value}
+          </span>
+          {sub && <span className="text-[10px] text-[var(--color-text-muted)] mt-0.5 block">{sub}</span>}
+        </div>
+      </div>
+    </BentoCard>
+  )
+}
 
-  const stats = [
-    { value: totalDays,    label: 'Days' },
-    { value: uniqueCities, label: 'Cities' },
-    { value: flightsCount, label: 'Flights' },
-    ...(totalBookings > 0
-      ? [{ value: `${confirmedCount}/${totalBookings}`, label: 'Confirmed' }]
-      : []),
-  ]
+/* ─────────────────────────────────────────────────────────────
+   Needs Attention bento cell
+───────────────────────────────────────────────────────────── */
+const URGENCY_HIGH = 'high'
+const URGENCY_MED  = 'med'
+
+function buildAttentionItems(trip) {
+  const items = []
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+
+  ;(trip.todos || []).filter(t => {
+    if (t.done) return false
+    if (t.priority === 'high') return true
+    if (t.dueDate) return Math.ceil((new Date(t.dueDate + 'T00:00:00') - today) / 86400000) <= 14
+    return false
+  }).slice(0, 3).forEach(t => {
+    const dueD = t.dueDate ? Math.ceil((new Date(t.dueDate + 'T00:00:00') - today) / 86400000) : null
+    const overdue = dueD !== null && dueD < 0
+    items.push({
+      id: `todo-${t.id}`, urgency: (t.priority === 'high' || overdue) ? URGENCY_HIGH : URGENCY_MED,
+      icon: overdue ? '🚨' : t.priority === 'high' ? '⚡' : '📋',
+      title: t.text,
+      subtitle: overdue ? `Overdue ${Math.abs(dueD)}d` : dueD !== null ? `Due in ${dueD}d` : t.category,
+      tab: 'todo',
+    })
+  })
+
+  ;(trip.bookings || []).filter(b => {
+    if (b.status === 'booked') return false
+    if (b.priority) return true
+    if (b.bookByDate) return Math.ceil((new Date(b.bookByDate + 'T00:00:00') - today) / 86400000) <= 21
+    return false
+  }).slice(0, 3).forEach(b => {
+    const dueD = b.bookByDate ? Math.ceil((new Date(b.bookByDate + 'T00:00:00') - today) / 86400000) : null
+    const overdue = dueD !== null && dueD < 0
+    const catIcon = { flight: '✈️', hotel: '🏨', concert: '🎸', experience: '🎯' }[b.category] || '🎫'
+    items.push({
+      id: `booking-${b.id}`, urgency: (b.priority || overdue) ? URGENCY_HIGH : URGENCY_MED,
+      icon: catIcon, title: b.name,
+      subtitle: overdue ? `Book-by passed ${Math.abs(dueD)}d ago` : dueD !== null ? `Book by ${formatDate(b.bookByDate, 'short')}` : 'Unconfirmed',
+      tab: 'bookings',
+    })
+  })
+
+  const hasFlights = (trip.bookings || []).some(b => b.category === 'flight')
+  if (!hasFlights && (trip.destinations?.length || 0) > 1) {
+    items.push({ id: 'missing-flights', urgency: URGENCY_MED, icon: '✈️', title: 'No flights added yet', subtitle: 'Add to Bookings', tab: 'bookings' })
+  }
+  const hasHotel = (trip.bookings || []).some(b => b.category === 'hotel')
+  if (!hasHotel) {
+    items.push({ id: 'missing-hotels', urgency: URGENCY_MED, icon: '🏨', title: 'No accommodation yet', subtitle: 'Add to Bookings', tab: 'bookings' })
+  }
+  const totalPacking = trip.packingList?.length || 0
+  const packedItems  = trip.packingList?.filter(p => p.packed).length || 0
+  const daysOut = daysUntil(trip.startDate)
+  if (totalPacking > 0 && packedItems === 0 && daysOut !== null && daysOut <= 30) {
+    items.push({ id: 'packing', urgency: daysOut <= 7 ? URGENCY_HIGH : URGENCY_MED, icon: '🧳', title: 'Packing not started', subtitle: `${daysOut}d to go`, tab: 'packing' })
+  }
+
+  return items.sort((a, b) => a.urgency === URGENCY_HIGH ? -1 : b.urgency === URGENCY_HIGH ? 1 : 0).slice(0, 5)
+}
+
+function AttentionCell({ trip, onTabSwitch }) {
+  const items     = useMemo(() => buildAttentionItems(trip), [trip])
+  const highCount = items.filter(i => i.urgency === URGENCY_HIGH).length
 
   return (
-    <div className="flex items-center gap-6 flex-wrap">
-      {stats.map((s, i) => (
-        <div key={i} className="flex flex-col items-start">
-          <span
-            className="font-heading text-text-primary leading-none"
-            style={{ fontSize: '1.65rem', fontWeight: 200, letterSpacing: '-0.03em' }}
+    <BentoCard>
+      {/* Header */}
+      <div className="px-4 pt-4 pb-3 flex items-center justify-between shrink-0">
+        <Label>Needs Attention</Label>
+        {items.length > 0 && (
+          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full
+            ${highCount > 0 ? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'
+                           : 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]'}`}>
+            {highCount > 0 ? `${highCount} urgent` : `${items.length} items`}
+          </span>
+        )}
+      </div>
+
+      {/* Rows — bleed to card edges */}
+      <div className="flex-1 overflow-y-auto divide-y divide-[var(--color-border)]">
+        {items.length === 0 ? (
+          <div className="px-4 py-5 flex items-center gap-3">
+            <span className="text-xl">🎉</span>
+            <div>
+              <p className="text-sm font-semibold text-[var(--color-text-primary)]">All clear</p>
+              <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Nothing urgent right now</p>
+            </div>
+          </div>
+        ) : items.map(item => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onTabSwitch?.(item.tab)}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-left
+                       hover:bg-[var(--color-bg-hover)] transition-colors duration-100 group"
           >
-            {s.value}
-          </span>
-          <span className="text-[9px] font-bold text-text-muted uppercase tracking-[0.16em] mt-0.5">
-            {s.label}
-          </span>
+            <div className={`w-0.5 h-6 rounded-full shrink-0
+              ${item.urgency === URGENCY_HIGH ? 'bg-[var(--color-danger)]' : 'bg-[var(--color-warning)]'}`} />
+            <span className="text-base leading-none shrink-0">{item.icon}</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-[var(--color-text-primary)] truncate">{item.title}</p>
+              <p className="text-[10px] text-[var(--color-text-muted)]">{item.subtitle}</p>
+            </div>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+              strokeLinecap="round" strokeLinejoin="round"
+              className="text-[var(--color-text-muted)] shrink-0 opacity-0 group-hover:opacity-40 transition-opacity">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        ))}
+      </div>
+    </BentoCard>
+  )
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Readiness bento cell
+───────────────────────────────────────────────────────────── */
+function ReadinessCell({ trip }) {
+  const readiness = calculateReadiness(trip)
+  const breakdown = getReadinessBreakdown(trip)
+  const isZero    = readiness === 0
+
+  const msg = readiness === 100 ? "100% ready 🌍"
+    : readiness >= 75 ? "Almost there!"
+    : readiness >= 50 ? "Good progress"
+    : readiness > 0   ? "Just getting started"
+    : "Add items to track"
+
+  return (
+    <BentoCard>
+      <div className="p-4 flex flex-col h-full">
+        <Label>Readiness</Label>
+        <div className="flex-1 flex flex-col justify-between mt-3">
+          <div className="flex items-center gap-4">
+            <ProgressRing value={readiness} size={72} strokeWidth={5} pulse={isZero} labelClassName="text-xs" />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-[var(--color-text-primary)]">{msg}</p>
+              <div className="mt-2 space-y-1.5">
+                <ProgressBar value={breakdown.bookings.done} max={breakdown.bookings.total}
+                  label="Bookings" showLabel colorClass="bg-info" height="h-1" />
+                <ProgressBar value={breakdown.todos.done} max={breakdown.todos.total}
+                  label="To-Dos" showLabel colorClass="bg-accent" height="h-1" />
+                <ProgressBar value={breakdown.packing.done} max={breakdown.packing.total}
+                  label="Packing" showLabel colorClass="bg-success" height="h-1" />
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
+    </BentoCard>
+  )
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Budget bento cell
+───────────────────────────────────────────────────────────── */
+function BudgetCell({ trip }) {
+  const budgetMin  = trip.budget?.reduce((s, b) => s + (b.min    || 0), 0) || 0
+  const budgetMax  = trip.budget?.reduce((s, b) => s + (b.max    || 0), 0) || 0
+  const totalSpent = trip.budget?.reduce((s, b) => s + (b.actual || 0), 0) || 0
+  const hasBudget  = budgetMax > 0
+  const overBudget = totalSpent > budgetMax
+
+  return (
+    <BentoCard>
+      <div className="p-4 flex flex-col h-full">
+        <Label>Budget</Label>
+        {!hasBudget ? (
+          <div className="flex-1 flex items-center">
+            <span className="text-xs text-[var(--color-text-muted)]">No budget set</span>
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col justify-between mt-3">
+            <div>
+              <p className="text-[10px] text-[var(--color-text-muted)]">Estimated</p>
+              <p className="text-sm font-semibold text-[var(--color-text-primary)] mt-0.5">
+                {formatCurrency(budgetMin, trip.currency)} – {formatCurrency(budgetMax, trip.currency)}
+              </p>
+            </div>
+            {totalSpent > 0 && (
+              <div className="mt-3">
+                <div className="flex justify-between items-baseline mb-1.5">
+                  <p className="text-[10px] text-[var(--color-text-muted)]">Spent</p>
+                  <p className={`text-sm font-bold ${overBudget ? 'text-[var(--color-danger)]' : 'text-[var(--color-success)]'}`}>
+                    {formatCurrency(totalSpent, trip.currency)}{overBudget ? ' ⚠️' : ''}
+                  </p>
+                </div>
+                <ProgressBar value={totalSpent} max={budgetMax}
+                  colorClass={overBudget ? 'bg-danger' : 'bg-accent'} height="h-1.5" />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </BentoCard>
+  )
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Quick Start — 0% readiness only, 3 bento cells in a row
+───────────────────────────────────────────────────────────── */
+const QUICK_START = [
+  { emoji: '🎫', title: 'Add a Booking',  desc: 'Flights, hotels, activities', tab: 'bookings' },
+  { emoji: '✅', title: 'Create To-Dos',  desc: 'Visas, vaccines, admin',      tab: 'todo' },
+  { emoji: '🧳', title: 'Start Packing',  desc: 'Build your checklist',         tab: 'packing' },
+]
+
+function QuickStartRow({ onTabSwitch }) {
+  return (
+    <div className="grid grid-cols-3 gap-3">
+      {QUICK_START.map(item => (
+        <BentoCard key={item.tab} onClick={() => onTabSwitch?.(item.tab)}>
+          <div className="p-4 flex flex-col h-full">
+            <div className="text-2xl mb-3">{item.emoji}</div>
+            <p className="text-xs font-semibold text-[var(--color-text-primary)]">{item.title}</p>
+            <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">{item.desc}</p>
+          </div>
+        </BentoCard>
       ))}
     </div>
   )
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Readiness card
-───────────────────────────────────────────────────────────── */
-function ReadinessCard({ trip }) {
-  const readiness = calculateReadiness(trip)
-  const breakdown = getReadinessBreakdown(trip)
-  const isZero    = readiness === 0
+   Main OverviewTab — bento grid layout
 
-  const message = readiness === 100 ? "You're 100% ready. Go enjoy the world. 🌍"
-    : readiness >= 75 ? "Almost there! Just a few more things."
-    : readiness >= 50 ? "Making good progress. Keep it up!"
-    : readiness > 0   ? "Let's get this trip planned! 🗺️"
-    : "Add bookings, to-dos, and packing items."
+   Desktop grid (3 cols):
+   ┌────────────────────────────┬──────┬──────┐
+   │  Route (span 3)            │      │      │
+   ├────────────┬───────────────┴──────┴──────┤  ← row 2
+   │  Days      │                             │
+   ├────────────┤  Needs Attention            │
+   │  Cities    │                             │
+   ├────────────┤                             │
+   │  Confirmed ├──────┬──────────────────────┤
+   ├────────────┤      │                      │
+   │  Weather   │ Ready│  Budget              │
+   └────────────┴──────┴──────────────────────┘
 
-  const tooltip = breakdown.bookings.total + breakdown.todos.total + breakdown.packing.total > 0
-    ? `${breakdown.bookings.total} bookings · ${breakdown.todos.total} to-dos · ${breakdown.packing.total} packing items`
-    : 'Add items to track readiness'
-
-  return (
-    <Card>
-      <div className="flex items-center gap-5">
-        <ProgressRing value={readiness} size={80} strokeWidth={6} pulse={isZero} tooltip={tooltip} />
-        <div className="flex-1 min-w-0">
-          <h3 className="font-heading text-sm font-semibold text-text-primary mb-0.5">Trip Readiness</h3>
-          <p className="text-xs text-text-muted mb-3">{message}</p>
-          <div className="space-y-1.5">
-            <ProgressBar value={breakdown.bookings.done} max={breakdown.bookings.total}
-              label="Bookings" showLabel colorClass="bg-info" height="h-1" />
-            <ProgressBar value={breakdown.todos.done} max={breakdown.todos.total}
-              label="To-Dos" showLabel colorClass="bg-accent" height="h-1" />
-            <ProgressBar value={breakdown.packing.done} max={breakdown.packing.total}
-              label="Packing" showLabel colorClass="bg-success" height="h-1" />
-          </div>
-        </div>
-      </div>
-    </Card>
-  )
-}
-
-/* ─────────────────────────────────────────────────────────────
-   Budget snapshot
-───────────────────────────────────────────────────────────── */
-function BudgetCard({ trip }) {
-  const budgetMin  = trip.budget?.reduce((s, b) => s + (b.min    || 0), 0) || 0
-  const budgetMax  = trip.budget?.reduce((s, b) => s + (b.max    || 0), 0) || 0
-  const totalSpent = trip.budget?.reduce((s, b) => s + (b.actual || 0), 0) || 0
-  if (budgetMax === 0) return null
-
-  const overBudget = totalSpent > budgetMax
-  return (
-    <Card>
-      <h3 className="text-xs font-bold text-text-muted uppercase tracking-[0.14em] mb-3">
-        Budget
-      </h3>
-      <div className="space-y-2">
-        <div className="flex justify-between text-sm">
-          <span className="text-text-secondary">Estimated</span>
-          <span className="text-text-primary font-medium">
-            {formatCurrency(budgetMin, trip.currency)} – {formatCurrency(budgetMax, trip.currency)}
-          </span>
-        </div>
-        {totalSpent > 0 && (
-          <>
-            <div className="flex justify-between text-sm">
-              <span className="text-text-secondary">Spent so far</span>
-              <span className={`font-semibold ${overBudget ? 'text-danger' : 'text-success'}`}>
-                {formatCurrency(totalSpent, trip.currency)}
-                {overBudget && ' ⚠️'}
-              </span>
-            </div>
-            <ProgressBar value={totalSpent} max={budgetMax}
-              colorClass={overBudget ? 'bg-danger' : 'bg-accent'} height="h-1.5" />
-          </>
-        )}
-      </div>
-    </Card>
-  )
-}
-
-/* ─────────────────────────────────────────────────────────────
-   Quick Start — only shown at 0% readiness
-───────────────────────────────────────────────────────────── */
-const QUICK_START_ITEMS = [
-  { emoji: '🎫', title: 'Add a Booking',   description: 'Log flights, hotels, or activities.', tab: 'bookings', accentClass: 'bg-info/10 border-info/20 text-info' },
-  { emoji: '✅', title: 'Create a To-Do',  description: 'Track tasks like visas and vaccines.', tab: 'todo',     accentClass: 'bg-accent/10 border-accent/20 text-accent' },
-  { emoji: '🧳', title: 'Start Packing',   description: 'Build your packing checklist.',        tab: 'packing',  accentClass: 'bg-success/10 border-success/20 text-success' },
-]
-
-function QuickStartCards({ onTabSwitch }) {
-  return (
-    <div>
-      <span className="text-xs font-bold text-text-muted uppercase tracking-[0.14em] mb-3 block">
-        Quick Start
-      </span>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {QUICK_START_ITEMS.map(item => (
-          <button key={item.tab} type="button" onClick={() => onTabSwitch?.(item.tab)}
-            className={`group text-left p-4 rounded-[var(--radius-lg)] border
-              ${item.accentClass} hover:scale-[1.02] active:scale-[0.99] transition-all duration-150`}>
-            <div className="text-2xl mb-2">{item.emoji}</div>
-            <div className="font-semibold text-sm text-text-primary mb-0.5">{item.title}</div>
-            <div className="text-xs text-text-muted">{item.description}</div>
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/* ─────────────────────────────────────────────────────────────
-   Main OverviewTab
-   Layout order:
-     1. Route Tracker (full-width, first — the journey itself)
-     2. Stat strip (days / cities / flights / confirmed)
-     3. Two-col: Needs Attention | Weather
-     4. Quick Start (only at 0%)
-     5. Readiness + Budget
+   Implemented with two sections:
+   1. Top: route full-width
+   2. Middle: 3-col grid [stat column | attention | weather col]
+   3. Bottom: 3-col grid [readiness | budget | -]
 ───────────────────────────────────────────────────────────── */
 export default function OverviewTab({ onTabSwitch }) {
   const { activeTrip } = useTripContext()
-
   if (!activeTrip) return null
+
   const trip = activeTrip
-  const readiness = calculateReadiness(trip)
+  const readiness       = calculateReadiness(trip)
   const isZeroReadiness = readiness === 0
 
-  const hasWeather = (trip.destinations?.length || 0) > 0
+  const totalDays    = daysBetween(trip.startDate, trip.endDate)
+  const uniqueCities = (trip.destinations || []).filter((d, i, arr) =>
+    arr.findIndex(x => x.city === d.city) === i
+  ).length
+  const flightsCount   = trip.bookings?.filter(b => b.category === 'flight').length || 0
+  const confirmedCount = trip.bookings?.filter(b => b.status === 'booked').length || 0
+  const totalBookings  = trip.bookings?.length || 0
+  const hasWeather     = (trip.destinations?.length || 0) > 0
 
   return (
-    <div className="space-y-7 animate-fade-in">
+    <div className="space-y-3 animate-fade-in">
 
-      {/* 1 ─ Route — first thing the eye lands on */}
-      <Card>
-        <RouteTracker trip={trip} />
-      </Card>
-
-      {/* 2 ─ Stat strip — ultra-light typographic numbers, no card border */}
-      <StatStrip trip={trip} />
-
-      {/* 3 ─ Main 2-col: action board + weather */}
-      <div className="grid md:grid-cols-[1fr_240px] gap-7 items-start">
-
-        {/* Needs Attention — borderless list inside a card frame */}
-        <Card>
-          <PriorityActionBoard trip={trip} onTabSwitch={onTabSwitch} />
-        </Card>
-
-        {/* Right column: weather */}
-        {hasWeather && (
-          <Card>
-            <span className="text-xs font-bold text-text-muted uppercase tracking-[0.14em] mb-3 block">
-              Right Now
-            </span>
-            <WeatherWidget destinations={trip.destinations} />
-            <p className="text-[9px] text-text-muted mt-3 opacity-40">
-              Open-Meteo · live
-            </p>
-          </Card>
-        )}
+      {/* ── Row 1: Route — full width ── */}
+      <div style={{ minHeight: '120px' }}>
+        <RouteCell trip={trip} />
       </div>
 
-      {/* 4 ─ Quick start (0% readiness only) */}
-      {isZeroReadiness && <QuickStartCards onTabSwitch={onTabSwitch} />}
+      {/* ── Row 2: stats col | attention (tall) | weather col ── */}
+      <div
+        className="grid gap-3"
+        style={{ gridTemplateColumns: '120px 1fr 140px', gridTemplateRows: 'auto' }}
+      >
+        {/* Left stat column — 4 stacked cells */}
+        <div className="flex flex-col gap-3">
+          <StatCell value={totalDays ?? '—'}    label="Days" />
+          <StatCell value={uniqueCities}         label="Cities" />
+          <StatCell value={flightsCount}         label="Flights" />
+          {totalBookings > 0 && (
+            <StatCell
+              value={confirmedCount}
+              label="Confirmed"
+              sub={`of ${totalBookings}`}
+            />
+          )}
+        </div>
 
-      {/* 5 ─ Readiness + Budget */}
-      <div className="grid md:grid-cols-2 gap-5">
-        <ReadinessCard trip={trip} />
-        <BudgetCard trip={trip} />
+        {/* Centre — Needs Attention, stretches to match left column */}
+        <AttentionCell trip={trip} onTabSwitch={onTabSwitch} />
+
+        {/* Right column — weather */}
+        {hasWeather
+          ? <WeatherCell destinations={trip.destinations} />
+          : <div />
+        }
+      </div>
+
+      {/* ── Quick Start (0% only) ── */}
+      {isZeroReadiness && <QuickStartRow onTabSwitch={onTabSwitch} />}
+
+      {/* ── Row 3: Readiness | Budget ── */}
+      <div className="grid grid-cols-2 gap-3">
+        <ReadinessCell trip={trip} />
+        <BudgetCell    trip={trip} />
       </div>
 
     </div>
