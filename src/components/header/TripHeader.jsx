@@ -9,6 +9,106 @@ import { formatDateRange } from '../../utils/helpers'
 import { useCountdown } from '../../hooks/useCountdown'
 
 /* ─────────────────────────────────────────────────────────────
+   TravelerPicker — click the traveler row to assign/remove
+   profiles for this trip. Appears as a small dropdown.
+───────────────────────────────────────────────────────────── */
+function TravelerPicker({ trip, travelerProfiles, dispatch }) {
+  const { profiles } = useProfiles()
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const toggleProfile = (id) => {
+    const current = trip.travelerIds || []
+    const next = current.includes(id) ? current.filter(x => x !== id) : [...current, id]
+    dispatch({ type: ACTIONS.UPDATE_TRIP, payload: { id: trip.id, updates: { travelerIds: next, travelers: Math.max(next.length, 1) } } })
+  }
+
+  const travelerCount = trip.travelers || 1
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] hover:bg-bg-hover px-1.5 py-0.5 -mx-1.5 transition-colors group"
+        title="Edit travelers"
+      >
+        {travelerProfiles.length > 0 ? (
+          <>
+            {travelerProfiles.map((p, i) => (
+              <span key={p.id} style={{ marginLeft: i === 0 ? 0 : -8 }} className="inline-flex">
+                <AvatarCircle profile={p} size={26} ring />
+              </span>
+            ))}
+            <span className="ml-1 text-sm text-text-muted">
+              {travelerProfiles.map(p => p.name.split(' ')[0]).join(' & ')}
+            </span>
+          </>
+        ) : (
+          <>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              className="shrink-0 text-text-muted">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <span className="text-sm text-text-muted">
+              {travelerCount} {travelerCount === 1 ? 'traveler' : 'travelers'}
+            </span>
+          </>
+        )}
+        {/* Subtle edit hint */}
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+          strokeLinecap="round" strokeLinejoin="round"
+          className="text-text-muted opacity-0 group-hover:opacity-60 transition-opacity shrink-0">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-0 mt-1.5 z-50 bg-bg-card border border-border rounded-[var(--radius-lg)] shadow-lg p-2 min-w-[180px]">
+          {profiles.length === 0 ? (
+            <p className="text-xs text-text-muted px-2 py-1.5">No profiles yet — add travelers from the sidebar.</p>
+          ) : (
+            <div className="space-y-0.5">
+              {profiles.map(p => {
+                const selected = (trip.travelerIds || []).includes(p.id)
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => toggleProfile(p.id)}
+                    className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-[var(--radius-md)] text-sm transition-colors
+                      ${selected ? 'bg-accent/10 text-text-primary' : 'hover:bg-bg-hover text-text-secondary'}`}
+                  >
+                    <AvatarCircle profile={p} size={24} />
+                    <span className="flex-1 text-left font-medium">{p.name}</span>
+                    {selected && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"
+                        strokeLinecap="round" strokeLinejoin="round" className="text-accent shrink-0">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────────────────────────
    Compact countdown badge in header
 ───────────────────────────────────────────────────────────── */
 function CountdownBadge({ targetDate, emoji }) {
@@ -233,32 +333,7 @@ export default function TripHeader() {
                   {dateRange}
                 </span>
               )}
-              {travelerProfiles.length > 0 ? (
-                /* Stacked avatar circles */
-                <span className="inline-flex items-center">
-                  {travelerProfiles.map((p, i) => (
-                    <span key={p.id} style={{ marginLeft: i === 0 ? 0 : -8 }} className="inline-flex">
-                      <AvatarCircle profile={p} size={26} ring />
-                    </span>
-                  ))}
-                  <span className="ml-2 text-sm text-text-muted">
-                    {travelerProfiles.map(p => p.name.split(' ')[0]).join(' & ')}
-                  </span>
-                </span>
-              ) : (
-                /* Fallback: person icon + count */
-                <span className="inline-flex items-center gap-1.5 text-sm text-text-muted">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                    className="shrink-0">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                  </svg>
-                  {travelerCount} {travelerCount === 1 ? 'traveler' : 'travelers'}
-                </span>
-              )}
+              <TravelerPicker trip={trip} travelerProfiles={travelerProfiles} dispatch={dispatch} />
               {trip.startDate && (
                 <CountdownBadge targetDate={trip.startDate} emoji="✈️" />
               )}
