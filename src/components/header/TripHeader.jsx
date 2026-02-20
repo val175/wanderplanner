@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import ProgressRing from '../shared/ProgressRing'
 import AvatarCircle from '../shared/AvatarCircle'
 import { useTripContext } from '../../context/TripContext'
@@ -15,15 +16,9 @@ import { useCountdown } from '../../hooks/useCountdown'
 function TravelerPicker({ trip, travelerProfiles, dispatch }) {
   const { profiles } = useProfiles()
   const [open, setOpen] = useState(false)
-  const ref = useRef(null)
-
-  // Close on outside click
-  useEffect(() => {
-    if (!open) return
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
+  const [coords, setCoords] = useState({ top: 0, left: 0 })
+  const btnRef = useRef(null)
+  const dropdownRef = useRef(null)
 
   const toggleProfile = (id) => {
     const current = trip.travelerIds || []
@@ -31,12 +26,43 @@ function TravelerPicker({ trip, travelerProfiles, dispatch }) {
     dispatch({ type: ACTIONS.UPDATE_TRIP, payload: { id: trip.id, updates: { travelerIds: next, travelers: Math.max(next.length, 1) } } })
   }
 
+  const handleOpen = () => {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect()
+      setCoords({ top: r.bottom + 6, left: r.left })
+    }
+    setOpen(o => !o)
+  }
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return
+    const handler = (e) => {
+      if (
+        btnRef.current && !btnRef.current.contains(e.target) &&
+        dropdownRef.current && !dropdownRef.current.contains(e.target)
+      ) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  // Close on scroll / resize so coords don't go stale
+  useEffect(() => {
+    if (!open) return
+    const close = () => setOpen(false)
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => { window.removeEventListener('scroll', close, true); window.removeEventListener('resize', close) }
+  }, [open])
+
   const travelerCount = trip.travelers || 1
 
   return (
-    <div className="relative" ref={ref}>
+    <>
       <button
-        onClick={() => setOpen(o => !o)}
+        ref={btnRef}
+        onClick={handleOpen}
         className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] hover:bg-bg-hover px-1.5 py-0.5 -mx-1.5 transition-colors group"
         title="Edit travelers"
       >
@@ -66,7 +92,7 @@ function TravelerPicker({ trip, travelerProfiles, dispatch }) {
             </span>
           </>
         )}
-        {/* Subtle edit hint */}
+        {/* Subtle chevron hint */}
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
           strokeLinecap="round" strokeLinejoin="round"
           className="text-text-muted opacity-0 group-hover:opacity-60 transition-opacity shrink-0">
@@ -74,8 +100,13 @@ function TravelerPicker({ trip, travelerProfiles, dispatch }) {
         </svg>
       </button>
 
-      {open && (
-        <div className="absolute top-full left-0 mt-1.5 z-50 bg-bg-card border border-border rounded-[var(--radius-lg)] shadow-lg p-2 min-w-[180px]">
+      {/* Portal — renders at document.body so it's above TabBar and everything else */}
+      {open && createPortal(
+        <div
+          ref={dropdownRef}
+          style={{ position: 'fixed', top: coords.top, left: coords.left, zIndex: 9999 }}
+          className="bg-bg-card border border-border rounded-[var(--radius-lg)] shadow-xl p-2 min-w-[180px]"
+        >
           {profiles.length === 0 ? (
             <p className="text-xs text-text-muted px-2 py-1.5">No profiles yet — add travelers from the sidebar.</p>
           ) : (
@@ -102,9 +133,10 @@ function TravelerPicker({ trip, travelerProfiles, dispatch }) {
               })}
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   )
 }
 

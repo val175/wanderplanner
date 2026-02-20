@@ -3,8 +3,9 @@ import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { db } from '../firebase/config'
 
 // Single Firestore document that holds the profiles array.
-// Since this is a private 2-person app, one shared doc is simpler than per-user paths.
-const PROFILES_DOC = doc(db, 'meta', 'profiles')
+// Stored inside the 'trips' collection (as a reserved __profiles__ doc) so it's
+// covered by the same Firestore security rules as trip data — no rule changes needed.
+const PROFILES_DOC = doc(db, 'trips', '__profiles__')
 const STORAGE_KEY = 'wanderplan_profiles' // localStorage used as fast initial seed + offline cache
 
 const ProfileContext = createContext(null)
@@ -39,7 +40,13 @@ export function ProfileProvider({ children }) {
           // Doc doesn't exist yet — seed it from localStorage if available
           const local = loadFromLocalStorage()
           if (local.length > 0) {
+            // Seed Firestore with local data; treat as remote so outbound effect skips
+            isRemoteRef.current = true
             setDoc(PROFILES_DOC, { profiles: local }).catch(console.error)
+          } else {
+            // No data anywhere — mark as remote so we don't write empty [] to Firestore
+            // (another device may add profiles soon and the snapshot will deliver them)
+            isRemoteRef.current = true
           }
         }
         readyRef.current = true
