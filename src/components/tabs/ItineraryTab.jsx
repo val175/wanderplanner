@@ -95,23 +95,27 @@ function ActivityItem({ activity, dayId, index, onUpdate, onDelete, onReorder })
       </div>
       <span className="text-lg flex-shrink-0 mt-0.5">{activity.emoji}</span>
       <div className="flex-1 min-w-0">
-        {/* Activity title */}
-        <EditableText
-          value={activity.name}
-          onSave={val => onUpdate({ name: val })}
-          className="text-text-primary font-medium text-sm leading-snug"
-          placeholder="Activity name"
-        />
-        {/* Notes on its own line, clearly subordinate */}
-        {(activity.notes || activity.notes === '') && (
+        {/* Title · notes inline with dot separator */}
+        <div className="flex items-baseline gap-1.5 flex-wrap">
           <EditableText
-            value={activity.notes || ''}
-            onSave={val => onUpdate({ notes: val })}
-            className="text-xs text-text-muted mt-0.5 leading-relaxed"
-            placeholder="Add notes…"
-            multiline
+            value={activity.name}
+            onSave={val => onUpdate({ name: val })}
+            className="text-text-primary font-medium text-sm leading-snug"
+            placeholder="Activity name"
           />
-        )}
+          {(activity.notes || activity.notes === '') && (
+            <>
+              {activity.notes && <span className="text-text-muted text-xs select-none">·</span>}
+              <EditableText
+                value={activity.notes || ''}
+                onSave={val => onUpdate({ notes: val })}
+                className="text-xs text-text-muted leading-relaxed"
+                placeholder="Add notes…"
+                multiline
+              />
+            </>
+          )}
+        </div>
       </div>
       <button
         onClick={onDelete}
