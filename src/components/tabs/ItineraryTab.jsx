@@ -6,6 +6,12 @@ import { ACTIONS } from '../../state/tripReducer'
 import { formatDate } from '../../utils/helpers'
 import { ACTIVITY_EMOJIS } from '../../constants/emojis'
 
+// ── 24h → 12h display (e.g. "14:30" → "2:30 PM") ─────────────────────────
+function fmt12h(t) {
+  const [h, m] = t.split(':').map(Number)
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`
+}
+
 // ── Activity type → left-border accent color ───────────────────────────────
 // Maps emoji to a CSS left-border color token so each activity type is
 // instantly scannable without reading the text.
@@ -72,24 +78,19 @@ function ActivityItem({ activity, dayId, index, onUpdate, onDelete, onReorder })
         ${dragOver ? 'bg-bg-hover' : ''}`}
     >
       <span className="flex-shrink-0 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-30 mt-1 text-text-muted select-none text-base">⠿</span>
-      {/* Time — shown inline when set, ghost trigger when empty */}
-      <div className="flex-shrink-0 w-[4.5rem] pt-0.5 text-right">
+      {/* Time — custom 12h label, hidden native picker on click */}
+      <div className="flex-shrink-0 w-[4.5rem] pt-0.5 text-right relative">
         {activity.time ? (
-          <input
-            type="time"
-            value={activity.time}
-            onChange={e => onUpdate({ time: e.target.value })}
-            className="text-xs text-text-muted font-mono tabular-nums bg-transparent border-none outline-none w-full cursor-pointer hover:text-text-secondary transition-colors"
-          />
+          <label className="text-xs text-text-muted font-mono tabular-nums cursor-pointer hover:text-text-secondary transition-colors select-none">
+            {fmt12h(activity.time)}
+            <input type="time" value={activity.time} onChange={e => onUpdate({ time: e.target.value })}
+              className="absolute opacity-0 w-0 h-0 pointer-events-none" />
+          </label>
         ) : (
           <label className="text-xs text-text-muted opacity-0 group-hover:opacity-40 cursor-pointer transition-opacity select-none">
             ＋time
-            <input
-              type="time"
-              value=""
-              onChange={e => onUpdate({ time: e.target.value })}
-              className="absolute opacity-0 w-0 h-0 pointer-events-none"
-            />
+            <input type="time" value="" onChange={e => onUpdate({ time: e.target.value })}
+              className="absolute opacity-0 w-0 h-0 pointer-events-none" />
           </label>
         )}
       </div>
