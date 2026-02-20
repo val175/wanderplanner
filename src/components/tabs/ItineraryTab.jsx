@@ -33,6 +33,24 @@ function getActivityAccent(emoji) {
   return map[emoji] || 'border-l-border'
 }
 
+// ── Time gap indicator between activities ──────────────────────────────────
+function GapIndicator({ fromTime, toTime }) {
+  if (!fromTime || !toTime) return null
+  const toMins = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m }
+  const gap = toMins(toTime) - toMins(fromTime)
+  if (gap < 90) return null
+  const h = Math.floor(gap / 60)
+  const m = gap % 60
+  const label = m === 0 ? `${h}h free` : `${h}h ${m}m free`
+  return (
+    <div className="flex items-center gap-2 py-1 px-2 select-none pointer-events-none">
+      <div className="flex-1 h-px bg-border" />
+      <span className="text-[10px] text-text-muted tracking-wide">· {label} ·</span>
+      <div className="flex-1 h-px bg-border" />
+    </div>
+  )
+}
+
 // ── Activity Item with drag reorder ────────────────────────────────────────
 function ActivityItem({ activity, dayId, index, onUpdate, onDelete, onReorder }) {
   const [dragOver, setDragOver] = useState(false)
@@ -54,13 +72,13 @@ function ActivityItem({ activity, dayId, index, onUpdate, onDelete, onReorder })
         ${dragOver ? 'bg-bg-hover' : ''}`}
     >
       <span className="flex-shrink-0 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-30 mt-1 text-text-muted select-none text-base">⠿</span>
-      {/* Monospaced time — tabular-nums for vertical alignment */}
-      <div className="flex-shrink-0 w-14 text-right pt-0.5">
-        <EditableText
-          value={activity.time}
-          onSave={val => onUpdate({ time: val })}
-          className="text-xs text-text-muted font-mono tabular-nums"
-          placeholder="--:--"
+      {/* Native time picker — styled to match design system */}
+      <div className="flex-shrink-0 pt-0.5">
+        <input
+          type="time"
+          value={activity.time || ''}
+          onChange={e => onUpdate({ time: e.target.value })}
+          className="text-xs text-text-muted font-mono tabular-nums bg-transparent border-none outline-none w-[4.5rem] cursor-pointer hover:text-text-secondary transition-colors"
         />
       </div>
       <span className="text-lg flex-shrink-0 mt-0.5">{activity.emoji}</span>
@@ -228,15 +246,20 @@ function DayCard({ day, dayIndex, isConcertDay, onReorderDay }) {
             {day.activities?.length > 0 ? (
               <div className="divide-y divide-border/50">
                 {day.activities.map((activity, actIndex) => (
-                  <ActivityItem
-                    key={activity.id}
-                    activity={activity}
-                    dayId={day.id}
-                    index={actIndex}
-                    onUpdate={updates => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates } })}
-                    onDelete={() => dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })}
-                    onReorder={(fromIndex, toIndex) => dispatch({ type: ACTIONS.REORDER_ACTIVITIES, payload: { dayId: day.id, fromIndex, toIndex } })}
-                  />
+                  <div key={activity.id}>
+                    <GapIndicator
+                      fromTime={day.activities[actIndex - 1]?.time}
+                      toTime={activity.time}
+                    />
+                    <ActivityItem
+                      activity={activity}
+                      dayId={day.id}
+                      index={actIndex}
+                      onUpdate={updates => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates } })}
+                      onDelete={() => dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })}
+                      onReorder={(fromIndex, toIndex) => dispatch({ type: ACTIONS.REORDER_ACTIVITIES, payload: { dayId: day.id, fromIndex, toIndex } })}
+                    />
+                  </div>
                 ))}
               </div>
             ) : (
