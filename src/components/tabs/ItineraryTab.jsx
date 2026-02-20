@@ -6,6 +6,15 @@ import { ACTIONS } from '../../state/tripReducer'
 import { formatDate } from '../../utils/helpers'
 import { ACTIVITY_EMOJIS } from '../../constants/emojis'
 
+// ── 24h → 12h formatter (e.g. "14:30" → "2:30 PM") ───────────────────────
+function fmt12h(time24) {
+  if (!time24) return ''
+  const [h, m] = time24.split(':').map(Number)
+  const suffix = h < 12 ? 'AM' : 'PM'
+  const hour = h % 12 || 12
+  return `${hour}:${String(m).padStart(2, '0')} ${suffix}`
+}
+
 // ── Activity type → left-border accent color ───────────────────────────────
 // Maps emoji to a CSS left-border color token so each activity type is
 // instantly scannable without reading the text.
@@ -33,6 +42,24 @@ function getActivityAccent(emoji) {
   return map[emoji] || 'border-l-border'
 }
 
+// ── Time gap indicator between activities ──────────────────────────────────
+function GapIndicator({ fromTime, toTime }) {
+  if (!fromTime || !toTime) return null
+  const toMins = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m }
+  const gap = toMins(toTime) - toMins(fromTime)
+  if (gap < 90) return null
+  const h = Math.floor(gap / 60)
+  const m = gap % 60
+  const label = m === 0 ? `${h}h free` : `${h}h ${m}m free`
+  return (
+    <div className="flex items-center gap-2 py-1 px-2 select-none pointer-events-none">
+      <div className="flex-1 h-px bg-border" />
+      <span className="text-[10px] text-text-muted tracking-wide">· {label} ·</span>
+      <div className="flex-1 h-px bg-border" />
+    </div>
+  )
+}
+
 // ── Activity Item with drag reorder ────────────────────────────────────────
 function ActivityItem({ activity, dayId, index, onUpdate, onDelete, onReorder }) {
   const [dragOver, setDragOver] = useState(false)
@@ -54,14 +81,29 @@ function ActivityItem({ activity, dayId, index, onUpdate, onDelete, onReorder })
         ${dragOver ? 'bg-bg-hover' : ''}`}
     >
       <span className="flex-shrink-0 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-30 mt-1 text-text-muted select-none text-base">⠿</span>
-      {/* Monospaced time — tabular-nums for vertical alignment */}
-      <div className="flex-shrink-0 w-14 text-right pt-0.5">
-        <EditableText
-          value={activity.time}
-          onSave={val => onUpdate({ time: val })}
-          className="text-xs text-text-muted font-mono tabular-nums"
-          placeholder="--:--"
-        />
+      {/* Time — custom 12h display, hidden native picker on click */}
+      <div className="flex-shrink-0 w-[4.5rem] pt-0.5 text-right relative">
+        {activity.time ? (
+          <label className="text-xs text-text-muted font-mono tabular-nums cursor-pointer hover:text-text-secondary transition-colors select-none">
+            {fmt12h(activity.time)}
+            <input
+              type="time"
+              value={activity.time}
+              onChange={e => onUpdate({ time: e.target.value })}
+              className="absolute opacity-0 w-0 h-0 pointer-events-none"
+            />
+          </label>
+        ) : (
+          <label className="text-xs text-text-muted opacity-0 group-hover:opacity-40 cursor-pointer transition-opacity select-none">
+            ＋time
+            <input
+              type="time"
+              value=""
+              onChange={e => onUpdate({ time: e.target.value })}
+              className="absolute opacity-0 w-0 h-0 pointer-events-none"
+            />
+          </label>
+        )}
       </div>
       <span className="text-lg flex-shrink-0 mt-0.5">{activity.emoji}</span>
       <div className="flex-1 min-w-0">
@@ -228,15 +270,20 @@ function DayCard({ day, dayIndex, isConcertDay, onReorderDay }) {
             {day.activities?.length > 0 ? (
               <div className="divide-y divide-border/50">
                 {day.activities.map((activity, actIndex) => (
-                  <ActivityItem
-                    key={activity.id}
-                    activity={activity}
-                    dayId={day.id}
-                    index={actIndex}
-                    onUpdate={updates => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates } })}
-                    onDelete={() => dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })}
-                    onReorder={(fromIndex, toIndex) => dispatch({ type: ACTIONS.REORDER_ACTIVITIES, payload: { dayId: day.id, fromIndex, toIndex } })}
-                  />
+                  <div key={`${activity.id}-${actIndex}`}>
+                    <GapIndicator
+                      fromTime={day.activities[actIndex - 1]?.time}
+                      toTime={activity.time}
+                    />
+                    <ActivityItem
+                      activity={activity}
+                      dayId={day.id}
+                      index={actIndex}
+                      onUpdate={updates => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates } })}
+                      onDelete={() => dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })}
+                      onReorder={(fromIndex, toIndex) => dispatch({ type: ACTIONS.REORDER_ACTIVITIES, payload: { dayId: day.id, fromIndex, toIndex } })}
+                    />
+                  </div>
                 ))}
               </div>
             ) : (
