@@ -27,7 +27,8 @@ function CityCard({ city }) {
           <EditableText
             value={city.country}
             onSave={val => updateCity({ country: val })}
-            className="text-sm text-text-muted mt-0.5"
+            tag="div"
+            className="text-sm text-text-muted mt-1"
             placeholder="Country"
           />
         </div>
