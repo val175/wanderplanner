@@ -336,7 +336,7 @@ function ReadinessCell({ trip }) {
         <div className="flex-1 flex flex-col justify-between mt-3">
           <div className="flex items-center gap-4">
             <ProgressRing value={readiness} size={72} strokeWidth={5} pulse={isZero} labelClassName="text-xs" />
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-xs font-semibold text-[var(--color-text-primary)]">{msg}</p>
               <div className="mt-2 space-y-1.5">
                 <ProgressBar value={breakdown.bookings.done} max={breakdown.bookings.total}
