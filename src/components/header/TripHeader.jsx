@@ -215,7 +215,7 @@ function InlineTripName({ value, onSave }) {
         onChange={e => setDraft(e.target.value)}
         onBlur={save}
         onKeyDown={handleKeyDown}
-        className="font-heading text-xl md:text-2xl font-semibold text-text-primary leading-tight
+        className="font-heading text-2xl md:text-3xl font-bold text-text-primary leading-tight
                    bg-transparent border-b border-accent outline-none w-full min-w-0"
         style={{ fontFamily: 'var(--font-heading)' }}
         aria-label="Edit trip name"
@@ -231,7 +231,7 @@ function InlineTripName({ value, onSave }) {
       className="group flex items-center gap-2 min-w-0 max-w-full text-left"
       aria-label={`Trip name: ${value}. Click to edit.`}
     >
-      <h1 className={`font-heading text-xl md:text-2xl font-semibold text-text-primary
+      <h1 className={`font-heading text-2xl md:text-3xl font-bold text-text-primary
                        leading-tight truncate transition-all duration-150
                        ${hovered ? 'underline decoration-border-strong underline-offset-4' : ''}`}>
         {value}

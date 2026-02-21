@@ -3,7 +3,7 @@ import ProgressRing from '../shared/ProgressRing'
 import ProgressBar from '../shared/ProgressBar'
 import { useTripContext } from '../../context/TripContext'
 import { calculateReadiness, getReadinessBreakdown } from '../../utils/readiness'
-import { formatCurrency, daysUntil, daysBetween, formatDate } from '../../utils/helpers'
+import { formatCurrency, daysUntil, formatDate } from '../../utils/helpers'
 
 /* ─────────────────────────────────────────────────────────────
    Shared bento card shell — white surface, uniform radius/shadow,
@@ -190,24 +190,6 @@ function RouteCell({ trip }) {
 /* ─────────────────────────────────────────────────────────────
    Stat cells — each number lives in its own bento box
 ───────────────────────────────────────────────────────────── */
-function StatCell({ value, label, sub }) {
-  return (
-    <BentoCard>
-      <div className="p-4 flex flex-col justify-between h-full">
-        <Label>{label}</Label>
-        <div className="mt-2">
-          <span
-            className="font-heading text-[var(--color-text-primary)] leading-none block"
-            style={{ fontSize: '2rem', fontWeight: 200, letterSpacing: '-0.03em' }}
-          >
-            {value}
-          </span>
-          {sub && <span className="text-[10px] text-[var(--color-text-muted)] mt-0.5 block">{sub}</span>}
-        </div>
-      </div>
-    </BentoCard>
-  )
-}
 
 /* ─────────────────────────────────────────────────────────────
    Needs Attention bento cell
@@ -464,14 +446,7 @@ export default function OverviewTab({ onTabSwitch }) {
   const readiness       = calculateReadiness(trip)
   const isZeroReadiness = readiness === 0
 
-  const totalDays    = daysBetween(trip.startDate, trip.endDate)
-  const uniqueCities = (trip.destinations || []).filter((d, i, arr) =>
-    arr.findIndex(x => x.city === d.city) === i
-  ).length
-  const flightsCount   = trip.bookings?.filter(b => b.category === 'flight').length || 0
-  const confirmedCount = trip.bookings?.filter(b => b.status === 'booked').length || 0
-  const totalBookings  = trip.bookings?.length || 0
-  const hasWeather     = (trip.destinations?.length || 0) > 0
+  const hasWeather = (trip.destinations?.length || 0) > 0
 
   return (
     <div className="space-y-3 animate-fade-in">
@@ -481,29 +456,11 @@ export default function OverviewTab({ onTabSwitch }) {
         <RouteCell trip={trip} />
       </div>
 
-      {/* ── Row 2: stats col | attention (tall) | weather col ── */}
-      <div
-        className="grid gap-3"
-        style={{ gridTemplateColumns: '120px 1fr 140px', gridTemplateRows: 'auto' }}
-      >
-        {/* Left stat column — 4 stacked cells */}
-        <div className="flex flex-col gap-3">
-          <StatCell value={totalDays ?? '—'}    label="Days" />
-          <StatCell value={uniqueCities}         label="Cities" />
-          <StatCell value={flightsCount}         label="Flights" />
-          {totalBookings > 0 && (
-            <StatCell
-              value={confirmedCount}
-              label="Confirmed"
-              sub={`of ${totalBookings}`}
-            />
-          )}
+      {/* ── Row 2: attention (2/3) | weather (1/3) ── */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="col-span-2">
+          <AttentionCell trip={trip} onTabSwitch={onTabSwitch} />
         </div>
-
-        {/* Centre — Needs Attention, stretches to match left column */}
-        <AttentionCell trip={trip} onTabSwitch={onTabSwitch} />
-
-        {/* Right column — weather */}
         {hasWeather
           ? <WeatherCell destinations={trip.destinations} />
           : <div />

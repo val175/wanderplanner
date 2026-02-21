@@ -128,12 +128,12 @@ export default function AIAssistant() {
 
   return (
     <>
-      {/* ── Centered glass pill FAB ── */}
+      {/* ── Glass pill FAB — bottom-right ── */}
       {mounted && (
         <button
           onClick={() => setIsOpen(o => !o)}
           className={`
-            fixed bottom-6 left-1/2 -translate-x-1/2 z-40
+            fixed bottom-8 right-8 z-40
             flex items-center gap-2 px-5 py-2.5
             rounded-full text-sm font-semibold
             transition-all duration-200 active:scale-95
@@ -160,10 +160,10 @@ export default function AIAssistant() {
         </button>
       )}
 
-      {/* ── Chat panel — centered above the pill ── */}
+      {/* ── Chat panel — above FAB, bottom-right ── */}
       <div
         className={`
-          fixed bottom-20 left-1/2 -translate-x-1/2 z-40
+          fixed bottom-24 right-8 z-40
           w-[min(400px,calc(100vw-2rem))]
           border border-border rounded-[var(--radius-lg)]
           shadow-2xl flex flex-col
