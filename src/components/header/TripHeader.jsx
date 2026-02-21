@@ -154,7 +154,7 @@ function CountdownHero({ targetDate }) {
         <div className="flex items-end gap-1.5 leading-none">
           <span
             className="font-heading leading-none text-text-primary"
-            style={{ fontSize: '3.25rem', fontWeight: 200, letterSpacing: '-0.04em' }}
+            style={{ fontSize: '52px', fontWeight: 300, letterSpacing: '-0.04em' }}
           >{weeks}</span>
           <span className="text-[10px] font-bold text-accent uppercase tracking-[0.15em] pb-2">
             {weeks === 1 ? 'wk' : 'wks'}
@@ -165,7 +165,7 @@ function CountdownHero({ targetDate }) {
         <div className="flex items-end gap-1.5 leading-none">
           <span
             className="font-heading leading-none text-text-primary"
-            style={{ fontSize: '3.25rem', fontWeight: 200, letterSpacing: '-0.04em' }}
+            style={{ fontSize: '52px', fontWeight: 300, letterSpacing: '-0.04em' }}
           >{days}</span>
           <span className="text-[10px] font-bold text-accent uppercase tracking-[0.15em] pb-2">
             {days === 1 ? 'day' : 'days'}
@@ -344,22 +344,24 @@ export default function TripHeader() {
 
   return (
     <header className="animate-fade-in border-b border-border bg-bg-primary/95 backdrop-blur-sm">
-      <div className="max-w-4xl mx-auto px-4 sm:px-8 pt-5 pb-5">
-        <div className="flex items-start justify-between gap-4">
+      <div className="max-w-5xl mx-auto px-4 sm:px-8 py-5">
+        <div className="flex items-start justify-between gap-6">
 
-          {/* LEFT — identity: emoji · name · date · travelers · cities */}
+          {/* LEFT — 3-row identity block */}
           <div className="flex items-start gap-3 min-w-0 flex-1">
-            <span className="text-3xl sm:text-[38px] leading-none shrink-0 mt-1 select-none"
+            <span className="text-3xl sm:text-[38px] leading-none shrink-0 mt-0.5 select-none"
               role="img" aria-label="Trip emoji">
               {trip.emoji}
             </span>
 
             <div className="min-w-0 flex-1">
+              {/* Row 1 — editable title */}
               <InlineTripName value={trip.name} onSave={handleRename} />
 
+              {/* Row 2 — date · travelers · readiness ring, all inline */}
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
                 {dateRange && (
-                  <span className="inline-flex items-center gap-1 text-xs text-text-muted">
+                  <span className="inline-flex items-center gap-1 text-[13px] text-text-muted">
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
                       stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                       className="shrink-0 opacity-60">
@@ -372,23 +374,25 @@ export default function TripHeader() {
                   </span>
                 )}
                 <TravelerPicker trip={trip} travelerProfiles={travelerProfiles} dispatch={dispatch} />
+                {/* Readiness ring inline — compact, no competing row */}
+                <span className="inline-flex items-center gap-1.5">
+                  <ProgressRing value={readiness} size={32} strokeWidth={3} labelClassName="text-[8px]" />
+                  <span className="text-[11px] text-text-muted uppercase tracking-widest font-semibold">
+                    ready
+                  </span>
+                </span>
               </div>
 
+              {/* Row 3 — city breadcrumbs */}
               {destinations.length > 0 && (
                 <div className="mt-1.5">
                   <CityBreadcrumbs destinations={destinations} />
                 </div>
               )}
-
-              {/* Compact readiness — small ring + label, no competition with overview */}
-              <div className="mt-2.5 flex items-center gap-2">
-                <ProgressRing value={readiness} size={40} strokeWidth={3} labelClassName="text-[9px]" />
-                <span className="text-[10px] text-text-muted uppercase tracking-widest font-semibold">Readiness</span>
-              </div>
             </div>
           </div>
 
-          {/* RIGHT — massive countdown number */}
+          {/* RIGHT — typographic countdown hero */}
           {trip.startDate && (
             <div className="shrink-0 flex flex-col items-end pt-0.5">
               <CountdownHero targetDate={trip.startDate} />

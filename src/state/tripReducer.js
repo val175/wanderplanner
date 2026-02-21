@@ -361,11 +361,31 @@ export function tripReducer(state, action) {
       }))
 
     // ─── Cities ───
-    case ACTIONS.UPDATE_CITY:
+    case ACTIONS.UPDATE_CITY: {
+      // Read current trip from state (not yet inside updateTrip callback)
+      const currentTrip = state.trips[activeTripId]
+      const oldCity = (currentTrip?.cities || []).find(c => c.id === payload.id)
+      const oldName = oldCity?.city
+      const { city: newName, country: newCountry, flag: newFlag } = payload.updates
+      const identityChanged = newName !== undefined || newCountry !== undefined || newFlag !== undefined
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
         cities: trip.cities.map(c => c.id === payload.id ? { ...c, ...payload.updates } : c),
+        // Sync name / country / flag changes into route waypoints
+        destinations: (identityChanged && oldName)
+          ? (trip.destinations || []).map(d =>
+              d.city === oldName
+                ? {
+                    ...d,
+                    ...(newName !== undefined && { city: newName }),
+                    ...(newCountry !== undefined && { country: newCountry }),
+                    ...(newFlag !== undefined && { flag: newFlag }),
+                  }
+                : d
+            )
+          : trip.destinations,
       }))
+    }
 
     // payload: { city, country, flag }
     case ACTIONS.ADD_CITY:
@@ -382,13 +402,28 @@ export function tripReducer(state, action) {
           currencyTip: '',
           notes: '',
         }],
+        // Keep destinations in sync — append new waypoint to route
+        destinations: [...(trip.destinations || []), {
+          city: payload.city || 'New City',
+          country: payload.country || '',
+          flag: payload.flag || '🌍',
+        }],
       }))
 
-    case ACTIONS.DELETE_CITY:
+    case ACTIONS.DELETE_CITY: {
+      // Read current trip from state to find deleted city name before mutating
+      const currentTripForDelete = state.trips[activeTripId]
+      const deletedCity = (currentTripForDelete?.cities || []).find(c => c.id === payload)
+      const deletedName = deletedCity?.city
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
         cities: trip.cities.filter(c => c.id !== payload),
+        // Remove all route waypoints with that city name
+        destinations: deletedName
+          ? (trip.destinations || []).filter(d => d.city !== deletedName)
+          : trip.destinations,
       }))
+    }
 
     // ─── Notes ───
     case ACTIONS.UPDATE_NOTES:
