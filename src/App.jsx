@@ -141,11 +141,8 @@ function AuthenticatedApp({ signOutUser }) {
   const handleCloseModal = useCallback(() => setShowNewTripModal(false), [])
   const handleOpenSidebar = useCallback(() => dispatch({ type: ACTIONS.SET_SIDEBAR, payload: true }), [dispatch])
 
-  // Maps tab labels (used in QuickStart cards) → tab IDs
-  const TAB_LABEL_TO_ID = { Overview: 'overview', Itinerary: 'itinerary', Bookings: 'bookings', Budget: 'budget', 'To-Do': 'todo', Cities: 'cities', Packing: 'packing' }
-  const handleTabSwitch = useCallback((tabLabel) => {
-    const id = TAB_LABEL_TO_ID[tabLabel]
-    if (id) dispatch({ type: ACTIONS.SET_TAB, payload: id })
+  const handleTabSwitch = useCallback((tabId) => {
+    dispatch({ type: ACTIONS.SET_TAB, payload: tabId })
   }, [dispatch])
 
   const isConcertTab = state.activeTab === 'concert'

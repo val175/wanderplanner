@@ -148,37 +148,44 @@ function RouteCell({ trip }) {
             <span className="text-xs text-[var(--color-text-muted)]">Add destinations to see your route</span>
           </div>
         ) : (
-          <div className="flex-1 flex items-center mt-4 overflow-x-auto scrollbar-hide -mx-1 px-1">
-            <div className="flex items-center min-w-max">
-              {dests.map((dest, i) => {
-                const isLast  = i === dests.length - 1
-                const isFirst = i === 0
-                const date    = destDates[dest.city]
-                return (
-                  <div key={i} className="flex items-center">
-                    {/* Node */}
-                    <div className="flex flex-col items-center text-center w-14">
-                      <div className="text-[9px] text-[var(--color-text-muted)] mb-1.5 h-3 leading-none font-medium">
-                        {date ? formatDate(date, 'short') : ''}
+          <div className="relative flex-1 flex items-center mt-4 -mx-1 px-1 overflow-hidden">
+            {/* Right scroll blur cue — only shown when cities overflow */}
+            {dests.length > 6 && (
+              <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-[var(--color-bg-card)] to-transparent z-10 pointer-events-none" />
+            )}
+
+            <div className="w-full overflow-x-auto scrollbar-hide pb-2">
+              <div className="flex items-center w-full min-w-max">
+                {dests.map((dest, i) => {
+                  const isLast  = i === dests.length - 1
+                  const isFirst = i === 0
+                  const date    = destDates[dest.city]
+                  return (
+                    <div key={i} className={`flex items-center ${isLast ? 'shrink-0' : 'flex-1 min-w-[5rem]'}`}>
+                      {/* Node — fixed width so cities don't squish */}
+                      <div className="flex flex-col items-center text-center w-14 shrink-0">
+                        <div className="text-[9px] text-[var(--color-text-muted)] mb-1.5 h-3 leading-none font-medium">
+                          {date ? formatDate(date, 'short') : ''}
+                        </div>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm border-2
+                          ${isFirst ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10'
+                            : isLast ? 'border-[var(--color-success)] bg-[var(--color-success)]/10'
+                            : 'border-[var(--color-border-strong)] bg-[var(--color-bg-secondary)]'}`}>
+                          {dest.flag}
+                        </div>
+                        <p className="text-[10px] font-semibold text-[var(--color-text-primary)] mt-1 leading-tight">{dest.city}</p>
                       </div>
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm border-2
-                        ${isFirst ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10'
-                          : isLast ? 'border-[var(--color-success)] bg-[var(--color-success)]/10'
-                          : 'border-[var(--color-border-strong)] bg-[var(--color-bg-secondary)]'}`}>
-                        {dest.flag}
-                      </div>
-                      <p className="text-[10px] font-semibold text-[var(--color-text-primary)] mt-1 leading-tight">{dest.city}</p>
+                      {/* Connector — expands to fill remaining space in its flex-1 item */}
+                      {!isLast && (
+                        <div className="flex flex-col items-center flex-1 px-2 w-full">
+                          <div className="text-[10px] mb-1">{guessTransit(dest, dests[i + 1])}</div>
+                          <div className="w-full border-t-2 border-dashed border-[var(--color-border-strong)]" />
+                        </div>
+                      )}
                     </div>
-                    {/* Connector */}
-                    {!isLast && (
-                      <div className="flex flex-col items-center w-10 shrink-0">
-                        <div className="text-[10px] mb-1">{guessTransit(dest, dests[i + 1])}</div>
-                        <div className="w-full border-t-2 border-dashed border-[var(--color-border-strong)]" />
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </div>
           </div>
         )}
