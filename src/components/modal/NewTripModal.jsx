@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import Modal from '../shared/Modal'
+import DatePicker from '../shared/DatePicker'
 import CityCombobox, { COUNTRY_FLAGS_MAP, resolveCity } from '../shared/CityCombobox'
 import { useTripContext } from '../../context/TripContext'
 import { useProfiles } from '../../context/ProfileContext'
@@ -186,15 +187,22 @@ function StepBasics({ form, setForm }) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-text-secondary mb-1.5">Start Date</label>
-          <input type="date" value={form.startDate}
-            onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))}
-            className="w-full px-3 py-2.5 bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors" />
+          <DatePicker
+            value={form.startDate}
+            onChange={val => setForm(f => ({ ...f, startDate: val }))}
+            placeholder="Pick a date"
+            className="w-full px-3 py-2.5 bg-bg-input border border-border rounded-[var(--radius-md)] hover:border-accent/50"
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-text-secondary mb-1.5">End Date</label>
-          <input type="date" value={form.endDate} min={form.startDate || undefined}
-            onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))}
-            className="w-full px-3 py-2.5 bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors" />
+          <DatePicker
+            value={form.endDate}
+            onChange={val => setForm(f => ({ ...f, endDate: val }))}
+            min={form.startDate || undefined}
+            placeholder="Pick a date"
+            className="w-full px-3 py-2.5 bg-bg-input border border-border rounded-[var(--radius-md)] hover:border-accent/50"
+          />
         </div>
       </div>
     </div>

@@ -56,7 +56,7 @@ export default function EditableText({
         className={`
           bg-bg-input border border-accent/30 rounded-[var(--radius-sm)]
           px-2 py-1 outline-none focus:border-accent focus:ring-1 focus:ring-accent/20
-          text-text-primary font-body
+          text-text-primary
           ${multiline ? 'min-h-[80px] resize-y w-full' : ''}
           ${inputClassName}
         `}

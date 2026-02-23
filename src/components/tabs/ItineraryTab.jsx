@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import Card from '../shared/Card'
 import EditableText from '../shared/EditableText'
+import TimePicker from '../shared/TimePicker'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { formatDate } from '../../utils/helpers'
@@ -78,21 +79,14 @@ function ActivityItem({ activity, dayId, index, onUpdate, onDelete, onReorder })
         ${dragOver ? 'bg-bg-hover' : ''}`}
     >
       <span className="flex-shrink-0 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-30 mt-1 text-text-muted select-none text-base">⠿</span>
-      {/* Time — custom 12h label, hidden native picker on click */}
-      <div className="flex-shrink-0 w-[4.5rem] pt-0.5 text-right relative">
-        {activity.time ? (
-          <label className="text-xs text-text-muted font-mono tabular-nums cursor-pointer hover:text-text-secondary transition-colors select-none">
-            {fmt12h(activity.time)}
-            <input type="time" value={activity.time} onChange={e => onUpdate({ time: e.target.value })}
-              className="absolute opacity-0 w-0 h-0 pointer-events-none" />
-          </label>
-        ) : (
-          <label className="text-xs text-text-muted opacity-0 group-hover:opacity-40 cursor-pointer transition-opacity select-none">
-            ＋time
-            <input type="time" value="" onChange={e => onUpdate({ time: e.target.value })}
-              className="absolute opacity-0 w-0 h-0 pointer-events-none" />
-          </label>
-        )}
+      {/* Time — custom TimePicker popover */}
+      <div className="flex-shrink-0 w-[4.5rem] pt-0.5 text-right">
+        <TimePicker
+          value={activity.time}
+          onChange={time => onUpdate({ time })}
+          className={!activity.time ? 'opacity-0 group-hover:opacity-40 transition-opacity text-text-muted' : 'text-text-muted'}
+          placeholder="＋time"
+        />
       </div>
       <span className="text-lg flex-shrink-0 mt-0.5">{activity.emoji}</span>
       <div className="flex-1 min-w-0">
@@ -144,8 +138,13 @@ function AddActivityForm({ onAdd, onCancel }) {
   return (
     <form onSubmit={handleSubmit} className="mt-3 p-3 bg-bg-primary rounded-[var(--radius-md)] border border-border">
       <div className="flex gap-2 items-start">
-        <input type="time" value={time} onChange={e => setTime(e.target.value)}
-          className="w-24 px-2 py-1.5 text-sm bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary" />
+        <TimePicker
+          value={time}
+          onChange={setTime}
+          variant="input"
+          placeholder="Time"
+          className="w-24"
+        />
         <div className="relative">
           <button type="button" onClick={() => setShowEmojis(!showEmojis)}
             className="text-xl p-1.5 border border-border rounded-[var(--radius-sm)] hover:bg-bg-hover">{emoji}</button>
