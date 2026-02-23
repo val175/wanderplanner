@@ -347,8 +347,8 @@ export default function TripHeader() {
       <div className="max-w-5xl mx-auto px-4 sm:px-8 py-5">
         <div className="flex items-start justify-between gap-6">
 
-          {/* LEFT — 3-row identity block */}
-          <div className="flex items-start gap-3 min-w-0 flex-1">
+          {/* LEFT — 3-row identity block; pl-12 clears the mobile hamburger on small screens */}
+          <div className="flex items-start gap-3 min-w-0 flex-1 pl-12 md:pl-0">
             <span className="text-3xl sm:text-[38px] leading-none shrink-0 mt-0.5 select-none"
               role="img" aria-label="Trip emoji">
               {trip.emoji}
