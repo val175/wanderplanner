@@ -54,18 +54,23 @@ export default function DatePicker({
   const selected  = toDate(value)
   const minDate   = toDate(min)
 
-  // Start the calendar view at selected date, or today
-  const initDate  = selected || today
+  // Start the calendar view at: selected date → min date (e.g. startDate) → today
+  // This ensures the end-date picker opens at the start date's month, not today.
+  const initDate  = selected || minDate || today
   const [viewYear,  setViewYear]  = useState(initDate.getFullYear())
   const [viewMonth, setViewMonth] = useState(initDate.getMonth())
 
-  // Keep view in sync if an external value change points to a different month
+  // Keep view in sync when value or min changes externally.
+  // Priority: selected value > min date (so end-date follows start-date changes).
   useEffect(() => {
     if (selected) {
       setViewYear(selected.getFullYear())
       setViewMonth(selected.getMonth())
+    } else if (minDate) {
+      setViewYear(minDate.getFullYear())
+      setViewMonth(minDate.getMonth())
     }
-  }, [value])
+  }, [value, min])
 
   const handleOpen = () => {
     if (btnRef.current) {

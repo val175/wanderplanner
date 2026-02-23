@@ -148,21 +148,33 @@ function RouteCell({ trip }) {
             <span className="text-xs text-[var(--color-text-muted)]">Add destinations to see your route</span>
           </div>
         ) : (
-          <div className="relative flex-1 flex items-center mt-4 -mx-1 px-1 overflow-hidden">
-            {/* Right scroll blur cue — only shown when cities overflow */}
+          <div className="relative flex-1 flex items-center mt-4 -mx-1 px-1">
+            {/* Right scroll blur cue — always rendered when >6, fades out last city */}
             {dests.length > 6 && (
               <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-[var(--color-bg-card)] to-transparent z-10 pointer-events-none" />
             )}
 
             <div className="w-full overflow-x-auto scrollbar-hide pb-2">
-              <div className="flex items-center w-full min-w-max">
+              {/*
+                ≤6 cities: flex-1 on slots stretches them to fill the card (current nice layout).
+                >6 cities: fixed min-width per slot so the row naturally exceeds card width,
+                           making overflow-x-auto actually scroll. flex-1 would prevent overflow.
+              */}
+              <div className={`flex items-center ${dests.length <= 6 ? 'w-full' : ''}`}>
                 {dests.map((dest, i) => {
                   const isLast  = i === dests.length - 1
                   const isFirst = i === 0
                   const date    = destDates[dest.city]
+                  const scrollable = dests.length > 6
                   return (
-                    <div key={i} className={`flex items-center ${isLast ? 'shrink-0' : 'flex-1 min-w-[5rem]'}`}>
-                      {/* Node — fixed width so cities don't squish */}
+                    <div key={i} className={`flex items-center ${
+                      isLast
+                        ? 'shrink-0'
+                        : scrollable
+                          ? 'shrink-0 min-w-[8rem]'   // fixed width → content overflows → scroll
+                          : 'flex-1 min-w-[5rem]'      // grows to fill card width
+                    }`}>
+                      {/* Node */}
                       <div className="flex flex-col items-center text-center w-14 shrink-0">
                         <div className="text-[9px] text-[var(--color-text-muted)] mb-1.5 h-3 leading-none font-medium">
                           {date ? formatDate(date, 'short') : ''}
@@ -175,9 +187,9 @@ function RouteCell({ trip }) {
                         </div>
                         <p className="text-[10px] font-semibold text-[var(--color-text-primary)] mt-1 leading-tight">{dest.city}</p>
                       </div>
-                      {/* Connector — expands to fill remaining space in its flex-1 item */}
+                      {/* Connector */}
                       {!isLast && (
-                        <div className="flex flex-col items-center flex-1 px-2 w-full">
+                        <div className="flex flex-col items-center flex-1 px-2 min-w-[1.5rem]">
                           <div className="text-[10px] mb-1">{guessTransit(dest, dests[i + 1])}</div>
                           <div className="w-full border-t-2 border-dashed border-[var(--color-border-strong)]" />
                         </div>

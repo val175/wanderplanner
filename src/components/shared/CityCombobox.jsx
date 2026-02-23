@@ -419,6 +419,11 @@ export default function CityCombobox({
             <li key={i}>
               <button
                 type="button"
+                // onMouseDown prevention keeps focus on the input so onBlur never fires
+                // for pointer-initiated selections — the standard combobox pattern.
+                // Without this, blur fires 150ms before click, runs resolveCity(staleQuery)
+                // which overwrites the selection with whatever text was typed.
+                onMouseDown={e => e.preventDefault()}
                 onClick={() => commitSelection(entry)}
                 className="w-full flex items-center gap-3 px-3 py-2.5 text-left
                            hover:bg-bg-hover transition-colors"
