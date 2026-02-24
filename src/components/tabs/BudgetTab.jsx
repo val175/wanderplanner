@@ -70,15 +70,18 @@ function BudgetSummaryBar({ budget, totals, currency, divisor }) {
 
       {/* Legend below the bar */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4">
-        {budget.filter(cat => cat.actual > 0).map((cat, i) => (
-          <div key={cat.id} className="flex items-center gap-1.5">
-            <span
-              className="w-2.5 h-2.5 rounded-full"
-              style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }}
-            />
-            <span className="text-[11px] text-text-secondary">{cat.name}</span>
-          </div>
-        ))}
+        {budget.map((cat, i) => {
+          if (!cat.actual || cat.actual <= 0) return null
+          return (
+            <div key={cat.id} className="flex items-center gap-1.5">
+              <span
+                className="w-2.5 h-2.5 rounded-full shrink-0"
+                style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }}
+              />
+              <span className="text-[11px] text-text-secondary">{cat.name}</span>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -211,6 +214,67 @@ function CategoryCard({ category, index, currency, travelers, perPerson }) {
   )
 }
 
+function AddCategoryForm({ onAdd, onCancel }) {
+  const [name, setName] = useState('')
+  const [emoji, setEmoji] = useState('📌')
+  const [showEmojis, setShowEmojis] = useState(false)
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if (!name.trim()) return
+    onAdd({ name: name.trim(), emoji })
+    setName('')
+    setEmoji('📌')
+  }
+
+  const commonEmojis = ['🍽️', '🚕', '🏨', '🎟️', '🛍️', '🎁', '🍸', '✈️', '💆', '📸', '💊', '📌']
+
+  return (
+    <Card className="border border-accent/30 bg-accent/5">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <label className="text-xs text-text-muted font-medium">New Budget Category</label>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowEmojis(!showEmojis)}
+              className="w-10 h-10 rounded-xl bg-bg-card border border-border/50 flex items-center justify-center text-xl hover:bg-bg-hover transition-colors shadow-sm"
+              title="Pick an emoji"
+            >
+              {emoji}
+            </button>
+            {showEmojis && (
+              <div className="absolute top-12 left-0 p-2 bg-bg-card border border-border rounded-xl shadow-lg z-20 w-[180px] grid grid-cols-4 gap-1 animate-fade-in">
+                {commonEmojis.map(e => (
+                  <button
+                    key={e}
+                    type="button"
+                    onClick={() => { setEmoji(e); setShowEmojis(false) }}
+                    className="h-8 flex items-center justify-center text-lg hover:bg-bg-hover rounded-md transition-colors"
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <input
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder="Category name..."
+            className="flex-1 px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary placeholder:text-text-muted transition-colors focus:border-accent focus:outline-none"
+            autoFocus
+          />
+        </div>
+        <div className="flex gap-2 justify-end mt-1">
+          <button type="button" onClick={onCancel} className="px-4 py-1.5 text-xs font-medium text-text-muted hover:text-text-secondary transition-colors">Cancel</button>
+          <button type="submit" disabled={!name.trim()} className="px-5 py-1.5 text-xs font-semibold bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-50 transition-colors">Add</button>
+        </div>
+      </form>
+    </Card>
+  )
+}
+
 function AddSpendingForm({ onAdd, onCancel, categories, currency }) {
   const [desc, setDesc] = useState('')
   const [amount, setAmount] = useState('')
@@ -256,6 +320,8 @@ export default function BudgetTab() {
   const [perPerson, setPerPerson] = useState(false)
   const [addingSpend, setAddingSpend] = useState(false)
 
+  const [addingCategory, setAddingCategory] = useState(false)
+
   if (!activeTrip) return null
   const trip = activeTrip
   const budget = trip.budget || []
@@ -273,7 +339,6 @@ export default function BudgetTab() {
     <div className="space-y-6 animate-fade-in">
       {/* Top Level Summary Card */}
       <Card className="border border-border/60 shadow-sm relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-1 h-full bg-accent" />
         <div className="flex items-center justify-between mb-8 pl-1">
           <h2 className="font-heading text-lg text-text-primary flex items-center gap-2">
             <span className="text-xl">💰</span> Overall Budget
@@ -330,12 +395,19 @@ export default function BudgetTab() {
             />
           ))}
 
-          <button
-            onClick={() => dispatch({ type: ACTIONS.ADD_BUDGET_CATEGORY, payload: { name: 'New Category', emoji: '📌' } })}
-            className="w-full py-3.5 text-sm font-medium text-accent hover:text-white bg-accent/5 hover:bg-accent border border-accent/20 hover:border-accent rounded-xl transition-all duration-200"
-          >
-            + Add budget category
-          </button>
+          {addingCategory ? (
+            <AddCategoryForm
+              onAdd={data => { dispatch({ type: ACTIONS.ADD_BUDGET_CATEGORY, payload: data }); setAddingCategory(false) }}
+              onCancel={() => setAddingCategory(false)}
+            />
+          ) : (
+            <button
+              onClick={() => setAddingCategory(true)}
+              className="w-full py-3.5 text-sm font-medium text-accent hover:text-white bg-accent/5 hover:bg-accent border border-accent/20 hover:border-accent rounded-xl transition-all duration-200"
+            >
+              + Add budget category
+            </button>
+          )}
         </div>
 
         {/* Right Col (Spending Log) - Spans 1 col, sticky */}
