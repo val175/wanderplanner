@@ -27,7 +27,8 @@ function CityCard({ city }) {
           <EditableText
             value={city.country}
             onSave={val => updateCity({ country: val })}
-            className="text-sm text-text-muted mt-0.5"
+            tag="div"
+            className="text-sm text-text-muted mt-1"
             placeholder="Country"
           />
         </div>
@@ -39,32 +40,25 @@ function CityCard({ city }) {
       </div>
 
       {/* Info sections */}
-      <div className="space-y-5">
-        <div>
-          <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1">✨ Highlights</h4>
-          <EditableText value={city.highlights} onSave={val => updateCity({ highlights: val })}
-            className="text-sm text-text-secondary" placeholder="What makes this city special?" />
-        </div>
-        <div>
-          <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1">🎯 Must-Do</h4>
-          <EditableText value={city.mustDo} onSave={val => updateCity({ mustDo: val })}
-            className="text-sm text-text-secondary" placeholder="Can't-miss activities" />
-        </div>
-        <div>
-          <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1">🌤️ Weather</h4>
-          <EditableText value={city.weather} onSave={val => updateCity({ weather: val })}
-            className="text-sm text-text-secondary" placeholder="Expected weather during your visit" />
-        </div>
-        <div>
-          <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1">💱 Currency Tip</h4>
-          <EditableText value={city.currencyTip} onSave={val => updateCity({ currencyTip: val })}
-            className="text-sm text-text-secondary" placeholder="Local currency and payment tips" />
-        </div>
-        <div>
-          <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1">📝 Notes</h4>
-          <EditableText value={city.notes} onSave={val => updateCity({ notes: val })}
-            className="text-sm text-text-secondary" placeholder="Your personal notes for this city…" multiline />
-        </div>
+      <div className="divide-y divide-border">
+        {[
+          { label: '✨ Highlights', field: 'highlights', placeholder: 'What makes this city special?' },
+          { label: '🎯 Must-Do',    field: 'mustDo',     placeholder: "Can't-miss activities" },
+          { label: '🌤️ Weather',    field: 'weather',    placeholder: 'Expected weather during your visit' },
+          { label: '💱 Currency',   field: 'currencyTip',placeholder: 'Local currency and payment tips' },
+          { label: '📝 Notes',      field: 'notes',      placeholder: 'Your personal notes for this city…', multiline: true },
+        ].map(({ label, field, placeholder, multiline }) => (
+          <div key={field} className="py-4">
+            <h4 className="text-[10px] font-semibold text-text-muted uppercase tracking-widest mb-2">{label}</h4>
+            <EditableText
+              value={city[field]}
+              onSave={val => updateCity({ [field]: val })}
+              className="text-sm text-text-secondary leading-relaxed"
+              placeholder={placeholder}
+              multiline={multiline}
+            />
+          </div>
+        ))}
       </div>
     </Card>
   )

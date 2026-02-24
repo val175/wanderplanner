@@ -1,8 +1,8 @@
 # Dependencies
 node_modules/
 
-# Build output
-dist/
+# Build output — committed so Hostinger can deploy without a build step
+# dist/
 
 # Vite cache
 .vite/

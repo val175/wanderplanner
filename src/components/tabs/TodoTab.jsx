@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import Card from '../shared/Card'
 import CelebrationEffect from '../shared/CelebrationEffect'
+import DatePicker from '../shared/DatePicker'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { TODO_CATEGORIES } from '../../constants/tabs'
@@ -109,11 +110,11 @@ function AddTodoForm({ category, onAdd }) {
         className="flex-1 px-2 py-1 text-sm bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary placeholder:text-text-muted"
         autoFocus
       />
-      <input
-        type="date"
+      <DatePicker
         value={dueDate}
-        onChange={e => setDueDate(e.target.value)}
-        className="px-2 py-1 text-xs bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary"
+        onChange={setDueDate}
+        placeholder="Due date"
+        className="px-2 py-1 bg-bg-input border border-border rounded-[var(--radius-sm)] hover:border-accent/50"
       />
       <button
         type="button"

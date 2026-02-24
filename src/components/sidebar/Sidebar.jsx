@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import TripCard from './TripCard'
 import SidebarFooter from './SidebarFooter'
+import ProfileManager from '../shared/ProfileManager'
 import { useAuth } from '../../hooks/useAuth'
 
 // onNewTrip is passed from App.jsx — it opens the 4-step NewTripModal wizard
@@ -9,6 +11,7 @@ import { useAuth } from '../../hooks/useAuth'
 export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
   const { state, dispatch, sortedTrips } = useTripContext()
   const { signOutUser } = useAuth()
+  const [showProfiles, setShowProfiles] = useState(false)
 
   const handleNewTrip = () => {
     if (onNewTrip) {
@@ -32,7 +35,22 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
           <h1 className="font-heading text-xl font-bold tracking-tight text-text-primary">
             Wanderplan
           </h1>
-          <button
+          <div className="flex items-center gap-0.5">
+            {/* Traveler profiles */}
+            <button
+              onClick={() => setShowProfiles(true)}
+              className="p-1.5 rounded-[var(--radius-md)] text-text-muted hover:text-text-secondary transition-colors"
+              aria-label="Manage traveler profiles"
+              title="Traveler profiles"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            </button>
+            <button
             onClick={handleToggleDarkMode}
             className="p-1.5 rounded-[var(--radius-md)] text-text-muted hover:text-text-secondary transition-colors"
             aria-label={state.darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -55,6 +73,7 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
               </svg>
             )}
           </button>
+          </div>
         </div>
         <p className="text-xs text-text-muted leading-relaxed">
           Every trip, perfectly planned.
@@ -107,12 +126,18 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
 
   // Desktop: static sidebar
   if (!isMobile) {
-    return sidebarContent
+    return (
+      <>
+        {sidebarContent}
+        {showProfiles && <ProfileManager isOpen onClose={() => setShowProfiles(false)} />}
+      </>
+    )
   }
 
   // Mobile: slide-in drawer with backdrop
   return (
     <>
+      {showProfiles && <ProfileManager isOpen onClose={() => setShowProfiles(false)} />}
       {/* Backdrop overlay */}
       {isOpen && (
         <div
