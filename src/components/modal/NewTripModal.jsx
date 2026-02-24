@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Modal from '../shared/Modal'
 import DatePicker from '../shared/DatePicker'
 import CityCombobox, { COUNTRY_FLAGS_MAP, resolveCity } from '../shared/CityCombobox'
@@ -460,6 +460,17 @@ export default function NewTripModal({ isOpen, onClose }) {
       budgetCategories: DEFAULT_BUDGET_CATEGORIES.map(c => ({ ...c, min: 0, max: 0 })),
     }
   }
+
+  // If the modal mounted before currentUserProfile loaded (async Firestore),
+  // inject the user's UID into travelerIds as soon as the profile arrives.
+  useEffect(() => {
+    const myId = currentUserProfile?.uid
+    if (!myId) return
+    setForm(f => {
+      if (f.travelerIds.includes(myId)) return f
+      return { ...f, travelerIds: [myId, ...f.travelerIds] }
+    })
+  }, [currentUserProfile?.uid])
 
   const handleClose = () => { setStep(1); setForm(getInitialForm()); onClose() }
 
