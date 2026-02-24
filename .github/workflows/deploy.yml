@@ -1,0 +1,37 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches:
+      - main
+
+# Ensure the GITHUB_TOKEN has permission to commit to the repo
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build project
+        run: npm run build
+
+      - name: Deploy to deploy branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: deploy
+          # By default, this keeps commit history on the deploy branch
+          # and creates a clean commit matching the main branch SHA.
