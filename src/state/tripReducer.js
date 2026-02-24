@@ -374,15 +374,15 @@ export function tripReducer(state, action) {
         // Sync name / country / flag changes into route waypoints
         destinations: (identityChanged && oldName)
           ? (trip.destinations || []).map(d =>
-              d.city === oldName
-                ? {
-                    ...d,
-                    ...(newName !== undefined && { city: newName }),
-                    ...(newCountry !== undefined && { country: newCountry }),
-                    ...(newFlag !== undefined && { flag: newFlag }),
-                  }
-                : d
-            )
+            d.city === oldName
+              ? {
+                ...d,
+                ...(newName !== undefined && { city: newName }),
+                ...(newCountry !== undefined && { country: newCountry }),
+                ...(newFlag !== undefined && { flag: newFlag }),
+              }
+              : d
+          )
           : trip.destinations,
       }))
     }
@@ -434,15 +434,27 @@ export function tripReducer(state, action) {
     // Preserves activeTripId if the active trip still exists in the new map.
     case ACTIONS.SET_TRIPS_FROM_FIRESTORE: {
       const newTrips = payload
-      const ids = Object.keys(newTrips)
+      // MERGE strategy: Firestore is authoritative for trips it knows about.
+      // Preserve any locally-created trips that Firestore hasn't confirmed yet
+      // (i.e. they exist in local state but not in the snapshot).
+      // This prevents the race condition where a new trip disappears because the
+      // snapshot arrives before the setDoc write is confirmed.
+      const mergedTrips = { ...state.trips }
+      // Apply all trips from Firestore (these are authoritative)
+      Object.assign(mergedTrips, newTrips)
+      // Remove local trips that Firestore has explicitly deleted
+      // (i.e. they were in local state before but are no longer in any snapshot)
+      // We can't do this here safely without knowing the "previous" Firestore state,
+      // so we defer deletion to explicit DELETE_TRIP actions only.
+      const ids = Object.keys(mergedTrips)
       const currentActiveId = state.activeTripId
       const newActiveId =
-        currentActiveId && newTrips[currentActiveId]
+        currentActiveId && mergedTrips[currentActiveId]
           ? currentActiveId
           : ids.length > 0
-          ? ids[0]
-          : null
-      return { ...state, trips: newTrips, activeTripId: newActiveId }
+            ? ids[0]
+            : null
+      return { ...state, trips: mergedTrips, activeTripId: newActiveId }
     }
 
     default:
