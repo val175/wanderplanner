@@ -76,9 +76,7 @@ export function ProfileProvider({ user, children }) {
       (snap) => {
         if (snap.exists()) {
           const firestoreData = snap.data().profiles || []
-          // MERGE: union Firestore profiles with any locally-saved profiles so that
-          // travelers added locally (and saved to localStorage) are never wiped
-          // by a stale Firestore snapshot that doesn't have them yet.
+          // Merge Firestore data with localStorage so locally-added travelers are never wiped
           const localData = loadFromLocalStorage()
           const merged = [...firestoreData]
           localData.forEach(localProfile => {
@@ -86,20 +84,22 @@ export function ProfileProvider({ user, children }) {
               merged.push(localProfile)
             }
           })
+          // Only set isRemoteRef immediately before calling setProfiles
           isRemoteRef.current = true
           setProfiles(merged)
           try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)) } catch { }
-          // Write merged data back to Firestore if it's richer than what Firestore had
+          // Heal Firestore if our merged list has more data than what's there
           if (merged.length > firestoreData.length) {
             setDoc(travelersDocRef, { profiles: merged }).catch(console.warn)
           }
         } else {
+          // Doc doesn't exist yet — push local data to Firestore if we have any.
+          // DO NOT set isRemoteRef here since we are NOT calling setProfiles.
+          // Setting it without a matching setProfiles call would cause the next
+          // user-driven addProfile() to be silently skipped by the outbound sync.
           const local = loadFromLocalStorage()
           if (local.length > 0) {
-            isRemoteRef.current = true
             setDoc(travelersDocRef, { profiles: local }).catch(console.error)
-          } else {
-            isRemoteRef.current = true
           }
         }
         readyRef.current = true
