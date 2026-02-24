@@ -92,6 +92,12 @@ export function ProfileProvider({ user, children }) {
       },
       (err) => {
         console.warn('[Wanderplan] Travelers listener error:', err)
+        // Firestore read failed — fall back to localStorage so travelers persist on refresh
+        const local = loadFromLocalStorage()
+        if (local.length > 0) {
+          isRemoteRef.current = true
+          setProfiles(local)
+        }
         readyRef.current = true
       }
     )
@@ -101,9 +107,13 @@ export function ProfileProvider({ user, children }) {
   // ── 3. Outbound sync: shared travelers local state → Firestore ─────────
   useEffect(() => {
     if (isRemoteRef.current) { isRemoteRef.current = false; return }
-    if (!readyRef.current || !travelersDocRef) return
-    setDoc(travelersDocRef, { profiles }).catch(console.error)
+    if (!readyRef.current) return
+    // Always persist to localStorage first (works even without Firestore access)
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles)) } catch { }
+    // Then try Firestore (may fail if rules aren't configured; that's OK)
+    if (travelersDocRef) {
+      setDoc(travelersDocRef, { profiles }).catch(console.warn)
+    }
   }, [profiles]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Current user profile actions ───────────────────────────────────────
