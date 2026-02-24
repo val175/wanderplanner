@@ -441,7 +441,7 @@ function StepReview({ form }) {
 /* ─────────────────── Main Modal Component ─────────────────── */
 export default function NewTripModal({ isOpen, onClose }) {
   const { dispatch, showToast } = useTripContext()
-  const { currentUserProfile } = useProfiles()
+  const { currentUserProfile, resolveProfile } = useProfiles()
   const [step, setStep] = useState(1)
   const [form, setForm] = useState(() => getInitialForm())
 
@@ -501,7 +501,6 @@ export default function NewTripModal({ isOpen, onClose }) {
         name: c.name, emoji: c.emoji, min: c.min, max: c.max, actual: 0,
       }))
 
-    const { resolveProfile } = useProfiles()
     const memberIds = Array.from(new Set([
       currentUserProfile?.uid,
       ...(form.travelerIds || []).map(tid => resolveProfile(tid)?.uid).filter(Boolean)

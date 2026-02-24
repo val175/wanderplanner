@@ -103,7 +103,6 @@ export function useFirestoreTrips(userId) {
   useEffect(() => {
     if (!userId) return
     if (isRemoteUpdateRef.current) {
-      console.log('[Wanderplan] Outbound Sync skipped because isRemoteUpdateRef is true')
       isRemoteUpdateRef.current = false
       return
     }
@@ -111,16 +110,8 @@ export function useFirestoreTrips(userId) {
     const currentTrips = state.trips
     const previousTrips = prevTripsRef.current
 
-    console.log('[Wanderplan] Outbound Sync running!', {
-      currentTripsKeys: Object.keys(currentTrips),
-      previousTripsKeys: Object.keys(previousTrips),
-      currentTrips,
-      previousTrips,
-    })
-
     Object.keys(currentTrips).forEach((id) => {
       if (currentTrips[id] !== previousTrips[id]) {
-        console.log(`[Wanderplan] Syncing UPDATE to Firestore for trip: ${id}`)
         const tripData = currentTrips[id]
         // Ensure current user is always in memberIds on write
         const memberIds = Array.from(new Set([...(tripData.memberIds || []), userId]))
