@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
-import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore'
+import { doc, onSnapshot, setDoc, collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '../firebase/config'
 
 // Each user's own profile lives at users/{uid}/profile
@@ -37,17 +37,22 @@ export function ProfileProvider({ user, children }) {
       if (snap.exists()) {
         setCurrentUserProfile(snap.data())
       } else {
-        // First time: seed profile from Google account data
         const seed = {
           id: uid,
           uid,
           name: user.displayName || user.email?.split('@')[0] || 'Me',
           email: user.email,
-          // Use Google photo URL as default; user can override with a custom upload
           photo: user.photoURL || null,
-          customPhoto: null, // set when user uploads their own
+          customPhoto: null,
           createdAt: new Date().toISOString(),
         }
+        // Root doc for lookup
+        await setDoc(doc(db, 'users', uid), {
+          email: user.email?.toLowerCase().trim(),
+          uid,
+          updatedAt: new Date().toISOString()
+        })
+        // Profile doc
         await setDoc(profileDocRef, seed)
         setCurrentUserProfile(seed)
       }
@@ -69,7 +74,6 @@ export function ProfileProvider({ user, children }) {
           setProfiles(data)
           try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)) } catch { }
         } else {
-          // Doc doesn't exist yet — seed from localStorage if available
           const local = loadFromLocalStorage()
           if (local.length > 0) {
             isRemoteRef.current = true
@@ -104,14 +108,57 @@ export function ProfileProvider({ user, children }) {
     await setDoc(profileDocRef, merged)
   }, [currentUserProfile, profileDocRef]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Discovery: Find other users by email ────────────────────────────────
+  const findProfileByEmail = useCallback(async (email) => {
+    if (!email) return null
+    try {
+      // Search all users/{uid}/profile/data docs where email matches
+      // Note: This requires a collection group index or iterating if security allows.
+      // For simplicity in this structure, we'll try to find the profile
+      const q = query(collection(db, 'users'), where('email', '==', email.toLowerCase().trim()))
+      // Actually, my structure is /users/{uid}/profile/data. email is inside 'data'.
+      // Better to use a collectionGroup query if possible, or we need a root 'profiles' collection.
+      // Let's assume we can search the profiles via collectionGroup 'profile'.
+      // Wait, I can't easily setup collectionGroup indices here.
+      // Alternative: Try to fetch a known path or use a root 'users' doc for lookup.
+      // I previously setup: match /users/{uid} { allow read... }
+      // Let's check if the user has an 'allowed: true' check in App.jsx.
+
+      // I will implement a simpler lookup: search in the root 'users' collection 
+      // where I'll ensure email is also stored for lookup.
+      const usersRef = collection(db, 'users')
+      const emailQuery = query(usersRef, where('email', '==', email.toLowerCase().trim()))
+      const snap = await getDocs(emailQuery)
+
+      if (!snap.empty) {
+        const userDoc = snap.docs[0]
+        const userData = userDoc.data()
+        // Now get the actual profile data
+        const pSnap = await getDoc(doc(db, 'users', userDoc.id, 'profile', 'data'))
+        return pSnap.exists() ? { ...pSnap.data(), id: userDoc.id, uid: userDoc.id } : null
+      }
+      return null
+    } catch (err) {
+      console.warn('[ProfileContext] Lookup failed:', err)
+      return null
+    }
+  }, [])
+
   // ── Shared traveler actions ────────────────────────────────────────────
   const addProfile = useCallback((profile) => {
     const newProfile = {
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      ...profile,
+      id: profile.uid || (Date.now().toString(36) + Math.random().toString(36).slice(2, 6)),
       name: profile.name.trim(),
       photo: profile.photo || null,
     }
-    setProfiles(prev => [...prev, newProfile])
+    setProfiles(prev => {
+      // Avoid duplicates
+      if (prev.some(p => p.id === newProfile.id || (p.email && p.email === newProfile.email))) {
+        return prev
+      }
+      return [...prev, newProfile]
+    })
     return newProfile
   }, [])
 
@@ -124,11 +171,9 @@ export function ProfileProvider({ user, children }) {
   }, [])
 
   // ── Resolved profile helper ────────────────────────────────────────────
-  // Components can call resolveProfile(id) to get any profile by id,
-  // including the current user's own profile (where id === uid).
   const resolveProfile = useCallback((id) => {
     if (id === uid && currentUserProfile) return currentUserProfile
-    return profiles.find(p => p.id === id) || null
+    return profiles.find(p => p.id === id || p.uid === id) || null
   }, [uid, currentUserProfile, profiles])
 
   return (
@@ -140,6 +185,7 @@ export function ProfileProvider({ user, children }) {
       updateProfile,
       deleteProfile,
       resolveProfile,
+      findProfileByEmail,
     }}>
       {children}
     </ProfileContext.Provider>

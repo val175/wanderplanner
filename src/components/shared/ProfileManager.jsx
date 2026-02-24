@@ -184,11 +184,15 @@ function ProfileRow({ profile, onDelete }) {
   )
 }
 
-/* ── Add Traveler Form ───────────────────────────────────────────────── */
+/* ── Add Traveler (Manual or by Email) ────────────────────────────────── */
 function AddProfileForm({ onDone }) {
-  const { addProfile } = useProfiles()
+  const { addProfile, findProfileByEmail } = useProfiles()
+  const [mode, setMode] = useState('manual') // 'manual' or 'email'
+  const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [photo, setPhoto] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const fileRef = useRef()
 
   const handlePhoto = async (e) => {
@@ -198,55 +202,102 @@ function AddProfileForm({ onDone }) {
     setPhoto(resized)
   }
 
-  const handleAdd = () => {
+  const handleAddManual = () => {
     if (!name.trim()) return
     addProfile({ name, photo })
     onDone()
   }
 
+  const handleLookupEmail = async () => {
+    if (!email.trim() || !email.includes('@')) return
+    setLoading(true)
+    setError('')
+    const found = await findProfileByEmail(email)
+    setLoading(false)
+
+    if (found) {
+      addProfile(found)
+      onDone()
+    } else {
+      setError("User not found. They must sign in to Wanderplan first!")
+    }
+  }
+
   return (
     <div className="mt-4 pt-4 border-t border-border">
-      <p className="text-xs font-medium text-text-muted uppercase tracking-widest mb-3">Add traveler</p>
-      <div className="flex items-center gap-3">
+      <div className="flex gap-2 mb-4">
         <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          className="shrink-0 w-10 h-10 rounded-full border-2 border-dashed border-border hover:border-accent/50
-                     flex items-center justify-center text-text-muted hover:text-accent transition-colors overflow-hidden"
-          title="Upload photo"
+          onClick={() => { setMode('manual'); setError('') }}
+          className={`flex-1 py-1.5 text-xs font-semibold rounded-[var(--radius-sm)] transition-colors ${mode === 'manual' ? 'bg-accent/10 text-accent border border-accent/20' : 'text-text-muted hover:text-text-secondary'}`}
         >
-          {photo
-            ? <img src={photo} alt="" className="w-full h-full object-cover" />
-            : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-          }
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
+          Manual
         </button>
-
-        <input
-          autoFocus
-          value={name}
-          onChange={e => setName(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
-          placeholder="Traveler name"
-          className="flex-1 px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-md)]
-                     text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent
-                     focus:ring-1 focus:ring-accent/20 transition-colors"
-        />
-
         <button
-          type="button"
-          onClick={handleAdd}
-          disabled={!name.trim()}
-          className="px-3 py-2 text-sm bg-accent text-white rounded-[var(--radius-md)] hover:bg-accent-hover
-                     disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+          onClick={() => { setMode('email'); setError('') }}
+          className={`flex-1 py-1.5 text-xs font-semibold rounded-[var(--radius-sm)] transition-colors ${mode === 'email' ? 'bg-accent/10 text-accent border border-accent/20' : 'text-text-muted hover:text-text-secondary'}`}
         >
-          Add
+          By Email
         </button>
       </div>
+
+      {mode === 'manual' ? (
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="shrink-0 w-10 h-10 rounded-full border-2 border-dashed border-border hover:border-accent/50
+                       flex items-center justify-center text-text-muted hover:text-accent transition-colors overflow-hidden"
+          >
+            {photo
+              ? <img src={photo} alt="" className="w-full h-full object-cover" />
+              : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+            }
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
+          </button>
+          <input
+            autoFocus
+            value={name}
+            onChange={e => setName(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleAddManual() }}
+            placeholder="Traveler name"
+            className="flex-1 px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted outline-none focus:border-accent"
+          />
+          <button
+            onClick={handleAddManual}
+            disabled={!name.trim()}
+            className="px-3 py-2 text-sm bg-accent text-white rounded-[var(--radius-md)] hover:bg-accent-hover disabled:opacity-40"
+          >
+            Add
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <input
+              autoFocus
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleLookupEmail() }}
+              placeholder="user@example.com"
+              className="flex-1 px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted outline-none focus:border-accent"
+            />
+            <button
+              onClick={handleLookupEmail}
+              disabled={loading || !email.includes('@')}
+              className="px-3 py-2 text-sm bg-accent text-white rounded-[var(--radius-md)] hover:bg-accent-hover disabled:opacity-40"
+            >
+              {loading ? '...' : 'Invite'}
+            </button>
+          </div>
+          {error && <p className="text-[10px] text-danger font-medium leading-tight">{error}</p>}
+          <p className="text-[10px] text-text-muted italic leading-tight">
+            Finding a user by email will add their real Wanderplan profile to your traveler list.
+          </p>
+        </div>
+      )}
     </div>
   )
 }

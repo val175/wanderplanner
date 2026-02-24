@@ -1,4 +1,3 @@
-import { useState, useReducer, useEffect, useRef, useCallback } from 'react'
 import {
   collection,
   doc,
@@ -7,17 +6,17 @@ import {
   setDoc,
   deleteDoc,
   serverTimestamp,
+  query,
+  where,
 } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { tripReducer, ACTIONS } from '../state/tripReducer'
 import { DEFAULT_TRIP } from '../data/defaultTrip'
 
 const STORAGE_KEY = 'wanderplan_data'
-const MIGRATION_FLAG = 'wanderplan_migrated'
-const FIRESTORE_MIGRATION_FLAG = 'wanderplan_fs_migrated'
+const REVERSE_MIGRATION_FLAG = 'wanderplan_root_migrated'
 
 function getInitialState() {
-  // Restore dark mode preference from localStorage so it survives sign-out/sign-in
   let darkMode = false
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
@@ -34,72 +33,53 @@ function getInitialState() {
   }
 }
 
-// Returns the Firestore collection ref scoped to this user:  users/{uid}/trips
-function getUserTripsRef(userId) {
-  return collection(db, 'users', userId, 'trips')
-}
+// ── Shared Root Trips Reference ─────────────────────────────────────────────
+const tripsRef = collection(db, 'trips')
 
-// ── Old Firestore migration helper ───────────────────────────────────────────
-// Copies trips from the old root `trips` collection into `users/{uid}/trips`.
-// Runs once per browser, guarded by a localStorage flag.
-async function migrateFromOldFirestore(userId) {
-  if (localStorage.getItem(FIRESTORE_MIGRATION_FLAG)) return false
+// ── Migration Helper: User-scoped → Shared Root ──────────────────────────────
+// This moves trips from users/{uid}/trips back to /trips so they can be shared.
+async function migrateToSharedRoot(userId) {
+  if (localStorage.getItem(REVERSE_MIGRATION_FLAG)) return false
 
   try {
-    const oldRef = collection(db, 'trips')
-    const snapshot = await getDocs(oldRef)
+    const userScopedRef = collection(db, 'users', userId, 'trips')
+    const snapshot = await getDocs(userScopedRef)
+
     if (snapshot.empty) {
-      localStorage.setItem(FIRESTORE_MIGRATION_FLAG, 'true')
+      localStorage.setItem(REVERSE_MIGRATION_FLAG, 'true')
       return false
     }
 
-    const newTripsRef = getUserTripsRef(userId)
     await Promise.all(
-      snapshot.docs.map(docSnap =>
-        setDoc(doc(newTripsRef, docSnap.id), {
-          ...docSnap.data(),
-          userId,
+      snapshot.docs.map(async (docSnap) => {
+        const data = docSnap.data()
+        const rootDocRef = doc(db, 'trips', docSnap.id)
+
+        // Check if it already exists at root (to avoid overwriting Juliann's work if Val already migrated)
+        const rootSnap = await getDocs(query(collection(db, 'trips'), where('__name__', '==', docSnap.id)))
+        let memberIds = Array.from(new Set([...(data.memberIds || []), userId]))
+
+        if (!rootSnap.empty) {
+          const rootData = rootSnap.docs[0].data()
+          memberIds = Array.from(new Set([...memberIds, ...(rootData.memberIds || [])]))
+        }
+
+        await setDoc(rootDocRef, {
+          ...data,
+          memberIds,
           _updatedAt: serverTimestamp(),
-        })
-      )
+        }, { merge: true })
+
+        // Delete from user-scoped
+        await deleteDoc(doc(userScopedRef, docSnap.id))
+      })
     )
-    localStorage.setItem(FIRESTORE_MIGRATION_FLAG, 'true')
-    console.log(`[Wanderplan] Migrated ${snapshot.size} trip(s) from root Firestore → users/${userId}/trips`)
+
+    localStorage.setItem(REVERSE_MIGRATION_FLAG, 'true')
+    console.log(`[Wanderplan] Consolidated ${snapshot.size} trip(s) → root /trips`)
     return true
   } catch (err) {
-    console.warn('[Wanderplan] Firestore migration failed:', err)
-    return false
-  }
-}
-
-// ── localStorage migration helper ─────────────────────────────────────────────
-// On first sign-in: if the user had trips in localStorage, write them to
-// Firestore so nothing is lost. Runs only once, guarded by MIGRATION_FLAG.
-async function migrateFromLocalStorage(userId) {
-  if (localStorage.getItem(MIGRATION_FLAG)) return false
-
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (!saved) return false
-    const parsed = JSON.parse(saved)
-    if (!parsed.trips || Object.keys(parsed.trips).length === 0) return false
-
-    const tripsRef = getUserTripsRef(userId)
-    const trips = Object.values(parsed.trips)
-    await Promise.all(
-      trips.map(trip =>
-        setDoc(doc(tripsRef, trip.id), {
-          ...trip,
-          userId,
-          _updatedAt: serverTimestamp(),
-        })
-      )
-    )
-    localStorage.setItem(MIGRATION_FLAG, 'true')
-    console.log(`[Wanderplan] Migrated ${trips.length} trip(s) from localStorage → Firestore`)
-    return true
-  } catch (err) {
-    console.warn('[Wanderplan] Migration failed:', err)
+    console.warn('[Wanderplan] Root migration failed:', err)
     return false
   }
 }
@@ -108,24 +88,19 @@ async function migrateFromLocalStorage(userId) {
 export function useFirestoreTrips(userId) {
   const [state, dispatch] = useReducer(tripReducer, null, getInitialState)
   const [firestoreLoading, setFirestoreLoading] = useState(true)
-
-  // Ref holding the last-synced trips map — used to diff for outbound writes
   const prevTripsRef = useRef({})
-
-  // Flag: true when a state change was triggered BY a Firestore snapshot.
-  // Prevents writing that data back to Firestore (echo-write loop prevention).
   const isRemoteUpdateRef = useRef(false)
 
-  // ── 1. Real-time listener: Firestore → local state ───────────────────────
+  // ── 1. Real-time listener: Shared Root → local state ─────────────────────
   useEffect(() => {
     if (!userId) return
 
-    const tripsRef = getUserTripsRef(userId)
+    // Query for trips where the current user is a member
+    const q = query(tripsRef, where('memberIds', 'array-contains', userId))
 
     const unsubscribe = onSnapshot(
-      tripsRef,
+      q,
       async (snapshot) => {
-        // Build a plain trips map from the snapshot, strip Firestore metadata
         const tripsFromFirestore = {}
         snapshot.forEach((docSnap) => {
           const { _updatedAt, ...trip } = docSnap.data()
@@ -134,36 +109,22 @@ export function useFirestoreTrips(userId) {
 
         const isFirstLoad = Object.keys(prevTripsRef.current).length === 0
 
-        // On first load with an empty user subcollection: try to migrate from
-        // the old root `trips` collection first (one-time), then localStorage,
-        // and finally seed with the demo trip if nothing at all is found.
+        // Handle migration and seeding on first load
         if (isFirstLoad && Object.keys(tripsFromFirestore).length === 0) {
-          const fsmigrated = await migrateFromOldFirestore(userId)
-          if (fsmigrated) {
-            // onSnapshot will fire again with the migrated trips — wait for it
-            return
-          }
+          const migrated = await migrateToSharedRoot(userId)
+          if (migrated) return // onSnapshot will fire again
 
-          const migrated = await migrateFromLocalStorage(userId)
-          if (migrated) {
-            // onSnapshot will fire again with the migrated trips — wait for it
-            return
-          }
-
-          // No data anywhere — seed Firestore with the default demo trip
+          // No data anywhere — seed with default trip
           await setDoc(doc(tripsRef, DEFAULT_TRIP.id), {
             ...DEFAULT_TRIP,
-            userId,
+            memberIds: [userId],
             _updatedAt: serverTimestamp(),
           })
-          // onSnapshot fires again with the seeded trip — wait for it
           return
         }
 
-        // Mark this update as remote so the outbound effect skips it
         isRemoteUpdateRef.current = true
         prevTripsRef.current = tripsFromFirestore
-
         dispatch({ type: ACTIONS.SET_TRIPS_FROM_FIRESTORE, payload: tripsFromFirestore })
         setFirestoreLoading(false)
       },
@@ -177,34 +138,32 @@ export function useFirestoreTrips(userId) {
   }, [userId])
 
   // ── 2. Outbound sync: local state → Firestore ────────────────────────────
-  // Fires after every state.trips change. Diffs against prevTripsRef to write
-  // only the trips that actually changed (by reference inequality).
   useEffect(() => {
     if (!userId) return
-
-    // This change came from Firestore — skip to avoid echo-write loop
     if (isRemoteUpdateRef.current) {
       isRemoteUpdateRef.current = false
       return
     }
 
-    const tripsRef = getUserTripsRef(userId)
     const currentTrips = state.trips
     const previousTrips = prevTripsRef.current
 
-    // Write trips that were added or mutated
     Object.keys(currentTrips).forEach((id) => {
       if (currentTrips[id] !== previousTrips[id]) {
+        const tripData = currentTrips[id]
+        // Ensure current user is always in memberIds on write
+        const memberIds = Array.from(new Set([...(tripData.memberIds || []), userId]))
+
         setDoc(
           doc(tripsRef, id),
-          { ...currentTrips[id], userId, _updatedAt: serverTimestamp() }
+          { ...tripData, memberIds, _updatedAt: serverTimestamp() }
         ).catch(console.error)
       }
     })
 
-    // Delete trips that were removed
     Object.keys(previousTrips).forEach((id) => {
       if (!currentTrips[id]) {
+        // Deleting from shared root deletes it for EVERYONE in memberIds
         deleteDoc(doc(tripsRef, id)).catch(console.error)
       }
     })

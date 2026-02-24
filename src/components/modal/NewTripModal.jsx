@@ -151,13 +151,13 @@ function StepBasics({ form, setForm }) {
               <button
                 key={p.id}
                 type="button"
-                onClick={() => toggleTraveler(p.id)}
+                onClick={() => toggleTraveler(p.uid || p.id)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-pill)] border text-sm transition-all duration-150
                   ${selected
                     ? 'bg-accent/10 border-accent/40 text-text-primary'
                     : 'bg-bg-secondary border-border text-text-muted hover:border-accent/30 hover:text-text-secondary'
                   }
-                  ${p.isMe ? 'cursor-default' : ''}`}
+                  ${p.isMe ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <AvatarCircle profile={p} size={22} />
                 <span className="font-medium">{p.isMe ? `${p.name} (you)` : p.name}</span>
@@ -501,11 +501,18 @@ export default function NewTripModal({ isOpen, onClose }) {
         name: c.name, emoji: c.emoji, min: c.min, max: c.max, actual: 0,
       }))
 
+    const { resolveProfile } = useProfiles()
+    const memberIds = Array.from(new Set([
+      currentUserProfile?.uid,
+      ...(form.travelerIds || []).map(tid => resolveProfile(tid)?.uid).filter(Boolean)
+    ])).filter(Boolean)
+
     const newTrip = createEmptyTrip({
       name: form.name.trim() || 'New Trip',
       emoji: form.emoji,
       travelers: form.travelers,
       travelerIds: form.travelerIds || [],
+      memberIds,
       startDate: form.startDate,
       endDate: form.endDate,
       destinations,
