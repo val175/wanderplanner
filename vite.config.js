@@ -7,8 +7,4 @@ export default defineConfig({
     tailwindcss(),
     react(),
   ],
-  build: {
-    minify: false,
-    sourcemap: true,
-  }
 })

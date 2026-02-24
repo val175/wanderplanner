@@ -34,6 +34,18 @@ export function ProfileProvider({ user, children }) {
     if (!profileDocRef || !user) return
 
     const unsub = onSnapshot(profileDocRef, async (snap) => {
+      // ALWAYS ensure the root document has the email for lookups,
+      // even if their profile already existed from before this feature was added.
+      try {
+        await setDoc(doc(db, 'users', uid), {
+          email: user.email?.toLowerCase().trim(),
+          uid,
+          updatedAt: new Date().toISOString()
+        }, { merge: true })
+      } catch (err) {
+        console.warn('[ProfileContext] Failed to update root user doc:', err)
+      }
+
       if (snap.exists()) {
         setCurrentUserProfile(snap.data())
       } else {
@@ -46,12 +58,6 @@ export function ProfileProvider({ user, children }) {
           customPhoto: null,
           createdAt: new Date().toISOString(),
         }
-        // Root doc for lookup
-        await setDoc(doc(db, 'users', uid), {
-          email: user.email?.toLowerCase().trim(),
-          uid,
-          updatedAt: new Date().toISOString()
-        })
         // Profile doc
         await setDoc(profileDocRef, seed)
         setCurrentUserProfile(seed)
