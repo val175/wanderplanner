@@ -2,6 +2,7 @@ import { useState, useReducer, useEffect, useRef, useCallback } from 'react'
 import {
   collection,
   doc,
+  getDocs,
   onSnapshot,
   setDoc,
   deleteDoc,
@@ -13,6 +14,7 @@ import { DEFAULT_TRIP } from '../data/defaultTrip'
 
 const STORAGE_KEY = 'wanderplan_data'
 const MIGRATION_FLAG = 'wanderplan_migrated'
+const FIRESTORE_MIGRATION_FLAG = 'wanderplan_fs_migrated'
 
 function getInitialState() {
   // Restore dark mode preference from localStorage so it survives sign-out/sign-in
@@ -37,7 +39,40 @@ function getUserTripsRef(userId) {
   return collection(db, 'users', userId, 'trips')
 }
 
-// ── Migration helper ─────────────────────────────────────────────────────────
+// ── Old Firestore migration helper ───────────────────────────────────────────
+// Copies trips from the old root `trips` collection into `users/{uid}/trips`.
+// Runs once per browser, guarded by a localStorage flag.
+async function migrateFromOldFirestore(userId) {
+  if (localStorage.getItem(FIRESTORE_MIGRATION_FLAG)) return false
+
+  try {
+    const oldRef = collection(db, 'trips')
+    const snapshot = await getDocs(oldRef)
+    if (snapshot.empty) {
+      localStorage.setItem(FIRESTORE_MIGRATION_FLAG, 'true')
+      return false
+    }
+
+    const newTripsRef = getUserTripsRef(userId)
+    await Promise.all(
+      snapshot.docs.map(docSnap =>
+        setDoc(doc(newTripsRef, docSnap.id), {
+          ...docSnap.data(),
+          userId,
+          _updatedAt: serverTimestamp(),
+        })
+      )
+    )
+    localStorage.setItem(FIRESTORE_MIGRATION_FLAG, 'true')
+    console.log(`[Wanderplan] Migrated ${snapshot.size} trip(s) from root Firestore → users/${userId}/trips`)
+    return true
+  } catch (err) {
+    console.warn('[Wanderplan] Firestore migration failed:', err)
+    return false
+  }
+}
+
+// ── localStorage migration helper ─────────────────────────────────────────────
 // On first sign-in: if the user had trips in localStorage, write them to
 // Firestore so nothing is lost. Runs only once, guarded by MIGRATION_FLAG.
 async function migrateFromLocalStorage(userId) {
@@ -99,16 +134,23 @@ export function useFirestoreTrips(userId) {
 
         const isFirstLoad = Object.keys(prevTripsRef.current).length === 0
 
-        // On first load with an empty Firestore collection:
-        // check for localStorage data to migrate, or seed with the demo trip
+        // On first load with an empty user subcollection: try to migrate from
+        // the old root `trips` collection first (one-time), then localStorage,
+        // and finally seed with the demo trip if nothing at all is found.
         if (isFirstLoad && Object.keys(tripsFromFirestore).length === 0) {
+          const fsmigrated = await migrateFromOldFirestore(userId)
+          if (fsmigrated) {
+            // onSnapshot will fire again with the migrated trips — wait for it
+            return
+          }
+
           const migrated = await migrateFromLocalStorage(userId)
           if (migrated) {
             // onSnapshot will fire again with the migrated trips — wait for it
             return
           }
 
-          // No local data either — seed Firestore with the default demo trip
+          // No data anywhere — seed Firestore with the default demo trip
           await setDoc(doc(tripsRef, DEFAULT_TRIP.id), {
             ...DEFAULT_TRIP,
             userId,
