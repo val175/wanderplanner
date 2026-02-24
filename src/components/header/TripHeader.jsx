@@ -6,6 +6,7 @@ import { useTripContext } from '../../context/TripContext'
 import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { calculateReadiness } from '../../utils/readiness'
+import { getTripStatus } from '../../utils/tripStatus'
 import { formatDateRange } from '../../utils/helpers'
 import { useCountdown } from '../../hooks/useCountdown'
 
@@ -332,6 +333,7 @@ export default function TripHeader() {
 
   const trip = activeTrip
   const dateRange = formatDateRange(trip.startDate, trip.endDate)
+  const tripStatus = getTripStatus(trip.startDate, trip.endDate)
   const destinations = trip.destinations || []
 
   // Prefer resolving from the live profiles list; fall back to the embedded snapshot in the trip doc
@@ -393,15 +395,25 @@ export default function TripHeader() {
             </div>
           </div>
 
-          {/* RIGHT — typographic countdown hero */}
-          {trip.startDate && (
+          {/* RIGHT — countdown for upcoming; ongoing pill when in progress */}
+          {tripStatus === 'ongoing' ? (
+            <div className="shrink-0 flex flex-col items-end pt-0.5">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5
+                rounded-full text-xs font-semibold
+                bg-success/12 text-success border border-success/25
+                animate-pulse-warm">
+                <span className="w-1.5 h-1.5 rounded-full bg-success inline-block" />
+                Ongoing
+              </span>
+            </div>
+          ) : trip.startDate && tripStatus === 'upcoming' ? (
             <div className="shrink-0 flex flex-col items-end pt-0.5">
               <CountdownHero targetDate={trip.startDate} />
               <span className="text-[9px] text-text-muted uppercase tracking-[0.2em] font-semibold mt-0.5">
                 to departure
               </span>
             </div>
-          )}
+          ) : null}
 
         </div>
       </div>

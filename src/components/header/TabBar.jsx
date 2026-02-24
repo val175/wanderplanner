@@ -186,17 +186,15 @@ export default function TabBar() {
           <div className="w-4 sm:w-8 shrink-0" />
         </div>
 
-        {/* Right fade mask */}
-        {showRightMask && (
-          <div
-            className="absolute right-0 top-0 bottom-0 pointer-events-none z-10"
-            style={{
-              width: hasOverflow ? '80px' : '32px',
-              background: 'linear-gradient(to left, var(--color-bg-primary) 40%, transparent)',
-            }}
-            aria-hidden="true"
-          />
-        )}
+        {/* Right fade mask — always rendered to signal scrollability; wider when overflow menu present */}
+        <div
+          className="absolute right-0 top-0 bottom-0 pointer-events-none z-10"
+          style={{
+            width: hasOverflow ? '80px' : '40px',
+            background: 'linear-gradient(to left, var(--color-bg-primary) 30%, transparent)',
+          }}
+          aria-hidden="true"
+        />
 
         {/* "More ▾" — pill-style, consistent with active tab treatment */}
         {hasOverflow && (

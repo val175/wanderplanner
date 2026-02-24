@@ -15,6 +15,21 @@ function BudgetChart({ budget, currency }) {
     actual: cat.actual || 0,
   }))
 
+  // Custom tick: shows emoji + truncated name so labels never overflow
+  const CustomTick = ({ x, y, payload }) => {
+    const item = data.find(d => d.name === payload.value)
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <text textAnchor="middle" fill="var(--color-text-muted)" fontSize={11} dy={4}>
+          {item?.emoji || ''}
+        </text>
+        <text textAnchor="middle" fill="var(--color-text-muted)" fontSize={9} dy={16}>
+          {payload.value.length > 8 ? payload.value.slice(0, 7) + '…' : payload.value}
+        </text>
+      </g>
+    )
+  }
+
   const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null
     return (
@@ -31,14 +46,14 @@ function BudgetChart({ budget, currency }) {
 
   return (
     <ResponsiveContainer width="100%" height={280}>
-      <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+      <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 24 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
         <XAxis
           dataKey="name"
-          stroke="var(--color-text-muted)"
-          fontSize={11}
+          tick={<CustomTick />}
           tickLine={false}
           axisLine={false}
+          interval={0}
         />
         <YAxis
           stroke="var(--color-text-muted)"
@@ -68,6 +83,11 @@ function CategoryCard({ category, currency, travelers, perPerson }) {
   const divisor = perPerson ? Math.max(travelers, 1) : 1
   const isOver = category.actual > category.max && category.max > 0
 
+  const handleAmount = (field, rawVal) => {
+    const num = Number(rawVal) || 0
+    dispatch({ type: ACTIONS.UPDATE_BUDGET_CATEGORY, payload: { id: category.id, updates: { [field]: num * divisor } } })
+  }
+
   return (
     <Card className="animate-fade-in">
       <div className="flex items-start justify-between">
@@ -86,39 +106,38 @@ function CategoryCard({ category, currency, travelers, perPerson }) {
           ✕
         </button>
       </div>
-      <div className="mt-3 grid grid-cols-3 gap-4 text-sm">
-        <div>
-          <span className="text-text-muted text-xs block">Min</span>
-          <EditableText
-            value={category.min ? String(Math.round(category.min / divisor)) : ''}
-            onSave={val => dispatch({ type: ACTIONS.UPDATE_BUDGET_CATEGORY, payload: { id: category.id, updates: { min: (Number(val) || 0) * divisor } } })}
-            className="text-text-primary font-mono text-xs"
-            placeholder="0"
-          />
-        </div>
-        <div>
-          <span className="text-text-muted text-xs block">Max</span>
-          <EditableText
-            value={category.max ? String(Math.round(category.max / divisor)) : ''}
-            onSave={val => dispatch({ type: ACTIONS.UPDATE_BUDGET_CATEGORY, payload: { id: category.id, updates: { max: (Number(val) || 0) * divisor } } })}
-            className="text-text-primary font-mono text-xs"
-            placeholder="0"
-          />
-        </div>
-        <div>
-          <span className="text-text-muted text-xs block">Actual</span>
-          <EditableText
-            value={category.actual ? String(Math.round(category.actual / divisor)) : ''}
-            onSave={val => dispatch({ type: ACTIONS.UPDATE_BUDGET_CATEGORY, payload: { id: category.id, updates: { actual: (Number(val) || 0) * divisor } } })}
-            className={`font-mono text-xs ${isOver ? 'text-danger font-bold' : 'text-text-primary'}`}
-            placeholder="0"
-          />
-        </div>
+      <div className="mt-3 grid grid-cols-3 gap-3">
+        {[{ field: 'min', label: 'Min' }, { field: 'max', label: 'Max' }, { field: 'actual', label: 'Actual' }].map(({ field, label }) => {
+          const storedVal = category[field] || 0
+          const displayVal = storedVal ? Math.round(storedVal / divisor) : ''
+          const isActualOver = field === 'actual' && isOver
+          return (
+            <div key={field}>
+              <label className="text-text-muted text-[10px] font-semibold uppercase tracking-wide block mb-1">{label}</label>
+              <input
+                type="number"
+                min="0"
+                defaultValue={displayVal || ''}
+                key={`${category.id}-${field}-${divisor}`}
+                onBlur={e => handleAmount(field, e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
+                placeholder="0"
+                className={`w-full px-2 py-1.5 text-sm font-mono rounded-[var(--radius-sm)] border
+                  bg-bg-input text-text-primary placeholder:text-text-muted
+                  focus:outline-none focus:border-accent transition-colors
+                  ${isActualOver
+                    ? 'border-danger/40 text-danger font-bold'
+                    : 'border-border hover:border-border-strong'
+                  }`}
+              />
+            </div>
+          )
+        })}
       </div>
       {isOver && (
         <p className="text-xs text-danger mt-2 font-medium">⚠ Over budget by {formatCurrency(category.actual - category.max, currency)}</p>
       )}
-      <div className="mt-2 text-xs text-text-muted">
+      <div className="mt-1.5 text-xs text-text-muted">
         Range: {formatCurrency(Math.round(category.min / divisor), currency)} – {formatCurrency(Math.round(category.max / divisor), currency)}
         {perPerson && ' per person'}
       </div>

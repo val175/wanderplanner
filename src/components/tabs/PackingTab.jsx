@@ -20,7 +20,7 @@ function PackingItem({ item, onToggle, onDelete }) {
       >
         {item.packed && (
           <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-            <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         )}
       </button>
@@ -80,6 +80,28 @@ export default function PackingTab() {
   const [addingSection, setAddingSection] = useState(false)
   const [newSectionName, setNewSectionName] = useState('')
 
+  const STARTER_ITEMS = [
+    { name: 'Passport', section: 'Documents' },
+    { name: 'Travel insurance', section: 'Documents' },
+    { name: 'Flight / hotel bookings printout', section: 'Documents' },
+    { name: 'Local SIM or roaming plan', section: 'Documents' },
+    { name: 'T-shirts (3–4)', section: 'Clothing' },
+    { name: 'Comfortable walking shoes', section: 'Clothing' },
+    { name: 'Light jacket / rain layer', section: 'Clothing' },
+    { name: 'Underwear & socks', section: 'Clothing' },
+    { name: 'Phone charger', section: 'Tech' },
+    { name: 'Universal power adapter', section: 'Tech' },
+    { name: 'Portable battery pack', section: 'Tech' },
+    { name: 'Earphones / earbuds', section: 'Tech' },
+    { name: 'Toothbrush & toothpaste', section: 'Toiletries' },
+    { name: 'Sunscreen SPF 50+', section: 'Toiletries' },
+    { name: 'Deodorant', section: 'Toiletries' },
+    { name: 'Any prescription medication', section: 'Toiletries' },
+    { name: 'Reusable water bottle', section: 'Misc' },
+    { name: 'Snacks for the plane', section: 'Misc' },
+    { name: 'Travel pillow', section: 'Misc' },
+  ]
+
   if (!activeTrip) return null
   const trip = activeTrip
   const items = trip.packingList || []
@@ -116,6 +138,13 @@ export default function PackingTab() {
     }
   }, [dispatch, items, packed, total, showToast])
 
+  const handleStarterList = () => {
+    STARTER_ITEMS.forEach(item =>
+      dispatch({ type: ACTIONS.ADD_PACKING_ITEM, payload: item })
+    )
+    showToast('Starter list added! Remove what you don\'t need 🧳')
+  }
+
   const sectionEmojis = {
     'Documents': '📄',
     'Clothing': '👕',
@@ -123,6 +152,15 @@ export default function PackingTab() {
     'Concert Essentials': '🎸',
     'Toiletries': '🧴',
     'Misc': '📦',
+  }
+
+  const sectionHints = {
+    'Documents': 'e.g. Passport, visa, travel insurance',
+    'Clothing': 'e.g. Outfits, layers, comfortable shoes',
+    'Tech': 'e.g. Chargers, adapters, earphones',
+    'Concert Essentials': 'e.g. Tickets, earplugs, merch money',
+    'Toiletries': 'e.g. Sunscreen, toothbrush, medication',
+    'Misc': 'e.g. Snacks, book, reusable bag',
   }
 
   return (
@@ -139,16 +177,29 @@ export default function PackingTab() {
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <h2 className="font-heading text-lg text-text-primary">🧳 Packing · {packed}/{total} packed</h2>
-        {total > 0 && (
-          <button
-            onClick={() => setShowResetConfirm(true)}
-            className="text-xs text-text-muted hover:text-danger transition-colors"
-          >
-            Reset all
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {total === 0 && (
+            <button
+              onClick={handleStarterList}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium
+                bg-bg-secondary border border-border rounded-[var(--radius-md)]
+                text-text-secondary hover:text-text-primary hover:bg-bg-hover
+                transition-colors"
+            >
+              📋 Use starter list
+            </button>
+          )}
+          {total > 0 && (
+            <button
+              onClick={() => setShowResetConfirm(true)}
+              className="text-xs text-text-muted hover:text-danger transition-colors"
+            >
+              Reset all
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Overall progress */}
@@ -176,6 +227,11 @@ export default function PackingTab() {
                   onDelete={() => dispatch({ type: ACTIONS.DELETE_PACKING_ITEM, payload: item.id })}
                 />
               ))}
+              {sectionItems.length === 0 && sectionHints[section] && (
+                <p className="text-xs text-text-muted italic py-1 opacity-60">
+                  {sectionHints[section]}
+                </p>
+              )}
             </div>
 
             <AddItemForm

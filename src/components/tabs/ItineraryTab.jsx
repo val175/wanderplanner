@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import Card from '../shared/Card'
 import EditableText from '../shared/EditableText'
 import TimePicker from '../shared/TimePicker'
+import ConfirmDialog from '../shared/ConfirmDialog'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { formatDate } from '../../utils/helpers'
@@ -178,6 +179,7 @@ function DayCard({ day, dayIndex, isConcertDay, onReorderDay }) {
   const [editingNotes, setEditingNotes] = useState(false)
   const [notesValue, setNotesValue] = useState(day.notes || '')
   const [dragOver, setDragOver] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const cardClasses = isConcertDay ? 'border-concert-red/30 bg-concert-dark/5 dark:bg-concert-dark/30' : ''
 
@@ -208,6 +210,16 @@ function DayCard({ day, dayIndex, isConcertDay, onReorderDay }) {
       <div className="absolute left-5 top-0 bottom-0 w-px bg-border hidden md:block" />
       <div className={`absolute left-3 top-6 w-5 h-5 rounded-full border-2 hidden md:block z-10
         ${isConcertDay ? 'border-concert-red bg-concert-red/20' : 'border-accent bg-accent/20'}`} />
+
+      <ConfirmDialog
+        isOpen={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={() => dispatch({ type: ACTIONS.REMOVE_DAY, payload: day.id })}
+        title={`Remove Day ${day.dayNumber}?`}
+        message={`This will permanently delete Day ${day.dayNumber} and all ${day.activities?.length} ${day.activities?.length === 1 ? 'activity' : 'activities'} on it. This cannot be undone.`}
+        confirmLabel="Remove Day"
+        danger
+      />
 
       <Card className={`md:ml-12 ${cardClasses}`}>
         {/* Header */}
@@ -248,7 +260,14 @@ function DayCard({ day, dayIndex, isConcertDay, onReorderDay }) {
           <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-xs text-text-muted">{day.activities?.length || 0}</span>
             <button
-              onClick={e => { e.stopPropagation(); dispatch({ type: ACTIONS.REMOVE_DAY, payload: day.id }) }}
+              onClick={e => {
+                e.stopPropagation()
+                if (day.activities?.length > 0) {
+                  setConfirmDelete(true)
+                } else {
+                  dispatch({ type: ACTIONS.REMOVE_DAY, payload: day.id })
+                }
+              }}
               className="text-xs text-text-muted hover:text-danger transition-colors px-1"
             >✕</button>
             <span className={`text-text-muted cursor-pointer transition-transform ${expanded ? 'rotate-180' : ''}`}
@@ -331,9 +350,39 @@ function DayCard({ day, dayIndex, isConcertDay, onReorderDay }) {
   )
 }
 
+// ── Day Jump Strip ─────────────────────────────────────────────────────────
+function DayJumper({ itinerary, dayRefs }) {
+  if (!itinerary || itinerary.length < 5) return null
+  const todayISO = new Date().toISOString().slice(0, 10)
+
+  return (
+    <div className="flex gap-1 overflow-x-auto scrollbar-hide pb-0.5">
+      {itinerary.map((day, i) => {
+        const isToday = day.date === todayISO
+        return (
+          <button
+            key={day.id}
+            onClick={() => dayRefs.current[day.id]?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            className={`shrink-0 px-2.5 py-1 text-xs font-medium rounded-[var(--radius-pill)] whitespace-nowrap transition-colors
+              ${isToday
+                ? 'bg-accent text-white'
+                : 'bg-bg-secondary border border-border text-text-muted hover:text-text-secondary hover:border-border-strong'
+              }`}
+            title={day.date || `Day ${day.dayNumber}`}
+          >
+            Day {day.dayNumber || i + 1}
+            {isToday && ' •'}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────
 export default function ItineraryTab() {
   const { activeTrip, dispatch } = useTripContext()
+  const dayRefs = useRef({})
   if (!activeTrip) return null
 
   const trip = activeTrip
@@ -365,6 +414,7 @@ export default function ItineraryTab() {
         </button>
       </div>
 
+      <DayJumper itinerary={trip.itinerary} dayRefs={dayRefs} />
       <div className="relative space-y-5">
         {trip.itinerary?.map((day, dayIndex) => {
           const isConcertDay = concertBooking && day.activities?.some(a =>
@@ -373,13 +423,14 @@ export default function ItineraryTab() {
             a.emoji === '🎵' || a.emoji === '🎸'
           )
           return (
-            <DayCard
-              key={day.id}
-              day={day}
-              dayIndex={dayIndex}
-              isConcertDay={isConcertDay}
-              onReorderDay={(fromIndex, toIndex) => dispatch({ type: ACTIONS.REORDER_DAYS, payload: { fromIndex, toIndex } })}
-            />
+            <div key={day.id} ref={el => { dayRefs.current[day.id] = el }}>
+              <DayCard
+                day={day}
+                dayIndex={dayIndex}
+                isConcertDay={isConcertDay}
+                onReorderDay={(fromIndex, toIndex) => dispatch({ type: ACTIONS.REORDER_DAYS, payload: { fromIndex, toIndex } })}
+              />
+            </div>
           )
         })}
       </div>

@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import Card from '../shared/Card'
 import EditableText from '../shared/EditableText'
+import DatePicker from '../shared/DatePicker'
 import ProgressBar from '../shared/ProgressBar'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
@@ -96,12 +97,12 @@ function BookingCard({ booking, currency }) {
           />
         </div>
         <div>
-          <span className="text-text-muted text-xs block">Book By</span>
-          <EditableText
-            value={booking.bookByDate}
-            onSave={val => dispatch({ type: ACTIONS.UPDATE_BOOKING, payload: { id: booking.id, updates: { bookByDate: val } } })}
-            className="text-text-primary text-xs"
-            placeholder="—"
+          <span className="text-text-muted text-xs block mb-1">Book By</span>
+          <DatePicker
+            value={booking.bookByDate || ''}
+            onChange={val => dispatch({ type: ACTIONS.UPDATE_BOOKING, payload: { id: booking.id, updates: { bookByDate: val } } })}
+            placeholder="Set date"
+            className="text-xs hover:text-text-primary transition-colors"
           />
         </div>
       </div>

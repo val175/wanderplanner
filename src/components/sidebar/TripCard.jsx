@@ -3,6 +3,7 @@ import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { calculateReadiness } from '../../utils/readiness'
 import { formatDateRange } from '../../utils/helpers'
+import { getTripStatus } from '../../utils/tripStatus'
 import ProgressRing from '../shared/ProgressRing'
 import StatusBadge from '../shared/StatusBadge'
 import TripContextMenu from './TripContextMenu'
@@ -14,12 +15,14 @@ export default function TripCard({ trip, isActive, isMobile }) {
 
   const readiness = calculateReadiness(trip)
   const dateRange = formatDateRange(trip.startDate, trip.endDate)
+  const tripStatus = getTripStatus(trip.startDate, trip.endDate)
+  const isOngoing = tripStatus === 'ongoing'
 
   // Build flag list with +N overflow badge
   const MAX_FLAGS = 3
   const allFlags = trip.destinations && trip.destinations.length > 0
     ? [...new Set(trip.destinations.map(d => d.flag || (d.country ? d.country.slice(0, 2) : '')))]
-        .filter(Boolean)
+      .filter(Boolean)
     : []
   const visibleFlags = allFlags.slice(0, MAX_FLAGS)
   const hiddenFlagCount = allFlags.length - MAX_FLAGS
@@ -42,6 +45,7 @@ export default function TripCard({ trip, isActive, isMobile }) {
         group relative flex items-start gap-3 px-3 py-3.5
         rounded-[var(--radius-md)] cursor-pointer
         transition-all duration-150
+        ${isOngoing ? 'border-l-2 border-l-success pl-[10px]' : 'border-l-2 border-l-transparent pl-[10px]'}
         ${isActive
           ? 'bg-accent-muted border border-accent/40'
           : 'border border-transparent hover:bg-bg-hover hover:border-border'
@@ -65,6 +69,12 @@ export default function TripCard({ trip, isActive, isMobile }) {
           <h3 className={`text-sm font-medium truncate leading-snug ${isActive ? 'text-text-primary' : 'text-text-secondary'}`}>
             {trip.name}
           </h3>
+          {isOngoing && (
+            <span className="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-bold
+              rounded-full bg-success/15 text-success animate-pulse-warm whitespace-nowrap">
+              📍 Now
+            </span>
+          )}
 
           {/* Context Menu Trigger */}
           <button
