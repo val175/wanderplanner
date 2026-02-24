@@ -75,10 +75,24 @@ export function ProfileProvider({ user, children }) {
       travelersDocRef,
       (snap) => {
         if (snap.exists()) {
-          const data = snap.data().profiles || []
+          const firestoreData = snap.data().profiles || []
+          // MERGE: union Firestore profiles with any locally-saved profiles so that
+          // travelers added locally (and saved to localStorage) are never wiped
+          // by a stale Firestore snapshot that doesn't have them yet.
+          const localData = loadFromLocalStorage()
+          const merged = [...firestoreData]
+          localData.forEach(localProfile => {
+            if (!merged.some(p => p.id === localProfile.id)) {
+              merged.push(localProfile)
+            }
+          })
           isRemoteRef.current = true
-          setProfiles(data)
-          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)) } catch { }
+          setProfiles(merged)
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)) } catch { }
+          // Write merged data back to Firestore if it's richer than what Firestore had
+          if (merged.length > firestoreData.length) {
+            setDoc(travelersDocRef, { profiles: merged }).catch(console.warn)
+          }
         } else {
           const local = loadFromLocalStorage()
           if (local.length > 0) {
@@ -92,7 +106,6 @@ export function ProfileProvider({ user, children }) {
       },
       (err) => {
         console.warn('[Wanderplan] Travelers listener error:', err)
-        // Firestore read failed — fall back to localStorage so travelers persist on refresh
         const local = loadFromLocalStorage()
         if (local.length > 0) {
           isRemoteRef.current = true
