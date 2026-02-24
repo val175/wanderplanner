@@ -11,7 +11,6 @@ import { db } from '../firebase/config'
 import { tripReducer, ACTIONS } from '../state/tripReducer'
 import { DEFAULT_TRIP } from '../data/defaultTrip'
 
-const TRIPS_COLLECTION = 'trips'
 const STORAGE_KEY = 'wanderplan_data'
 const MIGRATION_FLAG = 'wanderplan_migrated'
 
@@ -33,10 +32,15 @@ function getInitialState() {
   }
 }
 
+// Returns the Firestore collection ref scoped to this user:  users/{uid}/trips
+function getUserTripsRef(userId) {
+  return collection(db, 'users', userId, 'trips')
+}
+
 // ── Migration helper ─────────────────────────────────────────────────────────
 // On first sign-in: if the user had trips in localStorage, write them to
 // Firestore so nothing is lost. Runs only once, guarded by MIGRATION_FLAG.
-async function migrateFromLocalStorage() {
+async function migrateFromLocalStorage(userId) {
   if (localStorage.getItem(MIGRATION_FLAG)) return false
 
   try {
@@ -45,11 +49,13 @@ async function migrateFromLocalStorage() {
     const parsed = JSON.parse(saved)
     if (!parsed.trips || Object.keys(parsed.trips).length === 0) return false
 
+    const tripsRef = getUserTripsRef(userId)
     const trips = Object.values(parsed.trips)
     await Promise.all(
       trips.map(trip =>
-        setDoc(doc(db, TRIPS_COLLECTION, trip.id), {
+        setDoc(doc(tripsRef, trip.id), {
           ...trip,
+          userId,
           _updatedAt: serverTimestamp(),
         })
       )
@@ -64,7 +70,7 @@ async function migrateFromLocalStorage() {
 }
 
 // ── Main hook ────────────────────────────────────────────────────────────────
-export function useFirestoreTrips() {
+export function useFirestoreTrips(userId) {
   const [state, dispatch] = useReducer(tripReducer, null, getInitialState)
   const [firestoreLoading, setFirestoreLoading] = useState(true)
 
@@ -77,7 +83,9 @@ export function useFirestoreTrips() {
 
   // ── 1. Real-time listener: Firestore → local state ───────────────────────
   useEffect(() => {
-    const tripsRef = collection(db, TRIPS_COLLECTION)
+    if (!userId) return
+
+    const tripsRef = getUserTripsRef(userId)
 
     const unsubscribe = onSnapshot(
       tripsRef,
@@ -94,15 +102,16 @@ export function useFirestoreTrips() {
         // On first load with an empty Firestore collection:
         // check for localStorage data to migrate, or seed with the demo trip
         if (isFirstLoad && Object.keys(tripsFromFirestore).length === 0) {
-          const migrated = await migrateFromLocalStorage()
+          const migrated = await migrateFromLocalStorage(userId)
           if (migrated) {
             // onSnapshot will fire again with the migrated trips — wait for it
             return
           }
 
           // No local data either — seed Firestore with the default demo trip
-          await setDoc(doc(db, TRIPS_COLLECTION, DEFAULT_TRIP.id), {
+          await setDoc(doc(tripsRef, DEFAULT_TRIP.id), {
             ...DEFAULT_TRIP,
+            userId,
             _updatedAt: serverTimestamp(),
           })
           // onSnapshot fires again with the seeded trip — wait for it
@@ -123,18 +132,21 @@ export function useFirestoreTrips() {
     )
 
     return unsubscribe
-  }, [])
+  }, [userId])
 
   // ── 2. Outbound sync: local state → Firestore ────────────────────────────
   // Fires after every state.trips change. Diffs against prevTripsRef to write
   // only the trips that actually changed (by reference inequality).
   useEffect(() => {
+    if (!userId) return
+
     // This change came from Firestore — skip to avoid echo-write loop
     if (isRemoteUpdateRef.current) {
       isRemoteUpdateRef.current = false
       return
     }
 
+    const tripsRef = getUserTripsRef(userId)
     const currentTrips = state.trips
     const previousTrips = prevTripsRef.current
 
@@ -142,8 +154,8 @@ export function useFirestoreTrips() {
     Object.keys(currentTrips).forEach((id) => {
       if (currentTrips[id] !== previousTrips[id]) {
         setDoc(
-          doc(db, TRIPS_COLLECTION, id),
-          { ...currentTrips[id], _updatedAt: serverTimestamp() }
+          doc(tripsRef, id),
+          { ...currentTrips[id], userId, _updatedAt: serverTimestamp() }
         ).catch(console.error)
       }
     })
@@ -151,12 +163,12 @@ export function useFirestoreTrips() {
     // Delete trips that were removed
     Object.keys(previousTrips).forEach((id) => {
       if (!currentTrips[id]) {
-        deleteDoc(doc(db, TRIPS_COLLECTION, id)).catch(console.error)
+        deleteDoc(doc(tripsRef, id)).catch(console.error)
       }
     })
 
     prevTripsRef.current = currentTrips
-  }, [state.trips])
+  }, [state.trips, userId])
 
   // ── 3. Dark mode ─────────────────────────────────────────────────────────
   useEffect(() => {

@@ -1,7 +1,16 @@
 import Card from '../shared/Card'
 import { useTripContext } from '../../context/TripContext'
 import { useCountdown } from '../../hooks/useCountdown'
-import { formatDate, daysUntil } from '../../utils/helpers'
+import { formatDate } from '../../utils/helpers'
+
+const DEFAULT_TIPS = [
+  'Arrive early to get a good spot',
+  'Charge your phone to 100% before leaving',
+  'Wear comfortable shoes — you\'ll be standing',
+  'Bring earplugs to protect your hearing',
+  'Check the venue\'s bag policy before going',
+  'Stay hydrated — bring a sealed water bottle if allowed',
+]
 
 function ConcertCountdown({ targetDate }) {
   const countdown = useCountdown(targetDate)
@@ -42,30 +51,42 @@ export default function ConcertTab() {
   if (!activeTrip) return null
 
   const trip = activeTrip
-  const concertBooking = trip.bookings?.find(b => b.category === 'concert')
+
+  // Find the first booking that matches "concert" or "event" category
+  const concertBooking = trip.bookings?.find(b =>
+    b.category === 'concert' || b.category === 'event'
+  )
 
   if (!concertBooking) {
     return (
       <Card className="text-center py-12">
         <p className="text-4xl mb-3">🎵</p>
         <p className="text-text-muted">No concert or event bookings found.</p>
-        <p className="text-text-muted text-sm mt-1">Add a booking with category "Concert" to unlock this tab.</p>
+        <p className="text-text-muted text-sm mt-1">Add a booking with category "Concert" or "Event" to unlock this tab.</p>
       </Card>
     )
   }
 
-  // Find the concert day in itinerary
-  const concertDay = trip.itinerary?.find(d =>
-    d.activities?.some(a =>
-      a.name?.toLowerCase().includes('concert') ||
-      a.name?.toLowerCase().includes('mcr') ||
-      a.emoji === '🎵' || a.emoji === '🎸'
+  // Find the concert day in itinerary — match by date if booking has a date field,
+  // otherwise fall back to looking for an activity with a matching name or emoji
+  const bookingName = concertBooking.name?.toLowerCase() || ''
+  const concertDay = trip.itinerary?.find(d => {
+    if (concertBooking.date && d.date === concertBooking.date) return true
+    return d.activities?.some(a =>
+      a.name?.toLowerCase().includes(bookingName.split(' ')[0]) ||
+      a.emoji === '🎵' || a.emoji === '🎸' || a.emoji === '🎤'
     )
-  )
+  })
 
-  const isMCR = concertBooking.name?.toLowerCase().includes('mcr') ||
-                concertBooking.name?.toLowerCase().includes('my chemical romance') ||
-                concertBooking.name?.toLowerCase().includes('chemical')
+  // Use venue stored on the booking, or a generic fallback
+  const venue = concertBooking.venue || concertBooking.location || 'Check your booking details'
+
+  // Use custom tips if stored on the booking, otherwise use defaults
+  const tips = concertBooking.eventTips?.length ? concertBooking.eventTips : DEFAULT_TIPS
+
+  const statusLabel = concertBooking.status === 'booked'
+    ? '✅ Confirmed'
+    : `⏳ ${(concertBooking.status || 'pending').replace('_', ' ')}`
 
   return (
     <div className="concert-theme rounded-[var(--radius-xl)] overflow-hidden animate-fade-in">
@@ -74,12 +95,10 @@ export default function ConcertTab() {
 
         {/* Hero */}
         <div className="relative p-8 md:p-12 text-center overflow-hidden">
-          {/* Background overlay */}
           <div className="absolute inset-0 bg-[#141413]" />
-
           <div className="relative z-10">
             <p className="text-red-500 text-sm uppercase tracking-[0.3em] font-semibold mb-3">
-              {isMCR ? '★ THE BLACK PARADE ★' : '★ LIVE EVENT ★'}
+              ★ LIVE EVENT ★
             </p>
             <h2 className="font-heading text-3xl md:text-4xl font-bold text-white mb-2">
               {concertBooking.name}
@@ -105,15 +124,13 @@ export default function ConcertTab() {
           <div className="space-y-4">
             <div>
               <h3 className="text-xs uppercase tracking-wider text-red-400/70 font-semibold mb-1">Venue</h3>
-              <p className="text-white font-medium">
-                {isMCR ? 'Stadium Merdeka, Kuala Lumpur' : 'Check your booking details'}
-              </p>
+              <p className="text-white font-medium">{venue}</p>
             </div>
 
             <div>
               <h3 className="text-xs uppercase tracking-wider text-red-400/70 font-semibold mb-1">Tickets</h3>
               <p className="text-white font-medium">
-                {trip.travelers} pax · {concertBooking.status === 'booked' ? '✅ Confirmed' : '⏳ ' + concertBooking.status.replace('_', ' ')}
+                {trip.travelers} pax · {statusLabel}
               </p>
               {concertBooking.confirmationNumber && (
                 <p className="text-gray-500 text-xs font-mono mt-1">
@@ -136,32 +153,14 @@ export default function ConcertTab() {
           {/* Tips */}
           <div className="space-y-4">
             <div>
-              <h3 className="text-xs uppercase tracking-wider text-red-400/70 font-semibold mb-2">🎤 Concert Tips</h3>
+              <h3 className="text-xs uppercase tracking-wider text-red-400/70 font-semibold mb-2">🎤 Event Tips</h3>
               <ul className="space-y-2 text-sm text-gray-300">
-                <li className="flex items-start gap-2">
-                  <span className="text-red-500">▸</span>
-                  Arrive early to get a good spot
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-red-500">▸</span>
-                  Charge your phone to 100% before leaving
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-red-500">▸</span>
-                  Wear comfortable shoes — you'll be standing
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-red-500">▸</span>
-                  Bring earplugs to protect your hearing
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-red-500">▸</span>
-                  Check the venue's bag policy before going
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-red-500">▸</span>
-                  Stay hydrated — bring a sealed water bottle if allowed
-                </li>
+                {tips.map((tip, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <span className="text-red-500">▸</span>
+                    {tip}
+                  </li>
+                ))}
               </ul>
             </div>
           </div>

@@ -1,4 +1,6 @@
-import { useState, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from './firebase/config'
 import { TripContext } from './context/TripContext'
 import { ProfileProvider } from './context/ProfileContext'
 import { useAuth } from './hooks/useAuth'
@@ -36,15 +38,15 @@ import ConcertTab from './components/tabs/ConcertTab'
 ───────────────────────────────────────────────────────────── */
 function TabPanel({ activeTab, onTabSwitch }) {
   switch (activeTab) {
-    case 'overview':    return <OverviewTab onTabSwitch={onTabSwitch} />
-    case 'itinerary':  return <ItineraryTab />
-    case 'bookings':   return <BookingsTab />
-    case 'budget':     return <BudgetTab />
-    case 'todo':       return <TodoTab />
-    case 'cities':     return <CitiesTab />
-    case 'packing':    return <PackingTab />
-    case 'concert':    return <ConcertTab />
-    default:           return <OverviewTab onTabSwitch={onTabSwitch} />
+    case 'overview': return <OverviewTab onTabSwitch={onTabSwitch} />
+    case 'itinerary': return <ItineraryTab />
+    case 'bookings': return <BookingsTab />
+    case 'budget': return <BudgetTab />
+    case 'todo': return <TodoTab />
+    case 'cities': return <CitiesTab />
+    case 'packing': return <PackingTab />
+    case 'concert': return <ConcertTab />
+    default: return <OverviewTab onTabSwitch={onTabSwitch} />
   }
 }
 
@@ -71,8 +73,8 @@ function EmptyState({ onNewTrip }) {
                      transition-all duration-200 active:scale-[0.98]"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" strokeWidth="2.5"
-               strokeLinecap="round" strokeLinejoin="round">
+            stroke="currentColor" strokeWidth="2.5"
+            strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
@@ -99,8 +101,8 @@ function HamburgerButton({ onClick }) {
       aria-label="Open sidebar"
     >
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-           stroke="currentColor" strokeWidth="2"
-           strokeLinecap="round" strokeLinejoin="round">
+        stroke="currentColor" strokeWidth="2"
+        strokeLinecap="round" strokeLinejoin="round">
         <line x1="3" y1="6" x2="21" y2="6" />
         <line x1="3" y1="12" x2="21" y2="12" />
         <line x1="3" y1="18" x2="21" y2="18" />
@@ -128,8 +130,8 @@ function LoadingScreen({ message = 'Loading…' }) {
    Keeping it separate means useFirestoreTrips only runs when
    we have a valid auth session (Firestore rules require auth).
 ───────────────────────────────────────────────────────────── */
-function AuthenticatedApp({ signOutUser }) {
-  const { state, dispatch, activeTrip, sortedTrips, showToast, firestoreLoading } = useFirestoreTrips()
+function AuthenticatedApp({ user, signOutUser }) {
+  const { state, dispatch, activeTrip, sortedTrips, showToast, firestoreLoading } = useFirestoreTrips(user.uid)
   const isMobile = useMediaQuery('(max-width: 767px)')
   const [showNewTripModal, setShowNewTripModal] = useState(false)
 
@@ -204,13 +206,35 @@ function AuthenticatedApp({ signOutUser }) {
 }
 
 /* ─────────────────────────────────────────────────────────────
+   Hook: checks Firestore `users/{uid}` for `allowed: true`.
+   Returns { checking: bool, isAllowed: bool }.
+   To grant access to a user, set their uid doc to { allowed: true }
+   in the Firebase console — no code redeploy needed.
+───────────────────────────────────────────────────────────── */
+function useAccessCheck(uid) {
+  const [checking, setChecking] = useState(true)
+  const [isAllowed, setIsAllowed] = useState(false)
+
+  useEffect(() => {
+    if (!uid) return
+    getDoc(doc(db, 'users', uid))
+      .then(snap => setIsAllowed(snap.exists() && snap.data()?.allowed === true))
+      .catch(() => setIsAllowed(false))
+      .finally(() => setChecking(false))
+  }, [uid])
+
+  return { checking, isAllowed }
+}
+
+/* ─────────────────────────────────────────────────────────────
    App root — handles auth gating.
    useAuth lives here; AuthenticatedApp only mounts when signed in.
 ───────────────────────────────────────────────────────────── */
 export default function App() {
   const { user, authLoading, signInWithGoogle, signOutUser } = useAuth()
+  const { checking, isAllowed } = useAccessCheck(user?.uid)
 
-  if (authLoading) {
+  if (authLoading || (user && checking)) {
     return <LoadingScreen message="Loading…" />
   }
 
@@ -218,9 +242,7 @@ export default function App() {
     return <AuthScreen onSignIn={signInWithGoogle} />
   }
 
-  // Email allowlist — only these two accounts can access the app
-  const ALLOWED_EMAILS = ['valentin.bonite@gmail.com', 'juliannsibi@gmail.com']
-  if (!ALLOWED_EMAILS.includes(user.email)) {
+  if (!isAllowed) {
     return (
       <div className="flex h-screen items-center justify-center bg-bg-primary">
         <div className="text-center max-w-sm px-8">
@@ -229,7 +251,9 @@ export default function App() {
             Access restricted
           </h2>
           <p className="text-text-muted text-sm mb-6 leading-relaxed">
-            This app is private. You signed in as <span className="text-text-primary font-medium">{user.email}</span>, which isn't on the access list.
+            This app is private. You signed in as{' '}
+            <span className="text-text-primary font-medium">{user.email}</span>,
+            which isn't on the access list.
           </p>
           <button
             onClick={signOutUser}
@@ -244,7 +268,7 @@ export default function App() {
 
   return (
     <ProfileProvider>
-      <AuthenticatedApp signOutUser={signOutUser} />
+      <AuthenticatedApp user={user} signOutUser={signOutUser} />
     </ProfileProvider>
   )
 }
