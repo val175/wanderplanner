@@ -267,7 +267,7 @@ export default function App() {
   }
 
   return (
-    <ProfileProvider>
+    <ProfileProvider user={user}>
       <AuthenticatedApp user={user} signOutUser={signOutUser} />
     </ProfileProvider>
   )

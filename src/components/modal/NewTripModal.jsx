@@ -39,7 +39,7 @@ function StepIndicator({ currentStep }) {
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-300
               ${isActive ? 'bg-accent text-text-inverse ring-4 ring-accent/20'
                 : isCompleted ? 'bg-accent text-text-inverse'
-                : 'bg-bg-secondary text-text-muted border border-border'}`}
+                  : 'bg-bg-secondary text-text-muted border border-border'}`}
             >
               {isCompleted ? (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -57,7 +57,7 @@ function StepIndicator({ currentStep }) {
 /* ─────────────────── Step 1: Basics ─────────────────── */
 function StepBasics({ form, setForm }) {
   const [customEmoji, setCustomEmoji] = useState('')
-  const { profiles } = useProfiles()
+  const { profiles, currentUserProfile } = useProfiles()
 
   const handleCustomEmoji = (val) => {
     const match = val.match(/\p{Emoji}/u)
@@ -72,10 +72,18 @@ function StepBasics({ form, setForm }) {
   const toggleTraveler = (id) => {
     setForm(f => {
       const ids = f.travelerIds || []
+      // Don't allow de-selecting yourself
+      if (id === currentUserProfile?.uid) return f
       const next = ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]
       return { ...f, travelerIds: next, travelers: Math.max(next.length, 1) }
     })
   }
+
+  // All selectable travelers: current user first, then shared profiles
+  const allTravelers = [
+    ...(currentUserProfile ? [{ ...currentUserProfile, id: currentUserProfile.uid, photo: currentUserProfile.customPhoto || currentUserProfile.photo, isMe: true }] : []),
+    ...profiles,
+  ]
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -133,54 +141,35 @@ function StepBasics({ form, setForm }) {
         </div>
       </div>
 
-      {/* Travelers — avatar picker if profiles exist, else number stepper */}
+      {/* Travelers — avatar picker using allTravelers (current user always first + selected) */}
       <div>
         <label className="block text-sm font-medium text-text-secondary mb-2">Travelers</label>
-        {profiles.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {profiles.map(p => {
-              const selected = (form.travelerIds || []).includes(p.id)
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => toggleTraveler(p.id)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-pill)] border text-sm transition-all duration-150
-                    ${selected
-                      ? 'bg-accent/10 border-accent/40 text-text-primary'
-                      : 'bg-bg-secondary border-border text-text-muted hover:border-accent/30 hover:text-text-secondary'
-                    }`}
-                >
-                  <AvatarCircle profile={p} size={22} />
-                  <span className="font-medium">{p.name}</span>
-                  {selected && (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        ) : (
-          <div className="flex items-center gap-3">
-            <button type="button"
-              onClick={() => setForm(f => ({ ...f, travelers: Math.max(1, f.travelers - 1) }))}
-              disabled={form.travelers <= 1}
-              className="w-9 h-9 flex items-center justify-center rounded-[var(--radius-md)] bg-bg-secondary border border-border text-text-secondary hover:bg-bg-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-lg font-medium"
-            >-</button>
-            <span className="w-10 text-center text-lg font-heading font-bold text-text-primary">{form.travelers}</span>
-            <button type="button"
-              onClick={() => setForm(f => ({ ...f, travelers: Math.min(20, f.travelers + 1) }))}
-              disabled={form.travelers >= 20}
-              className="w-9 h-9 flex items-center justify-center rounded-[var(--radius-md)] bg-bg-secondary border border-border text-text-secondary hover:bg-bg-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-lg font-medium"
-            >+</button>
-            <span className="text-sm text-text-muted">{form.travelers === 1 ? 'traveler' : 'travelers'}</span>
-          </div>
-        )}
-        {profiles.length > 0 && (form.travelerIds || []).length === 0 && (
-          <p className="text-xs text-text-muted mt-1.5">Select who's coming on this trip</p>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {allTravelers.map(p => {
+            const selected = (form.travelerIds || []).includes(p.id)
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => toggleTraveler(p.id)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-pill)] border text-sm transition-all duration-150
+                  ${selected
+                    ? 'bg-accent/10 border-accent/40 text-text-primary'
+                    : 'bg-bg-secondary border-border text-text-muted hover:border-accent/30 hover:text-text-secondary'
+                  }
+                  ${p.isMe ? 'cursor-default' : ''}`}
+              >
+                <AvatarCircle profile={p} size={22} />
+                <span className="font-medium">{p.isMe ? `${p.name} (you)` : p.name}</span>
+                {selected && (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/* Dates */}
@@ -452,15 +441,18 @@ function StepReview({ form }) {
 /* ─────────────────── Main Modal Component ─────────────────── */
 export default function NewTripModal({ isOpen, onClose }) {
   const { dispatch, showToast } = useTripContext()
+  const { currentUserProfile } = useProfiles()
   const [step, setStep] = useState(1)
   const [form, setForm] = useState(() => getInitialForm())
 
   function getInitialForm() {
+    // Auto-include the current user in the traveler list
+    const myId = currentUserProfile?.uid
     return {
       name: '',
       emoji: '✈️',
       travelers: 1,
-      travelerIds: [],
+      travelerIds: myId ? [myId] : [],
       startDate: '',
       endDate: '',
       destinations: [{ city: '', country: '', flag: '' }],
