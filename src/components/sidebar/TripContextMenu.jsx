@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
+import { doc, deleteDoc } from 'firebase/firestore'
+import { db } from '../../firebase/config'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import ConfirmDialog from '../shared/ConfirmDialog'
@@ -61,9 +63,15 @@ export default function TripContextMenu({ tripId, tripName, onClose }) {
     setShowDeleteConfirm(true)
   }
 
-  const handleDeleteConfirm = () => {
-    dispatch({ type: ACTIONS.DELETE_TRIP, payload: tripId })
-    showToast('Trip deleted', 'info')
+  const handleDeleteConfirm = async () => {
+    try {
+      await deleteDoc(doc(db, 'trips', tripId))
+      dispatch({ type: ACTIONS.DELETE_TRIP, payload: tripId })
+      showToast('Trip deleted', 'info')
+    } catch (err) {
+      console.error('Failed to delete trip:', err)
+      showToast('Failed to delete trip', 'error')
+    }
     setShowDeleteConfirm(false)
     onClose()
   }
@@ -120,9 +128,9 @@ export default function TripContextMenu({ tripId, tripName, onClose }) {
             className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left
                         transition-colors duration-100
                         ${item.danger
-                          ? 'text-danger hover:bg-danger/10'
-                          : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
-                        }`}
+                ? 'text-danger hover:bg-danger/10'
+                : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
+              }`}
           >
             <span className="shrink-0">{item.icon}</span>
             {item.label}

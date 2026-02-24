@@ -173,12 +173,7 @@ export function useFirestoreTrips(userId) {
 
     Object.keys(previousTrips).forEach((id) => {
       if (!currentTrips[id]) {
-        console.warn(`[Wanderplan] DANGER! Deleting trip ${id} from Firestore!`, {
-          currentTrips,
-          previousTrips,
-        })
-        // Deleting from shared root deletes it for EVERYONE in memberIds
-        deleteDoc(doc(tripsRef, id)).catch(console.error)
+        console.warn(`[Wanderplan] Trip ${id} deleted locally. Outbound sync no longer auto-deletes.`)
       }
     })
 
