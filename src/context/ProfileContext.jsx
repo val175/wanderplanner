@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
-import { doc, onSnapshot, setDoc, collection, query, where, getDocs } from 'firebase/firestore'
+import { doc, getDoc, onSnapshot, setDoc, collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '../firebase/config'
 
 // Each user's own profile lives at users/{uid}/profile

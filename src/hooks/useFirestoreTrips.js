@@ -37,52 +37,13 @@ function getInitialState() {
 // ── Shared Root Trips Reference ─────────────────────────────────────────────
 const tripsRef = collection(db, 'trips')
 
-// ── Migration Helper: User-scoped → Shared Root ──────────────────────────────
-// This moves trips from users/{uid}/trips back to /trips so they can be shared.
+// ── Migration Helper: No-op (migration complete) ─────────────────────────────
+// All trips are now in the root /trips collection. The old user-scoped
+// users/{uid}/trips path is no longer used or readable by Firestore rules.
 async function migrateToSharedRoot(userId) {
-  if (localStorage.getItem(REVERSE_MIGRATION_FLAG)) return false
-
-  try {
-    const userScopedRef = collection(db, 'users', userId, 'trips')
-    const snapshot = await getDocs(userScopedRef)
-
-    if (snapshot.empty) {
-      localStorage.setItem(REVERSE_MIGRATION_FLAG, 'true')
-      return false
-    }
-
-    await Promise.all(
-      snapshot.docs.map(async (docSnap) => {
-        const data = docSnap.data()
-        const rootDocRef = doc(db, 'trips', docSnap.id)
-
-        // Check if it already exists at root (to avoid overwriting Juliann's work if Val already migrated)
-        const rootSnap = await getDocs(query(collection(db, 'trips'), where('__name__', '==', docSnap.id)))
-        let memberIds = Array.from(new Set([...(data.memberIds || []), userId]))
-
-        if (!rootSnap.empty) {
-          const rootData = rootSnap.docs[0].data()
-          memberIds = Array.from(new Set([...memberIds, ...(rootData.memberIds || [])]))
-        }
-
-        await setDoc(rootDocRef, {
-          ...data,
-          memberIds,
-          _updatedAt: serverTimestamp(),
-        }, { merge: true })
-
-        // Delete from user-scoped
-        await deleteDoc(doc(userScopedRef, docSnap.id))
-      })
-    )
-
-    localStorage.setItem(REVERSE_MIGRATION_FLAG, 'true')
-    console.log(`[Wanderplan] Consolidated ${snapshot.size} trip(s) → root /trips`)
-    return true
-  } catch (err) {
-    console.warn('[Wanderplan] Root migration failed:', err)
-    return false
-  }
+  // Always mark migration as done — nothing to migrate
+  localStorage.setItem(REVERSE_MIGRATION_FLAG, 'true')
+  return false
 }
 
 // ── Main hook ────────────────────────────────────────────────────────────────
