@@ -441,7 +441,7 @@ function StepReview({ form }) {
 /* ─────────────────── Main Modal Component ─────────────────── */
 export default function NewTripModal({ isOpen, onClose }) {
   const { dispatch, showToast } = useTripContext()
-  const { currentUserProfile, resolveProfile } = useProfiles()
+  const { currentUserProfile, resolveProfile, profiles } = useProfiles()
   const [step, setStep] = useState(1)
   const [form, setForm] = useState(() => getInitialForm())
 
@@ -506,11 +506,23 @@ export default function NewTripModal({ isOpen, onClose }) {
       ...(form.travelerIds || []).map(tid => resolveProfile(tid)?.uid).filter(Boolean)
     ])).filter(Boolean)
 
+    // Build a snapshot of traveler profiles so TripHeader can show avatars
+    // even before the external profiles list loads from Firestore
+    const allAvailableProfiles = [
+      ...(currentUserProfile ? [{ ...currentUserProfile, id: currentUserProfile.uid }] : []),
+      ...profiles,
+    ]
+    const travelersSnapshot = (form.travelerIds || [])
+      .map(tid => allAvailableProfiles.find(p => p.id === tid || p.uid === tid))
+      .filter(Boolean)
+      .map(p => ({ id: p.id || p.uid, uid: p.uid || p.id, name: p.name, photo: p.customPhoto || p.photo || null }))
+
     const newTrip = createEmptyTrip({
       name: form.name.trim() || 'New Trip',
       emoji: form.emoji,
-      travelers: form.travelers,
+      travelers: Math.max((form.travelerIds || []).length, 1),
       travelerIds: form.travelerIds || [],
+      travelersSnapshot,
       memberIds,
       startDate: form.startDate,
       endDate: form.endDate,

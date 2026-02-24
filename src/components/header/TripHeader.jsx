@@ -334,8 +334,9 @@ export default function TripHeader() {
   const dateRange = formatDateRange(trip.startDate, trip.endDate)
   const destinations = trip.destinations || []
 
+  // Prefer resolving from the live profiles list; fall back to the embedded snapshot in the trip doc
   const travelerProfiles = (trip.travelerIds || [])
-    .map(id => profiles.find(p => p.id === id))
+    .map(id => profiles.find(p => p.id === id) || (trip.travelersSnapshot || []).find(p => p.id === id))
     .filter(Boolean)
 
   const handleRename = (newName) => {
