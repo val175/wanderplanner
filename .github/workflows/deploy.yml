@@ -24,6 +24,15 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Create .env file
+        run: |
+          echo "VITE_FIREBASE_API_KEY=AIzaSyCLnLTVNRck2Ezz1z3VTTNobarWy7l_TMs" > .env
+          echo "VITE_FIREBASE_AUTH_DOMAIN=wanderplanner-dbee7.firebaseapp.com" >> .env
+          echo "VITE_FIREBASE_PROJECT_ID=wanderplanner-dbee7" >> .env
+          echo "VITE_FIREBASE_STORAGE_BUCKET=wanderplanner-dbee7.firebasestorage.app" >> .env
+          echo "VITE_FIREBASE_MESSAGING_SENDER_ID=151242477554" >> .env
+          echo "VITE_FIREBASE_APP_ID=1:151242477554:web:f8a46861d6c46390dee56b" >> .env
+
       - name: Build project
         run: npm run build
 
