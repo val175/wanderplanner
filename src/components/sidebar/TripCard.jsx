@@ -69,12 +69,6 @@ export default function TripCard({ trip, isActive, isMobile }) {
           <h3 className={`text-sm font-medium truncate leading-snug ${isActive ? 'text-text-primary' : 'text-text-secondary'}`}>
             {trip.name}
           </h3>
-          {isOngoing && (
-            <span className="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-bold
-              rounded-full bg-success/15 text-success animate-pulse-warm whitespace-nowrap">
-              📍 Now
-            </span>
-          )}
 
           {/* Context Menu Trigger */}
           <button
