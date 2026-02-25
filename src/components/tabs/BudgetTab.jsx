@@ -102,10 +102,8 @@ function GroupBalancesCard({ spendingLog, travelers, currency }) {
   const transactions = useMemo(() => simplifyDebts(balances), [balances])
   const [showSettle, setShowSettle] = useState(false)
 
-  const hasData = spendingLog.some(e => e.paidBy && e.splits) && travelers.length > 1
-  if (!hasData) return null
-
   // "Total fronted" per person — how much each payer put out
+  // Must be declared before any early return to satisfy Rules of Hooks
   const fronted = useMemo(() => {
     const t = {}
     travelers.forEach(tr => { t[tr.id] = 0 })
@@ -114,6 +112,9 @@ function GroupBalancesCard({ spendingLog, travelers, currency }) {
     })
     return t
   }, [spendingLog, travelers])
+
+  const hasData = spendingLog.some(e => e.paidBy && e.splits) && travelers.length > 1
+  if (!hasData) return null
 
   return (
     <Card className="border border-border/50">
