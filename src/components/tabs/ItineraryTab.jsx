@@ -23,8 +23,8 @@ function getActivityAccent(emoji) {
   return map[emoji] || 'border-l-border text-border-strong'
 }
 
-// ── Shared Add Activity Inline ──────────────────────────────────────────────
-function InlineAddRow({ onAdd, defaultEmoji = '📌' }) {
+// ── Kanban Add Activity Inline ──────────────────────────────────────────────
+function KanbanAddRow({ onAdd, defaultEmoji = '📌' }) {
   const [name, setName] = useState('')
   const [time, setTime] = useState('')
   const [emoji, setEmoji] = useState(defaultEmoji)
@@ -53,7 +53,7 @@ function InlineAddRow({ onAdd, defaultEmoji = '📌' }) {
         <button type="button" onClick={() => setShowEmojis(!showEmojis)}
           className="text-lg p-1 hover:bg-bg-hover rounded transition-colors">{emoji}</button>
         {showEmojis && (
-          <div className="absolute top-full left-0 mt-1 p-2 bg-bg-card border border-border rounded-[var(--radius-md)] grid grid-cols-4 gap-1 z-50 shadow-lg">
+          <div className="absolute bottom-full left-0 mb-1 p-2 bg-bg-card border border-border rounded-[var(--radius-md)] grid grid-cols-4 gap-1 z-[100] shadow-lg">
             {ACTIVITY_EMOJIS.map(e => (
               <button key={e.emoji} type="button" onClick={() => { setEmoji(e.emoji); setShowEmojis(false) }}
                 className="text-lg p-1 hover:bg-bg-hover rounded" title={e.label}>{e.emoji}</button>
@@ -65,14 +65,73 @@ function InlineAddRow({ onAdd, defaultEmoji = '📌' }) {
         value={name}
         onChange={e => setName(e.target.value)}
         placeholder="+ Add item"
-        className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
+        className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted focus:outline-none min-w-0"
       />
-      <div className="w-[100px] shrink-0 text-right opacity-0 group-hover:opacity-100 transition-opacity">
-        <button type="submit" className="text-xs font-medium bg-bg-secondary hover:bg-border/50 text-text-secondary px-3 py-1.5 rounded-full" disabled={!name.trim()}>
+      <div className="w-[80px] shrink-0 text-right opacity-0 group-hover:opacity-100 transition-opacity">
+        <button type="submit" className="text-xs font-medium bg-bg-secondary hover:bg-border/50 text-text-secondary px-3 py-1.5 rounded-[var(--radius-pill)]" disabled={!name.trim()}>
           Add
         </button>
       </div>
     </form>
+  )
+}
+
+// ── Table Add Row Inline ──────────────────────────────────────────────
+function TableAddRow({ onAdd, defaultEmoji = '📌' }) {
+  const [name, setName] = useState('')
+  const [time, setTime] = useState('')
+  const [emoji, setEmoji] = useState(defaultEmoji)
+  const [showEmojis, setShowEmojis] = useState(false)
+  const inputRef = useRef(null)
+
+  const handleSubmit = (e) => {
+    e?.preventDefault()
+    if (!name.trim()) return
+    onAdd({ name: name.trim(), time, emoji })
+    setName('')
+    setTime('')
+    setEmoji(defaultEmoji)
+    inputRef.current?.focus()
+  }
+
+  return (
+    <tr className="border-t border-border/40 bg-accent/[0.02]">
+      <td className="px-2 py-2 align-middle"></td>
+      <td className="px-2 py-2 align-middle">
+        <TimePicker
+          value={time}
+          onChange={setTime}
+          className="text-sm border-transparent hover:border-border focus:border-accent bg-transparent text-text-secondary font-mono w-[80px]"
+          placeholder="+time"
+        />
+      </td>
+      <td className="px-2 py-2 align-middle text-center relative">
+        <button type="button" onClick={() => setShowEmojis(!showEmojis)}
+          className="text-lg p-1 hover:bg-bg-hover rounded transition-colors">{emoji}</button>
+        {showEmojis && (
+          <div className="absolute top-full left-0 mt-1 p-2 bg-bg-card border border-border rounded-[var(--radius-md)] grid grid-cols-4 gap-1 z-50 shadow-lg">
+            {ACTIVITY_EMOJIS.map(e => (
+              <button key={e.emoji} type="button" onClick={() => { setEmoji(e.emoji); setShowEmojis(false) }}
+                className="text-lg p-1 hover:bg-bg-hover rounded" title={e.label}>{e.emoji}</button>
+            ))}
+          </div>
+        )}
+      </td>
+      <td className="px-2 py-2 align-middle" colSpan={2}>
+        <form onSubmit={handleSubmit} className="flex h-full">
+          <input
+            ref={inputRef}
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSubmit(e)}
+            placeholder="+ Add item (press Enter)"
+            className="w-full px-2 py-1.5 text-[13px] bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors"
+          />
+        </form>
+      </td>
+      <td className="px-2 py-2 align-middle text-xs text-text-muted italic opacity-60"></td>
+    </tr>
   )
 }
 
@@ -185,73 +244,75 @@ function DayGroupTable({ day, onReorderDay, trip }) {
 
       {/* Group Grid Content */}
       {expanded && (
-        <div className="flex flex-col text-sm border-l border-border/50">
-          {/* Table Headers */}
-          <div className="flex items-center border-b border-border text-xs font-semibold text-text-muted py-2 px-6">
-            <div className="w-[80px]">TIME</div>
-            <div className="w-[40px] text-center"></div>
-            <div className="flex-1">ITEM</div>
-            <div className="flex-1 px-4">NOTES</div>
-            <div className="w-[60px]"></div>
-          </div>
-
-          {/* Activity Rows */}
-          <div className="flex flex-col h-full min-h-[40px]">
-            {day.activities?.map((activity, index) => (
-              <div
-                key={activity.id}
-                draggable
-                onDragStart={(e) => {
-                  e.stopPropagation()
-                  e.dataTransfer.setData('application/json', JSON.stringify({ type: 'activity', sourceDayId: day.id, activityId: activity.id, sourceIndex: index }))
-                }}
-                onDragOver={e => e.preventDefault()}
-                onDrop={e => handleDropActivity(e, index)}
-                className="group/row flex items-center border-b border-border hover:bg-bg-hover transition-colors px-6 py-2.5 relative cursor-pointer"
-              >
-                <div className="absolute left-2 cursor-grab active:cursor-grabbing text-text-muted opacity-0 group-hover/row:opacity-100">⠿</div>
-                <div className="w-[80px] shrink-0 font-mono text-[13px] text-text-secondary">
-                  <TimePicker
-                    value={activity.time}
-                    onChange={time => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { time } } })}
-                    className="border-transparent hover:border-border text-inherit w-full !px-0 bg-transparent text-left"
-                    placeholder="-:--"
-                  />
-                </div>
-                <div className="w-[40px] shrink-0 text-center text-lg">{activity.emoji}</div>
-                <div className="flex-1 min-w-0 pr-4">
-                  <EditableText
-                    value={activity.name}
-                    onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { name: val } } })}
-                    className="text-[13px] text-text-primary font-medium"
-                    placeholder="Activity name"
-                  />
-                </div>
-                <div className="flex-1 min-w-0 px-4 border-l border-border/50">
-                  <EditableText
-                    value={activity.notes || ''}
-                    onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { notes: val } } })}
-                    className="text-[13px] text-text-muted"
-                    placeholder="Add a note..."
-                    multiline
-                  />
-                </div>
-                <div className="w-[60px] shrink-0 text-right opacity-0 group-hover/row:opacity-100">
-                  <button onClick={() => dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })} className="text-text-muted hover:text-danger p-1">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Add Row Footer */}
-          <div className="px-6 py-2 pb-3 bg-bg-card hover:bg-bg-hover transition-colors rounded-b-[var(--radius-md)] border-t-[0px] border-border">
-            <InlineAddRow
-              onAdd={act => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: act } })}
-              defaultEmoji="📌"
-            />
-          </div>
+        <div className="w-full overflow-x-auto overflow-y-visible scrollbar-thin border-t border-border">
+          <table className="w-full text-left border-collapse table-fixed min-w-[600px] text-sm">
+            <thead>
+              <tr className="border-b border-border/50">
+                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[30px] overflow-hidden"></th>
+                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[90px] overflow-hidden">TIME</th>
+                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[50px] text-center overflow-hidden"></th>
+                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-1/3 overflow-hidden">ITEM</th>
+                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-1/3 overflow-hidden">NOTES</th>
+                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[40px] overflow-hidden"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {day.activities?.map((activity, index) => (
+                <tr
+                  key={activity.id}
+                  draggable
+                  onDragStart={(e) => {
+                    e.stopPropagation()
+                    e.dataTransfer.setData('application/json', JSON.stringify({ type: 'activity', sourceDayId: day.id, activityId: activity.id, sourceIndex: index }))
+                  }}
+                  onDragOver={e => e.preventDefault()}
+                  onDrop={e => handleDropActivity(e, index)}
+                  className="group/row hover:bg-bg-hover transition-colors border-t border-border/20 relative cursor-pointer"
+                >
+                  <td className="px-2 py-3 align-middle">
+                    <div className="cursor-grab active:cursor-grabbing text-text-muted opacity-0 group-hover/row:opacity-100 text-center w-full">⠿</div>
+                  </td>
+                  <td className="px-2 py-3 align-middle font-mono text-[13px] text-text-secondary">
+                    <TimePicker
+                      value={activity.time}
+                      onChange={time => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { time } } })}
+                      className="border-transparent hover:border-border text-inherit w-full !px-0 bg-transparent text-left max-w-[80px]"
+                      placeholder="-:--"
+                    />
+                  </td>
+                  <td className="px-2 py-3 align-middle text-center text-lg">{activity.emoji}</td>
+                  <td className="px-2 py-3 align-middle">
+                    <EditableText
+                      value={activity.name}
+                      onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { name: val } } })}
+                      className="text-[13px] text-text-primary font-medium w-full block truncate"
+                      inputClassName="w-full"
+                      placeholder="Activity name"
+                    />
+                  </td>
+                  <td className="px-2 py-3 align-middle">
+                    <EditableText
+                      value={activity.notes || ''}
+                      onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { notes: val } } })}
+                      className="text-[13px] text-text-muted w-full block"
+                      inputClassName="w-full"
+                      placeholder="Add a note..."
+                      multiline
+                    />
+                  </td>
+                  <td className="px-2 py-3 align-middle">
+                    <button onClick={() => dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })} className="w-full text-center text-text-muted hover:text-danger opacity-0 group-hover/row:opacity-100 transition-opacity" title="Delete">
+                      ×
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              <TableAddRow
+                onAdd={act => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: act } })}
+                defaultEmoji="📌"
+              />
+            </tbody>
+          </table>
         </div>
       )}
     </div>
@@ -343,7 +404,7 @@ function KanbanColumn({ day }) {
       </div>
 
       <div className="p-2 border-t border-border bg-bg-card">
-        <InlineAddRow
+        <KanbanAddRow
           onAdd={act => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: act } })}
           defaultEmoji="📌"
         />

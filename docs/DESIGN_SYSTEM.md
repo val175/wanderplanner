@@ -91,3 +91,4 @@ All tables (e.g., Budget Spending Log, Bookings Table, Packing Table) must follo
 - **Rows (`<tr>`)**: `border-t border-border/20 hover:bg-bg-hover transition-colors`.
 - **Cells (`<td>`)**: `px-2 py-3 align-middle text-sm`. No vertical borders (`border-r`) between columns.
 - **Inputs (`EditableText`)**: Add `inputClassName="w-full"` on every table cell `EditableText` so the input stays within its column width. Amounts should always be formatted via `formatCurrency`.
+- **Grouped Tables (e.g., Itinerary)**: For tables broken into collapsible groups, the outer container may use standard card-like classes (`border border-border rounded-[var(--radius-md)] overflow-hidden bg-bg-card`) with a custom stylized header instead of `Card`. The internal `<table>` structure, headers, and rows must still adhere strictly to the design rules above.
