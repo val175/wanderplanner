@@ -205,7 +205,12 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
       }
       displayName = `Packed by ${p?.name?.split(' ')[0]}`
     } else {
-      displayNode = <span className="text-sm leading-none">🤝</span>
+      displayNode = (
+        <div className="flex flex-row items-center gap-1.5 px-0.5">
+          <svg className="w-3.5 h-3.5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <span className="text-xs font-medium text-text-secondary pt-px">Shared</span>
+        </div>
+      )
       displayName = 'Shared'
     }
   } else {
@@ -218,7 +223,7 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
       }
       displayName = p.name.split(' ')[0]
     } else {
-      displayNode = <span className="text-sm leading-none">👤</span>
+      displayNode = <div className="w-4 h-4 flex items-center justify-center rounded-full border border-dashed border-border text-text-muted text-[10px]"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></div>
       displayName = 'Unassigned'
     }
   }
@@ -402,7 +407,7 @@ export default function PackingTab() {
     {
       id: 'assignee',
       header: <div className="text-center w-full">Who</div>,
-      size: 50,
+      size: 90,
       cell: info => (
         <div className="flex justify-center">
           <AssigneePill
@@ -410,7 +415,7 @@ export default function PackingTab() {
             packedBy={info.row.original.packedBy}
             isPacked={info.row.original.packed}
             onChange={val => onUpdate(info.row.original.id, { assignee: val })}
-            tripTravelers={activeTrip.travelers || []}
+            tripTravelers={activeTrip.travelers ? Object.keys(activeTrip.travelers) : []}
             resolveProfile={resolveProfile}
           />
         </div>
@@ -516,26 +521,10 @@ export default function PackingTab() {
       {/* ── Header Card ── */}
       <Card>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-3">
-          <div className="flex items-center gap-3">
-            <h2 className="font-heading text-lg text-text-primary">🧳 Packing</h2>
-            <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border">
-              <button
-                onClick={() => setViewMode('group')}
-                className={`px-3 py-1 text-xs font-medium rounded-sm transition-all ${viewMode === 'group' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'
-                  }`}
-              >
-                Group List
-              </button>
-              <button
-                onClick={() => setViewMode('me')}
-                className={`px-3 py-1 text-xs font-medium rounded-sm transition-all ${viewMode === 'me' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'
-                  }`}
-              >
-                My List
-              </button>
-            </div>
+          <div className="flex items-center justify-between xl:justify-start w-full gap-3">
+            <h2 className="font-heading text-lg text-text-primary">🧳 Packing List</h2>
             {total > 0 && (
-              <span className="text-sm text-text-muted tabular-nums hidden sm:inline-block">{packed}/{total} packed</span>
+              <span className="text-sm text-text-muted tabular-nums">{packed}/{total} items packed</span>
             )}
           </div>
         </div>
@@ -563,6 +552,30 @@ export default function PackingTab() {
 
         {/* Right: actions */}
         <div className="flex items-center gap-2 shrink-0">
+          <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border mr-1 sm:mr-3">
+            <button
+              onClick={() => setViewMode('group')}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${viewMode === 'group' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'
+                }`}
+            >
+              Everyone
+            </button>
+            <button
+              onClick={() => setViewMode('me')}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all flex items-center gap-1.5 ${viewMode === 'me' ? 'bg-bg-card shadow-sm text-accent' : 'text-text-muted hover:text-text-secondary'
+                }`}
+            >
+              {viewMode === 'me' && currentUserProfile?.photo ? (
+                <img src={currentUserProfile.photo} alt="" className="w-3.5 h-3.5 rounded-full" />
+              ) : viewMode === 'me' ? (
+                <div className="w-3.5 h-3.5 rounded-full bg-accent/20 text-accent flex items-center justify-center text-[7px] font-bold">
+                  {currentUserProfile?.name?.charAt(0) || 'M'}
+                </div>
+              ) : null}
+              Just Me
+            </button>
+          </div>
+
           {total === 0 ? (
             <Button variant="secondary" size="sm" onClick={handleStarterList}>📋 Starter list</Button>
           ) : (
@@ -570,7 +583,7 @@ export default function PackingTab() {
               <Button variant="secondary" size="sm" onClick={handleStarterList}>📋 Starter list</Button>
               <button
                 onClick={() => setShowResetConfirm(true)}
-                className="text-xs text-text-muted hover:text-danger transition-colors"
+                className="text-xs text-text-muted hover:text-danger transition-colors ml-1 hidden sm:block"
               >
                 Reset all
               </button>
