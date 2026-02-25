@@ -382,7 +382,7 @@ export default function PackingTab() {
     if (viewMode === 'group') return items
     const myId = currentUserProfile?.id
     if (!myId) return []
-    const travelers = activeTrip.travelers ? Object.keys(activeTrip.travelers) : []
+    const travelers = activeTrip.travelerIds || []
 
     return items.filter(p => {
       const assignees = Array.isArray(p.assignee)
@@ -427,7 +427,7 @@ export default function PackingTab() {
   }, [dispatch])
 
   const handleStarterList = () => {
-    const travelers = activeTrip.travelers ? Object.keys(activeTrip.travelers) : []
+    const travelers = activeTrip.travelerIds || []
     STARTER_ITEMS.forEach(item =>
       dispatch({ type: ACTIONS.ADD_PACKING_ITEM, payload: { ...item, assignee: travelers } })
     )
@@ -528,7 +528,7 @@ export default function PackingTab() {
             packedBy={info.row.original.packedBy}
             isPacked={info.row.original.packed}
             onChange={val => onUpdate(info.row.original.id, { assignee: val })}
-            tripTravelers={activeTrip.travelers ? Object.keys(activeTrip.travelers) : []}
+            tripTravelers={activeTrip.travelerIds || []}
             resolveProfile={resolveProfile}
             currentUserProfile={currentUserProfile}
           />
