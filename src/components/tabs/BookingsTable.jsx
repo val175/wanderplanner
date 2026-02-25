@@ -324,7 +324,7 @@ export default function BookingsTable({
                                 <th
                                     key={header.id}
                                     className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted overflow-hidden"
-                                    style={{ width: header.column.id === 'name' || header.column.id === 'location' ? 'auto' : header.column.getSize() }}
+                                    style={{ width: header.column.id === 'name' ? '100%' : header.column.getSize() }}
                                 >
                                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                                 </th>
@@ -342,7 +342,7 @@ export default function BookingsTable({
                                         key={cell.id}
                                         className={`px-2 py-3 align-middle overflow-hidden ${cell.column.id === 'actions' ? 'w-10' : ''
                                             }`}
-                                        style={{ width: cell.column.id === 'name' || cell.column.id === 'location' ? 'auto' : cell.column.getSize() }}
+                                        style={{ width: cell.column.id === 'name' ? '100%' : cell.column.getSize() }}
                                     >
                                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                     </td>

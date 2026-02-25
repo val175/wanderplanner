@@ -214,7 +214,9 @@ export default function BookingsKanban({ bookings, currency, onUpdate, onRowClic
             </div>
             <DragOverlay>
                 {activeId && activeBooking ? (
-                    <BookingCardContent booking={activeBooking} currency={currency} isOverlay={true} />
+                    <div className="w-72">
+                        <BookingCardContent booking={activeBooking} currency={currency} isOverlay={true} />
+                    </div>
                 ) : null}
             </DragOverlay>
         </DndContext>
