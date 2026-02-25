@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from 'react'
 import Card from '../shared/Card'
 import CelebrationEffect from '../shared/CelebrationEffect'
 import DatePicker from '../shared/DatePicker'
+import Button from '../shared/Button'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { TODO_CATEGORIES } from '../../constants/tabs'
@@ -29,7 +30,7 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete }) {
       >
         {todo.done && (
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         )}
       </button>
@@ -125,9 +126,9 @@ function AddTodoForm({ category, onAdd }) {
       >
         !!
       </button>
-      <button type="submit" className="px-2 py-1 text-xs bg-accent text-white rounded-[var(--radius-sm)] hover:bg-accent-hover">
+      <Button type="submit" size="sm">
         Add
-      </button>
+      </Button>
       <button type="button" onClick={() => setExpanded(false)} className="text-xs text-text-muted">✕</button>
     </form>
   )
@@ -278,12 +279,14 @@ export default function TodoTab() {
           </button>
         </div>
       ) : (
-        <button
+        <Button
+          variant="ghost"
+          size="lg"
+          className="w-full mt-2"
           onClick={() => setAddingCategory(true)}
-          className="text-sm text-accent hover:text-accent-hover transition-colors"
         >
           + Add category
-        </button>
+        </Button>
       )}
     </div>
   )

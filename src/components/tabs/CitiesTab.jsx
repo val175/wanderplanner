@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Card from '../shared/Card'
 import EditableText from '../shared/EditableText'
 import CityCombobox, { resolveCity } from '../shared/CityCombobox'
+import Button from '../shared/Button'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 
@@ -43,10 +44,10 @@ function CityCard({ city }) {
       <div className="divide-y divide-border">
         {[
           { label: '✨ Highlights', field: 'highlights', placeholder: 'What makes this city special?' },
-          { label: '🎯 Must-Do',    field: 'mustDo',     placeholder: "Can't-miss activities" },
-          { label: '🌤️ Weather',    field: 'weather',    placeholder: 'Expected weather during your visit' },
-          { label: '💱 Currency',   field: 'currencyTip',placeholder: 'Local currency and payment tips' },
-          { label: '📝 Notes',      field: 'notes',      placeholder: 'Your personal notes for this city…', multiline: true },
+          { label: '🎯 Must-Do', field: 'mustDo', placeholder: "Can't-miss activities" },
+          { label: '🌤️ Weather', field: 'weather', placeholder: 'Expected weather during your visit' },
+          { label: '💱 Currency', field: 'currencyTip', placeholder: 'Local currency and payment tips' },
+          { label: '📝 Notes', field: 'notes', placeholder: 'Your personal notes for this city…', multiline: true },
         ].map(({ label, field, placeholder, multiline }) => (
           <div key={field} className="py-4">
             <h4 className="text-[10px] font-semibold text-text-muted uppercase tracking-widest mb-2">{label}</h4>
@@ -109,19 +110,12 @@ function AddCityForm({ onAdd, onCancel }) {
           </div>
 
           <div className="flex gap-2 items-end">
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm bg-accent text-white rounded-[var(--radius-sm)] hover:bg-accent-hover transition-colors"
-            >
+            <Button type="submit" size="md">
               Add
-            </button>
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-4 py-2 text-sm text-text-muted hover:text-text-secondary transition-colors"
-            >
+            </Button>
+            <Button type="button" variant="ghost" size="md" onClick={onCancel}>
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       </form>
@@ -140,12 +134,9 @@ export default function CitiesTab() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <h2 className="font-heading text-lg text-text-primary">🏙️ Cities · {cities.length} destinations</h2>
-        <button
-          onClick={() => setAdding(true)}
-          className="px-3 py-1.5 text-sm bg-accent text-white rounded-[var(--radius-md)] hover:bg-accent-hover transition-colors"
-        >
+        <Button size="sm" onClick={() => setAdding(true)}>
           + Add City
-        </button>
+        </Button>
       </div>
 
       {adding && (

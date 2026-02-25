@@ -3,6 +3,7 @@ import Card from '../shared/Card'
 import EditableText from '../shared/EditableText'
 import DatePicker from '../shared/DatePicker'
 import ProgressBar from '../shared/ProgressBar'
+import Button from '../shared/Button'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { BOOKING_CATEGORIES } from '../../constants/tabs'
@@ -157,12 +158,14 @@ function AddBookingForm({ onAdd, onCancel }) {
             ))}
           </select>
         </div>
-        <button type="submit" className="px-4 py-2 text-sm bg-accent text-white rounded-[var(--radius-sm)] hover:bg-accent-hover">
-          Add
-        </button>
-        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-text-muted hover:text-text-secondary">
-          Cancel
-        </button>
+        <div className="flex gap-2">
+          <Button type="submit" size="md">
+            Add
+          </Button>
+          <Button type="button" variant="ghost" size="md" onClick={onCancel}>
+            Cancel
+          </Button>
+        </div>
       </form>
     </Card>
   )
@@ -239,18 +242,12 @@ export default function BookingsTab() {
           ))}
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={handleExport}
-            className="px-3 py-1.5 text-xs text-text-muted hover:text-text-secondary border border-border rounded-[var(--radius-sm)] hover:bg-bg-hover transition-colors"
-          >
+          <Button variant="secondary" size="sm" onClick={handleExport}>
             📋 Export
-          </button>
-          <button
-            onClick={() => setAdding(true)}
-            className="px-3 py-1.5 text-xs bg-accent text-white rounded-[var(--radius-sm)] hover:bg-accent-hover transition-colors"
-          >
+          </Button>
+          <Button size="sm" onClick={() => setAdding(true)}>
             + Add Booking
-          </button>
+          </Button>
         </div>
       </div>
 

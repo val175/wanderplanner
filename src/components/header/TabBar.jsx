@@ -169,7 +169,7 @@ export default function TabBar() {
                     transition-all duration-200 shrink-0
                     ${isActive
                       /* Active: solid white pill — card elevation above the glass nav */
-                      ? 'bg-[var(--color-bg-card)] text-[var(--color-text-primary)] shadow-sm'
+                      ? 'bg-[var(--color-bg-card)] text-[var(--color-text-primary)]'
                       /* Inactive: ghost — just text, no background */
                       : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]'
                     }
@@ -205,7 +205,7 @@ export default function TabBar() {
                 flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-full
                 transition-all duration-200
                 ${activeIsOverflow
-                  ? 'bg-[var(--color-bg-card)] text-[var(--color-text-primary)] shadow-sm'
+                  ? 'bg-[var(--color-bg-card)] text-[var(--color-text-primary)]'
                   : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]'
                 }
               `}
@@ -233,7 +233,6 @@ export default function TabBar() {
                 style={{
                   background: 'var(--color-bg-card)',
                   border: '1px solid var(--color-border)',
-                  boxShadow: 'var(--shadow-modal)',
                   backdropFilter: 'blur(8px)',
                   WebkitBackdropFilter: 'blur(8px)',
                 }}

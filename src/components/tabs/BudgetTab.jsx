@@ -4,6 +4,7 @@ import EditableText from '../shared/EditableText'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { formatCurrency } from '../../utils/helpers'
+import Button from '../shared/Button'
 
 // ── Shared Colors ────────────────────────────────────────────────────────────
 // Ensure consistent colors for categories across the stacked bar and bullet charts
@@ -267,8 +268,8 @@ function AddCategoryForm({ onAdd, onCancel }) {
           />
         </div>
         <div className="flex gap-2 justify-end mt-1">
-          <button type="button" onClick={onCancel} className="px-4 py-1.5 text-xs font-medium text-text-muted hover:text-text-secondary transition-colors">Cancel</button>
-          <button type="submit" disabled={!name.trim()} className="px-5 py-1.5 text-xs font-semibold bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-50 transition-colors">Add</button>
+          <Button type="button" variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
+          <Button type="submit" size="sm" disabled={!name.trim()}>Add</Button>
         </div>
       </form>
     </Card>
@@ -308,8 +309,10 @@ function AddSpendingForm({ onAdd, onCancel, categories, currency }) {
             {categories.map(c => <option key={c.id} value={c.name}>{c.emoji} {c.name}</option>)}
           </select>
         </div>
-        <button type="submit" className="px-4 py-2 text-sm bg-accent text-white rounded-[var(--radius-sm)] hover:bg-accent-hover">Add</button>
-        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-text-muted hover:text-text-secondary">Cancel</button>
+        <div className="flex gap-2 mt-2 w-full justify-end">
+          <Button type="submit" size="md">Add</Button>
+          <Button type="button" variant="ghost" size="md" onClick={onCancel}>Cancel</Button>
+        </div>
       </form>
     </Card>
   )
@@ -401,12 +404,14 @@ export default function BudgetTab() {
               onCancel={() => setAddingCategory(false)}
             />
           ) : (
-            <button
+            <Button
+              variant="ghost"
+              size="lg"
+              className="w-full"
               onClick={() => setAddingCategory(true)}
-              className="w-full py-3.5 text-sm font-medium text-accent hover:text-white bg-accent/5 hover:bg-accent border border-accent/20 hover:border-accent rounded-xl transition-all duration-200"
             >
               + Add budget category
-            </button>
+            </Button>
           )}
         </div>
 

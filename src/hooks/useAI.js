@@ -108,7 +108,27 @@ export async function sendMessage(systemPrompt, history, userMessage) {
     },
   }
 
-  // Call our Worker proxy — not Gemini directly
+  // If local API key exists, use it instantly to avoid proxy failures
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
+  if (apiKey) {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err?.error?.message || `Gemini API error ${res.status}`)
+    }
+
+    const data = await res.json()
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text
+    if (!text) throw new Error('No response from Gemini API')
+    return text
+  }
+
+  // Fallback to proxy
   const res = await fetch(PROXY_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

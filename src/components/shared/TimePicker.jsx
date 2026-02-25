@@ -10,7 +10,7 @@ import { createPortal } from 'react-dom'
    - variant="input" — styled like a form input, used in add-forms
 ───────────────────────────────────────────────────────────── */
 
-const HOURS   = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+const HOURS = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
 const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
 
 function parse24h(time) {
@@ -40,12 +40,12 @@ export default function TimePicker({
   placeholder = '+ time',
   variant = 'inline',   // 'inline' | 'input'
 }) {
-  const [open, setOpen]   = useState(false)
-  const [pos,  setPos]    = useState({ top: 0, left: 0 })
-  const btnRef   = useRef(null)
+  const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const btnRef = useRef(null)
   const panelRef = useRef(null)
-  const hourRef  = useRef(null)
-  const minRef   = useRef(null)
+  const hourRef = useRef(null)
+  const minRef = useRef(null)
 
   const { h: selH, m: selM, period: selPeriod } = parse24h(value)
 
@@ -90,16 +90,16 @@ export default function TimePicker({
   /* ── Trigger styles ── */
   const triggerClass = variant === 'input'
     ? [
-        'w-full px-2.5 py-1.5 text-sm bg-[var(--color-bg-input)] border border-[var(--color-border)]',
-        'rounded-[var(--radius-sm)] text-left flex items-center justify-between gap-1',
-        'hover:border-[var(--color-accent)] transition-colors',
-        className,
-      ].join(' ')
+      'w-full px-2.5 py-1.5 text-sm bg-[var(--color-bg-input)] border border-[var(--color-border)]',
+      'rounded-[var(--radius-sm)] text-left flex items-center justify-between gap-1',
+      'hover:border-[var(--color-accent)] transition-colors',
+      className,
+    ].join(' ')
     : [
-        'text-xs font-mono tabular-nums cursor-pointer select-none',
-        'hover:text-[var(--color-text-secondary)] transition-colors',
-        className,
-      ].join(' ')
+      'text-xs font-mono tabular-nums cursor-pointer select-none',
+      'hover:text-[var(--color-text-secondary)] transition-colors',
+      className,
+    ].join(' ')
 
   return (
     <>
@@ -125,7 +125,6 @@ export default function TimePicker({
             background: 'var(--color-bg-card)',
             border: '1px solid var(--color-border)',
             borderRadius: 'var(--radius-lg)',
-            boxShadow: 'var(--shadow-modal)',
             display: 'flex',
             overflow: 'hidden',
           }}
@@ -139,7 +138,8 @@ export default function TimePicker({
                 type="button"
                 data-sel={hr === selH || undefined}
                 onClick={() => { pick(hr, selM, selPeriod) }}
-                style={{ display: 'block', width: '100%', padding: '7px 20px', textAlign: 'center',
+                style={{
+                  display: 'block', width: '100%', padding: '7px 20px', textAlign: 'center',
                   fontSize: 14, cursor: 'pointer',
                   color: hr === selH ? 'var(--color-accent)' : 'var(--color-text-secondary)',
                   fontWeight: hr === selH ? 600 : 400,
@@ -164,7 +164,8 @@ export default function TimePicker({
                 type="button"
                 data-sel={mn === selM || undefined}
                 onClick={() => { pick(selH, mn, selPeriod) }}
-                style={{ display: 'block', width: '100%', padding: '7px 20px', textAlign: 'center',
+                style={{
+                  display: 'block', width: '100%', padding: '7px 20px', textAlign: 'center',
                   fontSize: 14, cursor: 'pointer',
                   color: mn === selM ? 'var(--color-accent)' : 'var(--color-text-secondary)',
                   fontWeight: mn === selM ? 600 : 400,
@@ -187,7 +188,8 @@ export default function TimePicker({
                 key={p}
                 type="button"
                 onClick={() => { pick(selH, selM, p) }}
-                style={{ display: 'block', width: '100%', padding: '7px 18px', textAlign: 'center',
+                style={{
+                  display: 'block', width: '100%', padding: '7px 18px', textAlign: 'center',
                   fontSize: 14, cursor: 'pointer',
                   color: p === selPeriod ? 'var(--color-accent)' : 'var(--color-text-secondary)',
                   fontWeight: p === selPeriod ? 600 : 400,

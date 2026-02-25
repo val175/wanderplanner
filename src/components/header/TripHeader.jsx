@@ -102,7 +102,7 @@ function TravelerPicker({ trip, travelerProfiles, dispatch }) {
         <div
           ref={dropdownRef}
           style={{ position: 'fixed', top: coords.top, left: coords.left, zIndex: 9999 }}
-          className="bg-bg-card border border-border rounded-[var(--radius-lg)] shadow-xl p-2 min-w-[180px]"
+          className="bg-bg-card border border-border rounded-[var(--radius-lg)] p-2 min-w-[180px]"
         >
           {profiles.length === 0 ? (
             <p className="text-xs text-text-muted px-2 py-1.5">No profiles yet — add wanderers from the sidebar.</p>

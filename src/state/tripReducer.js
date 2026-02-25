@@ -148,7 +148,6 @@ export function tripReducer(state, action) {
     case ACTIONS.TOGGLE_DARK_MODE:
       return { ...state, darkMode: !state.darkMode }
 
-    // ─── Itinerary ───
     case ACTIONS.ADD_DAY:
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
@@ -158,8 +157,8 @@ export function tripReducer(state, action) {
           dayNumber: trip.itinerary.length + 1,
           location: payload.location || '',
           emoji: payload.emoji || '📍',
-          activities: [],
-          notes: '',
+          activities: payload.activities || [],
+          notes: payload.notes || '',
         }],
       }))
 

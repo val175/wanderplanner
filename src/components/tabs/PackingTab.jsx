@@ -3,6 +3,7 @@ import Card from '../shared/Card'
 import ProgressBar from '../shared/ProgressBar'
 import CelebrationEffect from '../shared/CelebrationEffect'
 import ConfirmDialog from '../shared/ConfirmDialog'
+import Button from '../shared/Button'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { PACKING_SECTIONS } from '../../constants/tabs'
@@ -65,9 +66,9 @@ function AddItemForm({ section, onAdd }) {
         className="flex-1 px-2 py-1 text-sm bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary placeholder:text-text-muted"
         autoFocus
       />
-      <button type="submit" className="px-2 py-1 text-xs bg-accent text-white rounded-[var(--radius-sm)] hover:bg-accent-hover">
+      <Button type="submit" size="sm">
         Add
-      </button>
+      </Button>
       <button type="button" onClick={() => setExpanded(false)} className="text-xs text-text-muted">✕</button>
     </form>
   )
@@ -181,15 +182,13 @@ export default function PackingTab() {
         <h2 className="font-heading text-lg text-text-primary">🧳 Packing · {packed}/{total} packed</h2>
         <div className="flex items-center gap-2">
           {total === 0 && (
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={handleStarterList}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium
-                bg-bg-secondary border border-border rounded-[var(--radius-md)]
-                text-text-secondary hover:text-text-primary hover:bg-bg-hover
-                transition-colors"
             >
               📋 Use starter list
-            </button>
+            </Button>
           )}
           {total > 0 && (
             <button

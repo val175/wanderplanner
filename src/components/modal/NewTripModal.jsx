@@ -10,6 +10,7 @@ import { CURRENCIES } from '../../constants/currencies'
 import { createEmptyTrip } from '../../data/defaultTrip'
 import { formatDate } from '../../utils/helpers'
 import AvatarCircle from '../shared/AvatarCircle'
+import Button from '../shared/Button'
 
 const TOTAL_STEPS = 4
 
@@ -797,41 +798,34 @@ export default function NewTripModal({ isOpen, onClose }) {
       <div className="flex items-center justify-between px-6 py-4 border-t border-border mt-2">
         <div>
           {step > 1 && (
-            <button type="button" onClick={() => setStep(s => s - 1)}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-hover rounded-[var(--radius-md)] transition-colors"
-            >
+            <Button variant="ghost" size="md" onClick={() => setStep(s => s - 1)}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="15 18 9 12 15 6" />
               </svg>
               Back
-            </button>
+            </Button>
           )}
         </div>
         <div className="flex items-center gap-2">
           {step === 3 && (
-            <button type="button"
-              onClick={() => { setForm(f => ({ ...f, budgetCategories: DEFAULT_BUDGET_CATEGORIES.map(c => ({ ...c, min: 0, max: 0 })) })); setStep(4) }}
-              className="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-secondary hover:bg-bg-hover rounded-[var(--radius-md)] transition-colors"
-            >Skip</button>
+            <Button variant="ghost" size="md" onClick={() => { setForm(f => ({ ...f, budgetCategories: DEFAULT_BUDGET_CATEGORIES.map(c => ({ ...c, min: 0, max: 0 })) })); setStep(4) }}>
+              Skip
+            </Button>
           )}
           {step < TOTAL_STEPS ? (
-            <button type="button" onClick={() => setStep(s => s + 1)} disabled={!canProceed}
-              className="flex items-center gap-1.5 px-5 py-2 text-sm font-medium bg-accent hover:bg-accent-hover text-text-inverse rounded-[var(--radius-md)] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
-            >
+            <Button size="md" onClick={() => setStep(s => s + 1)} disabled={!canProceed}>
               Next
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
-            </button>
+            </Button>
           ) : (
-            <button type="button" onClick={handleCreate}
-              className="flex items-center gap-2 px-6 py-2.5 text-sm font-semibold bg-accent hover:bg-accent-hover text-text-inverse rounded-[var(--radius-md)] transition-all duration-200 active:scale-[0.98]"
-            >
+            <Button size="lg" onClick={handleCreate}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
               </svg>
               Create Trip
-            </button>
+            </Button>
           )}
         </div>
       </div>

@@ -7,11 +7,11 @@ import { buildTripSystemPrompt, sendMessage } from '../../hooks/useAI'
 ───────────────────────────────────────────────────────────── */
 const PROMPT_CHIPS = [
   { label: '🗺️ Optimize itinerary', text: 'Can you review my itinerary and suggest any improvements or optimizations?' },
-  { label: '🍽️ Restaurant tips',    text: 'What are the best restaurants or food experiences I should try on this trip?' },
-  { label: '🧳 Packing advice',     text: 'Based on my destinations and dates, what should I make sure to pack?' },
-  { label: '💰 Budget check',       text: 'How is my budget looking? Any tips to save money or where to splurge?' },
-  { label: '⚡ Hidden gems',        text: 'What are some lesser-known hidden gems or local tips for my destinations?' },
-  { label: '📅 Day plan',           text: 'Can you suggest a perfect day itinerary for one of my destinations?' },
+  { label: '🍽️ Restaurant tips', text: 'What are the best restaurants or food experiences I should try on this trip?' },
+  { label: '🧳 Packing advice', text: 'Based on my destinations and dates, what should I make sure to pack?' },
+  { label: '💰 Budget check', text: 'How is my budget looking? Any tips to save money or where to splurge?' },
+  { label: '⚡ Hidden gems', text: 'What are some lesser-known hidden gems or local tips for my destinations?' },
+  { label: '📅 Day plan', text: 'Can you suggest a perfect day itinerary for one of my destinations?' },
 ]
 
 /* ─────────────────────────────────────────────────────────────
@@ -79,6 +79,13 @@ export default function AIAssistant() {
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 200)
     return () => clearTimeout(t)
+  }, [])
+
+  // Listen for global open-wanda events from empty states
+  useEffect(() => {
+    const handleOpen = () => setIsOpen(true)
+    window.addEventListener('open-wanda', handleOpen)
+    return () => window.removeEventListener('open-wanda', handleOpen)
   }, [])
 
   useEffect(() => {
@@ -150,7 +157,6 @@ export default function AIAssistant() {
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
             border: '1px solid var(--color-border)',
-            boxShadow: '0 4px 24px 0 rgb(0 0 0 / 0.10), 0 1px 4px 0 rgb(0 0 0 / 0.06)',
           }}
           title={isOpen ? 'Close Wanda' : 'Ask Wanda AI'}
           aria-label={isOpen ? 'Close AI assistant' : 'Open AI assistant'}
@@ -166,7 +172,7 @@ export default function AIAssistant() {
           fixed bottom-24 right-8 z-40
           w-[min(400px,calc(100vw-2rem))]
           border border-border rounded-[var(--radius-lg)]
-          shadow-2xl flex flex-col
+          flex flex-col
           transition-all duration-300 ease-out
           ${isOpen
             ? 'opacity-100 translate-y-0 pointer-events-auto'

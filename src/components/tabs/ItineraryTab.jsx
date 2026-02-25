@@ -2,6 +2,8 @@ import { useState, useRef } from 'react'
 import Card from '../shared/Card'
 import EditableText from '../shared/EditableText'
 import TimePicker from '../shared/TimePicker'
+import Modal from '../shared/Modal'
+import Button from '../shared/Button'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
@@ -168,6 +170,50 @@ function AddActivityForm({ onAdd, onCancel }) {
         <button type="submit" className="px-3 py-1 text-sm bg-accent text-white rounded-[var(--radius-sm)] hover:bg-accent-hover">Add</button>
       </div>
     </form>
+  )
+}
+
+// ── Import CSV Modal ────────────────────────────────────────────────────────
+function ImportCSVModal({ isOpen, onClose, onImport }) {
+  const [csvText, setCsvText] = useState('')
+
+  const handleImport = () => {
+    if (!csvText.trim()) return
+    onImport(csvText)
+    setCsvText('')
+    onClose()
+  }
+
+  const templateStr = "Date, Location, Time, Activity, Notes\n2026-06-01, Paris, 10:00, Louvre Museum, Bring tickets\n2026-06-01, Paris, 12:30, Lunch at Le Fumoir, \n2026-06-02, London, 09:00, Eurostar to London, "
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth="max-w-2xl">
+      <div className="p-6">
+        <h3 className="font-heading text-xl font-semibold mb-2 text-text-primary">Import Itinerary</h3>
+        <p className="text-sm text-text-muted mb-4">
+          Paste your spreadsheet data below. Please include headers. Rows with the same Date will be grouped into one day.
+        </p>
+        <div className="bg-bg-secondary p-3 rounded-[var(--radius-md)] border border-border mb-4 overflow-x-auto text-xs font-mono text-text-muted">
+          <p className="font-semibold text-text-secondary mb-1">Expected Format / Template:</p>
+          <pre>{templateStr}</pre>
+        </div>
+        <textarea
+          value={csvText}
+          onChange={e => setCsvText(e.target.value)}
+          placeholder="Paste CSV or TSV data here..."
+          rows={8}
+          className="w-full px-4 py-3 bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent font-mono text-sm leading-relaxed whitespace-pre"
+        />
+        <div className="flex justify-end gap-3 mt-5">
+          <Button variant="ghost" size="md" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button size="md" onClick={handleImport} disabled={!csvText.trim()}>
+            Import Itinerary
+          </Button>
+        </div>
+      </div>
+    </Modal>
   )
 }
 
@@ -381,12 +427,115 @@ function DayJumper({ itinerary, dayRefs }) {
 
 // ── Main ───────────────────────────────────────────────────────────────────
 export default function ItineraryTab() {
-  const { activeTrip, dispatch } = useTripContext()
+  const { activeTrip, dispatch, showToast } = useTripContext()
   const dayRefs = useRef({})
+  const [isCSVModalOpen, setIsCSVModalOpen] = useState(false)
   if (!activeTrip) return null
 
   const trip = activeTrip
   const concertBooking = trip.bookings?.find(b => b.category === 'concert')
+
+  const handleAddDay = () => {
+    const lastDay = trip.itinerary?.[trip.itinerary.length - 1]
+    let nextDate = ''
+    if (lastDay?.date) {
+      const d = new Date(lastDay.date + 'T00:00:00')
+      d.setDate(d.getDate() + 1)
+      nextDate = d.toISOString().slice(0, 10)
+    }
+    dispatch({ type: ACTIONS.ADD_DAY, payload: { date: nextDate, location: '', emoji: '📍' } })
+  }
+
+  const handleAskWanda = () => {
+    window.dispatchEvent(new CustomEvent('open-wanda'))
+  }
+
+  const handleImportSheets = () => {
+    setIsCSVModalOpen(true)
+  }
+
+  const handleImportBookings = () => {
+    dispatch({ type: ACTIONS.SET_TAB, payload: 'bookings' })
+  }
+
+  const parseCSVImport = (text) => {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+    if (lines.length < 2) {
+      showToast('Please provide headers and at least one row of data.', 'error')
+      return
+    }
+
+    const separator = lines[0].includes('\t') ? '\t' : ','
+    const headers = lines[0].split(separator).map(h => h.trim().toLowerCase())
+
+    const dateIdx = headers.findIndex(h => h.includes('date') || h === 'day')
+    const locIdx = headers.findIndex(h => h.includes('location') || h === 'city')
+    const timeIdx = headers.findIndex(h => h.includes('time'))
+    const actIdx = headers.findIndex(h => h.includes('activity') || h === 'name')
+    const noteIdx = headers.findIndex(h => h.includes('note'))
+
+    if (dateIdx === -1) {
+      showToast('Could not find a "Date" column header. Please check the format.', 'error')
+      return
+    }
+
+    const daysMap = new Map()
+
+    for (let i = 1; i < lines.length; i++) {
+      const parts = lines[i].split(separator).map(p => p.trim())
+      const date = parts[dateIdx];
+      if (!date) continue;
+
+      if (!daysMap.has(date)) {
+        daysMap.set(date, {
+          location: locIdx !== -1 ? parts[locIdx] : '',
+          activities: [],
+          notes: ''
+        })
+      }
+
+      const dayObj = daysMap.get(date)
+
+      const activityName = actIdx !== -1 ? parts[actIdx] : ''
+      const activityTime = timeIdx !== -1 ? parts[timeIdx] : ''
+      const activityNote = noteIdx !== -1 ? parts[noteIdx] : ''
+
+      if (activityName) {
+        dayObj.activities.push({
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8) + i,
+          time: activityTime || '',
+          name: activityName,
+          emoji: '📌',
+          notes: activityNote || ''
+        })
+      } else if (activityNote) {
+        dayObj.notes = dayObj.notes ? `${dayObj.notes}\n${activityNote}` : activityNote
+      }
+    }
+
+    let addedDays = 0
+    let addedActivities = 0
+
+    for (const [dateStr, dayData] of daysMap.entries()) {
+      dispatch({
+        type: ACTIONS.ADD_DAY,
+        payload: {
+          date: dateStr,
+          location: dayData.location,
+          emoji: '📍',
+          activities: dayData.activities,
+          notes: dayData.notes
+        }
+      })
+      addedDays++
+      addedActivities += dayData.activities.length
+    }
+
+    if (addedDays > 0) {
+      showToast(`Imported ${addedDays} day(s) with ${addedActivities} activities!`)
+      setIsCSVModalOpen(false)
+    }
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -397,21 +546,9 @@ export default function ItineraryTab() {
             <p className="text-xs text-text-muted mt-0.5">Drag ⠿ to reorder days or activities</p>
           )}
         </div>
-        <button
-          onClick={() => {
-            const lastDay = trip.itinerary?.[trip.itinerary.length - 1]
-            let nextDate = ''
-            if (lastDay?.date) {
-              const d = new Date(lastDay.date + 'T00:00:00')
-              d.setDate(d.getDate() + 1)
-              nextDate = d.toISOString().slice(0, 10)
-            }
-            dispatch({ type: ACTIONS.ADD_DAY, payload: { date: nextDate, location: '', emoji: '📍' } })
-          }}
-          className="px-3 py-1.5 text-sm bg-accent text-white rounded-[var(--radius-md)] hover:bg-accent-hover transition-colors"
-        >
+        <Button size="sm" onClick={handleAddDay}>
           + Add Day
-        </button>
+        </Button>
       </div>
 
       <DayJumper itinerary={trip.itinerary} dayRefs={dayRefs} />
@@ -436,11 +573,52 @@ export default function ItineraryTab() {
       </div>
 
       {(!trip.itinerary || trip.itinerary.length === 0) && (
-        <Card className="text-center py-12">
-          <p className="text-4xl mb-3">📅</p>
-          <p className="text-text-muted">No itinerary yet. Add your first day!</p>
+        <Card className="text-center py-10 px-4 flex flex-col items-center">
+          <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mb-5 text-3xl">
+            🗺️
+          </div>
+          <h3 className="text-2xl font-heading font-medium text-text-primary mb-2">Build your perfect trip</h3>
+          <p className="text-text-muted mb-8 max-w-sm mx-auto text-sm leading-relaxed">
+            Start from scratch or jumpstart your planning by importing existing details.
+          </p>
+
+          <div className="flex flex-col gap-8 w-full max-w-2xl mx-auto">
+            <div className="flex justify-center flex-wrap gap-4">
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={handleAddDay}
+              >
+                <span className="text-xl leading-none">+</span> Add First Day
+              </Button>
+
+              <Button
+                variant="secondary"
+                size="lg"
+                onClick={handleImportSheets}
+              >
+                <span className="text-lg">📊</span> Import from CSV
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="lg"
+                onClick={handleAskWanda}
+                className="group"
+              >
+                <span className="text-lg group-hover:scale-110 transition-transform">✨</span> Ask Wanda
+              </Button>
+            </div>
+          </div>
         </Card>
       )}
+
+      {/* Modals */}
+      <ImportCSVModal
+        isOpen={isCSVModalOpen}
+        onClose={() => setIsCSVModalOpen(false)}
+        onImport={parseCSVImport}
+      />
     </div>
   )
 }
