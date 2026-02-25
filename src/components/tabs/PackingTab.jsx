@@ -209,30 +209,22 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
   let displayName = ''
 
   if (assignees.length > 1) {
-    if (isPacked && packedBy) {
-      const p = resolveProfile(packedBy)
-      if (p) {
-        displayNode = <AvatarCircle profile={p} size={22} />
-      }
-      displayName = `Packed by ${p?.name?.split(' ')[0]}`
-    } else {
-      displayNode = (
-        <div className="flex flex-row items-center">
-          <div className="flex -space-x-1.5">
-            {assignees.slice(0, 3).map((tId, i) => {
-              const p = resolveProfile(tId)
-              if (!p) return null
-              return (
-                <div key={tId} style={{ zIndex: 10 - i }} className="rounded-full flex shrink-0 ring-[1.5px] ring-bg-secondary">
-                  <AvatarCircle profile={p} size={22} />
-                </div>
-              )
-            })}
-          </div>
+    displayNode = (
+      <div className="flex flex-row items-center">
+        <div className="flex -space-x-1.5">
+          {assignees.slice(0, 3).map((tId, i) => {
+            const p = resolveProfile(tId)
+            if (!p) return null
+            return (
+              <div key={tId} style={{ zIndex: 10 - i }} className="rounded-full flex shrink-0 ring-[1.5px] ring-bg-secondary">
+                <AvatarCircle profile={p} size={22} />
+              </div>
+            )
+          })}
         </div>
-      )
-      displayName = assignees.map(id => resolveProfile(id)?.name).filter(Boolean).join(', ')
-    }
+      </div>
+    )
+    displayName = assignees.map(id => resolveProfile(id)?.name).filter(Boolean).join(', ')
   } else if (assignees.length === 1) {
     const p = resolveProfile(assignees[0])
     if (p) {
