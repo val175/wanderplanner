@@ -15,17 +15,18 @@ export function calculateBalances(spendingLog, travelers) {
     const balances = {}
     travelers.forEach(t => { balances[t.id] = 0 })
 
+    // Strictly only include expenses where both the payer and all split members
+    // are known current travelers. Skips stale/old data with unrecognized IDs.
+    const knownIds = new Set(travelers.map(t => t.id))
+
     for (const entry of spendingLog) {
         const { paidBy, splits } = entry
         if (!paidBy || !splits) continue
+        if (!knownIds.has(paidBy)) continue  // unknown payer — skip entirely
 
         for (const [id, share] of Object.entries(splits)) {
-            if (id === paidBy) continue // payer's own share — zero net
-
-            // Always apply both sides. If an ID isn't in the travelers list yet,
-            // initialize it so we don't silently drop credits/debits.
-            if (!(paidBy in balances)) balances[paidBy] = 0
-            if (!(id in balances)) balances[id] = 0
+            if (id === paidBy) continue       // payer's own share — zero net
+            if (!knownIds.has(id)) continue   // unknown member — skip this split
 
             balances[paidBy] += share  // payer is owed
             balances[id] -= share  // member owes
