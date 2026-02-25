@@ -164,14 +164,23 @@ function PackedCheckbox({ packed, onToggle }) {
 }
 
 // ── Assignee Pill ───────────────────────────────────────────────────────────
-function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, resolveProfile }) {
+function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, resolveProfile, currentUserProfile }) {
   const [open, setOpen] = useState(false)
   const [coords, setCoords] = useState(null)
   const buttonRef = useRef(null)
   const dropdownRef = useRef(null)
 
   // Normalize to array of IDs
-  const assignees = Array.isArray(value) ? value : (value === 'shared' ? tripTravelers : (value ? [value] : []))
+  // We need to merge currentUserProfile.id into tripTravelers if it's not there, so they can assign to themselves
+  const allTravelers = useMemo(() => {
+    const ids = [...tripTravelers]
+    if (currentUserProfile?.id && !ids.includes(currentUserProfile.id)) {
+      ids.unshift(currentUserProfile.id)
+    }
+    return ids
+  }, [tripTravelers, currentUserProfile])
+
+  const assignees = Array.isArray(value) ? value : (value === 'shared' ? allTravelers : (value ? [value] : []))
 
   const handleOpen = (e) => {
     e.stopPropagation()
@@ -226,11 +235,25 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
       }
       displayName = p.name.split(' ')[0]
     } else {
-      displayNode = <div className="w-4 h-4 flex items-center justify-center rounded-full border border-dashed border-border text-text-muted text-[10px]"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></div>
+      displayNode = (
+        <div className="flex flex-row items-center gap-1.5 px-0.5">
+          <div className="w-4 h-4 flex items-center justify-center rounded-full border border-dashed border-border text-text-muted text-[10px]">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+          </div>
+          <span className="text-xs font-medium text-text-secondary pt-px">Unassigned</span>
+        </div>
+      )
       displayName = 'Unassigned'
     }
   } else {
-    displayNode = <div className="w-4 h-4 flex items-center justify-center rounded-full border border-dashed border-border text-text-muted text-[10px]"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></div>
+    displayNode = (
+      <div className="flex flex-row items-center gap-1.5 px-0.5">
+        <div className="w-4 h-4 flex items-center justify-center rounded-full border border-dashed border-border text-text-muted text-[10px]">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+        </div>
+        <span className="text-xs font-medium text-text-secondary pt-px">Unassigned</span>
+      </div>
+    )
     displayName = 'Unassigned'
   }
 
@@ -251,7 +274,7 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
           className="absolute z-[100] rounded-[var(--radius-md)] border border-border bg-bg-card shadow-lg min-w-[170px] py-1"
           style={{ top: coords.top, left: coords.left }}
         >
-          {tripTravelers.map(tId => {
+          {allTravelers.map(tId => {
             const p = resolveProfile(tId)
             if (!p) return null
             const isSelected = assignees.includes(tId)
@@ -495,6 +518,7 @@ export default function PackingTab() {
             onChange={val => onUpdate(info.row.original.id, { assignee: val })}
             tripTravelers={activeTrip.travelers ? Object.keys(activeTrip.travelers) : []}
             resolveProfile={resolveProfile}
+            currentUserProfile={currentUserProfile}
           />
         </div>
       ),
