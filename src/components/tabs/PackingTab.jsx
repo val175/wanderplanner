@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import {
   useReactTable,
   getCoreRowModel,
@@ -48,31 +49,62 @@ const STARTER_ITEMS = [
 // ── Category pill + dropdown ────────────────────────────────────────────────
 function CategoryPill({ value, onChange }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef(null)
+  const [coords, setCoords] = useState(null)
+  const buttonRef = useRef(null)
+  const dropdownRef = useRef(null)
+
   const cat = CATEGORIES.find(c => c.id === value) || CATEGORIES[4]
+
+  const handleOpen = (e) => {
+    e.stopPropagation()
+    const rect = buttonRef.current.getBoundingClientRect()
+    setCoords({
+      left: rect.left,
+      top: rect.bottom + window.scrollY + 4
+    })
+    setOpen(true)
+  }
 
   useEffect(() => {
     if (!open) return
-    const handler = (e) => { if (!ref.current?.contains(e.target)) setOpen(false) }
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target) && !buttonRef.current.contains(e.target)) {
+        setOpen(false)
+      }
+    }
     document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    window.addEventListener('scroll', () => setOpen(false), { passive: true })
+    return () => {
+      document.removeEventListener('mousedown', handler)
+      window.removeEventListener('scroll', () => setOpen(false))
+    }
   }, [open])
 
   return (
-    <div className="relative" ref={ref}>
+    <>
       <button
-        onClick={() => setOpen(o => !o)}
+        ref={buttonRef}
+        onClick={handleOpen}
         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border transition-colors ${cat.color}`}
       >
         <span>{cat.emoji}</span>
         <span className="hidden sm:inline">{cat.label}</span>
       </button>
-      {open && (
-        <div className="absolute top-full left-0 mt-1 z-50 rounded-[var(--radius-md)] border border-border bg-bg-card shadow-lg min-w-[140px] py-1">
+
+      {open && coords && createPortal(
+        <div
+          ref={dropdownRef}
+          className="absolute z-[100] rounded-[var(--radius-md)] border border-border bg-bg-card shadow-lg min-w-[140px] py-1"
+          style={{ top: coords.top, left: coords.left }}
+        >
           {CATEGORIES.map(c => (
             <button
               key={c.id}
-              onClick={() => { onChange(c.id); setOpen(false) }}
+              onClick={(e) => {
+                e.stopPropagation()
+                onChange(c.id)
+                setOpen(false)
+              }}
               className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left transition-colors
                 ${c.id === value ? 'bg-accent/8 text-accent font-semibold' : 'hover:bg-bg-hover text-text-secondary'}`}
             >
@@ -80,8 +112,31 @@ function CategoryPill({ value, onChange }) {
               <span>{c.label}</span>
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
+    </>
+  )
+}
+
+// ── Qty Stepper ─────────────────────────────────────────────────────────────
+function QtyStepper({ value, onChange }) {
+  return (
+    <div className="flex items-center gap-2 justify-center">
+      <button
+        onClick={() => onChange(Math.max(1, value - 1))}
+        className="w-5 h-5 flex items-center justify-center rounded-full bg-bg-secondary text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+        disabled={value <= 1}
+      >
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14" /></svg>
+      </button>
+      <span className="text-sm font-medium tabular-nums min-w-[1.25rem] text-center">{value}</span>
+      <button
+        onClick={() => onChange(value + 1)}
+        className="w-5 h-5 flex items-center justify-center rounded-full bg-bg-secondary text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+      >
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" /></svg>
+      </button>
     </div>
   )
 }
@@ -252,14 +307,12 @@ export default function PackingTab() {
     {
       id: 'qty',
       accessorKey: 'qty',
-      header: 'Qty',
-      size: 64,
+      header: <div className="text-center w-full">Qty</div>,
+      size: 80,
       cell: info => (
-        <EditableText
-          value={info.getValue() != null ? String(info.getValue()) : '1'}
-          onSave={val => onUpdate(info.row.original.id, { qty: Number(val) || 1 })}
-          inputClassName="w-full text-center"
-          className="text-sm text-text-secondary text-center block w-full tabular-nums"
+        <QtyStepper
+          value={info.getValue() || 1}
+          onChange={val => onUpdate(info.row.original.id, { qty: val })}
         />
       ),
     },
