@@ -19,16 +19,22 @@ export function calculateBalances(spendingLog, travelers) {
         const { paidBy, splits } = entry
         if (!paidBy || !splits) continue
 
-        // Payer gets credit for the full amount they fronted
         for (const [id, share] of Object.entries(splits)) {
-            if (id === paidBy) continue           // payer's own share — no net change
-            if (balances[paidBy] !== undefined) balances[paidBy] += share  // payer is owed
-            if (balances[id] !== undefined) balances[id] -= share  // member owes
+            if (id === paidBy) continue // payer's own share — zero net
+
+            // Always apply both sides. If an ID isn't in the travelers list yet,
+            // initialize it so we don't silently drop credits/debits.
+            if (!(paidBy in balances)) balances[paidBy] = 0
+            if (!(id in balances)) balances[id] = 0
+
+            balances[paidBy] += share  // payer is owed
+            balances[id] -= share  // member owes
         }
     }
 
     return balances
 }
+
 
 /**
  * Minimum Cash Flow algorithm — reduces a set of balances into the fewest
