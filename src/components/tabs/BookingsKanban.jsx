@@ -20,6 +20,24 @@ import { BOOKING_CATEGORIES } from '../../constants/tabs'
 import Card from '../shared/Card'
 import { formatCurrency } from '../../utils/helpers'
 
+// Modifier that anchors the DragOverlay top-left corner to the cursor position
+const snapCursorToTopLeft = ({ activatorEvent, draggingNodeRect, transform }) => {
+    if (draggingNodeRect && activatorEvent) {
+        const activatorCoordinates = {
+            x: activatorEvent.clientX,
+            y: activatorEvent.clientY,
+        }
+        const offsetX = activatorCoordinates.x - draggingNodeRect.left
+        const offsetY = activatorCoordinates.y - draggingNodeRect.top
+        return {
+            ...transform,
+            x: transform.x + offsetX - draggingNodeRect.width / 2,
+            y: transform.y + offsetY - 20,
+        }
+    }
+    return transform
+}
+
 // ── Kanban Column (Droppable) ──────────────────────────────────────────────
 function KanbanColumn({ id, title, bookings, currency, onRowClick }) {
     const { setNodeRef, isOver } = useDroppable({ id })
@@ -199,6 +217,7 @@ export default function BookingsKanban({ bookings, currency, onUpdate, onRowClic
             collisionDetection={closestCorners}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
+            modifiers={[snapCursorToTopLeft]}
         >
             <div className="flex gap-4 overflow-x-auto pb-4 h-[calc(100vh-280px)] min-h-[400px] scrollbar-thin items-start">
                 {MONDAY_STATUSES.map(statusObj => (

@@ -5,9 +5,35 @@ import { BOOKING_CATEGORIES } from '../../constants/tabs'
 import EditableText from '../shared/EditableText'
 import Button from '../shared/Button'
 import DatePicker from '../shared/DatePicker'
+import { formatCurrency } from '../../utils/helpers'
+
+// ── Cost Input ─────────────────────────────────────────────────────────────────
+// A number input that shows formatted currency when blurred and raw number when focused
+function CostInput({ value, currency, onChange }) {
+    const [focused, setFocused] = useState(false)
+    const [draft, setDraft] = useState(value ? String(value) : '')
+
+    // Sync from outside when not focused
+    useEffect(() => {
+        if (!focused) setDraft(value ? String(value) : '')
+    }, [value, focused])
+
+    return (
+        <input
+            type={focused ? 'number' : 'text'}
+            value={focused ? draft : (value ? formatCurrency(value, currency) : formatCurrency(0, currency))}
+            onFocus={() => { setDraft(value ? String(value) : ''); setFocused(true) }}
+            onChange={e => setDraft(e.target.value)}
+            onBlur={() => { setFocused(false); onChange(Number(draft) || 0) }}
+            className="w-full px-2 py-1.5 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary focus:border-accent focus:outline-none transition-colors tabular-nums"
+            placeholder={formatCurrency(0, currency)}
+        />
+    )
+}
 
 export default function BookingDrawer({ booking, currency, onUpdate, onClose }) {
     const [mounted, setMounted] = useState(false)
+
 
     useEffect(() => {
         setMounted(true)
@@ -78,12 +104,10 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose }) 
                         </div>
                         <div className="space-y-1">
                             <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Cost</span>
-                            <EditableText
-                                value={booking.amountPaid ? String(booking.amountPaid) : ''}
-                                displayValue={booking.amountPaid ? formatCurrency(booking.amountPaid, currency) : undefined}
-                                onSave={val => onUpdate(booking.id, { amountPaid: Number(val) || 0 })}
-                                className="text-text-primary text-sm block"
-                                placeholder="0.00"
+                            <CostInput
+                                value={booking.amountPaid}
+                                currency={currency}
+                                onChange={val => onUpdate(booking.id, { amountPaid: val })}
                             />
                         </div>
                         <div className="space-y-1">
