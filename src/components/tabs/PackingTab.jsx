@@ -217,7 +217,7 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
       displayName = `Packed by ${p?.name?.split(' ')[0]}`
     } else {
       displayNode = (
-        <div className="flex flex-row items-center gap-1.5 pl-0 pr-2.5 py-0.5">
+        <div className="flex flex-row items-center">
           <div className="flex -space-x-1.5">
             {assignees.slice(0, 3).map((tId, i) => {
               const p = resolveProfile(tId)
@@ -229,11 +229,6 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
               )
             })}
           </div>
-          <span className="text-[13px] font-medium text-text-primary pt-px truncate max-w-[90px]">
-            {assignees.length === 2
-              ? `${resolveProfile(assignees[0])?.name?.split(' ')[0]} & ${resolveProfile(assignees[1])?.name?.split(' ')[0]}`
-              : `${assignees.length} people`}
-          </span>
         </div>
       )
       displayName = assignees.map(id => resolveProfile(id)?.name).filter(Boolean).join(', ')
@@ -242,32 +237,21 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
     const p = resolveProfile(assignees[0])
     if (p) {
       displayNode = (
-        <div className="flex flex-row items-center gap-1.5 pl-0 pr-2.5 py-0.5">
-          <AvatarCircle profile={p} size={22} />
-          <span className="text-[13px] font-medium text-text-primary pt-px truncate max-w-[90px]">
-            {p.name.split(' ')[0]}
-          </span>
-        </div>
+        <AvatarCircle profile={p} size={22} />
       )
       displayName = p.name
     } else {
       displayNode = (
-        <div className="flex flex-row items-center gap-1.5 pl-0 pr-3 py-0.5">
-          <div className="w-[22px] h-[22px] flex items-center justify-center rounded-full border-[1.5px] border-dashed border-border text-text-muted shrink-0 bg-transparent">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-          </div>
-          <span className="text-[13px] font-medium text-text-primary pt-px">Unassigned</span>
+        <div className="w-[22px] h-[22px] flex items-center justify-center rounded-full border border-dashed border-border text-text-muted shrink-0 bg-transparent hover:bg-bg-hover transition-colors">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
         </div>
       )
       displayName = 'Unassigned'
     }
   } else {
     displayNode = (
-      <div className="flex flex-row items-center gap-1.5 pl-0 pr-3 py-0.5">
-        <div className="w-[22px] h-[22px] flex items-center justify-center rounded-full border-[1.5px] border-dashed border-border text-text-muted shrink-0 bg-transparent">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-        </div>
-        <span className="text-[13px] font-medium text-text-primary pt-px">Unassigned</span>
+      <div className="w-[22px] h-[22px] flex items-center justify-center rounded-full border border-dashed border-border text-text-muted shrink-0 bg-transparent hover:bg-bg-hover transition-colors">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
       </div>
     )
     displayName = 'Unassigned'
@@ -278,7 +262,7 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
       <button
         ref={buttonRef}
         onClick={handleOpen}
-        className="inline-flex items-center rounded-full border border-border/60 bg-bg-secondary hover:bg-border/60 transition-colors group overflow-hidden"
+        className="inline-flex items-center rounded-full border border-transparent hover:ring-[2px] transition-all ring-accent/30 focus:outline-none"
         title={displayName}
       >
         {displayNode}
