@@ -325,32 +325,17 @@ export default function PackingTab() {
       <Card>
         <div className="flex items-center justify-between mb-2">
           <h2 className="font-heading text-lg text-text-primary">🧳 Packing</h2>
-          <div className="flex items-center gap-3">
-            {total > 0 && (
-              <span className="text-sm text-text-muted tabular-nums">{packed}/{total} packed</span>
-            )}
-            {total === 0 && (
-              <Button variant="secondary" size="sm" onClick={handleStarterList}>📋 Use starter list</Button>
-            )}
-            {total > 0 && (
-              <>
-                <Button variant="secondary" size="sm" onClick={handleStarterList}>📋 Starter list</Button>
-                <button
-                  onClick={() => setShowResetConfirm(true)}
-                  className="text-xs text-text-muted hover:text-danger transition-colors"
-                >
-                  Reset all
-                </button>
-              </>
-            )}
-          </div>
+          {total > 0 && (
+            <span className="text-sm text-text-muted tabular-nums">{packed}/{total} packed</span>
+          )}
         </div>
         <ProgressBar value={packed} max={total} colorClass="bg-accent" height="h-2" />
       </Card>
 
-      {/* ── Category filter pills ── */}
-      {filters.length > 1 && (
-        <div className="flex gap-1 overflow-x-auto scrollbar-hide">
+      {/* ── Category filter pills + actions row ── */}
+      <div className="flex items-center justify-between gap-4">
+        {/* Left: filter pills */}
+        <div className="flex gap-1 overflow-x-auto scrollbar-hide flex-1">
           {filters.map(f => (
             <button
               key={f.id}
@@ -365,7 +350,24 @@ export default function PackingTab() {
             </button>
           ))}
         </div>
-      )}
+
+        {/* Right: actions */}
+        <div className="flex items-center gap-2 shrink-0">
+          {total === 0 ? (
+            <Button variant="secondary" size="sm" onClick={handleStarterList}>📋 Starter list</Button>
+          ) : (
+            <>
+              <Button variant="secondary" size="sm" onClick={handleStarterList}>📋 Starter list</Button>
+              <button
+                onClick={() => setShowResetConfirm(true)}
+                className="text-xs text-text-muted hover:text-danger transition-colors"
+              >
+                Reset all
+              </button>
+            </>
+          )}
+        </div>
+      </div>
 
       {/* ── Table ── */}
       <Card className="overflow-hidden">
