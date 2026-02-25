@@ -25,11 +25,16 @@ Be concise, warm, and practical. Use emojis sparingly. The user hasn't selected 
   const startDate = trip.startDate || 'TBD'
   const endDate = trip.endDate || 'TBD'
 
+  // Use the trip's own currency — fall back to PHP if unset
+  const currency = trip.currency || 'PHP'
+  const currencySymbols = { USD: '$', EUR: '€', GBP: '£', JPY: '¥', PHP: '₱', AUD: 'A$', CAD: 'C$', SGD: 'S$', HKD: 'HK$', THB: '฿', IDR: 'Rp', KRW: '₩', MYR: 'RM', VND: '₫', INR: '₹' }
+  const sym = currencySymbols[currency] || currency
+
   const daysCount = trip.itinerary?.length || 0
   const activitiesCount = trip.itinerary?.reduce((sum, d) => sum + (d.activities?.length || 0), 0) || 0
 
   const budgetSummary = trip.budget?.length
-    ? trip.budget.map(b => `${b.emoji || ''} ${b.name}: €${b.max} budget (€${b.actual || 0} spent)`).join(', ')
+    ? trip.budget.map(b => `${b.emoji || ''} ${b.name}: ${sym}${b.max} budget (${sym}${b.actual || 0} spent)`).join(', ')
     : 'No budget set'
 
   const totalBudget = trip.budget?.reduce((s, b) => s + (b.max || 0), 0) || 0
@@ -57,9 +62,9 @@ You are helping plan this specific trip:
 📅 Dates: ${startDate} → ${endDate} (${daysCount} days planned)
 👥 Travelers: ${travelers}
 
-💰 BUDGET:
+💰 BUDGET (currency: ${currency}):
 ${budgetSummary}
-Total: €${totalBudget} budget, €${totalSpent} spent, €${totalBudget - totalSpent} remaining
+Total: ${sym}${totalBudget} budget, ${sym}${totalSpent} spent, ${sym}${totalBudget - totalSpent} remaining
 
 ✈️ BOOKINGS: ${confirmedBookings} confirmed, ${pendingBookings} pending
 ✅ TODOS: ${doneTodos}/${todos.length} done
@@ -71,8 +76,9 @@ ${itinerarySummary}
 Your role:
 - Give specific, actionable advice tailored to THIS trip's cities, budget, and timeline
 - Be concise — 2-4 sentences per response unless the user asks for a detailed list
+- ALWAYS use ${currency} (${sym}) when discussing money — NEVER use any other currency symbol
 - Use emojis sparingly (1-2 per response max)
-- When suggesting activities, consider the budget remaining (€${totalBudget - totalSpent})
+- When suggesting activities, consider the budget remaining (${sym}${totalBudget - totalSpent})
 - If the user asks to "optimize" or "improve" something, give concrete suggestions
 - Be warm and conversational, like a knowledgeable travel-savvy friend`
 }
