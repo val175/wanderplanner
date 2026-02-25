@@ -155,6 +155,7 @@ export default function PackingTab() {
   const { activeTrip, dispatch, showToast } = useTripContext()
   const [celebration, setCelebration] = useState(0)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [categoryFilter, setCategoryFilter] = useState('all')
 
   if (!activeTrip) return null
 
@@ -192,12 +193,20 @@ export default function PackingTab() {
     showToast("Starter list added! Remove what you don't need 🧳")
   }
 
-  // Sort: unpacked first, then packed — stable within each group
+  // Filters — only show categories that have at least one item
+  const filters = useMemo(() => [
+    { id: 'all', label: 'All Categories' },
+    ...CATEGORIES.filter(c => items.some(p => (p.category || 'misc') === c.id))
+      .map(c => ({ id: c.id, label: `${c.emoji} ${c.label}` })),
+  ], [items])
+
+  // Sort + filter: active category filter, unpacked first
   const data = useMemo(() => {
-    const unpacked = items.filter(p => !p.packed)
-    const packedItems = items.filter(p => p.packed)
+    let filtered = categoryFilter === 'all' ? items : items.filter(p => (p.category || 'misc') === categoryFilter)
+    const unpacked = filtered.filter(p => !p.packed)
+    const packedItems = filtered.filter(p => p.packed)
     return [...unpacked, ...packedItems]
-  }, [items])
+  }, [items, categoryFilter])
 
   const columns = useMemo(() => [
     {
@@ -312,41 +321,50 @@ export default function PackingTab() {
         danger={false}
       />
 
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-3">
+      {/* ── Header Card ── */}
+      <Card>
+        <div className="flex items-center justify-between mb-2">
           <h2 className="font-heading text-lg text-text-primary">🧳 Packing</h2>
-          {total > 0 && (
-            <span className="text-sm text-text-muted tabular-nums">
-              {packed}/{total} packed
-            </span>
-          )}
+          <div className="flex items-center gap-3">
+            {total > 0 && (
+              <span className="text-sm text-text-muted tabular-nums">{packed}/{total} packed</span>
+            )}
+            {total === 0 && (
+              <Button variant="secondary" size="sm" onClick={handleStarterList}>📋 Use starter list</Button>
+            )}
+            {total > 0 && (
+              <>
+                <Button variant="secondary" size="sm" onClick={handleStarterList}>📋 Starter list</Button>
+                <button
+                  onClick={() => setShowResetConfirm(true)}
+                  className="text-xs text-text-muted hover:text-danger transition-colors"
+                >
+                  Reset all
+                </button>
+              </>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {total === 0 && (
-            <Button variant="secondary" size="sm" onClick={handleStarterList}>
-              📋 Use starter list
-            </Button>
-          )}
-          {total > 0 && (
-            <>
-              <Button variant="secondary" size="sm" onClick={handleStarterList}>
-                📋 Starter list
-              </Button>
-              <button
-                onClick={() => setShowResetConfirm(true)}
-                className="text-xs text-text-muted hover:text-danger transition-colors"
-              >
-                Reset all
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* ── Progress bar ── */}
-      {total > 0 && (
         <ProgressBar value={packed} max={total} colorClass="bg-accent" height="h-2" />
+      </Card>
+
+      {/* ── Category filter pills ── */}
+      {filters.length > 1 && (
+        <div className="flex gap-1 overflow-x-auto scrollbar-hide">
+          {filters.map(f => (
+            <button
+              key={f.id}
+              onClick={() => setCategoryFilter(f.id)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-[var(--radius-pill)] whitespace-nowrap transition-colors
+                ${categoryFilter === f.id
+                  ? 'bg-accent text-white'
+                  : 'bg-bg-secondary text-text-muted hover:text-text-secondary border border-border'
+                }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
       )}
 
       {/* ── Table ── */}
