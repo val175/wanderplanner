@@ -384,8 +384,8 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
           <button
             onClick={() => setShowInline(p => !p)}
             className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest rounded-lg border transition-all ${showInline
-                ? 'bg-bg-secondary border-border text-text-muted'
-                : 'bg-accent text-white border-accent hover:bg-accent-hover'
+              ? 'bg-bg-secondary border-border text-text-muted'
+              : 'bg-accent text-white border-accent hover:bg-accent-hover'
               }`}
           >
             {showInline ? 'Cancel' : '+ Log Expense'}
@@ -530,10 +530,22 @@ export default function BudgetTab() {
         onTogglePerPerson={() => setPerPerson(p => !p)}
       />
 
-      {/* 3-column grid: narrow left (1/3), wide right (2/3) */}
+      {/* 3-column grid: wide left (2/3 spending log), narrow right (1/3 sidebar) */}
       <div className="grid sm:grid-cols-3 gap-5 items-start">
 
-        {/* Left column — Balances at top, then Category Budgets */}
+        {/* Left column — Spending Log table (2/3 width) */}
+        <div className="sm:col-span-2">
+          <SpendingLogTable
+            spendingLog={trip.spendingLog || []}
+            budget={budget}
+            travelers={travelers}
+            currency={currency}
+            onAdd={handleAddSpending}
+            onDelete={handleDeleteSpending}
+          />
+        </div>
+
+        {/* Right column — Balances at top, then Category Budgets */}
         <div className="sm:col-span-1 space-y-4 sm:sticky sm:top-[88px]">
           <GroupBalancesCard
             spendingLog={trip.spendingLog || []}
@@ -546,18 +558,6 @@ export default function BudgetTab() {
             divisor={divisor}
             perPerson={perPerson}
             travelers={travelers}
-          />
-        </div>
-
-        {/* Right column — Spending Log table (2/3 width) */}
-        <div className="sm:col-span-2">
-          <SpendingLogTable
-            spendingLog={trip.spendingLog || []}
-            budget={budget}
-            travelers={travelers}
-            currency={currency}
-            onAdd={handleAddSpending}
-            onDelete={handleDeleteSpending}
           />
         </div>
 
