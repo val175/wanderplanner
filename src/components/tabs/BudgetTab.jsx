@@ -93,9 +93,20 @@ function CategoryCard({ category, index, currency, travelers, perPerson }) {
   const divisor = perPerson ? Math.max(travelers, 1) : 1
   const isOver = category.actual > category.max && category.max > 0
 
-  const handleAmount = (field, rawVal) => {
-    const num = Number(rawVal) || 0
-    dispatch({ type: ACTIONS.UPDATE_BUDGET_CATEGORY, payload: { id: category.id, updates: { [field]: num * divisor } } })
+  const [editingMax, setEditingMax] = useState(false)
+  const [maxDraft, setMaxDraft] = useState('')
+
+  const handleMaxSave = () => {
+    setEditingMax(false)
+    const num = Number(maxDraft) || 0
+    if (num * divisor !== category.max) {
+      dispatch({ type: ACTIONS.UPDATE_BUDGET_CATEGORY, payload: { id: category.id, updates: { max: num * divisor } } })
+    }
+  }
+
+  const handleMaxKeyDown = (e) => {
+    if (e.key === 'Enter') handleMaxSave()
+    if (e.key === 'Escape') setEditingMax(false)
   }
 
   // Calculate bullet chart percentages
@@ -107,30 +118,76 @@ function CategoryCard({ category, index, currency, travelers, perPerson }) {
   const barColor = CHART_COLORS[index % CHART_COLORS.length]
 
   return (
-    <Card className="animate-fade-in relative overflow-hidden group">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-[22px] leading-none bg-bg-secondary w-10 h-10 rounded-xl flex items-center justify-center border border-border/50">{category.emoji}</span>
-          <EditableText
-            value={category.name}
-            onSave={val => dispatch({ type: ACTIONS.UPDATE_BUDGET_CATEGORY, payload: { id: category.id, updates: { name: val } } })}
-            className="font-heading text-base text-text-primary px-1"
+    // Outer card: no padding, overflow-hidden clips the full-bleed bar at rounded corners
+    <div className="animate-fade-in relative overflow-hidden group bg-[var(--color-bg-card)] border border-border rounded-[14px] transition-colors duration-200">
+
+      {/* Inner padded content — matches BentoCard's p-4 pattern */}
+      <div className="p-5">
+
+        {/* Header row */}
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-[22px] leading-none bg-bg-secondary w-10 h-10 rounded-xl flex items-center justify-center border border-border/50">{category.emoji}</span>
+            <EditableText
+              value={category.name}
+              onSave={val => dispatch({ type: ACTIONS.UPDATE_BUDGET_CATEGORY, payload: { id: category.id, updates: { name: val } } })}
+              className="font-heading text-base text-text-primary px-1"
+            />
+          </div>
+          <div className="flex flex-col items-end">
+            <p className={`font-heading text-[17px] leading-none ${isOver ? 'text-danger' : 'text-text-primary'}`}>
+              {formatCurrency(Math.round((category.actual || 0) / divisor), currency)}
+            </p>
+            {editingMax ? (
+              <div className="flex items-center gap-1 mt-1">
+                <span className="text-[10px] text-text-muted">/</span>
+                <input
+                  autoFocus
+                  type="number"
+                  min="0"
+                  value={maxDraft}
+                  onChange={e => setMaxDraft(e.target.value)}
+                  onBlur={handleMaxSave}
+                  onKeyDown={handleMaxKeyDown}
+                  className="w-16 px-1 py-0.5 text-[10px] font-mono rounded bg-bg-input border border-accent text-text-primary focus:outline-none focus:ring-1 focus:ring-accent/20"
+                  placeholder="0"
+                />
+                <span className="text-[10px] text-text-muted">max</span>
+              </div>
+            ) : (
+              <p
+                onClick={() => { setMaxDraft(category.max ? Math.round(category.max / divisor) : ''); setEditingMax(true) }}
+                className="text-[10px] text-text-muted font-medium mt-1 cursor-pointer hover:text-accent transition-colors py-0.5 px-1 -mr-1 rounded hover:bg-bg-hover"
+                title="Click to edit max target"
+              >
+                / {category.max > 0 ? formatCurrency(Math.round(category.max / divisor), currency) : 'Set'} max
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Progress bar — full width within card padding */}
+        <div className="mt-4 h-[6px] bg-bg-secondary rounded-full overflow-hidden">
+          <div
+            className={`h-full transition-all duration-300 ${isOver ? 'bg-danger' : ''}`}
+            style={{ width: `${actualPct}%`, backgroundColor: isOver ? undefined : barColor }}
           />
         </div>
-        <div className="flex flex-col items-end">
-          <p className={`font-heading text-[17px] leading-none ${isOver ? 'text-danger' : 'text-text-primary'}`}>
-            {formatCurrency(Math.round((category.actual || 0) / divisor), currency)}
+
+        {/* Over-budget label */}
+        {isOver && (
+          <p className="text-[11px] text-danger font-medium flex items-center gap-1 mt-3">
+            <span className="w-1.5 h-1.5 rounded-full bg-danger inline-block shrink-0" />
+            Over budget by {formatCurrency(Math.round((category.actual - category.max) / divisor), currency)}
           </p>
-          {category.max > 0 && (
-            <p className="text-[10px] text-text-muted font-medium mt-1">
-              / {formatCurrency(Math.round(category.max / divisor), currency)} max
-            </p>
-          )}
-        </div>
+        )}
+
+        {/* Spacer at bottom when not over budget */}
+        {!isOver && <div className="h-1" />}
+
       </div>
 
-      {/* Delete button (absolute positioned, shows on hover) */}
+      {/* Delete button (absolute, shows on hover) */}
       <button
         onClick={() => dispatch({ type: ACTIONS.DELETE_BUDGET_CATEGORY, payload: category.id })}
         className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger hover:bg-danger/10 w-6 h-6 rounded-full flex items-center justify-center transition-all bg-bg-card border border-border z-10"
@@ -139,79 +196,7 @@ function CategoryCard({ category, index, currency, travelers, perPerson }) {
         <span className="text-[10px]">✕</span>
       </button>
 
-      {/* Bullet Chart */}
-      <div className="mt-5 mb-4 relative h-[6px] bg-bg-input rounded-full overflow-hidden">
-        {/* Min-Max Target Range Shading */}
-        {category.max > 0 && (
-          <div
-            className="absolute top-0 bottom-0 bg-border/40"
-            style={{
-              left: `${minPct}%`,
-              width: `${Math.max(0, maxPct - minPct)}%`
-            }}
-          />
-        )}
-
-        {/* Actual Progress Bar */}
-        <div
-          className={`absolute top-0 bottom-0 rounded-full transition-all duration-300 ${isOver ? 'bg-danger' : ''}`}
-          style={{
-            left: '0%',
-            width: `${actualPct}%`,
-            backgroundColor: isOver ? undefined : barColor
-          }}
-        />
-
-        {/* Target Minimum Marker */}
-        {category.min > 0 && (
-          <div
-            className="absolute top-0 bottom-0 w-[2px] bg-text-primary/30 z-10"
-            style={{ left: `${minPct}%` }}
-          />
-        )}
-      </div>
-
-      <div className="mt-1 grid grid-cols-3 gap-3">
-        {[{ field: 'min', label: 'Min target' }, { field: 'max', label: 'Max target' }, { field: 'actual', label: 'Spent' }].map(({ field, label }) => {
-          const storedVal = category[field] || 0
-          const displayVal = storedVal ? Math.round(storedVal / divisor) : ''
-          const isActualOver = field === 'actual' && isOver
-          return (
-            <div key={field}>
-              <label className="text-text-muted text-[10px] font-semibold uppercase tracking-wide block mb-1">{label}</label>
-              <input
-                type="number"
-                min="0"
-                defaultValue={displayVal || ''}
-                key={`${category.id}-${field}-${divisor}`}
-                onBlur={e => handleAmount(field, e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
-                placeholder="0"
-                className={`w-full px-2 py-1.5 text-sm font-mono rounded-[var(--radius-sm)] border
-                  bg-bg-input text-text-primary placeholder:text-text-muted
-                  focus:outline-none focus:border-accent transition-colors
-                  ${isActualOver
-                    ? 'border-danger/40 text-danger font-bold'
-                    : 'border-border hover:border-border-strong'
-                  }`}
-              />
-            </div>
-          )
-        })}
-      </div>
-
-      {isOver && (
-        <p className="text-[11px] text-danger mt-3 font-medium flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-danger inline-block shrink-0" />
-          Over budget by {formatCurrency(Math.round((category.actual - category.max) / divisor), currency)}
-        </p>
-      )}
-      {!isOver && category.min > 0 && (
-        <p className="text-[10px] text-text-muted mt-3 font-medium">
-          Target Minimum: {formatCurrency(Math.round(category.min / divisor), currency)}
-        </p>
-      )}
-    </Card>
+    </div>
   )
 }
 
@@ -357,14 +342,9 @@ export default function BudgetTab() {
           </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-5 text-center mb-2 pl-1">
+        <div className="grid grid-cols-2 gap-5 text-center mb-2 pl-1">
           <div className="relative">
-            <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest mb-1.5">Min Estimate</p>
-            <p className="font-heading text-2xl sm:text-3xl text-text-secondary tracking-tight">{formatCurrency(Math.round(totals.min / divisor), currency)}</p>
-            <div className="absolute right-0 top-2 bottom-2 w-px bg-border/50 hidden sm:block" />
-          </div>
-          <div className="relative">
-            <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest mb-1.5">Max Estimate</p>
+            <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest mb-1.5">Target Budget</p>
             <p className="font-heading text-2xl sm:text-3xl text-text-secondary tracking-tight">{formatCurrency(Math.round(totals.max / divisor), currency)}</p>
             <div className="absolute right-0 top-2 bottom-2 w-px bg-border/50 hidden sm:block" />
           </div>
