@@ -170,6 +170,9 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
   const buttonRef = useRef(null)
   const dropdownRef = useRef(null)
 
+  // Normalize to array of IDs
+  const assignees = Array.isArray(value) ? value : (value === 'shared' ? tripTravelers : (value ? [value] : []))
+
   const handleOpen = (e) => {
     e.stopPropagation()
     const rect = buttonRef.current.getBoundingClientRect()
@@ -195,7 +198,7 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
   let displayNode = null
   let displayName = ''
 
-  if (value === 'shared') {
+  if (assignees.length > 1) {
     if (isPacked && packedBy) {
       const p = resolveProfile(packedBy)
       if (p?.photo) {
@@ -213,8 +216,8 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
       )
       displayName = 'Shared'
     }
-  } else {
-    const p = resolveProfile(value)
+  } else if (assignees.length === 1) {
+    const p = resolveProfile(assignees[0])
     if (p) {
       if (p.photo) {
         displayNode = <img src={p.photo} alt={p.name} className="w-4 h-4 rounded-full object-cover" />
@@ -226,6 +229,9 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
       displayNode = <div className="w-4 h-4 flex items-center justify-center rounded-full border border-dashed border-border text-text-muted text-[10px]"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></div>
       displayName = 'Unassigned'
     }
+  } else {
+    displayNode = <div className="w-4 h-4 flex items-center justify-center rounded-full border border-dashed border-border text-text-muted text-[10px]"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg></div>
+    displayName = 'Unassigned'
   }
 
   return (
@@ -242,32 +248,34 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
       {open && coords && createPortal(
         <div
           ref={dropdownRef}
-          className="absolute z-[100] rounded-[var(--radius-md)] border border-border bg-bg-card shadow-lg min-w-[140px] py-1"
+          className="absolute z-[100] rounded-[var(--radius-md)] border border-border bg-bg-card shadow-lg min-w-[170px] py-1"
           style={{ top: coords.top, left: coords.left }}
         >
-          <button
-            onClick={(e) => { e.stopPropagation(); onChange('shared'); setOpen(false) }}
-            className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left transition-colors ${value === 'shared' ? 'bg-accent/8 text-accent font-semibold' : 'hover:bg-bg-hover text-text-secondary'}`}
-          >
-            <span className="text-sm">🤝</span>
-            <span>Shared Item</span>
-          </button>
-          <div className="h-px bg-border/50 my-1 mx-2" />
           {tripTravelers.map(tId => {
             const p = resolveProfile(tId)
             if (!p) return null
+            const isSelected = assignees.includes(tId)
             return (
               <button
                 key={tId}
-                onClick={(e) => { e.stopPropagation(); onChange(tId); setOpen(false) }}
-                className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left transition-colors ${value === tId ? 'bg-accent/8 text-accent font-semibold' : 'hover:bg-bg-hover text-text-secondary'}`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const next = isSelected ? assignees.filter(id => id !== tId) : [...assignees, tId]
+                  onChange(next)
+                }}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left transition-colors hover:bg-bg-hover text-text-secondary`}
               >
-                {p.photo ? (
-                  <img src={p.photo} alt="" className="w-4 h-4 rounded-full" />
-                ) : (
-                  <div className="w-4 h-4 rounded-full bg-accent text-white flex items-center justify-center text-[8px] font-bold uppercase">{p.name.charAt(0)}</div>
+                <div className="flex-1 flex items-center gap-2">
+                  {p.photo ? (
+                    <img src={p.photo} alt="" className="w-4 h-4 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-4 h-4 rounded-full bg-accent text-white flex items-center justify-center text-[8px] font-bold uppercase">{p.name.charAt(0)}</div>
+                  )}
+                  <span className="truncate">{p.name}</span>
+                </div>
+                {isSelected && (
+                  <svg className="w-3.5 h-3.5 text-accent shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 )}
-                <span className="truncate">{p.name}</span>
               </button>
             )
           })}
@@ -314,7 +322,7 @@ function InlineAddRow({ onAdd, defaultAssignee }) {
       <td className="px-2 py-2 align-middle">
         <CategoryPill value={category} onChange={setCategory} />
       </td>
-      <td colSpan={3} className="px-2 py-2 text-xs text-text-muted italic opacity-60">
+      <td colSpan={4} className="px-2 py-2 text-xs text-text-muted italic opacity-60">
         Fill in details after adding…
       </td>
     </tr>
@@ -338,8 +346,23 @@ export default function PackingTab() {
   const visibleItems = useMemo(() => {
     if (viewMode === 'group') return items
     const myId = currentUserProfile?.id
-    return items.filter(p => p.assignee === myId || (p.assignee === 'shared' && (!p.packed || p.packedBy === myId)))
-  }, [items, viewMode, currentUserProfile])
+    if (!myId) return []
+    const travelers = activeTrip.travelers ? Object.keys(activeTrip.travelers) : []
+
+    return items.filter(p => {
+      const assignees = Array.isArray(p.assignee)
+        ? p.assignee
+        : (p.assignee === 'shared' ? travelers : (p.assignee ? [p.assignee] : []))
+
+      if (!assignees.includes(myId)) return false
+
+      // If shared among multiple people, only show if unpacked OR I packed it
+      if (assignees.length > 1) {
+        return !p.packed || p.packedBy === myId
+      }
+      return true
+    })
+  }, [items, viewMode, currentUserProfile, activeTrip])
 
   const packed = visibleItems.filter(p => p.packed).length
   const total = visibleItems.length
@@ -369,8 +392,9 @@ export default function PackingTab() {
   }, [dispatch])
 
   const handleStarterList = () => {
+    const travelers = activeTrip.travelers ? Object.keys(activeTrip.travelers) : []
     STARTER_ITEMS.forEach(item =>
-      dispatch({ type: ACTIONS.ADD_PACKING_ITEM, payload: { ...item, assignee: currentUserProfile?.id || 'shared' } })
+      dispatch({ type: ACTIONS.ADD_PACKING_ITEM, payload: { ...item, assignee: travelers } })
     )
     showToast("Starter list added! Remove what you don't need 🧳")
   }
@@ -400,23 +424,6 @@ export default function PackingTab() {
           <PackedCheckbox
             packed={info.row.original.packed}
             onToggle={() => onToggle(info.row.original.id)}
-          />
-        </div>
-      ),
-    },
-    {
-      id: 'assignee',
-      header: <div className="text-center w-full">Who</div>,
-      size: 90,
-      cell: info => (
-        <div className="flex justify-center">
-          <AssigneePill
-            value={info.row.original.assignee || 'shared'}
-            packedBy={info.row.original.packedBy}
-            isPacked={info.row.original.packed}
-            onChange={val => onUpdate(info.row.original.id, { assignee: val })}
-            tripTravelers={activeTrip.travelers ? Object.keys(activeTrip.travelers) : []}
-            resolveProfile={resolveProfile}
           />
         </div>
       ),
@@ -473,6 +480,23 @@ export default function PackingTab() {
           className="text-sm text-text-muted block w-full truncate"
           placeholder="Add note…"
         />
+      ),
+    },
+    {
+      id: 'assignee',
+      header: <div className="text-center w-full">Who</div>,
+      size: 90,
+      cell: info => (
+        <div className="flex justify-center">
+          <AssigneePill
+            value={info.row.original.assignee}
+            packedBy={info.row.original.packedBy}
+            isPacked={info.row.original.packed}
+            onChange={val => onUpdate(info.row.original.id, { assignee: val })}
+            tripTravelers={activeTrip.travelers ? Object.keys(activeTrip.travelers) : []}
+            resolveProfile={resolveProfile}
+          />
+        </div>
       ),
     },
     {
@@ -627,7 +651,7 @@ export default function PackingTab() {
                   ))}
                 </tr>
               ))}
-              <InlineAddRow onAdd={onAdd} defaultAssignee={viewMode === 'me' ? currentUserProfile?.id : 'shared'} />
+              <InlineAddRow onAdd={onAdd} defaultAssignee={viewMode === 'me' && currentUserProfile?.id ? [currentUserProfile.id] : []} />
             </tbody>
           </table>
         </div>
