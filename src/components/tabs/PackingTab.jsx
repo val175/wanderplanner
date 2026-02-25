@@ -217,13 +217,13 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
       displayName = `Packed by ${p?.name?.split(' ')[0]}`
     } else {
       displayNode = (
-        <div className="flex flex-row items-center gap-2 pr-1.5 pl-0.5 py-0.5">
-          <div className="flex -space-x-2">
+        <div className="flex flex-row items-center gap-1.5 pl-0.5 pr-2 py-0.5">
+          <div className="flex -space-x-1.5">
             {assignees.slice(0, 3).map((tId, i) => {
               const p = resolveProfile(tId)
               if (!p) return null
               return (
-                <div key={tId} style={{ zIndex: 10 - i }} className="rounded-full flex shrink-0 ring-2 ring-bg-secondary">
+                <div key={tId} style={{ zIndex: 10 - i }} className="rounded-full flex shrink-0 ring-[1.5px] ring-bg-secondary">
                   <AvatarCircle profile={p} size={22} />
                 </div>
               )
@@ -242,7 +242,7 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
     const p = resolveProfile(assignees[0])
     if (p) {
       displayNode = (
-        <div className="flex flex-row items-center gap-2 pr-2 pl-0.5 py-0.5">
+        <div className="flex flex-row items-center gap-1.5 pl-0.5 pr-2 py-0.5">
           <AvatarCircle profile={p} size={22} />
           <span className="text-[13px] font-medium text-text-primary pt-px truncate max-w-[90px]">
             {p.name.split(' ')[0]}
@@ -252,7 +252,7 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
       displayName = p.name
     } else {
       displayNode = (
-        <div className="flex flex-row items-center gap-2 pr-2 pl-1 py-1">
+        <div className="flex flex-row items-center gap-1.5 pl-1.5 pr-2.5 py-1">
           <div className="w-[18px] h-[18px] flex items-center justify-center rounded-full border border-dashed border-border text-text-muted shrink-0">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
           </div>
@@ -263,7 +263,7 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
     }
   } else {
     displayNode = (
-      <div className="flex flex-row items-center gap-2 pr-2 pl-1 py-1">
+      <div className="flex flex-row items-center gap-1.5 pl-1.5 pr-2.5 py-1">
         <div className="w-[18px] h-[18px] flex items-center justify-center rounded-full border border-dashed border-border text-text-muted shrink-0">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
         </div>
@@ -278,7 +278,7 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
       <button
         ref={buttonRef}
         onClick={handleOpen}
-        className="inline-flex items-center justify-center rounded-full border border-border bg-bg-secondary hover:bg-bg-hover transition-colors group"
+        className="inline-flex items-center justify-center rounded-full border border-border/60 bg-bg-secondary hover:bg-bg-hover transition-colors group"
         title={displayName}
       >
         {displayNode}
