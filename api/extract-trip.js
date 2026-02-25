@@ -1,6 +1,4 @@
 import * as cheerio from 'cheerio'
-import { JSDOM } from 'jsdom'
-import { Readability } from '@mozilla/readability'
 import { GoogleGenAI } from '@google/genai'
 import 'dotenv/config'
 
@@ -44,18 +42,32 @@ async function extractArticleText(url) {
         $('script, style, noscript, nav, header, footer, aside, iframe, SVG, .ad, .advertisement').remove()
         const cleanHtml = $.html()
 
-        // Use JSDOM and Readability to extract just the main article content
-        const doc = new JSDOM(cleanHtml, { url })
-        const reader = new Readability(doc.window.document)
-        const article = reader.parse()
+        // Custom text extraction: instead of Readability (which uses JSDOM and breaks on Vercel ESM),
+        // we'll explicitly pull text from headings, paragraphs, and lists.
+        const contentChunks = []
 
-        if (!article || !article.textContent) {
+        $('h1, h2, h3, h4, h5, h6, p, li').each((_, el) => {
+            const text = $(el).text().trim()
+            if (text) {
+                // Determine if it's a heading based on tag name
+                const isHeading = el.tagName.match(/^h[1-6]$/i)
+                contentChunks.push(isHeading ? `\n## ${text}\n` : text)
+            }
+        })
+
+        const rawText = contentChunks.join('\n')
+
+        if (!rawText) {
             throw new Error("Could not extract main article content from this URL.")
         }
 
         // Compress massive amounts of whitespace
-        const compressedText = article.textContent.replace(/\s+/g, ' ').trim()
-        return { title: article.title, content: compressedText }
+        const compressedText = rawText.replace(/\n\s*\n/g, '\n\n').trim()
+
+        // Extract title
+        const parsedTitle = $('title').text().trim() || 'Imported Trip'
+
+        return { title: parsedTitle, content: compressedText }
 
     } catch (error) {
         console.error("Extraction error:", error)
@@ -139,8 +151,7 @@ ${articleText.substring(0, 30000)} // Limiting length to be safe
 
 export default async function handler(req, res) {
     // Enable CORS for frontend deployments (like Hostinger) to access this Vercel function
-    res.setHeader('Access-Control-Allow-Credentials', true)
-    res.setHeader('Access-Control-Allow-Origin', '*') // Or specifically the Hostinger domain
+    res.setHeader('Access-Control-Allow-Origin', '*') // Allow any origin to hit this API
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT')
     res.setHeader(
         'Access-Control-Allow-Headers',
