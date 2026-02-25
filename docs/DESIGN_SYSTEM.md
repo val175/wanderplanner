@@ -73,7 +73,8 @@ All distinct blocks of content should be wrapped in a `Card`.
 - Pass the `hover` boolean prop if the card should lift on hover (`<Card hover>`).
 
 ### 3. Modals (`src/components/shared/Modal.jsx`)
-Standard wrapper for popovers.
+Standard wrapper for popovers and drawers.
+- **MUST** use React Portals (`createPortal(..., document.body)`) to ensure they escape `overflow-hidden` or `relative` parent containers.
 - Uses `fixed inset-0 z-[9999]` and `w-screen h-screen` to cover the canvas.
 - Child content determines width using Tailwind max-w classes (e.g. `maxWidth="max-w-xl"`).
 

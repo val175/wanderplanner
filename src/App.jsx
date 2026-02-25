@@ -181,7 +181,7 @@ function AuthenticatedApp({ user, signOutUser }) {
                 role="tabpanel"
                 className="flex-1 overflow-y-auto"
               >
-                <div className="px-4 sm:px-8 py-5 sm:py-7 max-w-5xl mx-auto">
+                <div className="px-4 sm:px-8 py-5 sm:py-7 max-w-[1400px] mx-auto">
                   <TabPanel activeTab={state.activeTab} onTabSwitch={handleTabSwitch} />
                 </div>
               </div>

@@ -7,6 +7,7 @@ import {
     PointerSensor,
     useSensor,
     useSensors,
+    useDroppable,
 } from '@dnd-kit/core'
 import {
     SortableContext,
@@ -21,11 +22,15 @@ import { formatCurrency } from '../../utils/helpers'
 
 // ── Kanban Column (Droppable) ──────────────────────────────────────────────
 function KanbanColumn({ id, title, bookings, currency, onRowClick }) {
+    const { setNodeRef, isOver } = useDroppable({ id })
     // SortableContext requires an array of IDs
     const itemIds = useMemo(() => bookings.map(b => b.id), [bookings])
 
     return (
-        <div className="flex flex-col flex-shrink-0 w-72 bg-bg-secondary/20 border border-border/50 rounded-[var(--radius-lg)] p-2">
+        <div
+            ref={setNodeRef}
+            className={`flex flex-col flex-shrink-0 w-72 bg-bg-secondary/20 border rounded-[var(--radius-lg)] p-2 transition-colors ${isOver ? 'border-accent/50 bg-accent/5' : 'border-border/50'}`}
+        >
             <div className="px-3 py-2 mb-2 flex items-center justify-between border-b border-border/30">
                 <h3 className="font-semibold text-sm text-text-primary">{title}</h3>
                 <span className="text-xs font-medium text-text-muted bg-bg-card px-2 py-0.5 rounded-full border border-border/50">

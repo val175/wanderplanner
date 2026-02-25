@@ -6,6 +6,7 @@ import {
     getSortedRowModel,
 } from '@tanstack/react-table'
 import EditableText from '../shared/EditableText'
+import DatePicker from '../shared/DatePicker'
 import { BOOKING_CATEGORIES } from '../../constants/tabs'
 import { formatCurrency } from '../../utils/helpers'
 
@@ -181,12 +182,14 @@ export default function BookingsTable({
                 // Minimal date display for now. Will be enhanced when we normalize start/end dates.
                 const dateVal = row.bookByDate || row.startDate || ''
                 return (
-                    <EditableText
-                        value={dateVal}
-                        onSave={val => onUpdate(row.id, { bookByDate: val })}
-                        className="text-text-secondary text-sm"
-                        placeholder="—"
-                    />
+                    <div className="w-full">
+                        <DatePicker
+                            value={dateVal}
+                            onChange={val => onUpdate(row.id, { bookByDate: val })}
+                            className="text-text-secondary text-sm block cursor-pointer"
+                            placeholder="Set date..."
+                        />
+                    </div>
                 )
             }
         },

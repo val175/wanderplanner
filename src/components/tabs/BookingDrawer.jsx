@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { MONDAY_STATUSES, migrateStatus } from './BookingsTable'
 import { BOOKING_CATEGORIES } from '../../constants/tabs'
 import EditableText from '../shared/EditableText'
 import Button from '../shared/Button'
+import DatePicker from '../shared/DatePicker'
 
 export default function BookingDrawer({ booking, currency, onUpdate, onClose }) {
     const [mounted, setMounted] = useState(false)
@@ -16,23 +18,23 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose }) 
         return () => window.removeEventListener('keydown', handleEsc)
     }, [onClose])
 
-    if (!booking) return null
+    if (!booking || !mounted) return null
 
     const categoryConfig = BOOKING_CATEGORIES.find(c => c.id === booking.category) || BOOKING_CATEGORIES[0]
     const statusConfig = MONDAY_STATUSES.find(s => s.value === migrateStatus(booking.status)) || MONDAY_STATUSES[0]
 
-    return (
-        <>
+    return createPortal(
+        <div className="relative z-[9999]">
             {/* Backdrop */}
             <div
-                className={`fixed inset-0 bg-bg-primary/50 backdrop-blur-sm z-40 transition-opacity duration-300 ${mounted ? 'opacity-100' : 'opacity-0'
+                className={`fixed inset-0 bg-bg-primary/50 backdrop-blur-sm transition-opacity duration-300 ${mounted ? 'opacity-100' : 'opacity-0'
                     }`}
                 onClick={onClose}
             />
 
             {/* Drawer */}
             <div
-                className={`fixed inset-y-0 right-0 w-full max-w-md bg-bg-card border-l border-border/50 shadow-2xl z-50 transform transition-transform duration-300 ease-out flex flex-col ${mounted ? 'translate-x-0' : 'translate-x-full'
+                className={`fixed inset-y-0 right-0 w-full max-w-md bg-bg-card border-l border-border/50 shadow-2xl transform transition-transform duration-300 ease-out flex flex-col ${mounted ? 'translate-x-0' : 'translate-x-full'
                     }`}
             >
                 {/* Header */}
@@ -65,12 +67,14 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose }) 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
                             <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Date</span>
-                            <EditableText
-                                value={booking.bookByDate || booking.startDate || ''}
-                                onSave={val => onUpdate(booking.id, { bookByDate: val })}
-                                className="text-text-primary text-sm block"
-                                placeholder="Add date..."
-                            />
+                            <div className="pt-1">
+                                <DatePicker
+                                    value={booking.bookByDate || booking.startDate || ''}
+                                    onChange={val => onUpdate(booking.id, { bookByDate: val })}
+                                    className="text-text-primary text-sm block cursor-pointer hover:underline"
+                                    placeholder="Add date..."
+                                />
+                            </div>
                         </div>
                         <div className="space-y-1">
                             <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Cost</span>
@@ -139,6 +143,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose }) 
                 </div>
 
             </div>
-        </>
+        </div>,
+        document.body
     )
 }
