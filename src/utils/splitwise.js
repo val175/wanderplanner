@@ -14,28 +14,39 @@
 export function calculateBalances(spendingLog, travelers) {
     const balances = {}
     travelers.forEach(t => { balances[t.id] = 0 })
-
-    // Strictly only include expenses where both the payer and all split members
-    // are known current travelers. Skips stale/old data with unrecognized IDs.
     const knownIds = new Set(travelers.map(t => t.id))
+
+    console.group('[Splitwise] calculateBalances')
+    console.log('travelers:', travelers.map(t => `${t.name} (${t.id})`))
+    console.log('spendingLog entries:', spendingLog.length)
 
     for (const entry of spendingLog) {
         const { paidBy, splits } = entry
-        if (!paidBy || !splits) continue
-        if (!knownIds.has(paidBy)) continue  // unknown payer — skip entirely
+        if (!paidBy || !splits) {
+            console.log(`  SKIP: "${entry.description}" — no paidBy/splits`)
+            continue
+        }
+        if (!knownIds.has(paidBy)) {
+            console.log(`  SKIP: "${entry.description}" — unknown payer ${paidBy}`)
+            continue
+        }
+
+        console.log(`  PROCESS: "${entry.description}" amount=${entry.amount} paidBy=${paidBy} splits=`, splits)
 
         for (const [id, share] of Object.entries(splits)) {
-            if (id === paidBy) continue       // payer's own share — zero net
-            if (!knownIds.has(id)) continue   // unknown member — skip this split
+            const shareNum = Number(share) // coerce in case Firestore stores as string
+            if (id === paidBy) continue         // payer's own share — zero net
+            if (!knownIds.has(id)) continue     // unknown member — skip
 
-            balances[paidBy] += share  // payer is owed
-            balances[id] -= share  // member owes
+            balances[paidBy] += shareNum  // payer is owed
+            balances[id] -= shareNum  // member owes
         }
     }
 
+    console.log('Final balances:', { ...balances })
+    console.groupEnd()
     return balances
 }
-
 
 /**
  * Minimum Cash Flow algorithm — reduces a set of balances into the fewest
