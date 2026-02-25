@@ -15,6 +15,7 @@ import Button from '../shared/Button'
 import EditableText from '../shared/EditableText'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
+import AvatarCircle from '../shared/AvatarCircle'
 
 // ── Category config ─────────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -210,10 +211,8 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
   if (assignees.length > 1) {
     if (isPacked && packedBy) {
       const p = resolveProfile(packedBy)
-      if (p?.photo) {
-        displayNode = <img src={p.photo} alt={p.name} className="w-4 h-4 rounded-full object-cover" />
-      } else {
-        displayNode = <div className="w-4 h-4 rounded-full bg-accent/20 text-accent flex items-center justify-center text-[8px] font-bold uppercase">{p?.name?.charAt(0) || '?'}</div>
+      if (p) {
+        displayNode = <AvatarCircle profile={p} size={16} />
       }
       displayName = `Packed by ${p?.name?.split(' ')[0]}`
     } else {
@@ -223,21 +222,9 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
             {assignees.slice(0, 3).map((tId, i) => {
               const p = resolveProfile(tId)
               if (!p) return null
-              return p.photo ? (
-                <img
-                  key={tId}
-                  src={p.photo}
-                  alt={p.name}
-                  className="w-4 h-4 rounded-full border border-bg-card object-cover"
-                  style={{ zIndex: 10 - i }}
-                />
-              ) : (
-                <div
-                  key={tId}
-                  className="w-4 h-4 rounded-full border border-bg-card bg-accent text-white flex items-center justify-center text-[8px] font-bold uppercase"
-                  style={{ zIndex: 10 - i }}
-                >
-                  {p.name.charAt(0)}
+              return (
+                <div key={tId} style={{ zIndex: 10 - i }} className="rounded-full border border-bg-card flex shrink-0">
+                  <AvatarCircle profile={p} size={16} />
                 </div>
               )
             })}
@@ -256,11 +243,7 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
     if (p) {
       displayNode = (
         <div className="flex flex-row items-center gap-1.5 pe-1">
-          {p.photo ? (
-            <img src={p.photo} alt={p.name} className="w-4 h-4 rounded-full object-cover" />
-          ) : (
-            <div className="w-4 h-4 rounded-full bg-accent text-white flex items-center justify-center text-[8px] font-bold uppercase">{p.name.charAt(0)}</div>
-          )}
+          <AvatarCircle profile={p} size={16} />
           <span className="text-xs font-medium text-text-secondary pt-px truncate max-w-[80px]">
             {p.name.split(' ')[0]}
           </span>
@@ -270,7 +253,7 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
     } else {
       displayNode = (
         <div className="flex flex-row items-center gap-1.5 px-0.5">
-          <div className="w-4 h-4 flex items-center justify-center rounded-full border border-dashed border-border text-text-muted text-[10px]">
+          <div className="w-4 h-4 flex items-center justify-center rounded-full border border-dashed border-border text-text-muted text-[10px] shrink-0">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
           </div>
           <span className="text-xs font-medium text-text-secondary pt-px">Unassigned</span>
@@ -281,7 +264,7 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
   } else {
     displayNode = (
       <div className="flex flex-row items-center gap-1.5 px-0.5">
-        <div className="w-4 h-4 flex items-center justify-center rounded-full border border-dashed border-border text-text-muted text-[10px]">
+        <div className="w-4 h-4 flex items-center justify-center rounded-full border border-dashed border-border text-text-muted text-[10px] shrink-0">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
         </div>
         <span className="text-xs font-medium text-text-secondary pt-px">Unassigned</span>
@@ -322,11 +305,7 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
                 className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left transition-colors hover:bg-bg-hover text-text-secondary`}
               >
                 <div className="flex-1 flex items-center gap-2">
-                  {p.photo ? (
-                    <img src={p.photo} alt="" className="w-4 h-4 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-4 h-4 rounded-full bg-accent text-white flex items-center justify-center text-[8px] font-bold uppercase">{p.name.charAt(0)}</div>
-                  )}
+                  <AvatarCircle profile={p} size={16} />
                   <span className="truncate">{p.name}</span>
                 </div>
                 {isSelected && (
