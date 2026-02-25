@@ -90,3 +90,4 @@ All tables (e.g., Budget Spending Log, Bookings Table) must follow these strict 
 - **Headers (`<th>`)**: `px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted`. No background colors.
 - **Rows (`<tr>`)**: `border-t border-border/20 hover:bg-bg-hover transition-colors`.
 - **Cells (`<td>`)**: `px-2 py-3 align-middle text-sm`. No vertical borders (`border-r`) between columns.
+- **Inputs (`EditableText`)**: Inline inputs within tables should use full borders on focus/edit, e.g. `bg-bg-input border border-border rounded-[var(--radius-md)] focus:border-accent focus:outline-none`. When not focused, they should just look like row text. Amounts should always be formatted globally.

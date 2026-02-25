@@ -80,6 +80,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose }) 
                             <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Cost</span>
                             <EditableText
                                 value={booking.amountPaid ? String(booking.amountPaid) : ''}
+                                displayValue={booking.amountPaid ? formatCurrency(booking.amountPaid, currency) : undefined}
                                 onSave={val => onUpdate(booking.id, { amountPaid: Number(val) || 0 })}
                                 className="text-text-primary text-sm block"
                                 placeholder="0.00"

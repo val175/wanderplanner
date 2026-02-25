@@ -103,7 +103,7 @@ function InlineAddRow({ onAdd }) {
                         onChange={e => setName(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && handleSubmit(e)}
                         placeholder="+ New Booking (press Enter to add)"
-                        className="w-full bg-transparent text-[13px] font-medium text-text-primary placeholder:text-text-muted outline-none border-b border-border/30 focus:border-accent transition-colors py-1 px-1"
+                        className="w-full px-2 py-1.5 text-[13px] bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors"
                     />
                 </form>
             </td>
@@ -230,14 +230,18 @@ export default function BookingsTable({
             accessorKey: 'amountPaid',
             header: 'Cost',
             size: 100,
-            cell: info => (
-                <EditableText
-                    value={info.getValue() ? String(info.getValue()) : ''}
-                    onSave={val => onUpdate(info.row.original.id, { amountPaid: Number(val) || 0 })}
-                    className="text-text-primary text-sm font-medium tabular-nums text-right block w-full"
-                    placeholder={formatCurrency(0, currency)}
-                />
-            ),
+            cell: info => {
+                const val = info.getValue()
+                return (
+                    <EditableText
+                        value={val ? String(val) : ''}
+                        displayValue={val ? formatCurrency(val, currency) : undefined}
+                        onSave={newVal => onUpdate(info.row.original.id, { amountPaid: Number(newVal) || 0 })}
+                        className="text-text-primary text-sm font-medium tabular-nums text-right block w-full"
+                        placeholder={formatCurrency(0, currency)}
+                    />
+                )
+            },
         },
         {
             id: 'providerLink',
