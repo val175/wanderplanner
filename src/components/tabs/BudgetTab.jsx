@@ -110,7 +110,7 @@ function CategoryCard({ category, index, currency, travelers, perPerson }) {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-[22px] leading-none bg-bg-secondary w-10 h-10 rounded-xl flex items-center justify-center border border-border/50 shadow-sm">{category.emoji}</span>
+          <span className="text-[22px] leading-none bg-bg-secondary w-10 h-10 rounded-xl flex items-center justify-center border border-border/50">{category.emoji}</span>
           <EditableText
             value={category.name}
             onSave={val => dispatch({ type: ACTIONS.UPDATE_BUDGET_CATEGORY, payload: { id: category.id, updates: { name: val } } })}
@@ -238,13 +238,13 @@ function AddCategoryForm({ onAdd, onCancel }) {
             <button
               type="button"
               onClick={() => setShowEmojis(!showEmojis)}
-              className="w-10 h-10 rounded-xl bg-bg-card border border-border/50 flex items-center justify-center text-xl hover:bg-bg-hover transition-colors shadow-sm"
+              className="w-10 h-10 rounded-xl bg-bg-card border border-border/50 flex items-center justify-center text-xl hover:bg-bg-hover transition-colors"
               title="Pick an emoji"
             >
               {emoji}
             </button>
             {showEmojis && (
-              <div className="absolute top-12 left-0 p-2 bg-bg-card border border-border rounded-xl shadow-lg z-20 w-[180px] grid grid-cols-4 gap-1 animate-fade-in">
+              <div className="absolute top-12 left-0 p-2 bg-bg-card border border-border rounded-xl z-20 w-[180px] grid grid-cols-4 gap-1 animate-fade-in">
                 {commonEmojis.map(e => (
                   <button
                     key={e}
@@ -338,7 +338,7 @@ export default function BudgetTab() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Top Level Summary Card */}
-      <Card className="border border-border/60 shadow-sm relative overflow-hidden">
+      <Card className="border border-border/60 relative overflow-hidden">
         <div className="flex items-center justify-between mb-8 pl-1">
           <h2 className="font-heading text-lg text-text-primary flex items-center gap-2">
             <span className="text-xl">💰</span> Overall Budget
@@ -347,7 +347,7 @@ export default function BudgetTab() {
             onClick={() => setPerPerson(!perPerson)}
             className={`px-4 py-1.5 text-[11px] font-medium rounded-full border transition-all duration-200 uppercase tracking-widest
               ${perPerson
-                ? 'bg-accent text-white border-accent shadow-sm'
+                ? 'bg-accent text-white border-accent'
                 : 'border-border text-text-secondary hover:text-text-primary hover:bg-bg-hover'}`}
           >
             {perPerson ? 'Per Person' : 'Total'}
@@ -412,7 +412,7 @@ export default function BudgetTab() {
 
         {/* Right Col (Spending Log) - Spans 1 col, sticky */}
         <div className="sm:col-span-1 sm:sticky sm:top-[88px]">
-          <Card className="border border-border/50 shadow-sm">
+          <Card className="border border-border/50">
             <div className="flex justify-between items-baseline mb-5 border-b border-border/50 pb-3">
               <h3 className="font-heading text-base text-text-primary">Spending Log</h3>
               <button onClick={() => setAddingSpend(!addingSpend)} className="text-[11px] font-bold text-accent hover:text-accent-hover tracking-wide uppercase">
@@ -441,7 +441,7 @@ export default function BudgetTab() {
                   return (
                     <div key={entry.id} className="flex gap-3 py-2.5 px-1.5 rounded-lg hover:bg-bg-hover group transition-colors">
                       {/* Icon/Color Dot */}
-                      <div className="shrink-0 w-8 h-8 rounded-full bg-bg-secondary flex items-center justify-center border border-border/50 shadow-sm relative overflow-hidden text-[13px]">
+                      <div className="shrink-0 w-8 h-8 rounded-full bg-bg-secondary flex items-center justify-center border border-border/50 relative overflow-hidden text-[13px]">
                         {budget.find(c => c.name === entry.category)?.emoji || '💸'}
                       </div>
 
