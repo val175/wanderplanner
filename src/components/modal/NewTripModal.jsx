@@ -87,7 +87,7 @@ function StepBasics({ form, setForm }) {
     setIsImporting(true)
     setImportError('')
     try {
-      const res = await fetch('/api/extract-trip', {
+      const res = await fetch('https://wanderplan-rust.vercel.app/api/extract-trip', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: importUrl })
