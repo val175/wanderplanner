@@ -89,7 +89,7 @@ Requirements:
 2. Attempt to infer a start Date and end Date if mentioned (ISO 8601 format: YYYY-MM-DD). If no specific dates are mentioned but duration is (e.g., "7 days"), leave dates empty. If no dates are mentioned, leave them empty strings "".
 3. Suggest a fun "name" for the trip based on the article (e.g. "2 Weeks in Backpacking Vietnam")
 4. Suggest a single relevant emoji for the trip.
-5. Create budget categories based on standard travel needs (Flights, Accommodation, Food, Activities, Transport). If the article mentions specific expected costs or categories, include a rough estimated 'min' and 'max' budget for those. If no costs are mentioned, leave min/max at 0. ALL COSTS MUST BE CONVERTED AND ESTIMATED IN PHP (Philippine Pesos).
+5. Create budget categories based on standard travel needs (Flights, Accommodation, Food, Activities, Transport). If the article mentions specific expected costs or categories, include a rough estimated 'min' and 'max' budget for those. If no costs are mentioned, leave min/max at 0. ALL COSTS MUST BE CONVERTED AND ESTIMATED IN PHP (Philippine Pesos). If the blog quotes prices in USD, EUR, AUD, or other currencies, you MUST mathematically convert them to PHP using current approximate exchange rates before returning them.
 6. The exact output MUST be a valid JSON matching this schema:
 
 {
