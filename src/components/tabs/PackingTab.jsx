@@ -218,22 +218,55 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
       displayName = `Packed by ${p?.name?.split(' ')[0]}`
     } else {
       displayNode = (
-        <div className="flex flex-row items-center gap-1.5 px-0.5">
-          <svg className="w-3.5 h-3.5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-          <span className="text-xs font-medium text-text-secondary pt-px">Shared</span>
+        <div className="flex flex-row items-center">
+          <div className="flex -space-x-1.5 mr-1.5">
+            {assignees.slice(0, 3).map((tId, i) => {
+              const p = resolveProfile(tId)
+              if (!p) return null
+              return p.photo ? (
+                <img
+                  key={tId}
+                  src={p.photo}
+                  alt={p.name}
+                  className="w-4 h-4 rounded-full border border-bg-card object-cover"
+                  style={{ zIndex: 10 - i }}
+                />
+              ) : (
+                <div
+                  key={tId}
+                  className="w-4 h-4 rounded-full border border-bg-card bg-accent text-white flex items-center justify-center text-[8px] font-bold uppercase"
+                  style={{ zIndex: 10 - i }}
+                >
+                  {p.name.charAt(0)}
+                </div>
+              )
+            })}
+          </div>
+          <span className="text-xs font-medium text-text-secondary pt-px truncate max-w-[80px]">
+            {assignees.length === 2
+              ? `${resolveProfile(assignees[0])?.name?.split(' ')[0]} & ${resolveProfile(assignees[1])?.name?.split(' ')[0]}`
+              : `${assignees.length} people`}
+          </span>
         </div>
       )
-      displayName = 'Shared'
+      displayName = assignees.map(id => resolveProfile(id)?.name).filter(Boolean).join(', ')
     }
   } else if (assignees.length === 1) {
     const p = resolveProfile(assignees[0])
     if (p) {
-      if (p.photo) {
-        displayNode = <img src={p.photo} alt={p.name} className="w-4 h-4 rounded-full object-cover" />
-      } else {
-        displayNode = <div className="w-4 h-4 rounded-full bg-accent text-white flex items-center justify-center text-[8px] font-bold uppercase">{p.name.charAt(0)}</div>
-      }
-      displayName = p.name.split(' ')[0]
+      displayNode = (
+        <div className="flex flex-row items-center gap-1.5 pe-1">
+          {p.photo ? (
+            <img src={p.photo} alt={p.name} className="w-4 h-4 rounded-full object-cover" />
+          ) : (
+            <div className="w-4 h-4 rounded-full bg-accent text-white flex items-center justify-center text-[8px] font-bold uppercase">{p.name.charAt(0)}</div>
+          )}
+          <span className="text-xs font-medium text-text-secondary pt-px truncate max-w-[80px]">
+            {p.name.split(' ')[0]}
+          </span>
+        </div>
+      )
+      displayName = p.name
     } else {
       displayNode = (
         <div className="flex flex-row items-center gap-1.5 px-0.5">
