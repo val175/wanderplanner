@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import Card from '../shared/Card'
 import EditableText from '../shared/EditableText'
 import { useTripContext } from '../../context/TripContext'
@@ -275,9 +275,9 @@ function InlineExpenseRow({ categories, travelers, currency, onAdd }) {
   const descRef = useRef()
   const amtRef = useRef()
 
-  // Keep selects in sync if categories/travelers change
-  useMemo(() => { if (categories[0] && !cat) setCat(categories[0].name) }, [categories])
-  useMemo(() => { if (travelers[0] && !paidBy) setPaidBy(travelers[0].id) }, [travelers])
+  // Sync selects when props change (must be effects, not useMemo, to avoid rendering side-effects)
+  useEffect(() => { if (categories[0] && !cat) setCat(categories[0].name) }, [categories])
+  useEffect(() => { if (travelers[0] && !paidBy) setPaidBy(travelers[0].id) }, [travelers])
 
   const handleSubmit = (e) => {
     e?.preventDefault()
