@@ -89,11 +89,11 @@ function InlineAddRow({ onAdd }) {
     }
 
     return (
-        <tr className="border-t border-border/30 bg-accent/[0.03]">
-            <td className="p-2 border-r border-border/30 align-middle">
+        <tr className="border-t border-border/40 bg-accent/[0.02]">
+            <td className="p-2 align-middle">
                 <TypeDropdown value={category} onChange={setCategory} />
             </td>
-            <td className="p-2 border-r border-border/30">
+            <td className="p-2">
                 <form onSubmit={handleSubmit} className="flex h-full">
                     <input
                         ref={inputRef}
@@ -148,7 +148,7 @@ export default function BookingsTable({
                     <EditableText
                         value={info.getValue()}
                         onSave={val => onUpdate(info.row.original.id, { name: val })}
-                        className="font-medium text-text-primary text-sm flex-1 truncate"
+                        className="text-[13px] font-medium text-text-primary flex-1 truncate"
                         onClick={e => e.stopPropagation()}
                     />
                     <button
@@ -314,34 +314,31 @@ export default function BookingsTable({
 
     // Fixed table layout to allow truncation and defined widths
     return (
-        <div className="w-full overflow-x-auto rounded-[var(--radius-md)] border border-border/50 bg-bg-card shadow-sm scrollbar-thin">
-            <table className="w-full text-left border-collapse table-fixed min-w-[900px]">
+        <div className="w-full overflow-x-auto overflow-y-visible -mx-5 px-5 sm:mx-0 sm:px-0 scrollbar-thin">
+            <table className="w-full text-left border-collapse table-fixed min-w-[900px] text-sm">
                 <thead>
-                    {table.getHeaderGroups().map(headerGroup => (
-                        <tr key={headerGroup.id} className="border-b border-border/50 bg-bg-secondary/50">
-                            {headerGroup.headers.map(header => (
-                                <th
-                                    key={header.id}
-                                    className="px-3 py-2 text-xs font-semibold text-text-muted uppercase tracking-wider overflow-hidden"
-                                    style={{ width: header.column.getSize() !== 150 ? header.column.getSize() : 'auto' }}
-                                >
-                                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                                </th>
-                            ))}
-                        </tr>
-                    ))}
+                    <tr className="border-b border-border/50">
+                        {table.getHeaderGroups()[0].headers.map(header => (
+                            <th
+                                key={header.id}
+                                className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted overflow-hidden"
+                                style={{ width: header.column.getSize() !== 150 ? header.column.getSize() : 'auto' }}
+                            >
+                                {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                            </th>
+                        ))}
+                    </tr>
                 </thead>
-                <tbody className="divide-y divide-border/30">
+                <tbody>
                     {table.getRowModel().rows.map(row => (
                         <tr
                             key={row.id}
-                            className="group hover:bg-bg-hover/50 transition-colors"
+                            className="group hover:bg-bg-hover transition-colors border-t border-border/20"
                         >
                             {row.getVisibleCells().map(cell => (
                                 <td
                                     key={cell.id}
-                                    className={`px-3 py-2 align-middle overflow-hidden ${cell.column.id === 'actions' ? 'w-10' : ''
-                                        } ${cell.column.id !== 'category' && cell.column.id !== 'actions' ? 'border-r border-border/10' : ''
+                                    className={`px-2 py-3 align-middle overflow-hidden ${cell.column.id === 'actions' ? 'w-10' : ''
                                         }`}
                                     style={{ width: cell.column.getSize() !== 150 ? cell.column.getSize() : 'auto' }}
                                 >

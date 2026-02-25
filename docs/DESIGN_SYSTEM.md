@@ -83,4 +83,10 @@ When building raw inputs (if not using EditableText or DatePicker):
 - **Base classes**: `w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary`
 - **Focus states**: `focus:outline-none focus:border-accent`
 - **Padding**: Usually `px-3 py-2` or `px-4 py-3` for larger search bars.
-- **Placeholders**: `placeholder:text-text-muted`
+
+### 5. Tables
+All tables (e.g., Budget Spending Log, Bookings Table) must follow these strict style rules to maintain a lightweight, spreadsheet-like feel:
+- **Container**: No outer border radius or `bg-bg-card` wrapping the table. Let it bleed to the edges or use `-mx-5` on mobile. Use `overflow-x-auto overflow-y-visible`.
+- **Headers (`<th>`)**: `px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted`. No background colors.
+- **Rows (`<tr>`)**: `border-t border-border/20 hover:bg-bg-hover transition-colors`.
+- **Cells (`<td>`)**: `px-2 py-3 align-middle text-sm`. No vertical borders (`border-r`) between columns.
