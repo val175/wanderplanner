@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import Card from '../shared/Card'
 import EditableText from '../shared/EditableText'
 import TimePicker from '../shared/TimePicker'
@@ -10,430 +10,355 @@ import { ACTIONS } from '../../state/tripReducer'
 import { formatDate } from '../../utils/helpers'
 import { ACTIVITY_EMOJIS } from '../../constants/emojis'
 
-// ── 24h → 12h display (e.g. "14:30" → "2:30 PM") ─────────────────────────
-function fmt12h(t) {
-  const [h, m] = t.split(':').map(Number)
-  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`
-}
-
-// ── Activity type → left-border accent color ───────────────────────────────
-// Maps emoji to a CSS left-border color token so each activity type is
-// instantly scannable without reading the text.
+// ── Utilities ──────────────────────────────────────────────────────────────
 function getActivityAccent(emoji) {
   const map = {
-    '✈️': 'border-l-info',        // flight — blue
-    '🛫': 'border-l-info',
-    '🛬': 'border-l-info',
-    '🏨': 'border-l-success',     // hotel — green
-    '🛏️': 'border-l-success',
-    '🍜': 'border-l-warning',     // food — gold
-    '🍽️': 'border-l-warning',
-    '🥘': 'border-l-warning',
-    '🍺': 'border-l-warning',
-    '☕': 'border-l-warning',
-    '🎵': 'border-l-accent',      // concert/music — terra cotta
-    '🎸': 'border-l-accent',
-    '🎤': 'border-l-accent',
-    '🎯': 'border-l-accent',      // experience
-    '🏛️': 'border-l-accent',
-    '🚕': 'border-l-[var(--color-text-muted)]', // transport — neutral
-    '🚂': 'border-l-[var(--color-text-muted)]',
-    '⛴️': 'border-l-[var(--color-text-muted)]',
+    '✈️': 'border-l-info text-info', '🛫': 'border-l-info text-info', '🛬': 'border-l-info text-info',
+    '🏨': 'border-l-success text-success', '🛏️': 'border-l-success text-success',
+    '🍜': 'border-l-warning text-warning', '🍽️': 'border-l-warning text-warning', '🥘': 'border-l-warning text-warning', '🍺': 'border-l-warning text-warning', '☕': 'border-l-warning text-warning',
+    '🎵': 'border-l-accent text-accent', '🎸': 'border-l-accent text-accent', '🎤': 'border-l-accent text-accent',
+    '🎯': 'border-l-accent text-accent', '🏛️': 'border-l-accent text-accent',
+    '🚕': 'border-l-[var(--color-text-muted)] text-text-muted', '🚂': 'border-l-[var(--color-text-muted)] text-text-muted', '⛴️': 'border-l-[var(--color-text-muted)] text-text-muted',
   }
-  return map[emoji] || 'border-l-border'
+  return map[emoji] || 'border-l-border text-border-strong'
 }
 
-// ── Time gap indicator between activities ──────────────────────────────────
-function GapIndicator({ fromTime, toTime }) {
-  if (!fromTime || !toTime) return null
-  const toMins = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m }
-  const gap = toMins(toTime) - toMins(fromTime)
-  if (gap < 90) return null
-  const h = Math.floor(gap / 60)
-  const m = gap % 60
-  const label = m === 0 ? `${h}h free` : `${h}h ${m}m free`
-  return (
-    <div className="flex items-center gap-2 py-1 px-2 select-none pointer-events-none">
-      <div className="flex-1 h-px bg-border" />
-      <span className="text-[10px] text-text-muted tracking-wide">· {label} ·</span>
-      <div className="flex-1 h-px bg-border" />
-    </div>
-  )
-}
-
-// ── Activity Item with drag reorder ────────────────────────────────────────
-function ActivityItem({ activity, dayId, index, onUpdate, onDelete, onReorder }) {
-  const [dragOver, setDragOver] = useState(false)
-  const accentBorder = getActivityAccent(activity.emoji)
-
-  return (
-    <div
-      draggable
-      onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('activityIndex', String(index)) }}
-      onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-      onDragLeave={() => setDragOver(false)}
-      onDrop={e => {
-        e.preventDefault(); setDragOver(false)
-        const fromIndex = Number(e.dataTransfer.getData('activityIndex'))
-        if (fromIndex !== index) onReorder(fromIndex, index)
-      }}
-      className={`flex items-start gap-2 group py-2 pl-2 rounded transition-all cursor-default
-        border-l-2 ${accentBorder}
-        ${dragOver ? 'bg-bg-hover' : ''}`}
-    >
-      <span className="flex-shrink-0 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-30 mt-1 text-text-muted select-none text-base">⠿</span>
-      {/* Time — custom TimePicker popover */}
-      <div className="flex-shrink-0 w-[4.5rem] pt-0.5 text-right">
-        <TimePicker
-          value={activity.time}
-          onChange={time => onUpdate({ time })}
-          className={!activity.time ? 'opacity-0 group-hover:opacity-40 transition-opacity text-text-muted' : 'text-text-muted'}
-          placeholder="＋time"
-        />
-      </div>
-      <span className="text-lg flex-shrink-0 mt-0.5">{activity.emoji}</span>
-      <div className="flex-1 min-w-0">
-        {/* Title · notes inline with dot separator */}
-        <div className="flex items-baseline gap-1.5 flex-wrap">
-          <EditableText
-            value={activity.name}
-            onSave={val => onUpdate({ name: val })}
-            className="text-text-primary font-medium text-sm leading-snug"
-            placeholder="Activity name"
-          />
-          {(activity.notes || activity.notes === '') && (
-            <>
-              {activity.notes && <span className="text-text-muted text-xs select-none">·</span>}
-              <EditableText
-                value={activity.notes || ''}
-                onSave={val => onUpdate({ notes: val })}
-                className="text-xs text-text-muted leading-relaxed"
-                placeholder="Add notes…"
-                multiline
-              />
-            </>
-          )}
-        </div>
-      </div>
-      <button
-        onClick={onDelete}
-        className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger text-sm transition-opacity p-1 flex-shrink-0"
-      >✕</button>
-    </div>
-  )
-}
-
-// ── Add Activity Form ───────────────────────────────────────────────────────
-function AddActivityForm({ onAdd, onCancel }) {
+// ── Shared Add Activity Inline ──────────────────────────────────────────────
+function InlineAddRow({ onAdd, defaultEmoji = '📌' }) {
   const [name, setName] = useState('')
   const [time, setTime] = useState('')
-  const [emoji, setEmoji] = useState('📌')
-  const [notes, setNotes] = useState('')
+  const [emoji, setEmoji] = useState(defaultEmoji)
   const [showEmojis, setShowEmojis] = useState(false)
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!name.trim()) return
-    onAdd({ name: name.trim(), time, emoji, notes: notes.trim() })
-    setName(''); setTime(''); setEmoji('📌'); setNotes('')
+    onAdd({ name: name.trim(), time, emoji })
+    setName('')
+    setTime('')
+    setEmoji(defaultEmoji)
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-3 p-3 bg-bg-primary rounded-[var(--radius-md)] border border-border">
-      <div className="flex gap-2 items-start">
+    <form onSubmit={handleSubmit} className="flex items-center gap-3 w-full group">
+      <div className="w-[80px] shrink-0">
         <TimePicker
           value={time}
           onChange={setTime}
-          variant="input"
-          placeholder="Time"
-          className="w-24"
+          className="text-sm border-transparent hover:border-border focus:border-accent bg-transparent"
+          placeholder="+time"
         />
-        <div className="relative">
-          <button type="button" onClick={() => setShowEmojis(!showEmojis)}
-            className="text-xl p-1.5 border border-border rounded-[var(--radius-sm)] hover:bg-bg-hover">{emoji}</button>
-          {showEmojis && (
-            <div className="absolute top-full left-0 mt-1 p-2 bg-bg-secondary border border-border rounded-[var(--radius-md)] grid grid-cols-4 gap-1 z-10">
-              {ACTIVITY_EMOJIS.map(e => (
-                <button key={e.emoji} type="button" onClick={() => { setEmoji(e.emoji); setShowEmojis(false) }}
-                  className="text-lg p-1 hover:bg-bg-hover rounded" title={e.label}>{e.emoji}</button>
-              ))}
-            </div>
-          )}
-        </div>
-        <input value={name} onChange={e => setName(e.target.value)} placeholder="Activity name"
-          className="flex-1 px-3 py-1.5 text-sm bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary placeholder:text-text-muted" />
       </div>
-      <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes (optional)"
-        className="w-full mt-2 px-3 py-1.5 text-sm bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary placeholder:text-text-muted" />
-      <div className="flex gap-2 mt-2 justify-end">
-        <button type="button" onClick={onCancel} className="px-3 py-1 text-sm text-text-muted hover:text-text-secondary">Cancel</button>
-        <button type="submit" className="px-3 py-1 text-sm bg-accent text-white rounded-[var(--radius-sm)] hover:bg-accent-hover">Add</button>
+      <div className="relative shrink-0 w-[40px] flex items-center justify-center">
+        <button type="button" onClick={() => setShowEmojis(!showEmojis)}
+          className="text-lg p-1 hover:bg-bg-hover rounded transition-colors">{emoji}</button>
+        {showEmojis && (
+          <div className="absolute top-full left-0 mt-1 p-2 bg-bg-card border border-border rounded-[var(--radius-md)] grid grid-cols-4 gap-1 z-50 shadow-lg">
+            {ACTIVITY_EMOJIS.map(e => (
+              <button key={e.emoji} type="button" onClick={() => { setEmoji(e.emoji); setShowEmojis(false) }}
+                className="text-lg p-1 hover:bg-bg-hover rounded" title={e.label}>{e.emoji}</button>
+            ))}
+          </div>
+        )}
+      </div>
+      <input
+        value={name}
+        onChange={e => setName(e.target.value)}
+        placeholder="+ Add item"
+        className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
+      />
+      <div className="w-[100px] shrink-0 text-right opacity-0 group-hover:opacity-100 transition-opacity">
+        <button type="submit" className="text-xs font-medium bg-bg-secondary hover:bg-border/50 text-text-secondary px-3 py-1.5 rounded-full" disabled={!name.trim()}>
+          Add
+        </button>
       </div>
     </form>
   )
 }
 
-// ── Import CSV Modal ────────────────────────────────────────────────────────
-function ImportCSVModal({ isOpen, onClose, onImport }) {
-  const [csvText, setCsvText] = useState('')
-
-  const handleImport = () => {
-    if (!csvText.trim()) return
-    onImport(csvText)
-    setCsvText('')
-    onClose()
-  }
-
-  const templateStr = "Date, Location, Time, Activity, Notes\n2026-06-01, Paris, 10:00, Louvre Museum, Bring tickets\n2026-06-01, Paris, 12:30, Lunch at Le Fumoir, \n2026-06-02, London, 09:00, Eurostar to London, "
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} maxWidth="max-w-2xl">
-      <div className="p-6">
-        <h3 className="font-heading text-xl font-semibold mb-2 text-text-primary">Import Itinerary</h3>
-        <p className="text-sm text-text-muted mb-4">
-          Paste your spreadsheet data below. Please include headers. Rows with the same Date will be grouped into one day.
-        </p>
-        <div className="bg-bg-secondary p-3 rounded-[var(--radius-md)] border border-border mb-4 overflow-x-auto text-xs font-mono text-text-muted">
-          <p className="font-semibold text-text-secondary mb-1">Expected Format / Template:</p>
-          <pre>{templateStr}</pre>
-        </div>
-        <textarea
-          value={csvText}
-          onChange={e => setCsvText(e.target.value)}
-          placeholder="Paste CSV or TSV data here..."
-          rows={8}
-          className="w-full px-4 py-3 bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent font-mono text-sm leading-relaxed whitespace-pre"
-        />
-        <div className="flex justify-end gap-3 mt-5">
-          <Button variant="ghost" size="md" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button size="md" onClick={handleImport} disabled={!csvText.trim()}>
-            Import Itinerary
-          </Button>
-        </div>
-      </div>
-    </Modal>
-  )
-}
-
-// ── Day Card with drag reorder ──────────────────────────────────────────────
-function DayCard({ day, dayIndex, isConcertDay, onReorderDay }) {
+// ── Table View: Day Group ───────────────────────────────────────────────────
+function DayGroupTable({ day, onReorderDay, trip }) {
   const { dispatch } = useTripContext()
   const [expanded, setExpanded] = useState(true)
-  const [adding, setAdding] = useState(false)
-  const [editingNotes, setEditingNotes] = useState(false)
-  const [notesValue, setNotesValue] = useState(day.notes || '')
-  const [dragOver, setDragOver] = useState(false)
+  const [dragOverGroup, setDragOverGroup] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
-  const cardClasses = isConcertDay ? 'border-concert-red/30 bg-concert-dark/5 dark:bg-concert-dark/30' : ''
+  const handleDropActivity = (e, targetIndex) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOverGroup(false)
+    const sourceDataStr = e.dataTransfer.getData('application/json')
+    if (!sourceDataStr) return
+    const { type, sourceDayId, activityId, sourceIndex } = JSON.parse(sourceDataStr)
 
-  // Google Maps search URL built from location text
-  const mapsUrl = day.location
-    ? `https://www.google.com/maps/search/${encodeURIComponent(day.location)}`
-    : null
-
-  const saveNotes = () => {
-    dispatch({ type: ACTIONS.UPDATE_DAY, payload: { dayId: day.id, updates: { notes: notesValue } } })
-    setEditingNotes(false)
+    if (type === 'activity') {
+      if (sourceDayId === day.id) {
+        if (sourceIndex !== targetIndex) {
+          dispatch({ type: ACTIONS.REORDER_ACTIVITIES, payload: { dayId: day.id, fromIndex: sourceIndex, toIndex: targetIndex } })
+        }
+      } else {
+        dispatch({ type: ACTIONS.MOVE_ACTIVITY_BETWEEN_DAYS, payload: { fromDayId: sourceDayId, toDayId: day.id, activityId, toIndex: targetIndex } })
+      }
+    }
   }
+
+  const headerColorMatch = Object.values(getActivityAccent(day.emoji)).join(' ')
+  // Extract just the background-ish hex or use a default if it's complex, for pure styling let's use the border color reference but soft.
+  const hasNotes = !!day.notes
 
   return (
     <div
-      className={`relative animate-fade-in transition-all ${dragOver ? 'border-t-2 border-accent' : ''}`}
+      className={`mb-8 border border-border rounded-[var(--radius-md)] overflow-hidden bg-bg-card shadow-sm transition-all ${dragOverGroup ? 'ring-2 ring-accent' : ''}`}
       draggable
-      onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('dayIndex', String(dayIndex)) }}
-      onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-      onDragLeave={() => setDragOver(false)}
+      onDragStart={e => {
+        // Only allow dragging by the handle to prevent accidentally moving the group when picking up text
+        if (!e.target.closest('.group-drag-handle')) {
+          e.preventDefault()
+          return
+        }
+        e.dataTransfer.setData('application/json', JSON.stringify({ type: 'day', dayId: day.id }))
+      }}
+      onDragOver={e => {
+        e.preventDefault()
+        setDragOverGroup(true)
+      }}
+      onDragLeave={() => setDragOverGroup(false)}
       onDrop={e => {
-        e.preventDefault(); setDragOver(false)
-        const fromIndex = Number(e.dataTransfer.getData('dayIndex'))
-        if (fromIndex !== dayIndex) onReorderDay(fromIndex, dayIndex)
+        e.preventDefault()
+        setDragOverGroup(false)
+        const sourceDataStr = e.dataTransfer.getData('application/json')
+        if (!sourceDataStr) return
+        const sourceData = JSON.parse(sourceDataStr)
+        if (sourceData.type === 'day') {
+          // Reorder groups
+          const fromIndex = trip.itinerary.findIndex(d => d.id === sourceData.dayId)
+          const toIndex = trip.itinerary.findIndex(d => d.id === day.id)
+          if (fromIndex !== -1 && toIndex !== -1 && fromIndex !== toIndex) {
+            onReorderDay(fromIndex, toIndex)
+          }
+        } else if (sourceData.type === 'activity') {
+          // Drop activity into empty group or end of group
+          handleDropActivity(e, day.activities?.length || 0)
+        }
       }}
     >
-      {/* Timeline */}
-      <div className="absolute left-5 top-0 bottom-0 w-px bg-border hidden md:block" />
-      <div className={`absolute left-3 top-6 w-5 h-5 rounded-full border-2 hidden md:block z-10
-        ${isConcertDay ? 'border-concert-red bg-concert-red/20' : 'border-accent bg-accent/20'}`} />
-
       <ConfirmDialog
         isOpen={confirmDelete}
         onClose={() => setConfirmDelete(false)}
         onConfirm={() => dispatch({ type: ACTIONS.REMOVE_DAY, payload: day.id })}
         title={`Remove Day ${day.dayNumber}?`}
-        message={`This will permanently delete Day ${day.dayNumber} and all ${day.activities?.length} ${day.activities?.length === 1 ? 'activity' : 'activities'} on it. This cannot be undone.`}
+        message="This will permanently delete this day and all its activities. Cannot be undone."
         confirmLabel="Remove Day"
         danger
       />
 
-      <Card className={`md:ml-12 ${cardClasses}`}>
-        {/* Header */}
-        <div className="flex items-center gap-2">
-          <span className="hidden md:block cursor-grab active:cursor-grabbing text-text-muted opacity-30 hover:opacity-60 select-none" title="Drag to reorder">⠿</span>
-          <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => setExpanded(!expanded)}>
-            <span className="text-2xl">{day.emoji}</span>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className={`font-heading font-semibold ${isConcertDay ? 'text-concert-red' : 'text-text-primary'}`}>
-                  Day {day.dayNumber}
-                </span>
-                <span className="text-text-muted text-sm">·</span>
-                <span className="text-sm text-text-secondary">{formatDate(day.date, 'long')}</span>
-              </div>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <EditableText
-                  value={day.location}
-                  onSave={val => dispatch({ type: ACTIONS.UPDATE_DAY, payload: { dayId: day.id, updates: { location: val } } })}
-                  className="text-sm text-text-muted"
-                  placeholder="Location"
-                />
-                {mapsUrl && (
-                  <a
-                    href={mapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={e => e.stopPropagation()}
-                    className="text-sm hover:opacity-70 transition-opacity flex-shrink-0"
-                    title="View on Google Maps"
-                  >
-                    🗺️
-                  </a>
-                )}
-              </div>
-            </div>
+      {/* Group Header (Monday.com style) */}
+      <div className={`group relative flex items-center gap-3 px-4 py-3 border-l-[6px] border-b border-border bg-bg-sidebar transition-colors hover:bg-bg-hover ${getActivityAccent(day.emoji).split(' ')[0]}`}>
+        <div className="group-drag-handle cursor-grab active:cursor-grabbing text-text-muted opacity-0 group-hover:opacity-100 px-1 absolute -left-5 bg-bg-card rounded shadow-sm border border-border z-10">⠿</div>
+        <button onClick={() => setExpanded(!expanded)} className="text-text-muted hover:text-text-primary transition-colors text-lg w-6 flex justify-center">
+          <span className={`transform transition-transform ${expanded ? 'rotate-90' : ''}`}>›</span>
+        </button>
+        <span className="text-2xl min-w-[30px] text-center">{day.emoji}</span>
+        <div className="flex-1 min-w-0 flex items-center gap-4">
+          <EditableText
+            value={`Day ${day.dayNumber} · ${formatDate(day.date, 'short')}`}
+            onSave={val => {
+              // Extract just the date part if they edited that... complex, so let's just use it as a title display.
+              // For simplicity in Monday style, the group TITLE is editable. Let's map it to "location" or a new "title"
+              dispatch({ type: ACTIONS.UPDATE_DAY, payload: { dayId: day.id, updates: { location: val } } })
+            }}
+            className={`font-heading text-[1.1rem] font-medium text-text-primary ${getActivityAccent(day.emoji).split(' ')[1]}`}
+            placeholder="Name this group..."
+          />
+          <EditableText
+            value={day.notes || ''}
+            onSave={val => dispatch({ type: ACTIONS.UPDATE_DAY, payload: { dayId: day.id, updates: { notes: val } } })}
+            className="text-xs text-text-muted"
+            placeholder="Add day notes..."
+          />
+        </div>
+        <div className="flex items-center gap-4 opacity-100 group-hover:opacity-100 transition-opacity text-sm">
+          <span className="text-text-muted tabular-nums">{day.activities?.length || 0} items</span>
+          <button onClick={() => { (day.activities?.length > 0) ? setConfirmDelete(true) : dispatch({ type: ACTIONS.REMOVE_DAY, payload: day.id }) }} className="text-text-muted hover:text-danger text-lg px-2">✕</button>
+        </div>
+      </div>
+
+      {/* Group Grid Content */}
+      {expanded && (
+        <div className="flex flex-col text-sm border-l border-border/50">
+          {/* Table Headers */}
+          <div className="flex items-center border-b border-border text-xs font-semibold text-text-muted py-2 px-6">
+            <div className="w-[80px]">TIME</div>
+            <div className="w-[40px] text-center"></div>
+            <div className="flex-1">ITEM</div>
+            <div className="flex-1 px-4">NOTES</div>
+            <div className="w-[60px]"></div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-xs text-text-muted">{day.activities?.length || 0}</span>
-            <button
-              onClick={e => {
-                e.stopPropagation()
-                if (day.activities?.length > 0) {
-                  setConfirmDelete(true)
-                } else {
-                  dispatch({ type: ACTIONS.REMOVE_DAY, payload: day.id })
-                }
-              }}
-              className="text-xs text-text-muted hover:text-danger transition-colors px-1"
-            >✕</button>
-            <span className={`text-text-muted cursor-pointer transition-transform ${expanded ? 'rotate-180' : ''}`}
-              onClick={() => setExpanded(!expanded)}>▾</span>
+
+          {/* Activity Rows */}
+          <div className="flex flex-col h-full min-h-[40px]">
+            {day.activities?.map((activity, index) => (
+              <div
+                key={activity.id}
+                draggable
+                onDragStart={(e) => {
+                  e.stopPropagation()
+                  e.dataTransfer.setData('application/json', JSON.stringify({ type: 'activity', sourceDayId: day.id, activityId: activity.id, sourceIndex: index }))
+                }}
+                onDragOver={e => e.preventDefault()}
+                onDrop={e => handleDropActivity(e, index)}
+                className="group/row flex items-center border-b border-border hover:bg-bg-hover transition-colors px-6 py-2.5 relative cursor-pointer"
+              >
+                <div className="absolute left-2 cursor-grab active:cursor-grabbing text-text-muted opacity-0 group-hover/row:opacity-100">⠿</div>
+                <div className="w-[80px] shrink-0 font-mono text-[13px] text-text-secondary">
+                  <TimePicker
+                    value={activity.time}
+                    onChange={time => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { time } } })}
+                    className="border-transparent hover:border-border text-inherit w-full !px-0 bg-transparent text-left"
+                    placeholder="-:--"
+                  />
+                </div>
+                <div className="w-[40px] shrink-0 text-center text-lg">{activity.emoji}</div>
+                <div className="flex-1 min-w-0 pr-4">
+                  <EditableText
+                    value={activity.name}
+                    onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { name: val } } })}
+                    className="text-[13px] text-text-primary font-medium"
+                    placeholder="Activity name"
+                  />
+                </div>
+                <div className="flex-1 min-w-0 px-4 border-l border-border/50">
+                  <EditableText
+                    value={activity.notes || ''}
+                    onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { notes: val } } })}
+                    className="text-[13px] text-text-muted"
+                    placeholder="Add a note..."
+                    multiline
+                  />
+                </div>
+                <div className="w-[60px] shrink-0 text-right opacity-0 group-hover/row:opacity-100">
+                  <button onClick={() => dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })} className="text-text-muted hover:text-danger p-1">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Add Row Footer */}
+          <div className="px-6 py-2 pb-3 bg-bg-card hover:bg-bg-hover transition-colors rounded-b-[var(--radius-md)] border-t-[0px] border-border">
+            <InlineAddRow
+              onAdd={act => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: act } })}
+              defaultEmoji="📌"
+            />
           </div>
         </div>
-
-        {/* Body */}
-        {expanded && (
-          <div className="mt-3 border-t border-border pt-3">
-            {day.activities?.length > 0 ? (
-              <div className="divide-y divide-border/50">
-                {day.activities.map((activity, actIndex) => (
-                  <div key={activity.id}>
-                    <GapIndicator
-                      fromTime={day.activities[actIndex - 1]?.time}
-                      toTime={activity.time}
-                    />
-                    <ActivityItem
-                      activity={activity}
-                      dayId={day.id}
-                      index={actIndex}
-                      onUpdate={updates => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates } })}
-                      onDelete={() => dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })}
-                      onReorder={(fromIndex, toIndex) => dispatch({ type: ACTIONS.REORDER_ACTIVITIES, payload: { dayId: day.id, fromIndex, toIndex } })}
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-text-muted italic py-2">No activities yet</p>
-            )}
-
-            {/* Day Notes */}
-            <div className="mt-3 pt-2 border-t border-border/50">
-              {editingNotes ? (
-                <div>
-                  <textarea
-                    value={notesValue}
-                    onChange={e => setNotesValue(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Escape') { setNotesValue(day.notes || ''); setEditingNotes(false) } }}
-                    placeholder="Day notes…"
-                    rows={2}
-                    autoFocus
-                    className="w-full px-3 py-2 text-xs bg-bg-input border border-accent rounded-[var(--radius-sm)] text-text-primary resize-none focus:outline-none"
-                  />
-                  <div className="flex gap-2 mt-1 justify-end">
-                    <button onClick={() => { setNotesValue(day.notes || ''); setEditingNotes(false) }} className="text-xs text-text-muted">Cancel</button>
-                    <button onClick={saveNotes} className="text-xs text-accent font-medium">Save</button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => { setNotesValue(day.notes || ''); setEditingNotes(true) }}
-                  className="text-xs text-text-muted hover:text-text-secondary transition-colors text-left w-full"
-                >
-                  {day.notes
-                    ? <span>📝 <span className="italic">{day.notes}</span></span>
-                    : <span className="opacity-50">+ Add day notes…</span>
-                  }
-                </button>
-              )}
-            </div>
-
-            {/* Add Activity */}
-            {adding ? (
-              <AddActivityForm
-                onAdd={activity => { dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity } }); setAdding(false) }}
-                onCancel={() => setAdding(false)}
-              />
-            ) : (
-              <button onClick={() => setAdding(true)} className="mt-2 text-sm text-accent hover:text-accent-hover transition-colors">
-                + Add activity
-              </button>
-            )}
-          </div>
-        )}
-      </Card>
+      )}
     </div>
   )
 }
 
-// ── Day Jump Strip ─────────────────────────────────────────────────────────
-function DayJumper({ itinerary, dayRefs }) {
-  if (!itinerary || itinerary.length < 5) return null
-  const todayISO = new Date().toISOString().slice(0, 10)
+// ── Kanban View: Day Column ──────────────────────────────────────────────────
+function KanbanColumn({ day }) {
+  const { dispatch } = useTripContext()
+  const [dragOverCol, setDragOverCol] = useState(false)
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    setDragOverCol(false)
+    const dataStr = e.dataTransfer.getData('application/json')
+    if (!dataStr) return
+    const { type, sourceDayId, activityId, sourceIndex } = JSON.parse(dataStr)
+    if (type === 'activity' && sourceDayId !== day.id) {
+      dispatch({ type: ACTIONS.MOVE_ACTIVITY_BETWEEN_DAYS, payload: { fromDayId: sourceDayId, toDayId: day.id, activityId, toIndex: day.activities?.length || 0 } })
+    }
+  }
 
   return (
-    <div className="flex gap-1 overflow-x-auto scrollbar-hide pb-0.5">
-      {itinerary.map((day, i) => {
-        const isToday = day.date === todayISO
-        return (
-          <button
-            key={day.id}
-            onClick={() => dayRefs.current[day.id]?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-            className={`shrink-0 px-2.5 py-1 text-xs font-medium rounded-[var(--radius-pill)] whitespace-nowrap transition-colors
-              ${isToday
-                ? 'bg-accent text-white'
-                : 'bg-bg-secondary border border-border text-text-muted hover:text-text-secondary hover:border-border-strong'
-              }`}
-            title={day.date || `Day ${day.dayNumber}`}
+    <div
+      className={`flex flex-col w-[320px] shrink-0 bg-bg-sidebar border border-border rounded-[var(--radius-md)] max-h-[calc(100vh-200px)] overflow-hidden transition-all ${dragOverCol ? 'border-accent ring-1 ring-accent/30' : ''}`}
+      onDragOver={e => { e.preventDefault(); setDragOverCol(true) }}
+      onDragLeave={() => setDragOverCol(false)}
+      onDrop={handleDrop}
+    >
+      <div className={`p-3 border-t-4 border-b border-border bg-bg-card flex items-center justify-between shadow-sm z-10 ${getActivityAccent(day.emoji).split(' ')[0]}`}>
+        <div>
+          <h3 className="font-heading font-medium text-text-primary text-sm flex items-center gap-2">
+            <span>{day.emoji}</span> Day {day.dayNumber}
+          </h3>
+          <p className="text-xs text-text-muted mt-0.5 ml-6">{formatDate(day.date, 'short')} {day.location && `· ${day.location}`}</p>
+        </div>
+        <span className="text-xs font-semibold bg-bg-secondary text-text-secondary px-2 py-0.5 rounded-full">{day.activities?.length || 0}</span>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
+        {day.activities?.map((activity, i) => (
+          <div
+            key={activity.id}
+            draggable
+            onDragStart={(e) => {
+              e.stopPropagation()
+              e.dataTransfer.setData('application/json', JSON.stringify({ type: 'activity', sourceDayId: day.id, activityId: activity.id, sourceIndex: i }))
+            }}
+            className="group bg-bg-card border border-border rounded-[var(--radius-sm)] p-3 cursor-grab active:cursor-grabbing hover:border-border-strong hover:shadow-sm transition-all relative"
           >
-            Day {day.dayNumber || i + 1}
-            {isToday && ' •'}
-          </button>
-        )
-      })}
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <span className="text-lg leading-none shrink-0">{activity.emoji}</span>
+              <EditableText
+                value={activity.name}
+                onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { name: val } } })}
+                className="text-[13px] font-medium text-text-primary flex-1 min-w-0"
+              />
+              <button onClick={() => dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })} className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger text-xs p-1">✕</button>
+            </div>
+
+            <div className="ml-6 flex items-center gap-2 mt-2">
+              <TimePicker
+                value={activity.time}
+                onChange={time => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { time } } })}
+                className="text-xs font-mono bg-bg-secondary w-auto max-w-[70px]"
+                placeholder="Time"
+              />
+            </div>
+
+            {(activity.notes || activity.notes === '') && (
+              <div className="ml-6 mt-2 pt-2 border-t border-border/50">
+                <EditableText
+                  value={activity.notes || ''}
+                  onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { notes: val } } })}
+                  className="text-xs text-text-muted italic"
+                  placeholder="Notes..."
+                  multiline
+                />
+              </div>
+            )}
+          </div>
+        ))}
+
+        {(!day.activities || day.activities.length === 0) && (
+          <div className="flex items-center justify-center p-4 border-2 border-dashed border-border rounded-lg text-text-muted text-xs">
+            Drop items here
+          </div>
+        )}
+      </div>
+
+      <div className="p-2 border-t border-border bg-bg-card">
+        <InlineAddRow
+          onAdd={act => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: act } })}
+          defaultEmoji="📌"
+        />
+      </div>
     </div>
   )
 }
 
-// ── Main ───────────────────────────────────────────────────────────────────
+// ── Main Itinerary Tab ─────────────────────────────────────────────────────
 export default function ItineraryTab() {
-  const { activeTrip, dispatch, showToast } = useTripContext()
-  const dayRefs = useRef({})
-  const [isCSVModalOpen, setIsCSVModalOpen] = useState(false)
-  if (!activeTrip) return null
+  const { activeTrip, dispatch } = useTripContext()
+  const [viewMode, setViewMode] = useState('table') // 'table' | 'kanban'
 
+  if (!activeTrip) return null
   const trip = activeTrip
-  const concertBooking = trip.bookings?.find(b => b.category === 'concert')
 
   const handleAddDay = () => {
     const lastDay = trip.itinerary?.[trip.itinerary.length - 1]
@@ -443,182 +368,94 @@ export default function ItineraryTab() {
       d.setDate(d.getDate() + 1)
       nextDate = d.toISOString().slice(0, 10)
     }
-    dispatch({ type: ACTIONS.ADD_DAY, payload: { date: nextDate, location: '', emoji: '📍' } })
-  }
-
-  const handleAskWanda = () => {
-    window.dispatchEvent(new CustomEvent('open-wanda'))
-  }
-
-  const handleImportSheets = () => {
-    setIsCSVModalOpen(true)
-  }
-
-  const handleImportBookings = () => {
-    dispatch({ type: ACTIONS.SET_TAB, payload: 'bookings' })
-  }
-
-  const parseCSVImport = (text) => {
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
-    if (lines.length < 2) {
-      showToast('Please provide headers and at least one row of data.', 'error')
-      return
-    }
-
-    const separator = lines[0].includes('\t') ? '\t' : ','
-    const headers = lines[0].split(separator).map(h => h.trim().toLowerCase())
-
-    const dateIdx = headers.findIndex(h => h.includes('date') || h === 'day')
-    const locIdx = headers.findIndex(h => h.includes('location') || h === 'city')
-    const timeIdx = headers.findIndex(h => h.includes('time'))
-    const actIdx = headers.findIndex(h => h.includes('activity') || h === 'name')
-    const noteIdx = headers.findIndex(h => h.includes('note'))
-
-    if (dateIdx === -1) {
-      showToast('Could not find a "Date" column header. Please check the format.', 'error')
-      return
-    }
-
-    const daysMap = new Map()
-
-    for (let i = 1; i < lines.length; i++) {
-      const parts = lines[i].split(separator).map(p => p.trim())
-      const date = parts[dateIdx];
-      if (!date) continue;
-
-      if (!daysMap.has(date)) {
-        daysMap.set(date, {
-          location: locIdx !== -1 ? parts[locIdx] : '',
-          activities: [],
-          notes: ''
-        })
-      }
-
-      const dayObj = daysMap.get(date)
-
-      const activityName = actIdx !== -1 ? parts[actIdx] : ''
-      const activityTime = timeIdx !== -1 ? parts[timeIdx] : ''
-      const activityNote = noteIdx !== -1 ? parts[noteIdx] : ''
-
-      if (activityName) {
-        dayObj.activities.push({
-          id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8) + i,
-          time: activityTime || '',
-          name: activityName,
-          emoji: '📌',
-          notes: activityNote || ''
-        })
-      } else if (activityNote) {
-        dayObj.notes = dayObj.notes ? `${dayObj.notes}\n${activityNote}` : activityNote
-      }
-    }
-
-    let addedDays = 0
-    let addedActivities = 0
-
-    for (const [dateStr, dayData] of daysMap.entries()) {
-      dispatch({
-        type: ACTIONS.ADD_DAY,
-        payload: {
-          date: dateStr,
-          location: dayData.location,
-          emoji: '📍',
-          activities: dayData.activities,
-          notes: dayData.notes
-        }
-      })
-      addedDays++
-      addedActivities += dayData.activities.length
-    }
-
-    if (addedDays > 0) {
-      showToast(`Imported ${addedDays} day(s) with ${addedActivities} activities!`)
-      setIsCSVModalOpen(false)
-    }
+    dispatch({ type: ACTIONS.ADD_DAY, payload: { date: nextDate, location: 'New Location', emoji: '📍' } })
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 animate-fade-in flex flex-col h-full min-h-[calc(100vh-120px)]">
+      {/* Header Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="font-heading text-xl text-text-primary">📅 Itinerary · {trip.itinerary?.length || 0} days</h2>
-          {(trip.itinerary?.length || 0) > 1 && (
-            <p className="text-xs text-text-muted mt-0.5">Drag ⠿ to reorder days or activities</p>
+          <h2 className="font-heading text-xl text-text-primary">📅 Itinerary</h2>
+          <p className="text-xs text-text-muted mt-0.5">{trip.itinerary?.reduce((acc, d) => acc + (d.activities?.length || 0), 0) || 0} activities across {trip.itinerary?.length || 0} days</p>
+        </div>
+
+        <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+          {/* View Toggle */}
+          <div className="flex bg-bg-secondary p-0.5 rounded-lg border border-border shrink-0">
+            <button
+              onClick={() => setViewMode('table')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'table' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'
+                }`}
+            >
+              Table
+            </button>
+            <button
+              onClick={() => setViewMode('kanban')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'kanban' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'
+                }`}
+            >
+              Kanban
+            </button>
+          </div>
+
+          <Button size="sm" onClick={handleAddDay} className="shrink-0">
+            + New Day
+          </Button>
+        </div>
+      </div>
+
+      {/* Content Area */}
+      {trip.itinerary && trip.itinerary.length > 0 ? (
+        <div className="flex-1 w-full relative">
+          {viewMode === 'table' ? (
+            <div className="max-w-[1000px] w-full pb-20">
+              {trip.itinerary.map((day, dayIndex) => (
+                <DayGroupTable
+                  key={day.id}
+                  day={day}
+                  trip={trip}
+                  onReorderDay={(from, to) => dispatch({ type: ACTIONS.REORDER_DAYS, payload: { fromIndex: from, toIndex: to } })}
+                />
+              ))}
+              <button
+                onClick={handleAddDay}
+                className="w-full py-3 rounded-lg border border-dashed border-border text-text-muted hover:text-text-secondary hover:border-border-strong transition-colors text-sm font-medium"
+              >
+                + Add another day group
+              </button>
+            </div>
+          ) : (
+            <div className="absolute inset-0 right-[-24px] pr-6 pb-6 overflow-x-auto overflow-y-hidden custom-scrollbar">
+              <div className="flex gap-4 min-fit-content h-full">
+                {trip.itinerary.map(day => (
+                  <KanbanColumn key={day.id} day={day} />
+                ))}
+                <button
+                  onClick={handleAddDay}
+                  className="w-[320px] shrink-0 h-[100px] rounded-lg border-2 border-dashed border-border bg-transparent text-text-muted hover:text-text-secondary hover:bg-bg-hover transition-colors text-sm font-medium flex items-center justify-center flex-col gap-2"
+                >
+                  <span className="text-xl">➕</span>
+                  Add Day
+                </button>
+              </div>
+            </div>
           )}
         </div>
-        <Button size="sm" onClick={handleAddDay}>
-          + Add Day
-        </Button>
-      </div>
-
-      <DayJumper itinerary={trip.itinerary} dayRefs={dayRefs} />
-      <div className="relative space-y-5">
-        {trip.itinerary?.map((day, dayIndex) => {
-          const isConcertDay = concertBooking && day.activities?.some(a =>
-            a.name?.toLowerCase().includes('mcr') ||
-            a.name?.toLowerCase().includes('concert') ||
-            a.emoji === '🎵' || a.emoji === '🎸'
-          )
-          return (
-            <div key={day.id} ref={el => { dayRefs.current[day.id] = el }}>
-              <DayCard
-                day={day}
-                dayIndex={dayIndex}
-                isConcertDay={isConcertDay}
-                onReorderDay={(fromIndex, toIndex) => dispatch({ type: ACTIONS.REORDER_DAYS, payload: { fromIndex, toIndex } })}
-              />
-            </div>
-          )
-        })}
-      </div>
-
-      {(!trip.itinerary || trip.itinerary.length === 0) && (
-        <Card className="text-center py-10 px-4 flex flex-col items-center">
+      ) : (
+        <Card className="text-center py-10 px-4 flex flex-col items-center max-w-2xl mx-auto">
           <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mb-5 text-3xl">
             🗺️
           </div>
           <h3 className="text-2xl font-heading font-medium text-text-primary mb-2">Build your perfect trip</h3>
-          <p className="text-text-muted mb-8 max-w-sm mx-auto text-sm leading-relaxed">
-            Start from scratch or jumpstart your planning by importing existing details.
+          <p className="text-text-muted mb-8 text-sm leading-relaxed">
+            Start outlining your days and dragging activities around until your schedule is air-tight.
           </p>
-
-          <div className="flex flex-col gap-8 w-full max-w-2xl mx-auto">
-            <div className="flex justify-center flex-wrap gap-4">
-              <Button
-                variant="primary"
-                size="lg"
-                onClick={handleAddDay}
-              >
-                <span className="text-xl leading-none">+</span> Add First Day
-              </Button>
-
-              <Button
-                variant="secondary"
-                size="lg"
-                onClick={handleImportSheets}
-              >
-                <span className="text-lg">📊</span> Import from CSV
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="lg"
-                onClick={handleAskWanda}
-                className="group"
-              >
-                <span className="text-lg group-hover:scale-110 transition-transform">✨</span> Ask Wanda
-              </Button>
-            </div>
-          </div>
+          <Button variant="primary" size="lg" onClick={handleAddDay}>
+            <span className="text-xl leading-none mr-2">+</span> Add First Day
+          </Button>
         </Card>
       )}
-
-      {/* Modals */}
-      <ImportCSVModal
-        isOpen={isCSVModalOpen}
-        onClose={() => setIsCSVModalOpen(false)}
-        onImport={parseCSVImport}
-      />
     </div>
   )
 }

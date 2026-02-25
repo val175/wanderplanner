@@ -31,6 +31,7 @@ export const ACTIONS = {
   UPDATE_ACTIVITY: 'UPDATE_ACTIVITY',
   DELETE_ACTIVITY: 'DELETE_ACTIVITY',
   REORDER_ACTIVITIES: 'REORDER_ACTIVITIES',
+  MOVE_ACTIVITY_BETWEEN_DAYS: 'MOVE_ACTIVITY_BETWEEN_DAYS',
 
   // Bookings
   ADD_BOOKING: 'ADD_BOOKING',
@@ -226,6 +227,39 @@ export function tripReducer(state, action) {
           return { ...d, activities }
         }),
       }))
+
+    // payload: { fromDayId, toDayId, activityId, toIndex }
+    case ACTIONS.MOVE_ACTIVITY_BETWEEN_DAYS:
+      return updateTrip(state, activeTripId, trip => {
+        let movedActivity = null
+
+        // Remove from source day
+        const srcItin = trip.itinerary.map(d => {
+          if (d.id === payload.fromDayId) {
+            movedActivity = d.activities.find(a => a.id === payload.activityId)
+            return { ...d, activities: d.activities.filter(a => a.id !== payload.activityId) }
+          }
+          return d
+        })
+
+        if (!movedActivity) return trip // Guard
+
+        // Add to dest day
+        const finalItin = srcItin.map(d => {
+          if (d.id === payload.toDayId) {
+            const nextActivities = [...d.activities]
+            if (payload.toIndex !== undefined) {
+              nextActivities.splice(payload.toIndex, 0, movedActivity)
+            } else {
+              nextActivities.push(movedActivity)
+            }
+            return { ...d, activities: nextActivities }
+          }
+          return d
+        })
+
+        return { ...trip, itinerary: finalItin }
+      })
 
     // ─── Bookings ───
     case ACTIONS.ADD_BOOKING:
