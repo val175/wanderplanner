@@ -110,7 +110,7 @@ function MyProfileCard() {
   )
 }
 
-/* ── Shared Traveler Row ─────────────────────────────────────────────── */
+/* ── Shared Wanderer Row ─────────────────────────────────────────────── */
 function ProfileRow({ profile, onDelete }) {
   const { updateProfile } = useProfiles()
   const fileRef = useRef()
@@ -184,7 +184,7 @@ function ProfileRow({ profile, onDelete }) {
   )
 }
 
-/* ── Add Traveler (Manual or by Email) ────────────────────────────────── */
+/* ── Add Wanderer (Manual or by Email) ────────────────────────────────── */
 function AddProfileForm({ onDone }) {
   const { addProfile, findProfileByEmail } = useProfiles()
   const [mode, setMode] = useState('manual') // 'manual' or 'email'
@@ -261,7 +261,7 @@ function AddProfileForm({ onDone }) {
             value={name}
             onChange={e => setName(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') handleAddManual() }}
-            placeholder="Traveler name"
+            placeholder="Wanderer name"
             className="flex-1 px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted outline-none focus:border-accent"
           />
           <button
@@ -294,7 +294,7 @@ function AddProfileForm({ onDone }) {
           </div>
           {error && <p className="text-[10px] text-danger font-medium leading-tight">{error}</p>}
           <p className="text-[10px] text-text-muted italic leading-tight">
-            Finding a user by email will add their real Wanderplan profile to your traveler list.
+            Finding a user by email will add their real Wanderplan profile to your wanderer list.
           </p>
         </div>
       )}
@@ -311,7 +311,7 @@ export default function ProfileManager({ isOpen, onClose }) {
     <Modal isOpen={isOpen} onClose={onClose} maxWidth="max-w-sm">
       <div className="px-6 pt-6 pb-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="font-heading text-lg font-bold text-text-primary">Travelers</h2>
+          <h2 className="font-heading text-lg font-bold text-text-primary">Wanderers</h2>
           <button onClick={onClose} className="p-1.5 rounded-[var(--radius-sm)] text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -322,10 +322,10 @@ export default function ProfileManager({ isOpen, onClose }) {
         {/* Current user's own profile — always shown at top */}
         <MyProfileCard />
 
-        {/* Shared traveler list (other people) */}
+        {/* Shared wanderer list (other people) */}
         {profiles.length > 0 && (
           <>
-            <p className="text-xs font-medium text-text-muted uppercase tracking-widest mb-2">Other Travelers</p>
+            <p className="text-xs font-medium text-text-muted uppercase tracking-widest mb-2">Other Wanderers</p>
             <div className="divide-y divide-border">
               {profiles.map(p => (
                 <ProfileRow key={p.id} profile={p} onDelete={deleteProfile} />
@@ -347,7 +347,7 @@ export default function ProfileManager({ isOpen, onClose }) {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
               </svg>
-              Add Traveler
+              Add Wanderer
             </button>
           )
         }

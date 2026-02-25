@@ -63,7 +63,7 @@ function TravelerPicker({ trip, travelerProfiles, dispatch }) {
         onClick={handleOpen}
         className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)]
                    hover:bg-bg-hover px-1.5 py-0.5 -mx-1.5 transition-colors group"
-        title="Edit travelers"
+        title="Edit wanderers"
       >
         {travelerProfiles.length > 0 ? (
           <>
@@ -87,7 +87,7 @@ function TravelerPicker({ trip, travelerProfiles, dispatch }) {
               <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
             <span className="text-xs text-text-muted">
-              {travelerCount} {travelerCount === 1 ? 'traveler' : 'travelers'}
+              {travelerCount} {travelerCount === 1 ? 'wanderer' : 'wanderers'}
             </span>
           </>
         )}
@@ -105,7 +105,7 @@ function TravelerPicker({ trip, travelerProfiles, dispatch }) {
           className="bg-bg-card border border-border rounded-[var(--radius-lg)] shadow-xl p-2 min-w-[180px]"
         >
           {profiles.length === 0 ? (
-            <p className="text-xs text-text-muted px-2 py-1.5">No profiles yet — add travelers from the sidebar.</p>
+            <p className="text-xs text-text-muted px-2 py-1.5">No profiles yet — add wanderers from the sidebar.</p>
           ) : (
             <div className="space-y-0.5">
               {profiles.map(p => {

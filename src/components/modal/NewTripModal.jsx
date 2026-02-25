@@ -143,7 +143,7 @@ function StepBasics({ form, setForm }) {
 
       {/* Travelers — avatar picker using allTravelers (current user always first + selected) */}
       <div>
-        <label className="block text-sm font-medium text-text-secondary mb-2">Travelers</label>
+        <label className="block text-sm font-medium text-text-secondary mb-2">Wanderers</label>
         <div className="flex flex-wrap gap-2">
           {allTravelers.map(p => {
             const selected = (form.travelerIds || []).includes(p.id)
@@ -400,7 +400,7 @@ function StepReview({ form }) {
                   <span className="text-xs text-text-muted ml-1">{selectedProfiles.map(p => p.name).join(', ')}</span>
                 </div>
               ) : (
-                <p className="text-sm text-text-muted">{form.travelers} {form.travelers === 1 ? 'traveler' : 'travelers'}</p>
+                <p className="text-sm text-text-muted">{form.travelers} {form.travelers === 1 ? 'wanderer' : 'wanderers'}</p>
               )}
             </div>
           </div>

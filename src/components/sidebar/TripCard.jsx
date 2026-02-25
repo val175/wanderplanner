@@ -45,7 +45,6 @@ export default function TripCard({ trip, isActive, isMobile }) {
         group relative flex items-start gap-3 px-3 py-3.5
         rounded-[var(--radius-md)] cursor-pointer
         transition-all duration-150
-        ${isOngoing ? 'border-l-2 border-l-success pl-[10px]' : 'border-l-2 border-l-transparent pl-[10px]'}
         ${isActive
           ? 'bg-accent-muted border border-accent/40'
           : 'border border-transparent hover:bg-bg-hover hover:border-border'
