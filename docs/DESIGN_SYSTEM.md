@@ -85,9 +85,9 @@ When building raw inputs (if not using EditableText or DatePicker):
 - **Padding**: Usually `px-3 py-2` or `px-4 py-3` for larger search bars.
 
 ### 5. Tables
-All tables (e.g., Budget Spending Log, Bookings Table) must follow these strict style rules to maintain a lightweight, spreadsheet-like feel:
-- **Container**: No outer border radius or `bg-bg-card` wrapping the table. Let it bleed to the edges or use `-mx-5` on mobile. Use `overflow-x-auto overflow-y-visible`.
+All tables (e.g., Budget Spending Log, Bookings Table, Packing Table) must follow these strict style rules to maintain a lightweight, spreadsheet-like feel:
+- **Container**: Wrap the table in a `<Card className="overflow-hidden">` with an inner `<div className="overflow-x-auto scrollbar-thin">`. The Card provides the border and background; the inner div handles horizontal scroll.
 - **Headers (`<th>`)**: `px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted`. No background colors.
 - **Rows (`<tr>`)**: `border-t border-border/20 hover:bg-bg-hover transition-colors`.
 - **Cells (`<td>`)**: `px-2 py-3 align-middle text-sm`. No vertical borders (`border-r`) between columns.
-- **Inputs (`EditableText`)**: Inline inputs within tables should use full borders on focus/edit, e.g. `bg-bg-input border border-border rounded-[var(--radius-md)] focus:border-accent focus:outline-none`. When not focused, they should just look like row text. Amounts should always be formatted globally.
+- **Inputs (`EditableText`)**: Add `inputClassName="w-full"` on every table cell `EditableText` so the input stays within its column width. Amounts should always be formatted via `formatCurrency`.
