@@ -181,6 +181,7 @@ export function ProfileProvider({ user, children }) {
       name: profile.name.trim(),
       photo: profile.photo || null,
     }
+
     setProfiles(prev => {
       // Avoid duplicates
       if (prev.some(p => p.id === newProfile.id || (p.email && p.email === newProfile.email))) {
@@ -188,8 +189,30 @@ export function ProfileProvider({ user, children }) {
       }
       return [...prev, newProfile]
     })
+
+    // Add current user to other person's travelers list if they have a real account
+    if (newProfile.uid && currentUserProfile && newProfile.uid !== currentUserProfile.uid) {
+      const otherTravelersRef = doc(db, 'users', newProfile.uid, 'travelers', 'data')
+      const reciprocalProfile = {
+        id: currentUserProfile.id || currentUserProfile.uid,
+        uid: currentUserProfile.uid,
+        name: currentUserProfile.name,
+        email: currentUserProfile.email,
+        photo: currentUserProfile.photo || currentUserProfile.customPhoto || null
+      }
+
+      getDoc(otherTravelersRef).then(snap => {
+        const otherProfiles = snap.exists() ? snap.data().profiles || [] : []
+        if (!otherProfiles.some(p => p.id === reciprocalProfile.id || (p.email && p.email === reciprocalProfile.email))) {
+          otherProfiles.push(reciprocalProfile)
+          setDoc(otherTravelersRef, { profiles: otherProfiles }, { merge: true })
+            .catch(err => console.warn('[ProfileContext] Failed to add reciprocal traveler:', err))
+        }
+      }).catch(err => console.warn('[ProfileContext] Failed to retrieve other travelers:', err))
+    }
+
     return newProfile
-  }, [])
+  }, [currentUserProfile])
 
   const updateProfile = useCallback((id, updates) => {
     setProfiles(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p))
