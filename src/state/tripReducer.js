@@ -55,6 +55,7 @@ export const ACTIONS = {
   // Packing
   ADD_PACKING_ITEM: 'ADD_PACKING_ITEM',
   TOGGLE_PACKING_ITEM: 'TOGGLE_PACKING_ITEM',
+  UPDATE_PACKING_ITEM: 'UPDATE_PACKING_ITEM',
   DELETE_PACKING_ITEM: 'DELETE_PACKING_ITEM',
   RESET_PACKING: 'RESET_PACKING',
   ADD_PACKING_SECTION: 'ADD_PACKING_SECTION',
@@ -345,6 +346,12 @@ export function tripReducer(state, action) {
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
         packingList: trip.packingList.map(p => p.id === payload ? { ...p, packed: !p.packed } : p),
+      }))
+
+    case ACTIONS.UPDATE_PACKING_ITEM:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        packingList: trip.packingList.map(p => p.id === payload.id ? { ...p, ...payload.updates } : p),
       }))
 
     case ACTIONS.DELETE_PACKING_ITEM:

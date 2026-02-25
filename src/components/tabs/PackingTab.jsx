@@ -1,269 +1,397 @@
-import { useState, useMemo, useCallback } from 'react'
-import Card from '../shared/Card'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  flexRender,
+} from '@tanstack/react-table'
 import ProgressBar from '../shared/ProgressBar'
 import CelebrationEffect from '../shared/CelebrationEffect'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import Button from '../shared/Button'
+import EditableText from '../shared/EditableText'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
-import { PACKING_SECTIONS } from '../../constants/tabs'
 
-function PackingItem({ item, onToggle, onDelete }) {
+// ── Category config ─────────────────────────────────────────────────────────
+const CATEGORIES = [
+  { id: 'documents', label: 'Documents', emoji: '📄', color: 'bg-blue-500/10 text-blue-600 border-blue-200' },
+  { id: 'clothing', label: 'Clothing', emoji: '👕', color: 'bg-purple-500/10 text-purple-600 border-purple-200' },
+  { id: 'tech', label: 'Tech', emoji: '📱', color: 'bg-cyan-500/10 text-cyan-600 border-cyan-200' },
+  { id: 'toiletries', label: 'Toiletries', emoji: '🧴', color: 'bg-pink-500/10 text-pink-600 border-pink-200' },
+  { id: 'misc', label: 'Misc', emoji: '📦', color: 'bg-stone-500/10 text-stone-600 border-stone-200' },
+]
+
+const STARTER_ITEMS = [
+  { name: 'Passport', category: 'documents', qty: 1 },
+  { name: 'Travel insurance', category: 'documents', qty: 1 },
+  { name: 'Flight / hotel bookings printout', category: 'documents', qty: 1 },
+  { name: 'Local SIM or roaming plan', category: 'documents', qty: 1 },
+  { name: 'T-shirts', category: 'clothing', qty: 4 },
+  { name: 'Comfortable walking shoes', category: 'clothing', qty: 1 },
+  { name: 'Light jacket / rain layer', category: 'clothing', qty: 1 },
+  { name: 'Underwear & socks', category: 'clothing', qty: 5 },
+  { name: 'Phone charger', category: 'tech', qty: 1 },
+  { name: 'Universal power adapter', category: 'tech', qty: 1 },
+  { name: 'Portable battery pack', category: 'tech', qty: 1 },
+  { name: 'Earphones / earbuds', category: 'tech', qty: 1 },
+  { name: 'Toothbrush & toothpaste', category: 'toiletries', qty: 1 },
+  { name: 'Sunscreen SPF 50+', category: 'toiletries', qty: 1 },
+  { name: 'Deodorant', category: 'toiletries', qty: 1 },
+  { name: 'Prescription medication', category: 'toiletries', qty: 1 },
+  { name: 'Reusable water bottle', category: 'misc', qty: 1 },
+  { name: 'Snacks for the plane', category: 'misc', qty: 1 },
+  { name: 'Travel pillow', category: 'misc', qty: 1 },
+]
+
+// ── Category pill + dropdown ────────────────────────────────────────────────
+function CategoryPill({ value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  const cat = CATEGORIES.find(c => c.id === value) || CATEGORIES[4]
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e) => { if (!ref.current?.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
   return (
-    <div className="flex items-center gap-3 py-1.5 group">
+    <div className="relative" ref={ref}>
       <button
-        onClick={onToggle}
-        className={`flex-shrink-0 w-4.5 h-4.5 rounded border-2 transition-all flex items-center justify-center
-          ${item.packed
-            ? 'bg-success border-success text-white animate-check-pop'
-            : 'border-border-strong hover:border-accent'}`}
-        style={{ width: 18, height: 18 }}
+        onClick={() => setOpen(o => !o)}
+        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border transition-colors ${cat.color}`}
       >
-        {item.packed && (
-          <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-            <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        )}
+        <span>{cat.emoji}</span>
+        <span className="hidden sm:inline">{cat.label}</span>
       </button>
-      <span className={`flex-1 text-sm ${item.packed ? 'line-through text-text-muted' : 'text-text-primary'}`}>
-        {item.name}
-      </span>
-      <button
-        onClick={onDelete}
-        className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger text-xs transition-opacity"
-      >
-        ✕
-      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 z-50 rounded-[var(--radius-md)] border border-border bg-bg-card shadow-lg min-w-[140px] py-1">
+          {CATEGORIES.map(c => (
+            <button
+              key={c.id}
+              onClick={() => { onChange(c.id); setOpen(false) }}
+              className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left transition-colors
+                ${c.id === value ? 'bg-accent/8 text-accent font-semibold' : 'hover:bg-bg-hover text-text-secondary'}`}
+            >
+              <span>{c.emoji}</span>
+              <span>{c.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
-function AddItemForm({ section, onAdd }) {
-  const [name, setName] = useState('')
-  const [expanded, setExpanded] = useState(false)
+// ── Checkbox cell ───────────────────────────────────────────────────────────
+function PackedCheckbox({ packed, onToggle }) {
+  return (
+    <button
+      onClick={onToggle}
+      className={`flex-shrink-0 flex items-center justify-center rounded border-2 transition-all duration-150
+        ${packed
+          ? 'bg-success border-success text-white'
+          : 'border-border-strong hover:border-accent'}`}
+      style={{ width: 18, height: 18 }}
+      aria-label={packed ? 'Mark unpacked' : 'Mark packed'}
+    >
+      {packed && (
+        <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+          <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
+    </button>
+  )
+}
 
-  if (!expanded) {
-    return (
-      <button onClick={() => setExpanded(true)} className="text-xs text-accent hover:text-accent-hover transition-colors mt-1">
-        + Add item
-      </button>
-    )
-  }
+// ── Inline add row ──────────────────────────────────────────────────────────
+function InlineAddRow({ onAdd }) {
+  const inputRef = useRef(null)
+  const [name, setName] = useState('')
+  const [category, setCategory] = useState('misc')
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!name.trim()) return
-    onAdd({ name: name.trim(), section })
+    onAdd({ name: name.trim(), category, qty: 1, notes: '', packed: false })
     setName('')
+    inputRef.current?.focus()
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2 mt-2">
-      <input
-        value={name}
-        onChange={e => setName(e.target.value)}
-        placeholder="Item name..."
-        className="flex-1 px-2 py-1 text-sm bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary placeholder:text-text-muted"
-        autoFocus
-      />
-      <Button type="submit" size="sm">
-        Add
-      </Button>
-      <button type="button" onClick={() => setExpanded(false)} className="text-xs text-text-muted">✕</button>
-    </form>
+    <tr className="border-t border-border/40 bg-accent/[0.02]">
+      <td className="px-2 py-2 align-middle">
+        <div className="flex items-center justify-center">
+          <div className="w-[18px] h-[18px] rounded border-2 border-border/30 border-dashed" />
+        </div>
+      </td>
+      <td className="px-2 py-2">
+        <form onSubmit={handleSubmit}>
+          <input
+            ref={inputRef}
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder="+ New item (press Enter to add)"
+            className="w-full px-2 py-1.5 text-[13px] bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors"
+          />
+        </form>
+      </td>
+      <td className="px-2 py-2 align-middle">
+        <CategoryPill value={category} onChange={setCategory} />
+      </td>
+      <td colSpan={3} className="px-2 py-2 text-xs text-text-muted italic opacity-60">
+        Fill in details after adding…
+      </td>
+    </tr>
   )
 }
 
+// ── Main Packing Tab ────────────────────────────────────────────────────────
 export default function PackingTab() {
   const { activeTrip, dispatch, showToast } = useTripContext()
   const [celebration, setCelebration] = useState(0)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
-  const [addingSection, setAddingSection] = useState(false)
-  const [newSectionName, setNewSectionName] = useState('')
-
-  const STARTER_ITEMS = [
-    { name: 'Passport', section: 'Documents' },
-    { name: 'Travel insurance', section: 'Documents' },
-    { name: 'Flight / hotel bookings printout', section: 'Documents' },
-    { name: 'Local SIM or roaming plan', section: 'Documents' },
-    { name: 'T-shirts (3–4)', section: 'Clothing' },
-    { name: 'Comfortable walking shoes', section: 'Clothing' },
-    { name: 'Light jacket / rain layer', section: 'Clothing' },
-    { name: 'Underwear & socks', section: 'Clothing' },
-    { name: 'Phone charger', section: 'Tech' },
-    { name: 'Universal power adapter', section: 'Tech' },
-    { name: 'Portable battery pack', section: 'Tech' },
-    { name: 'Earphones / earbuds', section: 'Tech' },
-    { name: 'Toothbrush & toothpaste', section: 'Toiletries' },
-    { name: 'Sunscreen SPF 50+', section: 'Toiletries' },
-    { name: 'Deodorant', section: 'Toiletries' },
-    { name: 'Any prescription medication', section: 'Toiletries' },
-    { name: 'Reusable water bottle', section: 'Misc' },
-    { name: 'Snacks for the plane', section: 'Misc' },
-    { name: 'Travel pillow', section: 'Misc' },
-  ]
 
   if (!activeTrip) return null
-  const trip = activeTrip
-  const items = trip.packingList || []
 
+  const items = activeTrip.packingList || []
   const packed = items.filter(p => p.packed).length
   const total = items.length
 
-  const sections = useMemo(() => {
-    const secs = [...new Set(items.map(p => p.section))]
-    PACKING_SECTIONS.forEach(s => { if (!secs.includes(s)) secs.push(s) })
-    return secs
-  }, [items])
-
-  const grouped = useMemo(() => {
-    const groups = {}
-    sections.forEach(s => { groups[s] = [] })
-    items.forEach(item => {
-      const sec = item.section || 'Misc'
-      if (!groups[sec]) groups[sec] = []
-      groups[sec].push(item)
-    })
-    return groups
-  }, [items, sections])
-
-  const handleToggle = useCallback((itemId) => {
-    dispatch({ type: ACTIONS.TOGGLE_PACKING_ITEM, payload: itemId })
+  const onToggle = useCallback((itemId) => {
     const item = items.find(p => p.id === itemId)
+    dispatch({ type: ACTIONS.TOGGLE_PACKING_ITEM, payload: itemId })
     if (item && !item.packed) {
-      const newPacked = packed + 1
-      if (newPacked === total) {
+      if (packed + 1 === total && total > 0) {
         setCelebration(c => c + 1)
         showToast("All packed! You're ready to go 🧳")
       }
     }
   }, [dispatch, items, packed, total, showToast])
 
+  const onUpdate = useCallback((id, updates) => {
+    dispatch({ type: ACTIONS.UPDATE_PACKING_ITEM, payload: { id, updates } })
+  }, [dispatch])
+
+  const onDelete = useCallback((id) => {
+    dispatch({ type: ACTIONS.DELETE_PACKING_ITEM, payload: id })
+  }, [dispatch])
+
+  const onAdd = useCallback((data) => {
+    dispatch({ type: ACTIONS.ADD_PACKING_ITEM, payload: data })
+  }, [dispatch])
+
   const handleStarterList = () => {
     STARTER_ITEMS.forEach(item =>
       dispatch({ type: ACTIONS.ADD_PACKING_ITEM, payload: item })
     )
-    showToast('Starter list added! Remove what you don\'t need 🧳')
+    showToast("Starter list added! Remove what you don't need 🧳")
   }
 
-  const sectionEmojis = {
-    'Documents': '📄',
-    'Clothing': '👕',
-    'Tech': '📱',
-    'Concert Essentials': '🎸',
-    'Toiletries': '🧴',
-    'Misc': '📦',
-  }
+  // Sort: unpacked first, then packed — stable within each group
+  const data = useMemo(() => {
+    const unpacked = items.filter(p => !p.packed)
+    const packedItems = items.filter(p => p.packed)
+    return [...unpacked, ...packedItems]
+  }, [items])
 
-  const sectionHints = {
-    'Documents': 'e.g. Passport, visa, travel insurance',
-    'Clothing': 'e.g. Outfits, layers, comfortable shoes',
-    'Tech': 'e.g. Chargers, adapters, earphones',
-    'Concert Essentials': 'e.g. Tickets, earplugs, merch money',
-    'Toiletries': 'e.g. Sunscreen, toothbrush, medication',
-    'Misc': 'e.g. Snacks, book, reusable bag',
-  }
+  const columns = useMemo(() => [
+    {
+      id: 'packed',
+      header: '',
+      size: 44,
+      cell: info => (
+        <div className="flex items-center justify-center">
+          <PackedCheckbox
+            packed={info.row.original.packed}
+            onToggle={() => onToggle(info.row.original.id)}
+          />
+        </div>
+      ),
+    },
+    {
+      id: 'name',
+      accessorKey: 'name',
+      header: 'Item',
+      size: 999, // fluid
+      cell: info => (
+        <EditableText
+          value={info.getValue()}
+          onSave={val => onUpdate(info.row.original.id, { name: val })}
+          inputClassName="w-full"
+          className={`text-[13px] font-medium block w-full ${info.row.original.packed ? 'line-through text-text-muted' : 'text-text-primary'
+            }`}
+        />
+      ),
+    },
+    {
+      id: 'category',
+      accessorKey: 'category',
+      header: 'Category',
+      size: 130,
+      cell: info => (
+        <CategoryPill
+          value={info.getValue() || 'misc'}
+          onChange={val => onUpdate(info.row.original.id, { category: val })}
+        />
+      ),
+    },
+    {
+      id: 'qty',
+      accessorKey: 'qty',
+      header: 'Qty',
+      size: 64,
+      cell: info => (
+        <EditableText
+          value={info.getValue() != null ? String(info.getValue()) : '1'}
+          onSave={val => onUpdate(info.row.original.id, { qty: Number(val) || 1 })}
+          inputClassName="w-full text-center"
+          className="text-sm text-text-secondary text-center block w-full tabular-nums"
+        />
+      ),
+    },
+    {
+      id: 'notes',
+      accessorKey: 'notes',
+      header: 'Notes',
+      size: 999, // fluid
+      cell: info => (
+        <EditableText
+          value={info.getValue() || ''}
+          onSave={val => onUpdate(info.row.original.id, { notes: val })}
+          inputClassName="w-full"
+          className="text-sm text-text-muted block w-full truncate"
+          placeholder="Add note…"
+        />
+      ),
+    },
+    {
+      id: 'actions',
+      header: '',
+      size: 40,
+      cell: info => (
+        <button
+          onClick={() => onDelete(info.row.original.id)}
+          className="opacity-0 group-hover:opacity-100 p-1 text-text-muted hover:text-danger transition-all rounded hover:bg-bg-hover"
+          aria-label="Delete item"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+            <path d="M10 11v6M14 11v6" />
+            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+          </svg>
+        </button>
+      ),
+    },
+  ], [onToggle, onUpdate, onDelete])
+
+  const table = useReactTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  })
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-5 animate-fade-in">
       <CelebrationEffect trigger={celebration} />
       <ConfirmDialog
         isOpen={showResetConfirm}
         onClose={() => setShowResetConfirm(false)}
-        onConfirm={() => { dispatch({ type: ACTIONS.RESET_PACKING }); showToast('Packing list reset') }}
+        onConfirm={() => {
+          dispatch({ type: ACTIONS.RESET_PACKING })
+          showToast('Packing list reset')
+        }}
         title="Reset Packing List?"
         message="This will uncheck all packed items. Your items will not be removed."
         confirmLabel="Reset All"
         danger={false}
       />
 
-      {/* Header */}
+      {/* ── Header ── */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="font-heading text-lg text-text-primary">🧳 Packing · {packed}/{total} packed</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="font-heading text-lg text-text-primary">🧳 Packing</h2>
+          {total > 0 && (
+            <span className="text-sm text-text-muted tabular-nums">
+              {packed}/{total} packed
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {total === 0 && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleStarterList}
-            >
+            <Button variant="secondary" size="sm" onClick={handleStarterList}>
               📋 Use starter list
             </Button>
           )}
           {total > 0 && (
-            <button
-              onClick={() => setShowResetConfirm(true)}
-              className="text-xs text-text-muted hover:text-danger transition-colors"
-            >
-              Reset all
-            </button>
+            <>
+              <Button variant="secondary" size="sm" onClick={handleStarterList}>
+                📋 Starter list
+              </Button>
+              <button
+                onClick={() => setShowResetConfirm(true)}
+                className="text-xs text-text-muted hover:text-danger transition-colors"
+              >
+                Reset all
+              </button>
+            </>
           )}
         </div>
       </div>
 
-      {/* Overall progress */}
-      <ProgressBar value={packed} max={total} colorClass="bg-accent" height="h-2.5" />
+      {/* ── Progress bar ── */}
+      {total > 0 && (
+        <ProgressBar value={packed} max={total} colorClass="bg-accent" height="h-2" />
+      )}
 
-      {/* Sections */}
-      {Object.entries(grouped).map(([section, sectionItems]) => {
-        if (sectionItems.length === 0 && !PACKING_SECTIONS.includes(section)) return null
-        const secPacked = sectionItems.filter(i => i.packed).length
-        const emoji = sectionEmojis[section] || '📦'
-
-        return (
-          <Card key={section}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-heading text-sm font-semibold text-text-primary">{emoji} {section}</h3>
-              <span className="text-xs text-text-muted">{secPacked}/{sectionItems.length}</span>
-            </div>
-
-            <div className="space-y-1">
-              {sectionItems.map(item => (
-                <PackingItem
-                  key={item.id}
-                  item={item}
-                  onToggle={() => handleToggle(item.id)}
-                  onDelete={() => dispatch({ type: ACTIONS.DELETE_PACKING_ITEM, payload: item.id })}
-                />
+      {/* ── Table ── */}
+      <div className="w-full overflow-x-auto overflow-y-visible -mx-5 px-5 sm:mx-0 sm:px-0 scrollbar-thin">
+        <table className="w-full text-left border-collapse table-fixed min-w-[600px]">
+          <thead>
+            <tr className="border-b border-border/50">
+              {table.getHeaderGroups()[0].headers.map(header => (
+                <th
+                  key={header.id}
+                  className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted overflow-hidden"
+                  style={{ width: header.column.columnDef.size === 999 ? 'auto' : header.column.columnDef.size }}
+                >
+                  {flexRender(header.column.columnDef.header, header.getContext())}
+                </th>
               ))}
-              {sectionItems.length === 0 && sectionHints[section] && (
-                <p className="text-xs text-text-muted italic py-1 opacity-60">
-                  {sectionHints[section]}
-                </p>
-              )}
-            </div>
+            </tr>
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.map(row => (
+              <tr
+                key={row.id}
+                className={`group border-t border-border/20 transition-colors ${row.original.packed ? 'hover:bg-bg-hover/40' : 'hover:bg-bg-hover'
+                  }`}
+              >
+                {row.getVisibleCells().map(cell => (
+                  <td
+                    key={cell.id}
+                    className="px-2 py-2.5 align-middle overflow-hidden"
+                    style={{ width: cell.column.columnDef.size === 999 ? 'auto' : cell.column.columnDef.size }}
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            ))}
+            <InlineAddRow onAdd={onAdd} />
+          </tbody>
+        </table>
+      </div>
 
-            <AddItemForm
-              section={section}
-              onAdd={data => dispatch({ type: ACTIONS.ADD_PACKING_ITEM, payload: data })}
-            />
-          </Card>
-        )
-      })}
-
-      {/* Add section */}
-      {addingSection ? (
-        <div className="flex gap-2">
-          <input
-            value={newSectionName}
-            onChange={e => setNewSectionName(e.target.value)}
-            placeholder="Section name"
-            className="flex-1 px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary"
-            autoFocus
-            onKeyDown={e => {
-              if (e.key === 'Enter' && newSectionName.trim()) {
-                dispatch({ type: ACTIONS.ADD_PACKING_ITEM, payload: { name: 'New item', section: newSectionName.trim() } })
-                setNewSectionName('')
-                setAddingSection(false)
-              }
-            }}
-          />
-          <button onClick={() => setAddingSection(false)} className="text-sm text-text-muted">Cancel</button>
+      {total === 0 && (
+        <div className="text-center py-12 text-text-muted">
+          <div className="text-4xl mb-3">🧳</div>
+          <p className="text-sm">No items yet. Add your first item or use the starter list.</p>
         </div>
-      ) : (
-        <button onClick={() => setAddingSection(true)} className="text-sm text-accent hover:text-accent-hover transition-colors">
-          + Add section
-        </button>
       )}
     </div>
   )
