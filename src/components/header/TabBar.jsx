@@ -123,8 +123,8 @@ export default function TabBar() {
         borderBottom: '1px solid var(--color-border)',
       }}
     >
-      {/* Constrained inner — matches header's max-w-5xl so pills align with content */}
-      <div className="max-w-5xl mx-auto relative flex items-center min-h-[48px]">
+      {/* Constrained inner — matches content max-w-[1400px] so pills left-align with trip title and tables */}
+      <div className="max-w-[1400px] mx-auto relative flex items-center min-h-[48px] px-4 sm:px-8">
 
         {/* Left fade mask */}
         {showLeftMask && (
@@ -143,8 +143,6 @@ export default function TabBar() {
           role="tablist"
           aria-label="Trip sections"
         >
-          {/* Left padding — matches header px-4 sm:px-8 */}
-          <div className="w-4 sm:w-8 shrink-0" />
 
           {/* Pill row */}
           <div className="flex items-center gap-0.5 py-2">
@@ -182,8 +180,6 @@ export default function TabBar() {
             })}
           </div>
 
-          {/* Right padding */}
-          <div className="w-4 sm:w-8 shrink-0" />
         </div>
 
         {/* Right fade mask — always rendered to signal scrollability; wider when overflow menu present */}
