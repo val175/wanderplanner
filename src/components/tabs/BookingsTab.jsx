@@ -1,185 +1,46 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Card from '../shared/Card'
-import EditableText from '../shared/EditableText'
-import DatePicker from '../shared/DatePicker'
 import ProgressBar from '../shared/ProgressBar'
 import Button from '../shared/Button'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { BOOKING_CATEGORIES } from '../../constants/tabs'
-import { formatCurrency } from '../../utils/helpers'
 
-const STATUS_OPTIONS = [
-  { value: 'not_started', label: 'Not Started', colors: 'bg-text-muted/10 text-text-muted border-text-muted/20' },
-  { value: 'in_progress', label: 'In Progress', colors: 'bg-warning/10 text-warning border-warning/20' },
-  { value: 'booked', label: 'Booked ✓', colors: 'bg-success/10 text-success border-success/20' },
+import BookingsTable from './BookingsTable'
+import BookingsKanban from './BookingsKanban'
+import BookingDrawer from './BookingDrawer'
+
+const TOGGLEABLE_COLUMNS = [
+  { id: 'cost', label: 'Cost' },
+  { id: 'providerLink', label: 'Link' },
+  { id: 'location', label: 'Location' },
 ]
-
-function StatusDropdown({ status, bookingId }) {
-  const { dispatch, showToast } = useTripContext()
-  const current = STATUS_OPTIONS.find(s => s.value === status) || STATUS_OPTIONS[0]
-
-  const handleChange = (e) => {
-    const newStatus = e.target.value
-    dispatch({ type: ACTIONS.SET_BOOKING_STATUS, payload: { id: bookingId, status: newStatus } })
-    if (newStatus === 'booked') showToast('Booked! ✓ One less thing to worry about.')
-  }
-
-  return (
-    <div className="relative inline-block">
-      <select
-        value={status}
-        onChange={handleChange}
-        className={`appearance-none cursor-pointer pl-2.5 pr-6 py-1 text-xs font-medium rounded-[var(--radius-pill)]
-          border transition-all hover:opacity-80 ${current.colors}`}
-      >
-        {STATUS_OPTIONS.map(opt => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
-        ))}
-      </select>
-      <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] opacity-60">▾</span>
-    </div>
-  )
-}
-
-function BookingCard({ booking, currency }) {
-  const { dispatch } = useTripContext()
-  const categoryConfig = BOOKING_CATEGORIES.find(c => c.id === booking.category) || BOOKING_CATEGORIES[5]
-
-  return (
-    <Card hover className="animate-fade-in">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          <span className="text-2xl flex-shrink-0">{categoryConfig.emoji}</span>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <EditableText
-                value={booking.name}
-                onSave={val => dispatch({ type: ACTIONS.UPDATE_BOOKING, payload: { id: booking.id, updates: { name: val } } })}
-                className="font-medium text-text-primary text-sm"
-              />
-              {booking.priority && <span className="text-xs" title="Priority">⭐</span>}
-            </div>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className="text-xs px-2 py-0.5 bg-bg-hover rounded-[var(--radius-pill)] text-text-muted">
-                {categoryConfig.label}
-              </span>
-              <StatusDropdown status={booking.status} bookingId={booking.id} />
-            </div>
-          </div>
-        </div>
-        <button
-          onClick={() => dispatch({ type: ACTIONS.UPDATE_BOOKING, payload: { id: booking.id, updates: { priority: !booking.priority } } })}
-          className={`text-lg flex-shrink-0 transition-transform hover:scale-110 ${booking.priority ? '' : 'opacity-30 hover:opacity-60'}`}
-          title="Toggle priority"
-        >
-          ⭐
-        </button>
-      </div>
-
-      {/* Details row */}
-      <div className="mt-3 pt-3 border-t border-border/50 grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
-        <div>
-          <span className="text-text-muted text-xs block">Confirmation #</span>
-          <EditableText
-            value={booking.confirmationNumber}
-            onSave={val => dispatch({ type: ACTIONS.UPDATE_BOOKING, payload: { id: booking.id, updates: { confirmationNumber: val } } })}
-            className="font-mono text-text-primary text-xs"
-            placeholder="—"
-          />
-        </div>
-        <div>
-          <span className="text-text-muted text-xs block">Amount Paid</span>
-          <EditableText
-            value={booking.amountPaid ? String(booking.amountPaid) : ''}
-            onSave={val => dispatch({ type: ACTIONS.UPDATE_BOOKING, payload: { id: booking.id, updates: { amountPaid: Number(val) || 0 } } })}
-            className="text-text-primary text-xs"
-            placeholder={formatCurrency(0, currency)}
-          />
-        </div>
-        <div>
-          <span className="text-text-muted text-xs block mb-1">Book By</span>
-          <DatePicker
-            value={booking.bookByDate || ''}
-            onChange={val => dispatch({ type: ACTIONS.UPDATE_BOOKING, payload: { id: booking.id, updates: { bookByDate: val } } })}
-            placeholder="Set date"
-            className="text-xs hover:text-text-primary transition-colors"
-          />
-        </div>
-      </div>
-
-      {/* Delete */}
-      <div className="mt-2 text-right">
-        <button
-          onClick={() => dispatch({ type: ACTIONS.DELETE_BOOKING, payload: booking.id })}
-          className="text-xs text-text-muted hover:text-danger transition-colors"
-        >
-          Remove
-        </button>
-      </div>
-    </Card>
-  )
-}
-
-function AddBookingForm({ onAdd, onCancel }) {
-  const [name, setName] = useState('')
-  const [category, setCategory] = useState('custom')
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (!name.trim()) return
-    onAdd({ name: name.trim(), category })
-    setName('')
-    setCategory('custom')
-  }
-
-  return (
-    <Card>
-      <form onSubmit={handleSubmit} className="flex flex-wrap gap-2 items-end">
-        <div className="flex-1 min-w-[200px]">
-          <label className="text-xs text-text-muted block mb-1">Booking name</label>
-          <input
-            value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder="e.g., Singapore Hotel"
-            className="w-full px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary placeholder:text-text-muted"
-            autoFocus
-          />
-        </div>
-        <div>
-          <label className="text-xs text-text-muted block mb-1">Category</label>
-          <select
-            value={category}
-            onChange={e => setCategory(e.target.value)}
-            className="px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary"
-          >
-            {BOOKING_CATEGORIES.map(c => (
-              <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>
-            ))}
-          </select>
-        </div>
-        <div className="flex gap-2">
-          <Button type="submit" size="md">
-            Add
-          </Button>
-          <Button type="button" variant="ghost" size="md" onClick={onCancel}>
-            Cancel
-          </Button>
-        </div>
-      </form>
-    </Card>
-  )
-}
 
 export default function BookingsTab() {
   const { activeTrip, dispatch, showToast } = useTripContext()
   const [filter, setFilter] = useState('all')
-  const [adding, setAdding] = useState(false)
+  const [viewMode, setViewMode] = useState('table') // 'table' | 'board'
+
+  // Local storage for view preferences
+  const [hiddenColumns, setHiddenColumns] = useState(() => {
+    try {
+      const saved = localStorage.getItem('wanderplan_bookings_hidden')
+      return saved ? JSON.parse(saved) : []
+    } catch { return [] }
+  })
+
+  // Selected booking for the detail drawer
+  const [selectedBookingId, setSelectedBookingId] = useState(null)
+
+  useEffect(() => {
+    try { localStorage.setItem('wanderplan_bookings_hidden', JSON.stringify(hiddenColumns)) } catch { }
+  }, [hiddenColumns])
 
   if (!activeTrip) return null
   const trip = activeTrip
 
-  const confirmedCount = trip.bookings?.filter(b => b.status === 'booked').length || 0
+  // Count confirmed (legacy `booked` or new `confirmed`)
+  const confirmedCount = trip.bookings?.filter(b => b.status === 'booked' || b.status === 'confirmed').length || 0
   const totalCount = trip.bookings?.length || 0
 
   const filteredBookings = useMemo(() => {
@@ -187,34 +48,65 @@ export default function BookingsTab() {
     if (filter !== 'all') {
       bookings = bookings.filter(b => b.category === filter)
     }
-    // Unconfirmed first, then by priority
+    // Sort chronologically by start date, then created order
     return bookings.sort((a, b) => {
-      if (a.status === 'booked' && b.status !== 'booked') return 1
-      if (b.status === 'booked' && a.status !== 'booked') return -1
-      if (a.priority && !b.priority) return -1
-      if (b.priority && !a.priority) return 1
+      if (a.startDate && b.startDate) return new Date(a.startDate) - new Date(b.startDate)
+      if (a.startDate) return -1
+      if (b.startDate) return 1
       return 0
     })
   }, [trip.bookings, filter])
 
   const filters = [
-    { id: 'all', label: 'All' },
+    { id: 'all', label: 'All Categories' },
     ...BOOKING_CATEGORIES.filter(c =>
       trip.bookings?.some(b => b.category === c.id)
-    ).map(c => ({ id: c.id, label: c.label })),
+    ).map(c => ({ id: c.id, label: `${c.emoji} ${c.label}` })),
   ]
 
+  const handleUpdate = (id, updates) => {
+    dispatch({ type: ACTIONS.UPDATE_BOOKING, payload: { id, updates } })
+  }
+
+  const handleDelete = (id) => {
+    dispatch({ type: ACTIONS.DELETE_BOOKING, payload: id })
+    if (selectedBookingId === id) setSelectedBookingId(null)
+  }
+
+  const handleAdd = (data) => {
+    dispatch({ type: ACTIONS.ADD_BOOKING, payload: data })
+  }
+
   const handleExport = () => {
-    const text = trip.bookings?.map(b => {
+    const text = filteredBookings.map(b => {
       const cat = BOOKING_CATEGORIES.find(c => c.id === b.category)
-      return `${cat?.emoji || '📌'} ${b.name} — ${b.status === 'booked' ? '✅ Booked' : '⏳ ' + b.status.replace('_', ' ')}${b.confirmationNumber ? ` (#${b.confirmationNumber})` : ''}`
+      return `${cat?.emoji || '📌'} ${b.name} — ${b.status} ${b.confirmationNumber ? `(#${b.confirmationNumber})` : ''}`
     }).join('\n')
     navigator.clipboard.writeText(`📋 ${trip.name} — Bookings\n\n${text}`)
     showToast('Bookings copied to clipboard! 📋')
   }
 
+  const toggleColumn = (colId) => {
+    setHiddenColumns(prev =>
+      prev.includes(colId) ? prev.filter(c => c !== colId) : [...prev, colId]
+    )
+  }
+
+  const selectedBooking = useMemo(() =>
+    trip.bookings?.find(b => b.id === selectedBookingId),
+    [trip.bookings, selectedBookingId])
+
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in relative">
+
+      {/* Drawer */}
+      <BookingDrawer
+        booking={selectedBooking}
+        currency={trip.currency}
+        onUpdate={handleUpdate}
+        onClose={() => setSelectedBookingId(null)}
+      />
+
       {/* Summary bar */}
       <Card>
         <div className="flex items-center justify-between mb-2">
@@ -224,9 +116,11 @@ export default function BookingsTab() {
         <ProgressBar value={confirmedCount} max={totalCount} colorClass="bg-success" height="h-2" />
       </Card>
 
-      {/* Filter tabs + actions */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex gap-1 overflow-x-auto scrollbar-hide">
+      {/* Main Controls Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+
+        {/* Left: Category Filters */}
+        <div className="flex gap-1 overflow-x-auto scrollbar-hide flex-1">
           {filters.map(f => (
             <button
               key={f.id}
@@ -241,35 +135,83 @@ export default function BookingsTab() {
             </button>
           ))}
         </div>
-        <div className="flex gap-2">
-          <Button variant="secondary" size="sm" onClick={handleExport}>
+
+        {/* Right: Triggers & Views */}
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+
+          {/* Column Visibility Dropdown (Only relevant in Table view) */}
+          {viewMode === 'table' && (
+            <div className="relative group">
+              <Button variant="secondary" size="sm" className="hidden sm:inline-flex">
+                Columns ▾
+              </Button>
+              <div className="absolute right-0 top-full mt-1 w-48 bg-bg-card border border-border rounded-[var(--radius-md)] shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20">
+                <div className="p-2 space-y-1">
+                  {TOGGLEABLE_COLUMNS.map(col => (
+                    <label key={col.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-bg-hover rounded cursor-pointer text-sm">
+                      <input
+                        type="checkbox"
+                        className="rounded border-border text-accent focus:ring-accent"
+                        checked={!hiddenColumns.includes(col.id)}
+                        onChange={() => toggleColumn(col.id)}
+                      />
+                      <span className="text-text-secondary">{col.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* View Toggle */}
+          <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border">
+            <button
+              onClick={() => setViewMode('table')}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors ${viewMode === 'table' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+            >
+              ≡ Table
+            </button>
+            <button
+              onClick={() => setViewMode('board')}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors ${viewMode === 'board' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+            >
+              ◫ Board
+            </button>
+          </div>
+
+          <Button variant="secondary" size="sm" onClick={handleExport} className="hidden sm:inline-flex">
             📋 Export
-          </Button>
-          <Button size="sm" onClick={() => setAdding(true)}>
-            + Add Booking
           </Button>
         </div>
       </div>
 
-      {/* Add booking form */}
-      {adding && (
-        <AddBookingForm
-          onAdd={data => { dispatch({ type: ACTIONS.ADD_BOOKING, payload: data }); setAdding(false) }}
-          onCancel={() => setAdding(false)}
+      {/* Render selected view */}
+      {viewMode === 'table' ? (
+        <BookingsTable
+          bookings={filteredBookings}
+          currency={trip.currency}
+          hiddenColumns={hiddenColumns}
+          onUpdate={handleUpdate}
+          onDelete={handleDelete}
+          onAdd={handleAdd}
+          onRowClick={(booking) => setSelectedBookingId(booking.id)}
+        />
+      ) : (
+        <BookingsKanban
+          bookings={filteredBookings}
+          currency={trip.currency}
+          onUpdate={handleUpdate}
+          onRowClick={(booking) => setSelectedBookingId(booking.id)}
         />
       )}
 
-      {/* Booking cards */}
-      <div className="space-y-4">
-        {filteredBookings.map(booking => (
-          <BookingCard key={booking.id} booking={booking} currency={trip.currency} />
-        ))}
-      </div>
-
+      {/* Empty States */}
       {filteredBookings.length === 0 && (
         <Card className="text-center py-8">
           <p className="text-3xl mb-2">🎫</p>
-          <p className="text-text-muted text-sm">No bookings {filter !== 'all' ? 'in this category' : 'yet'}.</p>
+          <p className="text-text-muted text-sm tracking-wide">
+            {filter !== 'all' ? `No ${filter} bookings yet.` : 'No bookings added yet. Enter one below or drop a board.'}
+          </p>
         </Card>
       )}
     </div>
