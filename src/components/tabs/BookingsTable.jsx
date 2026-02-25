@@ -150,6 +150,7 @@ export default function BookingsTable({
                         value={info.getValue()}
                         onSave={val => onUpdate(info.row.original.id, { name: val })}
                         className="text-[13px] font-medium text-text-primary flex-1 truncate"
+                        inputClassName="w-full"
                         onClick={e => e.stopPropagation()}
                     />
                     <button
@@ -207,6 +208,7 @@ export default function BookingsTable({
                             value={val}
                             onSave={newVal => onUpdate(info.row.original.id, { confirmationNumber: newVal })}
                             className="font-mono text-text-primary text-xs flex-1 truncate"
+                            inputClassName="w-full"
                             placeholder="—"
                         />
                         {val && (
@@ -238,6 +240,7 @@ export default function BookingsTable({
                         displayValue={val ? formatCurrency(val, currency) : undefined}
                         onSave={newVal => onUpdate(info.row.original.id, { amountPaid: Number(newVal) || 0 })}
                         className="text-text-primary text-sm font-medium tabular-nums text-right block w-full"
+                        inputClassName="w-full text-right"
                         placeholder={formatCurrency(0, currency)}
                     />
                 )
@@ -256,6 +259,7 @@ export default function BookingsTable({
                             value={val}
                             onSave={newVal => onUpdate(info.row.original.id, { providerLink: newVal })}
                             className="text-accent text-sm truncate flex-1 hover:underline"
+                            inputClassName="w-full"
                             placeholder="Add link..."
                         />
                         {val && (
@@ -277,6 +281,7 @@ export default function BookingsTable({
                     value={info.getValue()}
                     onSave={newVal => onUpdate(info.row.original.id, { location: newVal })}
                     className="text-text-secondary text-sm truncate block w-full"
+                    inputClassName="w-full"
                     placeholder="Add location..."
                 />
             )
