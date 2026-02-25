@@ -54,8 +54,8 @@ export default function EditableText({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className={`
-          bg-bg-input border border-accent/30 rounded-[var(--radius-sm)]
-          px-2 py-1 outline-none focus:border-accent focus:ring-1 focus:ring-accent/20
+          bg-transparent border-b border-border/30 rounded-none
+          px-1 py-0.5 outline-none focus:border-accent transition-colors
           text-text-primary
           ${multiline ? 'min-h-[80px] resize-y w-full' : ''}
           ${inputClassName}

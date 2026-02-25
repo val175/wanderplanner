@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
     DndContext,
     DragOverlay,
@@ -84,13 +84,13 @@ function SortableCard({ booking, currency, onRowClick }) {
             {...listeners}
             className={`relative cursor-grab active:cursor-grabbing ${isDragging ? 'z-50' : ''}`}
         >
-            <BookingCardContent booking={booking} currency={currency} onRowClick={onRowClick} />
+            <BookingCardContent booking={booking} currency={currency} onRowClick={onRowClick} isOverlay={false} />
         </div>
     )
 }
 
 // ── Shared Card Content (used by Sortable and Overlay) ───────────────────
-function BookingCardContent({ booking, currency, onRowClick }) {
+function BookingCardContent({ booking, currency, onRowClick, isOverlay }) {
     const categoryConfig = BOOKING_CATEGORIES.find(c => c.id === booking.category) || BOOKING_CATEGORIES[0]
 
     return (
@@ -100,7 +100,8 @@ function BookingCardContent({ booking, currency, onRowClick }) {
                 // but can safely invoke row click.
                 onRowClick?.(booking)
             }}
-            className="bg-bg-card border border-border/50 shadow-sm rounded-[var(--radius-md)] p-3 hover:border-accent/40 active:border-accent transition-colors block text-left"
+            className={`bg-bg-card border shadow-sm rounded-[var(--radius-md)] p-3 transition-colors block text-left ${isOverlay ? 'border-accent shadow-xl rotate-2 cursor-grabbing' : 'border-border/50 hover:border-accent/40 active:border-accent'
+                }`}
         >
             <div className="flex items-start gap-2 mb-2">
                 <span className="text-xl leading-none pt-0.5">{categoryConfig.emoji}</span>
@@ -142,6 +143,12 @@ export default function BookingsKanban({ bookings, currency, onUpdate, onRowClic
         useSensor(KeyboardSensor)
     )
 
+    const [activeId, setActiveId] = useState(null)
+    const activeBooking = useMemo(() => {
+        if (!activeId) return null
+        return bookings.find(b => b.id === activeId) || null
+    }, [activeId, bookings])
+
     // Group bookings by status
     const groupedBookings = useMemo(() => {
         const groups = {}
@@ -158,7 +165,12 @@ export default function BookingsKanban({ bookings, currency, onUpdate, onRowClic
         return groups
     }, [bookings])
 
+    const handleDragStart = (event) => {
+        setActiveId(event.active.id)
+    }
+
     const handleDragEnd = (event) => {
+        setActiveId(null)
         const { active, over } = event
 
         // Dropped outside any valid target
@@ -185,6 +197,7 @@ export default function BookingsKanban({ bookings, currency, onUpdate, onRowClic
         <DndContext
             sensors={sensors}
             collisionDetection={closestCorners}
+            onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
         >
             <div className="flex gap-4 overflow-x-auto pb-4 h-[calc(100vh-280px)] min-h-[400px] scrollbar-thin items-start">
@@ -199,7 +212,11 @@ export default function BookingsKanban({ bookings, currency, onUpdate, onRowClic
                     />
                 ))}
             </div>
-            {/* We could add a DragOverlay here for a ghost image, but standard HTML5 dragging is often enough for simple boards. */}
+            <DragOverlay>
+                {activeId && activeBooking ? (
+                    <BookingCardContent booking={activeBooking} currency={currency} isOverlay={true} />
+                ) : null}
+            </DragOverlay>
         </DndContext>
     )
 }

@@ -8,6 +8,7 @@ import {
 import EditableText from '../shared/EditableText'
 import DatePicker from '../shared/DatePicker'
 import { BOOKING_CATEGORIES } from '../../constants/tabs'
+import Card from '../shared/Card'
 import { formatCurrency } from '../../utils/helpers'
 
 export const MONDAY_STATUSES = [
@@ -102,7 +103,7 @@ function InlineAddRow({ onAdd }) {
                         onChange={e => setName(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && handleSubmit(e)}
                         placeholder="+ New Booking (press Enter to add)"
-                        className="w-full bg-transparent border-none outline-none text-sm text-text-primary px-2 placeholder:text-text-muted/70 focus:ring-1 focus:ring-accent rounded transition-all"
+                        className="w-full bg-transparent text-[13px] font-medium text-text-primary placeholder:text-text-muted outline-none border-b border-border/30 focus:border-accent transition-colors py-1 px-1"
                     />
                 </form>
             </td>
@@ -314,42 +315,44 @@ export default function BookingsTable({
 
     // Fixed table layout to allow truncation and defined widths
     return (
-        <div className="w-full overflow-x-auto overflow-y-visible -mx-5 px-5 sm:mx-0 sm:px-0 scrollbar-thin">
-            <table className="w-full text-left border-collapse table-fixed min-w-[900px] text-sm">
-                <thead>
-                    <tr className="border-b border-border/50">
-                        {table.getHeaderGroups()[0].headers.map(header => (
-                            <th
-                                key={header.id}
-                                className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted overflow-hidden"
-                                style={{ width: header.column.getSize() !== 150 ? header.column.getSize() : 'auto' }}
-                            >
-                                {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                            </th>
-                        ))}
-                    </tr>
-                </thead>
-                <tbody>
-                    {table.getRowModel().rows.map(row => (
-                        <tr
-                            key={row.id}
-                            className="group hover:bg-bg-hover transition-colors border-t border-border/20"
-                        >
-                            {row.getVisibleCells().map(cell => (
-                                <td
-                                    key={cell.id}
-                                    className={`px-2 py-3 align-middle overflow-hidden ${cell.column.id === 'actions' ? 'w-10' : ''
-                                        }`}
-                                    style={{ width: cell.column.getSize() !== 150 ? cell.column.getSize() : 'auto' }}
+        <Card className="border border-border/50 p-0 overflow-hidden">
+            <div className="w-full overflow-x-auto overflow-y-visible scrollbar-thin">
+                <table className="w-full text-left border-collapse table-fixed min-w-[900px] text-sm">
+                    <thead>
+                        <tr className="border-b border-border/50">
+                            {table.getHeaderGroups()[0].headers.map(header => (
+                                <th
+                                    key={header.id}
+                                    className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted overflow-hidden"
+                                    style={{ width: header.column.id === 'name' || header.column.id === 'location' ? 'auto' : header.column.getSize() }}
                                 >
-                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                </td>
+                                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                                </th>
                             ))}
                         </tr>
-                    ))}
-                    <InlineAddRow onAdd={onAdd} />
-                </tbody>
-            </table>
-        </div>
+                    </thead>
+                    <tbody>
+                        {table.getRowModel().rows.map(row => (
+                            <tr
+                                key={row.id}
+                                className="group hover:bg-bg-hover transition-colors border-t border-border/20"
+                            >
+                                {row.getVisibleCells().map(cell => (
+                                    <td
+                                        key={cell.id}
+                                        className={`px-2 py-3 align-middle overflow-hidden ${cell.column.id === 'actions' ? 'w-10' : ''
+                                            }`}
+                                        style={{ width: cell.column.id === 'name' || cell.column.id === 'location' ? 'auto' : cell.column.getSize() }}
+                                    >
+                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                    </td>
+                                ))}
+                            </tr>
+                        ))}
+                        <InlineAddRow onAdd={onAdd} />
+                    </tbody>
+                </table>
+            </div>
+        </Card>
     )
 }
