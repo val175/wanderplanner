@@ -145,7 +145,7 @@ function GroupBalancesCard({ spendingLog, travelers, currency }) {
               }
               <span className="flex-1 text-[13px] text-text-primary truncate">{t.name}</span>
               <span className={`text-[13px] font-mono font-semibold tabular-nums ${isPos ? 'text-green-500' : isNeg ? 'text-danger' : 'text-text-muted'}`}>
-                {isPos ? '+' : ''}{formatCurrency(Math.round(bal), currency)}
+                {isPos ? '+' : ''}{formatCurrency(Math.sign(bal) * Math.round(Math.abs(bal)), currency)}
               </span>
             </div>
           )
