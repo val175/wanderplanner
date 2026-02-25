@@ -161,16 +161,11 @@ function DayGroupTable({ day, onReorderDay, trip }) {
     }
   }
 
-  const headerColorMatch = Object.values(getActivityAccent(day.emoji)).join(' ')
-  // Extract just the background-ish hex or use a default if it's complex, for pure styling let's use the border color reference but soft.
-  const hasNotes = !!day.notes
-
   return (
-    <div
-      className={`mb-8 border border-border rounded-[var(--radius-md)] overflow-hidden bg-bg-card shadow-sm transition-all ${dragOverGroup ? 'ring-2 ring-accent' : ''}`}
+    <Card
+      className={`p-0 overflow-hidden mb-8 transition-all ${dragOverGroup ? 'ring-2 ring-accent' : ''}`}
       draggable
       onDragStart={e => {
-        // Only allow dragging by the handle to prevent accidentally moving the group when picking up text
         if (!e.target.closest('.group-drag-handle')) {
           e.preventDefault()
           return
@@ -189,14 +184,12 @@ function DayGroupTable({ day, onReorderDay, trip }) {
         if (!sourceDataStr) return
         const sourceData = JSON.parse(sourceDataStr)
         if (sourceData.type === 'day') {
-          // Reorder groups
           const fromIndex = trip.itinerary.findIndex(d => d.id === sourceData.dayId)
           const toIndex = trip.itinerary.findIndex(d => d.id === day.id)
           if (fromIndex !== -1 && toIndex !== -1 && fromIndex !== toIndex) {
             onReorderDay(fromIndex, toIndex)
           }
         } else if (sourceData.type === 'activity') {
-          // Drop activity into empty group or end of group
           handleDropActivity(e, day.activities?.length || 0)
         }
       }}
@@ -211,40 +204,36 @@ function DayGroupTable({ day, onReorderDay, trip }) {
         danger
       />
 
-      {/* Group Header (Monday.com style) */}
-      <div className={`group relative flex items-center gap-3 px-4 py-3 border-l-[6px] border-b border-border bg-bg-sidebar transition-colors hover:bg-bg-hover ${getActivityAccent(day.emoji).split(' ')[0]}`}>
-        <div className="group-drag-handle cursor-grab active:cursor-grabbing text-text-muted opacity-0 group-hover:opacity-100 px-1 absolute -left-5 bg-bg-card rounded shadow-sm border border-border z-10">⠿</div>
-        <button onClick={() => setExpanded(!expanded)} className="text-text-muted hover:text-text-primary transition-colors text-lg w-6 flex justify-center">
-          <span className={`transform transition-transform ${expanded ? 'rotate-90' : ''}`}>›</span>
-        </button>
-        <span className="text-2xl min-w-[30px] text-center">{day.emoji}</span>
-        <div className="flex-1 min-w-0 flex items-center gap-4">
-          <EditableText
-            value={`Day ${day.dayNumber} · ${formatDate(day.date, 'short')}`}
-            onSave={val => {
-              // Extract just the date part if they edited that... complex, so let's just use it as a title display.
-              // For simplicity in Monday style, the group TITLE is editable. Let's map it to "location" or a new "title"
-              dispatch({ type: ACTIONS.UPDATE_DAY, payload: { dayId: day.id, updates: { location: val } } })
-            }}
-            className={`font-heading text-[1.1rem] font-medium text-text-primary ${getActivityAccent(day.emoji).split(' ')[1]}`}
-            placeholder="Name this group..."
-          />
-          <EditableText
-            value={day.notes || ''}
-            onSave={val => dispatch({ type: ACTIONS.UPDATE_DAY, payload: { dayId: day.id, updates: { notes: val } } })}
-            className="text-xs text-text-muted"
-            placeholder="Add day notes..."
-          />
+      {/* Group Header (Bookings Style) */}
+      <div className="group relative flex items-center justify-between px-4 py-3 border-b border-border/50 bg-bg-card">
+        <div className="flex items-center gap-3">
+          <div className="group-drag-handle cursor-grab active:cursor-grabbing text-text-muted opacity-20 hover:opacity-100 transition-opacity">⠿</div>
+          <button onClick={() => setExpanded(!expanded)} className="text-text-muted hover:text-text-primary transition-colors text-lg w-5 flex justify-center">
+            <span className={`transform transition-transform ${expanded ? 'rotate-90' : ''}`}>›</span>
+          </button>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xl">{day.emoji}</span>
+            <span className="font-heading font-semibold text-text-primary text-base whitespace-nowrap">Day {day.dayNumber}</span>
+            <span className="text-text-muted mx-1">·</span>
+            <EditableText
+              value={day.date ? formatDate(day.date, 'short') : ''}
+              onSave={val => dispatch({ type: ACTIONS.UPDATE_DAY, payload: { dayId: day.id, updates: { location: val } } })}
+              className="text-sm font-normal text-text-muted hover:text-text-secondary transition-colors"
+              placeholder="Add Date/Location..."
+            />
+          </div>
         </div>
-        <div className="flex items-center gap-4 opacity-100 group-hover:opacity-100 transition-opacity text-sm">
-          <span className="text-text-muted tabular-nums">{day.activities?.length || 0} items</span>
+
+        <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity text-sm">
+          <span className="text-text-muted">{day.activities?.length || 0} items</span>
           <button onClick={() => { (day.activities?.length > 0) ? setConfirmDelete(true) : dispatch({ type: ACTIONS.REMOVE_DAY, payload: day.id }) }} className="text-text-muted hover:text-danger text-lg px-2">✕</button>
         </div>
       </div>
 
       {/* Group Grid Content */}
       {expanded && (
-        <div className="w-full overflow-x-auto overflow-y-visible scrollbar-thin border-t border-border">
+        <div className="w-full overflow-x-auto overflow-y-visible scrollbar-thin">
           <table className="w-full text-left border-collapse table-fixed min-w-[600px] text-sm">
             <thead>
               <tr className="border-b border-border/50">
@@ -315,7 +304,7 @@ function DayGroupTable({ day, onReorderDay, trip }) {
           </table>
         </div>
       )}
-    </div>
+    </Card>
   )
 }
 
