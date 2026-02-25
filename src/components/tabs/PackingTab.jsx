@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { useProfiles } from '../../context/ProfileContext'
 import {
   useReactTable,
   getCoreRowModel,
@@ -162,8 +163,118 @@ function PackedCheckbox({ packed, onToggle }) {
   )
 }
 
+// ── Assignee Pill ───────────────────────────────────────────────────────────
+function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, resolveProfile }) {
+  const [open, setOpen] = useState(false)
+  const [coords, setCoords] = useState(null)
+  const buttonRef = useRef(null)
+  const dropdownRef = useRef(null)
+
+  const handleOpen = (e) => {
+    e.stopPropagation()
+    const rect = buttonRef.current.getBoundingClientRect()
+    setCoords({ left: rect.left, top: rect.bottom + window.scrollY + 4 })
+    setOpen(true)
+  }
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target) && !buttonRef.current.contains(e.target)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    window.addEventListener('scroll', () => setOpen(false), { passive: true })
+    return () => {
+      document.removeEventListener('mousedown', handler)
+      window.removeEventListener('scroll', () => setOpen(false))
+    }
+  }, [open])
+
+  let displayNode = null
+  let displayName = ''
+
+  if (value === 'shared') {
+    if (isPacked && packedBy) {
+      const p = resolveProfile(packedBy)
+      if (p?.photo) {
+        displayNode = <img src={p.photo} alt={p.name} className="w-4 h-4 rounded-full object-cover" />
+      } else {
+        displayNode = <div className="w-4 h-4 rounded-full bg-accent/20 text-accent flex items-center justify-center text-[8px] font-bold uppercase">{p?.name?.charAt(0) || '?'}</div>
+      }
+      displayName = `Packed by ${p?.name?.split(' ')[0]}`
+    } else {
+      displayNode = <span className="text-sm leading-none">🤝</span>
+      displayName = 'Shared'
+    }
+  } else {
+    const p = resolveProfile(value)
+    if (p) {
+      if (p.photo) {
+        displayNode = <img src={p.photo} alt={p.name} className="w-4 h-4 rounded-full object-cover" />
+      } else {
+        displayNode = <div className="w-4 h-4 rounded-full bg-accent text-white flex items-center justify-center text-[8px] font-bold uppercase">{p.name.charAt(0)}</div>
+      }
+      displayName = p.name.split(' ')[0]
+    } else {
+      displayNode = <span className="text-sm leading-none">👤</span>
+      displayName = 'Unassigned'
+    }
+  }
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        onClick={handleOpen}
+        className="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 gap-1.5 rounded-full border border-border bg-bg-secondary hover:bg-bg-hover transition-colors group"
+        title={displayName}
+      >
+        {displayNode}
+      </button>
+
+      {open && coords && createPortal(
+        <div
+          ref={dropdownRef}
+          className="absolute z-[100] rounded-[var(--radius-md)] border border-border bg-bg-card shadow-lg min-w-[140px] py-1"
+          style={{ top: coords.top, left: coords.left }}
+        >
+          <button
+            onClick={(e) => { e.stopPropagation(); onChange('shared'); setOpen(false) }}
+            className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left transition-colors ${value === 'shared' ? 'bg-accent/8 text-accent font-semibold' : 'hover:bg-bg-hover text-text-secondary'}`}
+          >
+            <span className="text-sm">🤝</span>
+            <span>Shared Item</span>
+          </button>
+          <div className="h-px bg-border/50 my-1 mx-2" />
+          {tripTravelers.map(tId => {
+            const p = resolveProfile(tId)
+            if (!p) return null
+            return (
+              <button
+                key={tId}
+                onClick={(e) => { e.stopPropagation(); onChange(tId); setOpen(false) }}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left transition-colors ${value === tId ? 'bg-accent/8 text-accent font-semibold' : 'hover:bg-bg-hover text-text-secondary'}`}
+              >
+                {p.photo ? (
+                  <img src={p.photo} alt="" className="w-4 h-4 rounded-full" />
+                ) : (
+                  <div className="w-4 h-4 rounded-full bg-accent text-white flex items-center justify-center text-[8px] font-bold uppercase">{p.name.charAt(0)}</div>
+                )}
+                <span className="truncate">{p.name}</span>
+              </button>
+            )
+          })}
+        </div>,
+        document.body
+      )}
+    </>
+  )
+}
+
 // ── Inline add row ──────────────────────────────────────────────────────────
-function InlineAddRow({ onAdd }) {
+function InlineAddRow({ onAdd, defaultAssignee }) {
   const inputRef = useRef(null)
   const [name, setName] = useState('')
   const [category, setCategory] = useState('misc')
@@ -171,7 +282,7 @@ function InlineAddRow({ onAdd }) {
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!name.trim()) return
-    onAdd({ name: name.trim(), category, qty: 1, notes: '', packed: false })
+    onAdd({ name: name.trim(), category, qty: 1, notes: '', packed: false, assignee: defaultAssignee })
     setName('')
     inputRef.current?.focus()
   }
@@ -208,20 +319,31 @@ function InlineAddRow({ onAdd }) {
 // ── Main Packing Tab ────────────────────────────────────────────────────────
 export default function PackingTab() {
   const { activeTrip, dispatch, showToast } = useTripContext()
+  const { currentUserProfile, resolveProfile } = useProfiles()
   const [celebration, setCelebration] = useState(0)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState('all')
+  const [viewMode, setViewMode] = useState('group') // 'group' | 'me'
 
   if (!activeTrip) return null
 
   const items = activeTrip.packingList || []
-  const packed = items.filter(p => p.packed).length
-  const total = items.length
+
+  // Create a filtered list of all items matching 'My List' rules if needed, to calculate progress accurately for the view
+  const visibleItems = useMemo(() => {
+    if (viewMode === 'group') return items
+    const myId = currentUserProfile?.id
+    return items.filter(p => p.assignee === myId || (p.assignee === 'shared' && (!p.packed || p.packedBy === myId)))
+  }, [items, viewMode, currentUserProfile])
+
+  const packed = visibleItems.filter(p => p.packed).length
+  const total = visibleItems.length
 
   const onToggle = useCallback((itemId) => {
     const item = items.find(p => p.id === itemId)
-    dispatch({ type: ACTIONS.TOGGLE_PACKING_ITEM, payload: itemId })
+    dispatch({ type: ACTIONS.TOGGLE_PACKING_ITEM, payload: { itemId, userId: currentUserProfile?.id } })
     if (item && !item.packed) {
+      // Show celebration only if packing the last visible item
       if (packed + 1 === total && total > 0) {
         setCelebration(c => c + 1)
         showToast("All packed! You're ready to go 🧳")
@@ -243,25 +365,25 @@ export default function PackingTab() {
 
   const handleStarterList = () => {
     STARTER_ITEMS.forEach(item =>
-      dispatch({ type: ACTIONS.ADD_PACKING_ITEM, payload: item })
+      dispatch({ type: ACTIONS.ADD_PACKING_ITEM, payload: { ...item, assignee: currentUserProfile?.id || 'shared' } })
     )
     showToast("Starter list added! Remove what you don't need 🧳")
   }
 
-  // Filters — only show categories that have at least one item
+  // Filters — only show categories that have at least one visible item
   const filters = useMemo(() => [
     { id: 'all', label: 'All Categories' },
-    ...CATEGORIES.filter(c => items.some(p => (p.category || 'misc') === c.id))
+    ...CATEGORIES.filter(c => visibleItems.some(p => (p.category || 'misc') === c.id))
       .map(c => ({ id: c.id, label: `${c.emoji} ${c.label}` })),
-  ], [items])
+  ], [visibleItems])
 
-  // Sort + filter: active category filter, unpacked first
+  // Sort + filter visible items by active category filter, unpacked first
   const data = useMemo(() => {
-    let filtered = categoryFilter === 'all' ? items : items.filter(p => (p.category || 'misc') === categoryFilter)
+    let filtered = categoryFilter === 'all' ? visibleItems : visibleItems.filter(p => (p.category || 'misc') === categoryFilter)
     const unpacked = filtered.filter(p => !p.packed)
     const packedItems = filtered.filter(p => p.packed)
     return [...unpacked, ...packedItems]
-  }, [items, categoryFilter])
+  }, [visibleItems, categoryFilter])
 
   const columns = useMemo(() => [
     {
@@ -273,6 +395,23 @@ export default function PackingTab() {
           <PackedCheckbox
             packed={info.row.original.packed}
             onToggle={() => onToggle(info.row.original.id)}
+          />
+        </div>
+      ),
+    },
+    {
+      id: 'assignee',
+      header: <div className="text-center w-full">Who</div>,
+      size: 50,
+      cell: info => (
+        <div className="flex justify-center">
+          <AssigneePill
+            value={info.row.original.assignee || 'shared'}
+            packedBy={info.row.original.packedBy}
+            isPacked={info.row.original.packed}
+            onChange={val => onUpdate(info.row.original.id, { assignee: val })}
+            tripTravelers={activeTrip.travelers || []}
+            resolveProfile={resolveProfile}
           />
         </div>
       ),
@@ -376,11 +515,29 @@ export default function PackingTab() {
 
       {/* ── Header Card ── */}
       <Card>
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="font-heading text-lg text-text-primary">🧳 Packing</h2>
-          {total > 0 && (
-            <span className="text-sm text-text-muted tabular-nums">{packed}/{total} packed</span>
-          )}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-3">
+          <div className="flex items-center gap-3">
+            <h2 className="font-heading text-lg text-text-primary">🧳 Packing</h2>
+            <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border">
+              <button
+                onClick={() => setViewMode('group')}
+                className={`px-3 py-1 text-xs font-medium rounded-sm transition-all ${viewMode === 'group' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'
+                  }`}
+              >
+                Group List
+              </button>
+              <button
+                onClick={() => setViewMode('me')}
+                className={`px-3 py-1 text-xs font-medium rounded-sm transition-all ${viewMode === 'me' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'
+                  }`}
+              >
+                My List
+              </button>
+            </div>
+            {total > 0 && (
+              <span className="text-sm text-text-muted tabular-nums hidden sm:inline-block">{packed}/{total} packed</span>
+            )}
+          </div>
         </div>
         <ProgressBar value={packed} max={total} colorClass="bg-accent" height="h-2" />
       </Card>
@@ -457,7 +614,7 @@ export default function PackingTab() {
                   ))}
                 </tr>
               ))}
-              <InlineAddRow onAdd={onAdd} />
+              <InlineAddRow onAdd={onAdd} defaultAssignee={viewMode === 'me' ? currentUserProfile?.id : 'shared'} />
             </tbody>
           </table>
         </div>

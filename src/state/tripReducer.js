@@ -345,7 +345,11 @@ export function tripReducer(state, action) {
     case ACTIONS.TOGGLE_PACKING_ITEM:
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
-        packingList: trip.packingList.map(p => p.id === payload ? { ...p, packed: !p.packed } : p),
+        packingList: trip.packingList.map(p => {
+          if (p.id !== payload.itemId) return p
+          const nextPacked = !p.packed
+          return { ...p, packed: nextPacked, packedBy: nextPacked ? payload.userId : null }
+        }),
       }))
 
     case ACTIONS.UPDATE_PACKING_ITEM:
@@ -363,7 +367,7 @@ export function tripReducer(state, action) {
     case ACTIONS.RESET_PACKING:
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
-        packingList: trip.packingList.map(p => ({ ...p, packed: false })),
+        packingList: trip.packingList.map(p => ({ ...p, packed: false, packedBy: null })),
       }))
 
     // ─── Cities ───
