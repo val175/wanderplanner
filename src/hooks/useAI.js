@@ -151,3 +151,71 @@ export async function sendMessage(systemPrompt, history, userMessage) {
   if (!text) throw new Error('No response from Gemini')
   return text
 }
+
+/**
+ * Generate an auto-filled city guide (Weather, Currency, Must-Do).
+ * Requests JSON format from Gemini to easily map to the city object.
+ */
+export async function generateCityGuide(city, trip) {
+  const prompt = `
+You are Wanda, a travel assistant.
+The user is traveling to: ${city.city}, ${city.country}.
+Trip Dates: ${trip.startDate || 'Unknown'} to ${trip.endDate || 'Unknown'}.
+Trip Currency: ${trip.currency || 'USD'}.
+
+Please generate a quick travel guide for this city.
+Return ONLY a valid JSON object with the following exact keys and format:
+
+{
+  "weather": "🌸 MARCH AVG\\n14°C / 5°C",
+  "currencyTip": "¥ CURRENCY\\n1 USD = 150 JPY",
+  "mustDo": "Neon lights, ancient temples, and the best food in the world. Don't miss the Shibuya Scramble, teamLab Planets, and eating ramen in Shinjuku."
+}
+
+Rules:
+1. "weather": Based on the trip dates (or general averages if unknown), give a 2-line summary. Line 1: Emoji, Month, "AVG". Line 2: High/Low temp.
+2. "currencyTip": 2-line summary. Line 1: Currency Symbol and "CURRENCY". Line 2: Exchange rate from ${trip.currency || 'USD'} to local.
+3. "mustDo": A punchy, 2-to-3 sentence summary of the "Vibe & Must Do" highlights of the city.
+4. DO NOT wrap the output in markdown code blocks like \`\`\`json. Output raw JSON only.
+  `;
+
+  const body = {
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 256,
+      responseMimeType: "application/json"
+    },
+  }
+
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
+  const url = apiKey
+    ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
+    : PROXY_URL;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err?.error?.message || `Gemini API error ${res.status} `)
+  }
+
+  const data = await res.json()
+  let text = data.candidates?.[0]?.content?.parts?.[0]?.text
+
+  if (!text) throw new Error('No response from Gemini')
+
+  // Clean potential markdown blocks if the AI still included them
+  text = text.replace(/^\`\`\`json/m, '').replace(/^\`\`\`/m, '').trim()
+
+  try {
+    return JSON.parse(text)
+  } catch (e) {
+    console.error("Failed to parse city guide JSON:", text)
+    throw new Error("Invalid format returned from AI")
+  }
+}

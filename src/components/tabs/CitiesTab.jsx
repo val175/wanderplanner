@@ -5,12 +5,27 @@ import CityCombobox, { resolveCity } from '../shared/CityCombobox'
 import Button from '../shared/Button'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
+import { generateCityGuide } from '../../hooks/useAI'
 
 function CityCard({ city }) {
-  const { dispatch } = useTripContext()
+  const { activeTrip, dispatch } = useTripContext()
+  const [loading, setLoading] = useState(false)
 
   const updateCity = (updates) => {
     dispatch({ type: ACTIONS.UPDATE_CITY, payload: { id: city.id, updates } })
+  }
+
+  const handleWandaFill = async () => {
+    setLoading(true)
+    try {
+      const guideObj = await generateCityGuide(city, activeTrip)
+      updateCity(guideObj)
+    } catch (e) {
+      console.error(e)
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: { message: "Wanda couldn't generate the guide right now.", type: 'error' } })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -40,27 +55,124 @@ function CityCard({ city }) {
         >✕</button>
       </div>
 
-      {/* Info sections */}
-      <div className="divide-y divide-border">
-        {[
-          { label: '✨ Highlights', field: 'highlights', placeholder: 'What makes this city special?' },
-          { label: '🎯 Must-Do', field: 'mustDo', placeholder: "Can't-miss activities" },
-          { label: '🌤️ Weather', field: 'weather', placeholder: 'Expected weather during your visit' },
-          { label: '💱 Currency', field: 'currencyTip', placeholder: 'Local currency and payment tips' },
-          { label: '📝 Notes', field: 'notes', placeholder: 'Your personal notes for this city…', multiline: true },
-        ].map(({ label, field, placeholder, multiline }) => (
-          <div key={field} className="py-4">
-            <h4 className="text-[10px] font-semibold text-text-muted uppercase tracking-widest mb-2">{label}</h4>
+      {/* Insights Dashboard Content */}
+      {!(city.weather || city.currencyTip || city.mustDo) ? (
+        <div className="flex flex-col items-center justify-center py-10 px-4 text-center border-t border-border/50 mt-4">
+          <div className="w-12 h-12 bg-accent/10 text-accent rounded-full flex items-center justify-center text-2xl mb-4">
+            ✨
+          </div>
+          <h3 className="font-heading font-semibold text-text-primary mb-2">Need inspiration?</h3>
+          <p className="text-sm text-text-muted mb-6 max-w-[280px]">
+            Let Wanda generate a quick guide for weather, currency, and must-see spots in {city.city}.
+          </p>
+          <Button
+            onClick={handleWandaFill}
+            disabled={loading}
+            className="shadow-sm"
+          >
+            {loading ? '✨ Thinking...' : '✨ Ask Wanda to auto-fill'}
+          </Button>
+        </div>
+      ) : (
+        <div className="mt-4 space-y-6">
+          {/* Top Widgets: Weather & Currency */}
+          <div className="grid grid-cols-2 gap-4 border-t border-b border-border/50 py-4">
+            <div className="pr-4 border-r border-border/50">
+              <h4 className="text-[10px] font-semibold text-text-muted uppercase tracking-widest mb-1.5 focus-within:text-accent transition-colors">🌤️ WEATHER</h4>
+              <EditableText
+                value={city.weather}
+                onSave={val => updateCity({ weather: val })}
+                className="text-sm font-medium text-text-primary leading-snug whitespace-pre-wrap"
+                placeholder="e.g. 🌸 MARCH AVG\n14°C / 5°C"
+                multiline
+              />
+            </div>
+            <div className="pl-2">
+              <h4 className="text-[10px] font-semibold text-text-muted uppercase tracking-widest mb-1.5 focus-within:text-accent transition-colors">💱 CURRENCY</h4>
+              <EditableText
+                value={city.currencyTip}
+                onSave={val => updateCity({ currencyTip: val })}
+                className="text-sm font-medium text-text-primary leading-snug whitespace-pre-wrap"
+                placeholder="e.g. ¥ CURRENCY\n1 USD = 150 JPY"
+                multiline
+              />
+            </div>
+          </div>
+
+          {/* Vibe & Must Do */}
+          <div>
+            <h4 className="text-[10px] font-semibold text-text-muted uppercase tracking-widest mb-2 flex items-center gap-1.5 focus-within:text-accent transition-colors">
+              <span className="text-[#E27D60]">✨</span> VIBE & MUST DO
+            </h4>
             <EditableText
-              value={city[field]}
-              onSave={val => updateCity({ [field]: val })}
+              value={city.mustDo}
+              onSave={val => updateCity({ mustDo: val })}
               className="text-sm text-text-secondary leading-relaxed"
-              placeholder={placeholder}
-              multiline={multiline}
+              placeholder="Neon lights, ancient temples..."
+              multiline
             />
           </div>
-        ))}
-      </div>
+
+          {/* Saved Pins */}
+          <div className="pt-2 border-t border-border/50">
+            <h4 className="text-[10px] font-semibold text-text-muted uppercase tracking-widest mb-4 flex items-center gap-1.5 focus-within:text-accent transition-colors">
+              <span className="text-danger">📍</span> SAVED PINS
+            </h4>
+            <div className="space-y-3 mb-3">
+              {(city.savedPins || []).map(pin => (
+                <div key={pin.id} className="group flex items-start gap-3">
+                  <div className="w-8 h-8 rounded bg-bg-secondary border border-border flex items-center justify-center shrink-0 text-sm">
+                    {pin.emoji || '📌'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <EditableText
+                      value={pin.name}
+                      onSave={val => {
+                        const updatedPins = city.savedPins.map(p => p.id === pin.id ? { ...p, name: val } : p)
+                        updateCity({ savedPins: updatedPins })
+                      }}
+                      className="text-sm font-semibold text-text-primary block truncate"
+                      placeholder="Location name..."
+                    />
+                    <EditableText
+                      value={pin.notes}
+                      onSave={val => {
+                        const updatedPins = city.savedPins.map(p => p.id === pin.id ? { ...p, notes: val } : p)
+                        updateCity({ savedPins: updatedPins })
+                      }}
+                      className="text-xs text-text-muted block mt-0.5"
+                      placeholder="Why save this?"
+                      multiline
+                    />
+                  </div>
+                  <button
+                    onClick={() => {
+                      const updatedPins = city.savedPins.filter(p => p.id !== pin.id)
+                      updateCity({ savedPins: updatedPins })
+                    }}
+                    className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger text-lg px-2 shrink-0 transition-opacity"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+            <EditableText
+              value=""
+              onSave={val => {
+                if (!val.trim()) return;
+                import('../../utils/helpers').then(({ generateId }) => {
+                  const newPin = { id: generateId(), name: val, notes: '', emoji: '📌' }
+                  updateCity({ savedPins: [...(city.savedPins || []), newPin] })
+                })
+              }}
+              className="text-sm text-text-muted hover:text-text-secondary transition-colors italic block w-full outline-none"
+              placeholder="+ Drop a map link or add place"
+              clearOnSave
+            />
+          </div>
+        </div>
+      )}
     </Card>
   )
 }

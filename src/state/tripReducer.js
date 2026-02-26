@@ -461,6 +461,7 @@ export function tripReducer(state, action) {
           weather: '',
           currencyTip: '',
           notes: '',
+          savedPins: [],
         }],
         // Keep destinations in sync — append new waypoint to route
         destinations: [...(trip.destinations || []), {

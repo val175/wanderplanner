@@ -737,6 +737,7 @@ export default function NewTripModal({ isOpen, onClose }) {
           weather: '',
           currencyTip: '',
           notes: '',
+          savedPins: [],
         })
       }
     })
