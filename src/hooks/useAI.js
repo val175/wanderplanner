@@ -181,10 +181,12 @@ Rules:
 
   const body = {
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    systemInstruction: {
+      parts: [{ text: "You are Wanda, a travel assistant built into Wanderplan." }],
+    },
     generationConfig: {
       temperature: 0.7,
       maxOutputTokens: 256,
-      responseMimeType: "application/json"
     },
   }
 
@@ -216,6 +218,71 @@ Rules:
     return JSON.parse(text)
   } catch (e) {
     console.error("Failed to parse city guide JSON:", text)
+    throw new Error("Invalid format returned from AI")
+  }
+}
+
+/**
+ * Generate a pin's name and emoji given a raw URL.
+ * Requests JSON format from Gemini.
+ */
+export async function generatePinFromUrl(url) {
+  const prompt = `
+A user pasted this URL into their travel planner:
+${url}
+
+Visit or analyze this URL.
+Figure out the name of the place, restaurant, landmark, or link title.
+Then, pick ONE single emoji that best categorizes it (e.g. 🍜 for ramen, 🏨 for hotel, 🏛️ for museum, ✈️ for airport, etc.). If it's just a generic link, use 🔗.
+
+Return ONLY a valid JSON object with the exact keys:
+{
+  "name": "Ichiran Shibuya",
+  "emoji": "🍜"
+}
+
+DO NOT wrap the output in markdown code blocks like \`\`\`json. Output raw JSON only.
+  `;
+
+  const body = {
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    systemInstruction: {
+      parts: [{ text: "You are Wanda, a travel assistant built into Wanderplan." }],
+    },
+    generationConfig: {
+      temperature: 0.2, // Low temp for more accurate/consistent extraction
+      maxOutputTokens: 64,
+    },
+  }
+
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
+  const apiUrl = apiKey
+    ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
+    : PROXY_URL;
+
+  const res = await fetch(apiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err?.error?.message || `Gemini API error ${res.status}`)
+  }
+
+  const data = await res.json()
+  let text = data.candidates?.[0]?.content?.parts?.[0]?.text
+
+  if (!text) throw new Error('No response from Gemini')
+
+  // Clean potential markdown blocks if the AI still included them
+  text = text.replace(/^\`\`\`json/m, '').replace(/^\`\`\`/m, '').trim()
+
+  try {
+    return JSON.parse(text)
+  } catch (e) {
+    console.error("Failed to parse pin JSON:", text)
     throw new Error("Invalid format returned from AI")
   }
 }

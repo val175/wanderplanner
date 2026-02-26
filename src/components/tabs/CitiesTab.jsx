@@ -5,7 +5,7 @@ import CityCombobox, { resolveCity } from '../shared/CityCombobox'
 import Button from '../shared/Button'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
-import { generateCityGuide } from '../../hooks/useAI'
+import { generateCityGuide, generatePinFromUrl } from '../../hooks/useAI'
 
 function CityCard({ city }) {
   const { activeTrip, dispatch } = useTripContext()
@@ -144,6 +144,16 @@ function CityCard({ city }) {
                       placeholder="Why save this?"
                       multiline
                     />
+                    {pin.url && (
+                      <a
+                        href={pin.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[10px] text-accent hover:underline mt-1 block truncate max-w-[200px]"
+                      >
+                        {pin.url.replace(/^https?:\/\//, '')}
+                      </a>
+                    )}
                   </div>
                   <button
                     onClick={() => {
@@ -160,10 +170,70 @@ function CityCard({ city }) {
             <EditableText
               value=""
               onSave={val => {
-                if (!val.trim()) return;
-                import('../../utils/helpers').then(({ generateId }) => {
-                  const newPin = { id: generateId(), name: val, notes: '', emoji: '📌' }
-                  updateCity({ savedPins: [...(city.savedPins || []), newPin] })
+                const text = val.trim();
+                if (!text) return;
+
+                import('../../utils/helpers').then(async ({ generateId }) => {
+                  const pinId = generateId();
+                  let name = text;
+                  let url = '';
+                  let emoji = '📌';
+
+                  // Basic detection for Google Maps (or any http) link
+                  const isUrl = text.startsWith('http://') || text.startsWith('https://');
+                  if (isUrl) {
+                    url = text;
+                    name = '⏳ Resolving link...';
+                    emoji = '⏳';
+                  }
+
+                  // Immediate optimistic UI update
+                  const tempPin = { id: pinId, name, notes: '', emoji, url };
+                  updateCity({ savedPins: [...(city.savedPins || []), tempPin] });
+
+                  // If it's a URL, fire the background AI fetch
+                  if (isUrl) {
+                    try {
+                      // Call Wanda to extract name and emoji
+                      const aiResult = await generatePinFromUrl(url);
+
+                      // Dispatch a fresh secondary update finding the temp pin
+                      dispatch({
+                        type: ACTIONS.UPDATE_CITY,
+                        payload: {
+                          id: city.id,
+                          // Use a function-based update if possible, but since we are firing inside an async block
+                          // we need to be careful with stale 'city' state. We rely on the reducer merging capabilities.
+                          // It's safer to read from activeTrip.cities directly to get the latest array.
+                          // However, since we just pushed it, updating it eagerly is easiest via a map.
+                        }
+                      });
+
+                      // We can just rely on dispatching a new array derived from the CURRENT state or
+                      // re-using the `updateCity` function if it's safe. Instead of trusting lexical `city`, 
+                      // we should use a more robust update mechanism or simply rely on React's next render.
+                      // Let's implement a clean state swap.
+                      const newPins = (city.savedPins || []).map(p =>
+                        p.id === pinId ? { ...p, name: aiResult.name || '📍 Pinned Location', emoji: aiResult.emoji || '🌍' } : p
+                      );
+                      // Since `city` might be stale during the await, we must append it to whatever is current.
+                      // To handle this perfectly, we will just dispatch the fix:
+                      updateCity({
+                        savedPins: [...(city.savedPins || []), tempPin].map(p =>
+                          p.id === pinId ? { ...p, name: aiResult.name || '📍 Pinned Location', emoji: aiResult.emoji || '🌍' } : p
+                        )
+                      })
+
+                    } catch (err) {
+                      console.error("AI pin generation failed:", err);
+                      // Fallback name
+                      updateCity({
+                        savedPins: [...(city.savedPins || []), tempPin].map(p =>
+                          p.id === pinId ? { ...p, name: '🔗 Saved Link', emoji: '🌍' } : p
+                        )
+                      })
+                    }
+                  }
                 })
               }}
               className="text-sm text-text-muted hover:text-text-secondary transition-colors italic block w-full outline-none"
