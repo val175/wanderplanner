@@ -39,15 +39,15 @@ function Label({ children }) {
    WMO weather code → emoji + label
 ───────────────────────────────────────────────────────────── */
 function wmoToDescription(code) {
-  if (code === 0)  return { emoji: '☀️', label: 'Clear sky' }
-  if (code <= 2)   return { emoji: '🌤️', label: 'Partly cloudy' }
-  if (code === 3)  return { emoji: '☁️', label: 'Overcast' }
-  if (code <= 49)  return { emoji: '🌫️', label: 'Foggy' }
-  if (code <= 59)  return { emoji: '🌦️', label: 'Drizzle' }
-  if (code <= 69)  return { emoji: '🌧️', label: 'Rain' }
-  if (code <= 79)  return { emoji: '🌨️', label: 'Snow' }
-  if (code <= 84)  return { emoji: '🌧️', label: 'Showers' }
-  if (code <= 99)  return { emoji: '⛈️', label: 'Thunderstorm' }
+  if (code === 0) return { emoji: '☀️', label: 'Clear sky' }
+  if (code <= 2) return { emoji: '🌤️', label: 'Partly cloudy' }
+  if (code === 3) return { emoji: '☁️', label: 'Overcast' }
+  if (code <= 49) return { emoji: '🌫️', label: 'Foggy' }
+  if (code <= 59) return { emoji: '🌦️', label: 'Drizzle' }
+  if (code <= 69) return { emoji: '🌧️', label: 'Rain' }
+  if (code <= 79) return { emoji: '🌨️', label: 'Snow' }
+  if (code <= 84) return { emoji: '🌧️', label: 'Showers' }
+  if (code <= 99) return { emoji: '⛈️', label: 'Thunderstorm' }
   return { emoji: '🌡️', label: 'Unknown' }
 }
 
@@ -130,12 +130,12 @@ function RouteCell({ trip }) {
 
   const destDates = useMemo(() => {
     const map = {}
-    ;(trip.itinerary || []).forEach(day => {
-      const loc = (day.location || '').toLowerCase()
-      dests.forEach(d => {
-        if (!map[d.city] && loc.includes(d.city.toLowerCase())) map[d.city] = day.date
+      ; (trip.itinerary || []).forEach(day => {
+        const loc = (day.location || '').toLowerCase()
+        dests.forEach(d => {
+          if (!map[d.city] && loc.includes(d.city.toLowerCase())) map[d.city] = day.date
+        })
       })
-    })
     return map
   }, [trip.itinerary, dests])
 
@@ -162,18 +162,17 @@ function RouteCell({ trip }) {
               */}
               <div className={`flex items-center ${dests.length <= 6 ? 'w-full' : ''}`}>
                 {dests.map((dest, i) => {
-                  const isLast  = i === dests.length - 1
+                  const isLast = i === dests.length - 1
                   const isFirst = i === 0
-                  const date    = destDates[dest.city]
+                  const date = destDates[dest.city]
                   const scrollable = dests.length > 6
                   return (
-                    <div key={i} className={`flex items-center ${
-                      isLast
+                    <div key={i} className={`flex items-center ${isLast
                         ? 'shrink-0'
                         : scrollable
                           ? 'shrink-0 min-w-[8rem]'   // fixed width → content overflows → scroll
                           : 'flex-1 min-w-[5rem]'      // grows to fill card width
-                    }`}>
+                      }`}>
                       {/* Node */}
                       <div className="flex flex-col items-center text-center w-14 shrink-0">
                         <div className="text-[9px] text-[var(--color-text-muted)] mb-1.5 h-3 leading-none font-medium">
@@ -182,7 +181,7 @@ function RouteCell({ trip }) {
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm border-2
                           ${isFirst ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10'
                             : isLast ? 'border-[var(--color-success)] bg-[var(--color-success)]/10'
-                            : 'border-[var(--color-border-strong)] bg-[var(--color-bg-secondary)]'}`}>
+                              : 'border-[var(--color-border-strong)] bg-[var(--color-bg-secondary)]'}`}>
                           {dest.flag}
                         </div>
                         <p className="text-[10px] font-semibold text-[var(--color-text-primary)] mt-1 leading-tight">{dest.city}</p>
@@ -214,45 +213,45 @@ function RouteCell({ trip }) {
    Needs Attention bento cell
 ───────────────────────────────────────────────────────────── */
 const URGENCY_HIGH = 'high'
-const URGENCY_MED  = 'med'
+const URGENCY_MED = 'med'
 
 function buildAttentionItems(trip) {
   const items = []
   const today = new Date(); today.setHours(0, 0, 0, 0)
 
-  ;(trip.todos || []).filter(t => {
-    if (t.done) return false
-    if (t.priority === 'high') return true
-    if (t.dueDate) return Math.ceil((new Date(t.dueDate + 'T00:00:00') - today) / 86400000) <= 14
-    return false
-  }).slice(0, 3).forEach(t => {
-    const dueD = t.dueDate ? Math.ceil((new Date(t.dueDate + 'T00:00:00') - today) / 86400000) : null
-    const overdue = dueD !== null && dueD < 0
-    items.push({
-      id: `todo-${t.id}`, urgency: (t.priority === 'high' || overdue) ? URGENCY_HIGH : URGENCY_MED,
-      icon: overdue ? '🚨' : t.priority === 'high' ? '⚡' : '📋',
-      title: t.text,
-      subtitle: overdue ? `Overdue ${Math.abs(dueD)}d` : dueD !== null ? `Due in ${dueD}d` : t.category,
-      tab: 'todo',
+    ; (trip.todos || []).filter(t => {
+      if (t.done) return false
+      if (t.priority === 'high') return true
+      if (t.dueDate) return Math.ceil((new Date(t.dueDate + 'T00:00:00') - today) / 86400000) <= 14
+      return false
+    }).slice(0, 3).forEach(t => {
+      const dueD = t.dueDate ? Math.ceil((new Date(t.dueDate + 'T00:00:00') - today) / 86400000) : null
+      const overdue = dueD !== null && dueD < 0
+      items.push({
+        id: `todo-${t.id}`, urgency: (t.priority === 'high' || overdue) ? URGENCY_HIGH : URGENCY_MED,
+        icon: overdue ? '🚨' : t.priority === 'high' ? '⚡' : '📋',
+        title: t.text,
+        subtitle: overdue ? `Overdue ${Math.abs(dueD)}d` : dueD !== null ? `Due in ${dueD}d` : t.category,
+        tab: 'todo',
+      })
     })
-  })
 
-  ;(trip.bookings || []).filter(b => {
-    if (b.status === 'booked') return false
-    if (b.priority) return true
-    if (b.bookByDate) return Math.ceil((new Date(b.bookByDate + 'T00:00:00') - today) / 86400000) <= 21
-    return false
-  }).slice(0, 3).forEach(b => {
-    const dueD = b.bookByDate ? Math.ceil((new Date(b.bookByDate + 'T00:00:00') - today) / 86400000) : null
-    const overdue = dueD !== null && dueD < 0
-    const catIcon = { flight: '✈️', hotel: '🏨', concert: '🎸', experience: '🎯' }[b.category] || '🎫'
-    items.push({
-      id: `booking-${b.id}`, urgency: (b.priority || overdue) ? URGENCY_HIGH : URGENCY_MED,
-      icon: catIcon, title: b.name,
-      subtitle: overdue ? `Book-by passed ${Math.abs(dueD)}d ago` : dueD !== null ? `Book by ${formatDate(b.bookByDate, 'short')}` : 'Unconfirmed',
-      tab: 'bookings',
+    ; (trip.bookings || []).filter(b => {
+      if (b.status === 'booked' || b.status === 'confirmed') return false
+      if (b.priority) return true
+      if (b.bookByDate) return Math.ceil((new Date(b.bookByDate + 'T00:00:00') - today) / 86400000) <= 21
+      return false
+    }).slice(0, 3).forEach(b => {
+      const dueD = b.bookByDate ? Math.ceil((new Date(b.bookByDate + 'T00:00:00') - today) / 86400000) : null
+      const overdue = dueD !== null && dueD < 0
+      const catIcon = { flight: '✈️', hotel: '🏨', concert: '🎸', experience: '🎯' }[b.category] || '🎫'
+      items.push({
+        id: `booking-${b.id}`, urgency: (b.priority || overdue) ? URGENCY_HIGH : URGENCY_MED,
+        icon: catIcon, title: b.name,
+        subtitle: overdue ? `Book-by passed ${Math.abs(dueD)}d ago` : dueD !== null ? `Book by ${formatDate(b.bookByDate, 'short')}` : 'Unconfirmed',
+        tab: 'bookings',
+      })
     })
-  })
 
   const hasFlights = (trip.bookings || []).some(b => b.category === 'flight')
   if (!hasFlights && (trip.destinations?.length || 0) > 1) {
@@ -263,7 +262,7 @@ function buildAttentionItems(trip) {
     items.push({ id: 'missing-hotels', urgency: URGENCY_MED, icon: '🏨', title: 'No accommodation yet', subtitle: 'Add to Bookings', tab: 'bookings' })
   }
   const totalPacking = trip.packingList?.length || 0
-  const packedItems  = trip.packingList?.filter(p => p.packed).length || 0
+  const packedItems = trip.packingList?.filter(p => p.packed).length || 0
   const daysOut = daysUntil(trip.startDate)
   if (totalPacking > 0 && packedItems === 0 && daysOut !== null && daysOut <= 30) {
     items.push({ id: 'packing', urgency: daysOut <= 7 ? URGENCY_HIGH : URGENCY_MED, icon: '🧳', title: 'Packing not started', subtitle: `${daysOut}d to go`, tab: 'packing' })
@@ -273,7 +272,7 @@ function buildAttentionItems(trip) {
 }
 
 function AttentionCell({ trip, onTabSwitch }) {
-  const items     = useMemo(() => buildAttentionItems(trip), [trip])
+  const items = useMemo(() => buildAttentionItems(trip), [trip])
   const highCount = items.filter(i => i.urgency === URGENCY_HIGH).length
 
   return (
@@ -284,7 +283,7 @@ function AttentionCell({ trip, onTabSwitch }) {
         {items.length > 0 && (
           <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full
             ${highCount > 0 ? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'
-                           : 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]'}`}>
+              : 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]'}`}>
             {highCount > 0 ? `${highCount} urgent` : `${items.length} items`}
           </span>
         )}
@@ -333,13 +332,13 @@ function AttentionCell({ trip, onTabSwitch }) {
 function ReadinessCell({ trip }) {
   const readiness = calculateReadiness(trip)
   const breakdown = getReadinessBreakdown(trip)
-  const isZero    = readiness === 0
+  const isZero = readiness === 0
 
   const msg = readiness === 100 ? "100% ready 🌍"
     : readiness >= 75 ? "Almost there!"
-    : readiness >= 50 ? "Good progress"
-    : readiness > 0   ? "Just getting started"
-    : "Add items to track"
+      : readiness >= 50 ? "Good progress"
+        : readiness > 0 ? "Just getting started"
+          : "Add items to track"
 
   return (
     <BentoCard>
@@ -370,10 +369,10 @@ function ReadinessCell({ trip }) {
    Budget bento cell
 ───────────────────────────────────────────────────────────── */
 function BudgetCell({ trip }) {
-  const budgetMin  = trip.budget?.reduce((s, b) => s + (b.min    || 0), 0) || 0
-  const budgetMax  = trip.budget?.reduce((s, b) => s + (b.max    || 0), 0) || 0
+  const budgetMin = trip.budget?.reduce((s, b) => s + (b.min || 0), 0) || 0
+  const budgetMax = trip.budget?.reduce((s, b) => s + (b.max || 0), 0) || 0
   const totalSpent = trip.budget?.reduce((s, b) => s + (b.actual || 0), 0) || 0
-  const hasBudget  = budgetMax > 0
+  const hasBudget = budgetMax > 0
   const overBudget = totalSpent > budgetMax
 
   return (
@@ -415,9 +414,9 @@ function BudgetCell({ trip }) {
    Quick Start — 0% readiness only, 3 bento cells in a row
 ───────────────────────────────────────────────────────────── */
 const QUICK_START = [
-  { emoji: '🎫', title: 'Add a Booking',  desc: 'Flights, hotels, activities', tab: 'bookings' },
-  { emoji: '✅', title: 'Create To-Dos',  desc: 'Visas, vaccines, admin',      tab: 'todo' },
-  { emoji: '🧳', title: 'Start Packing',  desc: 'Build your checklist',         tab: 'packing' },
+  { emoji: '🎫', title: 'Add a Booking', desc: 'Flights, hotels, activities', tab: 'bookings' },
+  { emoji: '✅', title: 'Create To-Dos', desc: 'Visas, vaccines, admin', tab: 'todo' },
+  { emoji: '🧳', title: 'Start Packing', desc: 'Build your checklist', tab: 'packing' },
 ]
 
 function QuickStartRow({ onTabSwitch }) {
@@ -462,7 +461,7 @@ export default function OverviewTab({ onTabSwitch }) {
   if (!activeTrip) return null
 
   const trip = activeTrip
-  const readiness       = calculateReadiness(trip)
+  const readiness = calculateReadiness(trip)
   const isZeroReadiness = readiness === 0
 
   const hasWeather = (trip.destinations?.length || 0) > 0
@@ -492,7 +491,7 @@ export default function OverviewTab({ onTabSwitch }) {
       {/* ── Row 3: Readiness | Budget ── */}
       <div className="grid grid-cols-2 gap-3">
         <ReadinessCell trip={trip} />
-        <BudgetCell    trip={trip} />
+        <BudgetCell trip={trip} />
       </div>
 
     </div>

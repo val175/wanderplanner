@@ -116,6 +116,25 @@ Requirements:
   ],
   "todos": [
      { "text": "String (Activity, sight to see, or task mentioned)", "category": "String (e.g. Activity, Sightseeing, Admin, Tech)" }
+  ],
+  "itinerary": [
+     {
+        "dayNumber": 1,
+        "date": "String (YYYY-MM-DD or empty)",
+        "location": "String (Main area for the day or empty)",
+        "activities": [
+           {
+              "time": "String (e.g. 09:00 AM or empty)",
+              "name": "String (Activity name)",
+              "emoji": "String (Single semantic emoji)",
+              "location": "String (Specific venue or address)",
+              "estCost": "String (e.g. ₱500 or empty)",
+              "transit": "String (e.g. 15 mins to next spot or empty)",
+              "transitEmoji": "String (e.g. 🚕, 🚇, 🚶, ✈️) or default to 🚕",
+              "notes": "String (Any tips or context or empty)"
+           }
+        ]
+     }
   ]
 }
 

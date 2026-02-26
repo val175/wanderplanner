@@ -1,13 +1,14 @@
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, Fragment } from 'react'
 import Card from '../shared/Card'
 import EditableText from '../shared/EditableText'
 import TimePicker from '../shared/TimePicker'
 import Modal from '../shared/Modal'
 import Button from '../shared/Button'
+import DatePicker from '../shared/DatePicker'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
-import { formatDate } from '../../utils/helpers'
+import { formatDate, formatCurrency } from '../../utils/helpers'
 import { ACTIVITY_EMOJIS } from '../../constants/emojis'
 
 // ── Utilities ──────────────────────────────────────────────────────────────
@@ -24,19 +25,16 @@ function getActivityAccent(emoji) {
 }
 
 // ── Kanban Add Activity Inline ──────────────────────────────────────────────
-function KanbanAddRow({ onAdd, defaultEmoji = '📌' }) {
+function KanbanAddRow({ onAdd }) {
   const [name, setName] = useState('')
   const [time, setTime] = useState('')
-  const [emoji, setEmoji] = useState(defaultEmoji)
-  const [showEmojis, setShowEmojis] = useState(false)
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!name.trim()) return
-    onAdd({ name: name.trim(), time, emoji })
+    onAdd({ name: name.trim(), time })
     setName('')
     setTime('')
-    setEmoji(defaultEmoji)
   }
 
   return (
@@ -49,17 +47,7 @@ function KanbanAddRow({ onAdd, defaultEmoji = '📌' }) {
           placeholder="+time"
         />
       </div>
-      <div className="relative shrink-0 w-[40px] flex items-center justify-center">
-        <button type="button" onClick={() => setShowEmojis(!showEmojis)}
-          className="text-lg p-1 hover:bg-bg-hover rounded transition-colors">{emoji}</button>
-        {showEmojis && (
-          <div className="absolute bottom-full left-0 mb-1 p-2 bg-bg-card border border-border rounded-[var(--radius-md)] grid grid-cols-4 gap-1 z-[100] shadow-lg">
-            {ACTIVITY_EMOJIS.map(e => (
-              <button key={e.emoji} type="button" onClick={() => { setEmoji(e.emoji); setShowEmojis(false) }}
-                className="text-lg p-1 hover:bg-bg-hover rounded" title={e.label}>{e.emoji}</button>
-            ))}
-          </div>
-        )}
+      <div className="relative shrink-0 w-[4px] flex items-center justify-center">
       </div>
       <input
         value={name}
@@ -77,20 +65,17 @@ function KanbanAddRow({ onAdd, defaultEmoji = '📌' }) {
 }
 
 // ── Table Add Row Inline ──────────────────────────────────────────────
-function TableAddRow({ onAdd, defaultEmoji = '📌' }) {
+function TableAddRow({ onAdd }) {
   const [name, setName] = useState('')
   const [time, setTime] = useState('')
-  const [emoji, setEmoji] = useState(defaultEmoji)
-  const [showEmojis, setShowEmojis] = useState(false)
   const inputRef = useRef(null)
 
   const handleSubmit = (e) => {
     e?.preventDefault()
     if (!name.trim()) return
-    onAdd({ name: name.trim(), time, emoji })
+    onAdd({ name: name.trim(), time })
     setName('')
     setTime('')
-    setEmoji(defaultEmoji)
     inputRef.current?.focus()
   }
 
@@ -104,18 +89,6 @@ function TableAddRow({ onAdd, defaultEmoji = '📌' }) {
           className="text-sm border-transparent hover:border-border focus:border-accent bg-transparent text-text-secondary font-mono w-[80px]"
           placeholder="+time"
         />
-      </td>
-      <td className="px-2 py-2 align-middle text-center relative">
-        <button type="button" onClick={() => setShowEmojis(!showEmojis)}
-          className="text-lg p-1 hover:bg-bg-hover rounded transition-colors">{emoji}</button>
-        {showEmojis && (
-          <div className="absolute top-full left-0 mt-1 p-2 bg-bg-card border border-border rounded-[var(--radius-md)] grid grid-cols-4 gap-1 z-50 shadow-lg">
-            {ACTIVITY_EMOJIS.map(e => (
-              <button key={e.emoji} type="button" onClick={() => { setEmoji(e.emoji); setShowEmojis(false) }}
-                className="text-lg p-1 hover:bg-bg-hover rounded" title={e.label}>{e.emoji}</button>
-            ))}
-          </div>
-        )}
       </td>
       <td className="px-2 py-2 align-middle" colSpan={2}>
         <form onSubmit={handleSubmit} className="flex h-full">
@@ -162,8 +135,8 @@ function DayGroupTable({ day, onReorderDay, trip }) {
   }
 
   return (
-    <Card
-      className={`p-0 overflow-hidden mb-8 transition-all ${dragOverGroup ? 'ring-2 ring-accent' : ''}`}
+    <div
+      className={`mb-8 transition-all ${dragOverGroup ? 'ring-2 ring-accent rounded-[var(--radius-md)]' : ''}`}
       draggable
       onDragStart={e => {
         if (!e.target.closest('.group-drag-handle')) {
@@ -204,107 +177,240 @@ function DayGroupTable({ day, onReorderDay, trip }) {
         danger
       />
 
-      {/* Group Header (Bookings Style) */}
-      <div className="group relative flex items-center justify-between px-4 py-3 border-b border-border/50 bg-bg-card">
-        <div className="flex items-center gap-3">
-          <div className="group-drag-handle cursor-grab active:cursor-grabbing text-text-muted opacity-20 hover:opacity-100 transition-opacity">⠿</div>
-          <button onClick={() => setExpanded(!expanded)} className="text-text-muted hover:text-text-primary transition-colors text-lg w-5 flex justify-center">
+      {/* Group Header (Monday-style smart headers) */}
+      <div className="group/day relative flex items-center justify-between py-2 mb-2">
+        <div className="flex items-center gap-2">
+          <div className="group-drag-handle cursor-grab active:cursor-grabbing text-text-muted opacity-20 hover:opacity-100 transition-opacity mr-2">⠿</div>
+          <button onClick={() => setExpanded(!expanded)} className="text-text-muted hover:text-text-primary transition-colors text-lg w-5 flex justify-center shadow-sm bg-bg-card border border-border rounded">
             <span className={`transform transition-transform ${expanded ? 'rotate-90' : ''}`}>›</span>
           </button>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xl">{day.emoji}</span>
-            <span className="font-heading font-semibold text-text-primary text-base whitespace-nowrap">Day {day.dayNumber}</span>
-            <span className="text-text-muted mx-1">·</span>
-            <EditableText
-              value={day.date ? formatDate(day.date, 'short') : ''}
-              onSave={val => dispatch({ type: ACTIONS.UPDATE_DAY, payload: { dayId: day.id, updates: { location: val } } })}
-              className="text-sm font-normal text-text-muted hover:text-text-secondary transition-colors"
-              placeholder="Add Date/Location..."
-            />
+          <div className="flex flex-col ml-2">
+            <div className="flex items-center gap-2">
+              <span className="font-heading font-semibold text-text-primary text-base whitespace-nowrap">
+                Day {day.dayNumber}:
+              </span>
+              <span className="font-heading font-semibold text-text-primary text-base whitespace-nowrap">
+                {day.date ? new Date(day.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' }) : 'Day'}
+              </span>
+              <EditableText
+                value={day.location || ''}
+                onSave={val => dispatch({ type: ACTIONS.UPDATE_DAY, payload: { dayId: day.id, updates: { location: val } } })}
+                className="font-heading font-semibold text-text-primary text-base hover:text-text-secondary transition-colors"
+                placeholder="Day Title (e.g. Rio Explorations)"
+              />
+            </div>
+            <div className="text-xs font-medium text-text-muted mt-0.5 uppercase tracking-wider relative min-w-[150px]">
+              <DatePicker
+                value={day.date}
+                onChange={val => dispatch({ type: ACTIONS.UPDATE_DAY, payload: { dayId: day.id, updates: { date: val } } })}
+                placeholder="ADD DATE (e.g. WED, FEB 25)"
+                className="bg-transparent border-transparent hover:border-border text-xs !px-1 w-auto max-w-[200px]"
+              />
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity text-sm">
-          <span className="text-text-muted">{day.activities?.length || 0} items</span>
-          <button onClick={() => { (day.activities?.length > 0) ? setConfirmDelete(true) : dispatch({ type: ACTIONS.REMOVE_DAY, payload: day.id }) }} className="text-text-muted hover:text-danger text-lg px-2">✕</button>
+        <div className="flex items-center gap-4 text-xs font-medium text-text-muted">
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-bg-secondary/30">
+            <span className="text-danger">📍</span>
+            {day.activities?.length || 0} activities/locations
+          </div>
+          {(() => {
+            const count = day.activities?.length || 0;
+            if (count < 5) return (
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-success/10 text-success">
+                <span>🔋</span> Chill
+              </div>
+            );
+            if (count <= 8) return (
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-info/10 text-info">
+                <span>⚡</span> Active
+              </div>
+            );
+            return (
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#E27D60]/10 text-[#E27D60]">
+                <span>🪫</span> Packed
+              </div>
+            );
+          })()}
+          <button onClick={() => { (day.activities?.length > 0) ? setConfirmDelete(true) : dispatch({ type: ACTIONS.REMOVE_DAY, payload: day.id }) }} className="text-text-muted hover:text-danger text-lg px-2 opacity-0 group-hover/day:opacity-100 transition-opacity">✕</button>
         </div>
       </div>
 
       {/* Group Grid Content */}
       {expanded && (
-        <div className="w-full overflow-x-auto overflow-y-visible scrollbar-thin">
-          <table className="w-full text-left border-collapse table-fixed min-w-[600px] text-sm">
-            <thead>
-              <tr className="border-b border-border/50">
-                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[30px] overflow-hidden"></th>
-                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[90px] overflow-hidden">TIME</th>
-                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[50px] text-center overflow-hidden"></th>
-                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-1/3 overflow-hidden">ITEM</th>
-                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-1/3 overflow-hidden">NOTES</th>
-                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[40px] overflow-hidden"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {day.activities?.map((activity, index) => (
-                <tr
-                  key={activity.id}
-                  draggable
-                  onDragStart={(e) => {
-                    e.stopPropagation()
-                    e.dataTransfer.setData('application/json', JSON.stringify({ type: 'activity', sourceDayId: day.id, activityId: activity.id, sourceIndex: index }))
-                  }}
-                  onDragOver={e => e.preventDefault()}
-                  onDrop={e => handleDropActivity(e, index)}
-                  className="group/row hover:bg-bg-hover transition-colors border-t border-border/20 relative cursor-pointer"
-                >
-                  <td className="px-2 py-3 align-middle">
-                    <div className="cursor-grab active:cursor-grabbing text-text-muted opacity-0 group-hover/row:opacity-100 text-center w-full">⠿</div>
-                  </td>
-                  <td className="px-2 py-3 align-middle font-mono text-[13px] text-text-secondary">
-                    <TimePicker
-                      value={activity.time}
-                      onChange={time => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { time } } })}
-                      className="border-transparent hover:border-border text-inherit w-full !px-0 bg-transparent text-left max-w-[80px]"
-                      placeholder="-:--"
-                    />
-                  </td>
-                  <td className="px-2 py-3 align-middle text-center text-lg">{activity.emoji}</td>
-                  <td className="px-2 py-3 align-middle">
-                    <EditableText
-                      value={activity.name}
-                      onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { name: val } } })}
-                      className="text-[13px] text-text-primary font-medium w-full block truncate"
-                      inputClassName="w-full"
-                      placeholder="Activity name"
-                    />
-                  </td>
-                  <td className="px-2 py-3 align-middle">
-                    <EditableText
-                      value={activity.notes || ''}
-                      onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { notes: val } } })}
-                      className="text-[13px] text-text-muted w-full block"
-                      inputClassName="w-full"
-                      placeholder="Add a note..."
-                      multiline
-                    />
-                  </td>
-                  <td className="px-2 py-3 align-middle">
-                    <button onClick={() => dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })} className="w-full text-center text-text-muted hover:text-danger opacity-0 group-hover/row:opacity-100 transition-opacity" title="Delete">
-                      ×
-                    </button>
-                  </td>
+        <Card className="border border-border/50 p-0 overflow-hidden">
+          <div className="w-full overflow-x-auto overflow-y-visible scrollbar-thin">
+            <table className="w-full text-left border-collapse table-fixed min-w-[600px] text-sm">
+              <thead>
+                <tr className="border-b border-border/50 bg-bg-secondary/10">
+                  <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[30px] overflow-hidden"></th>
+                  <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[80px] overflow-hidden">TIME</th>
+                  <th className="px-0 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[30px] text-center overflow-hidden"></th>
+                  <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-auto text-left overflow-hidden">ACTIVITY</th>
+                  <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[25%] text-left overflow-hidden">LOCATION</th>
+                  <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[40px] overflow-hidden"></th>
                 </tr>
-              ))}
-              <TableAddRow
-                onAdd={act => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: act } })}
-                defaultEmoji="📌"
-              />
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {day.activities?.map((activity, index, arr) => {
+                  const accentMatch = getActivityAccent(activity.emoji).match(/text-([a-z]+)/)
+                  const dotColor = accentMatch ? `bg-${accentMatch[1]}` : 'bg-border-strong'
+
+                  return (
+                    <Fragment key={activity.id}>
+                      <tr
+                        draggable
+                        onDragStart={(e) => {
+                          e.stopPropagation()
+                          e.dataTransfer.setData('application/json', JSON.stringify({ type: 'activity', sourceDayId: day.id, activityId: activity.id, sourceIndex: index }))
+                        }}
+                        onDragOver={e => e.preventDefault()}
+                        onDrop={e => handleDropActivity(e, index)}
+                        className="group/row hover:bg-bg-hover transition-colors relative cursor-pointer"
+                      >
+                        {/* Drag Handle */}
+                        <td className="px-2 pt-4 pb-2 align-top">
+                          <div className="cursor-grab active:cursor-grabbing text-text-muted opacity-0 group-hover/row:opacity-100 text-center w-full pt-0.5">⠿</div>
+                        </td>
+
+                        {/* Time */}
+                        <td className="px-2 pt-4 pb-2 align-top font-mono text-[13px] text-text-primary font-semibold">
+                          <TimePicker
+                            value={activity.time}
+                            onChange={time => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { time } } })}
+                            className="border-transparent hover:border-border text-inherit w-full !px-1 bg-transparent text-left max-w-[70px]"
+                            placeholder="-:-"
+                          />
+                        </td>
+
+                        {/* Timeline */}
+                        <td className="px-0 relative w-[30px] align-top group/timeline">
+                          <div className={`absolute left-1/2 top-0 bottom-0 -ml-[1px] w-[2px] bg-border z-0 ${index === 0 ? 'top-5' : ''} ${index === arr.length - 1 ? 'bottom-[20%]' : ''}`}></div>
+                          <div className={`relative z-10 w-2.5 h-2.5 rounded-full ${dotColor} mx-auto ring-4 ring-bg-card mt-5 shadow-sm`}></div>
+                          <button
+                            onClick={() => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: {}, index: index } })}
+                            className="absolute -top-3 left-1/2 -ml-3 w-6 h-6 rounded-full bg-bg-card border border-border text-lg font-light text-text-muted flex items-center justify-center opacity-0 group-hover/timeline:opacity-100 hover:bg-bg-hover hover:text-accent z-20 transition-all shadow-md pb-0.5"
+                            title="Insert before"
+                          >+</button>
+                        </td>
+
+                        {/* Activity block */}
+                        <td className="px-2 pt-3 pb-2 align-top group/activity">
+                          <div className="flex items-start gap-3 w-full">
+                            <div className="flex-1 min-w-0">
+                              <EditableText
+                                value={activity.name}
+                                onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { name: val } } })}
+                                className="text-[14px] text-text-primary font-semibold w-full block truncate"
+                                inputClassName="w-full font-semibold px-0 py-0 h-auto min-h-0"
+                                placeholder="Activity name"
+                              />
+                              {(activity.notes !== undefined) && (
+                                <EditableText
+                                  value={activity.notes || ''}
+                                  onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { notes: val } } })}
+                                  className="text-[12px] text-text-muted block mt-1 hover:text-text-secondary w-full"
+                                  inputClassName="w-full text-[12px] px-0 py-0"
+                                  placeholder="+ Add note"
+                                  multiline
+                                />
+                              )}
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Location */}
+                        <td className="px-2 pt-4 pb-2 align-top">
+                          <div className="flex items-start gap-1.5 text-[13px] text-text-secondary">
+                            <span className="text-danger flex-shrink-0 opacity-80 mt-0.5 text-xs">📍</span>
+                            <EditableText
+                              value={activity.location || ''}
+                              onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { location: val } } })}
+                              className="truncate hover:text-text-primary w-full leading-snug"
+                              inputClassName="w-full px-0 py-0 leading-snug"
+                              placeholder="+ Location"
+                              multiline
+                            />
+                          </div>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-2 pt-4 pb-2 align-top">
+                          <button onClick={() => dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })} className="w-full text-center text-text-muted hover:text-danger opacity-0 group-hover/row:opacity-100 transition-opacity mt-0.5" title="Delete">
+                            ×
+                          </button>
+                        </td>
+                      </tr>
+
+                      {/* Transit Row between activities */}
+                      {index < arr.length - 1 && (
+                        <tr className="group/transit hover:bg-bg-hover/50 transition-colors">
+                          <td></td>
+                          <td></td>
+                          <td className="relative px-0 w-[30px] group/timeline">
+                            <div className="absolute left-1/2 top-0 bottom-0 -ml-[1px] w-[2px] border-l-[2px] border-dashed border-border z-0"></div>
+                            <button
+                              onClick={() => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: {}, index: index + 1 } })}
+                              className="absolute top-1/2 left-1/2 -mt-3 -ml-3 w-6 h-6 rounded-full bg-bg-card border border-border text-lg font-light text-text-muted flex items-center justify-center opacity-0 group-hover/timeline:opacity-100 hover:bg-bg-hover hover:text-accent z-20 transition-all shadow-md pb-0.5"
+                              title="Insert activity here"
+                            >+</button>
+                          </td>
+                          <td colSpan={4} className="py-2 pl-2">
+                            <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-text-muted bg-bg-secondary/30 border border-border/50 rounded-full px-2.5 py-0.5 hover:border-text-primary transition-colors hover:shadow-sm relative z-10 cursor-pointer">
+                              <span className="opacity-70 relative">
+                                {activity.transitEmoji || '🚕'}
+                                <select
+                                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                  value={activity.transitEmoji || '🚕'}
+                                  onChange={e => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { transitEmoji: e.target.value } } })}
+                                  title="Change transit type"
+                                >
+                                  <option value="🚕">🚕 Taxi / Rideshare</option>
+                                  <option value="🚶">🚶 Walking</option>
+                                  <option value="🚇">🚇 Subway / Metro</option>
+                                  <option value="🚌">🚌 Bus</option>
+                                  <option value="🚆">🚆 Train</option>
+                                  <option value="🚲">🚲 Bicycle</option>
+                                  <option value="✈️">✈️ Flight</option>
+                                  <option value="⛴️">⛴️ Ferry / Boat</option>
+                                  <option value="🚗">🚗 Rental Car</option>
+                                </select>
+                              </span>
+                              <EditableText
+                                value={activity.transit || ''}
+                                onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { transit: val } } })}
+                                className="min-w-[50px] inline-flex items-center"
+                                inputClassName="px-0 py-0 text-[11px] font-medium w-[100px] bg-transparent"
+                                placeholder="Add transit..."
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  )
+                })}
+
+                {/* Final Anchor Row (So the timeline line has somewhere to land cleanly) */}
+                <tr className="h-4">
+                  <td></td><td></td>
+                  <td className="relative px-0 w-[30px]">
+                    {day.activities?.length > 0 && <div className="absolute left-1/2 top-0 h-4 -ml-[1px] w-[2px] bg-border z-0"></div>}
+                  </td>
+                  <td colSpan={4}></td>
+                </tr>
+
+                <TableAddRow
+                  onAdd={act => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: act } })}
+                />
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
-    </Card>
+    </div>
   )
 }
 
@@ -326,22 +432,44 @@ function KanbanColumn({ day }) {
 
   return (
     <div
-      className={`flex flex-col w-[320px] shrink-0 bg-bg-sidebar border border-border rounded-[var(--radius-md)] max-h-[calc(100vh-200px)] overflow-hidden transition-all ${dragOverCol ? 'border-accent ring-1 ring-accent/30' : ''}`}
+      className={`flex flex-col flex-shrink-0 w-72 bg-bg-secondary/20 border rounded-[var(--radius-lg)] p-2 transition-colors ${dragOverCol ? 'border-accent/50 bg-accent/5' : 'border-border/50'}`}
       onDragOver={e => { e.preventDefault(); setDragOverCol(true) }}
       onDragLeave={() => setDragOverCol(false)}
       onDrop={handleDrop}
     >
-      <div className={`p-3 border-t-4 border-b border-border bg-bg-card flex items-center justify-between shadow-sm z-10 ${getActivityAccent(day.emoji).split(' ')[0]}`}>
-        <div>
-          <h3 className="font-heading font-medium text-text-primary text-sm flex items-center gap-2">
-            <span>{day.emoji}</span> Day {day.dayNumber}
-          </h3>
-          <p className="text-xs text-text-muted mt-0.5 ml-6">{formatDate(day.date, 'short')} {day.location && `· ${day.location}`}</p>
+      <div className="px-3 py-2 mb-2 flex items-center justify-between border-b border-border/30">
+        <h3 className="font-semibold text-sm text-text-primary flex items-center gap-2">
+          <span>{day.emoji}</span> Day {day.dayNumber}
+        </h3>
+        <div className="flex items-center gap-1.5">
+          {(() => {
+            const count = day.activities?.length || 0;
+            if (count < 5) return (
+              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-success/10 text-success whitespace-nowrap">
+                🔋 Chill
+              </span>
+            );
+            if (count <= 8) return (
+              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-info/10 text-info whitespace-nowrap">
+                ⚡ Active
+              </span>
+            );
+            return (
+              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#E27D60]/10 text-[#E27D60] whitespace-nowrap">
+                🪫 Packed
+              </span>
+            );
+          })()}
+          <span className="text-xs font-medium text-text-muted bg-bg-card px-2 py-0.5 rounded-full border border-border/50">
+            {day.activities?.length || 0}
+          </span>
         </div>
-        <span className="text-xs font-semibold bg-bg-secondary text-text-secondary px-2 py-0.5 rounded-full">{day.activities?.length || 0}</span>
+      </div>
+      <div className="px-3 mb-2">
+        <p className="text-[11px] text-text-muted truncate">{formatDate(day.date, 'short')} {day.location && `· ${day.location}`}</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto space-y-2 min-h-[150px] scrollbar-hide px-1">
         {day.activities?.map((activity, i) => (
           <div
             key={activity.id}
@@ -350,33 +478,40 @@ function KanbanColumn({ day }) {
               e.stopPropagation()
               e.dataTransfer.setData('application/json', JSON.stringify({ type: 'activity', sourceDayId: day.id, activityId: activity.id, sourceIndex: i }))
             }}
-            className="group bg-bg-card border border-border rounded-[var(--radius-sm)] p-3 cursor-grab active:cursor-grabbing hover:border-border-strong hover:shadow-sm transition-all relative"
+            className="group bg-bg-card border shadow-sm rounded-[var(--radius-md)] p-3 transition-colors block text-left cursor-grab active:cursor-grabbing border-border/50 hover:border-accent/40 active:border-accent relative"
           >
-            <div className="flex items-start justify-between gap-2 mb-1">
-              <span className="text-lg leading-none shrink-0">{activity.emoji}</span>
-              <EditableText
-                value={activity.name}
-                onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { name: val } } })}
-                className="text-[13px] font-medium text-text-primary flex-1 min-w-0"
-              />
-              <button onClick={() => dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })} className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger text-xs p-1">✕</button>
+            <div className="flex items-start gap-2 mb-2 w-full">
+              <div className="flex-1 min-w-0 pr-6">
+                <EditableText
+                  value={activity.name}
+                  onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { name: val } } })}
+                  className="font-semibold text-sm text-text-primary leading-tight truncate w-full"
+                  inputClassName="w-full text-sm font-semibold p-0 h-auto"
+                />
+              </div>
+              <button
+                onClick={() => dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })}
+                className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger text-xs p-1 rounded hover:bg-bg-hover transition-colors"
+              >
+                ✕
+              </button>
             </div>
 
-            <div className="ml-6 flex items-center gap-2 mt-2">
+            {/* Bottom Row */}
+            <div className="flex items-center justify-between pt-2 border-t border-border/30 mt-2">
               <TimePicker
                 value={activity.time}
                 onChange={time => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { time } } })}
-                className="text-xs font-mono bg-bg-secondary w-auto max-w-[70px]"
+                className="text-xs font-mono font-medium text-text-secondary bg-bg-hover rounded-full px-2 py-0.5 max-w-[70px] border-none"
                 placeholder="Time"
               />
             </div>
-
             {(activity.notes || activity.notes === '') && (
-              <div className="ml-6 mt-2 pt-2 border-t border-border/50">
+              <div className="mt-2 pt-2 border-t border-border/30">
                 <EditableText
                   value={activity.notes || ''}
                   onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { notes: val } } })}
-                  className="text-xs text-text-muted italic"
+                  className="text-xs text-text-muted italic block w-full"
                   placeholder="Notes..."
                   multiline
                 />
@@ -386,13 +521,13 @@ function KanbanColumn({ day }) {
         ))}
 
         {(!day.activities || day.activities.length === 0) && (
-          <div className="flex items-center justify-center p-4 border-2 border-dashed border-border rounded-lg text-text-muted text-xs">
+          <div className="h-full min-h-[100px] flex items-center justify-center border-2 border-dashed border-border/40 rounded-[var(--radius-md)] text-xs text-text-muted/60 italic">
             Drop items here
           </div>
         )}
       </div>
 
-      <div className="p-2 border-t border-border bg-bg-card">
+      <div className="mt-2 text-center text-text-muted opacity-60 hover:opacity-100 transition-opacity">
         <KanbanAddRow
           onAdd={act => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: act } })}
           defaultEmoji="📌"
@@ -414,9 +549,15 @@ export default function ItineraryTab() {
     const lastDay = trip.itinerary?.[trip.itinerary.length - 1]
     let nextDate = ''
     if (lastDay?.date) {
-      const d = new Date(lastDay.date + 'T00:00:00')
+      // Parse YYYY-MM-DD safely to avoid JS timezone offset bugs
+      const [year, month, day] = lastDay.date.split('-').map(Number)
+      const d = new Date(year, month - 1, day)
       d.setDate(d.getDate() + 1)
-      nextDate = d.toISOString().slice(0, 10)
+
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      const dd = String(d.getDate()).padStart(2, '0')
+      nextDate = `${y}-${m}-${dd}`
     }
     dispatch({ type: ACTIONS.ADD_DAY, payload: { date: nextDate, location: 'New Location', emoji: '📍' } })
   }
@@ -432,20 +573,18 @@ export default function ItineraryTab() {
 
         <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
           {/* View Toggle */}
-          <div className="flex bg-bg-secondary p-0.5 rounded-lg border border-border shrink-0">
+          <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
             <button
               onClick={() => setViewMode('table')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'table' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'
-                }`}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors ${viewMode === 'table' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
             >
-              Table
+              ≡ Table
             </button>
             <button
               onClick={() => setViewMode('kanban')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'kanban' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'
-                }`}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors ${viewMode === 'kanban' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
             >
-              Kanban
+              ◫ Board
             </button>
           </div>
 
@@ -459,7 +598,7 @@ export default function ItineraryTab() {
       {trip.itinerary && trip.itinerary.length > 0 ? (
         <div className="flex-1 w-full relative">
           {viewMode === 'table' ? (
-            <div className="max-w-[1000px] w-full pb-20">
+            <div className="w-full pb-20">
               {trip.itinerary.map((day, dayIndex) => (
                 <DayGroupTable
                   key={day.id}
@@ -477,13 +616,13 @@ export default function ItineraryTab() {
             </div>
           ) : (
             <div className="absolute inset-0 right-[-24px] pr-6 pb-6 overflow-x-auto overflow-y-hidden custom-scrollbar">
-              <div className="flex gap-4 min-fit-content h-full">
+              <div className="flex gap-4 min-fit-content h-full items-start">
                 {trip.itinerary.map(day => (
                   <KanbanColumn key={day.id} day={day} />
                 ))}
                 <button
                   onClick={handleAddDay}
-                  className="w-[320px] shrink-0 h-[100px] rounded-lg border-2 border-dashed border-border bg-transparent text-text-muted hover:text-text-secondary hover:bg-bg-hover transition-colors text-sm font-medium flex items-center justify-center flex-col gap-2"
+                  className="w-72 shrink-0 h-[100px] rounded-[var(--radius-lg)] border-2 border-dashed border-border/40 bg-transparent text-text-muted hover:text-text-secondary hover:bg-bg-hover transition-colors text-sm font-medium flex items-center justify-center flex-col gap-2"
                 >
                   <span className="text-xl">➕</span>
                   Add Day

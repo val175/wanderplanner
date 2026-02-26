@@ -188,11 +188,27 @@ export function tripReducer(state, action) {
     case ACTIONS.ADD_ACTIVITY:
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
-        itinerary: trip.itinerary.map(d =>
-          d.id === payload.dayId
-            ? { ...d, activities: [...d.activities, { id: generateId(), time: '', name: '', emoji: '📌', notes: '', ...payload.activity }] }
-            : d
-        ),
+        itinerary: trip.itinerary.map(d => {
+          if (d.id !== payload.dayId) return d
+          const newActivity = {
+            id: generateId(),
+            time: '',
+            name: '',
+            notes: '',
+            location: '',
+            estCost: '',
+            transit: '',
+            transitEmoji: '🚕',
+            ...payload.activity
+          }
+          const newActivities = [...(d.activities || [])]
+          if (typeof payload.index === 'number') {
+            newActivities.splice(payload.index, 0, newActivity)
+          } else {
+            newActivities.push(newActivity)
+          }
+          return { ...d, activities: newActivities }
+        }),
       }))
 
     case ACTIONS.UPDATE_ACTIVITY:

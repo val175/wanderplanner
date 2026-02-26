@@ -114,7 +114,29 @@ function StepBasics({ form, setForm }) {
             : f.budgetCategories,
           todos: tripData.todos?.length > 0
             ? tripData.todos.map(t => ({ ...t, selected: true }))
-            : f.todos
+            : f.todos,
+          itinerary: tripData.itinerary?.length > 0
+            ? tripData.itinerary.map(day => ({
+              id: 'day-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6) + '-' + day.dayNumber,
+              date: day.date || '',
+              dayNumber: day.dayNumber,
+              location: day.location || '',
+              emoji: '',
+              notes: '',
+              activities: (day.activities || []).map(a => ({
+                id: 'act-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6),
+                time: a.time || '',
+                name: a.name || 'Activity',
+                emoji: a.emoji || '📌',
+                location: a.location || '',
+                estCost: a.estCost || '',
+                transit: a.transit || '',
+                transitEmoji: a.transitEmoji || '🚕',
+                notes: a.notes || '',
+                done: false
+              }))
+            }))
+            : f.itinerary || []
         }))
         // Automatically skip to the review step (Step 4) so they can see the draft
         setForm(f => ({ ...f, __forceStep: 4 }))
@@ -661,6 +683,7 @@ export default function NewTripModal({ isOpen, onClose }) {
       currency: 'PHP',
       budgetCategories: DEFAULT_BUDGET_CATEGORIES.map(c => ({ ...c, min: 0, max: 0, selected: true })),
       todos: [],
+      itinerary: [],
     }
   }
 
@@ -767,6 +790,7 @@ export default function NewTripModal({ isOpen, onClose }) {
       currency: form.currency,
       budget: budgetItems,
       todos: importedTodos,
+      itinerary: form.itinerary || [],
     })
 
     dispatch({ type: ACTIONS.ADD_TRIP, payload: newTrip })

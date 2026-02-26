@@ -41,7 +41,7 @@ Be concise, warm, and practical. Use emojis sparingly. The user hasn't selected 
   const totalSpent = trip.budget?.reduce((s, b) => s + (b.actual || 0), 0) || 0
 
   const bookings = trip.bookings || []
-  const confirmedBookings = bookings.filter(b => b.status === 'booked').length
+  const confirmedBookings = bookings.filter(b => b.status === 'booked' || b.status === 'confirmed').length
   const pendingBookings = bookings.filter(b => b.status !== 'booked').length
 
   const todos = trip.todos || []
