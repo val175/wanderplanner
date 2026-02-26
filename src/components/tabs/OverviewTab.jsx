@@ -223,7 +223,7 @@ function RouteMapCell({ trip }) {
         mapboxAccessToken={import.meta.env.VITE_MAPBOX_TOKEN}
         initialViewState={{
           bounds,
-          fitBoundsOptions: { padding: 60, maxZoom: 12 }
+          fitBoundsOptions: { padding: 90, maxZoom: 12 }
         }}
         mapStyle="mapbox://styles/mapbox/light-v11"
         interactive={false} // Match the card vibe by locking pan/zoom until expanded
@@ -256,7 +256,7 @@ function RouteMapCell({ trip }) {
       {/* Floating UI Overlays */}
 
       {/* Top Bar: Title & Expand Button */}
-      <div className="absolute top-0 left-0 right-0 p-4 flex items-start justify-between z-10 pointer-events-none">
+      <div className="absolute top-0 left-0 right-0 p-6 flex items-start justify-between z-10 pointer-events-none">
         <div>
           <h2 className="text-lg font-bold text-[var(--color-text-primary)] leading-tight flex items-center gap-2 drop-shadow-sm">
             🗺️ Route Overview
@@ -274,7 +274,7 @@ function RouteMapCell({ trip }) {
       </div>
 
       {/* Bottom Left Legend Box */}
-      <div className="absolute bottom-8 left-4 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-[var(--radius-lg)] px-5 py-3 shadow-md pointer-events-none z-10 flex flex-col gap-2.5">
+      <div className="absolute bottom-6 left-6 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-[var(--radius-lg)] px-5 py-3 shadow-md pointer-events-none z-10 flex flex-col gap-2.5">
         <div className="flex items-center gap-3">
           <div className="w-3.5 h-3.5 rounded-full bg-[#7CA2CE]" />
           <span className="text-sm font-bold text-[var(--color-text-primary)]">Start: {dests[0]?.city}</span>
