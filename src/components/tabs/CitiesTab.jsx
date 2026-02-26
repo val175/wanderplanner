@@ -7,6 +7,30 @@ import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { generateCityGuide, generatePinFromUrl } from '../../hooks/useAI'
 
+async function resolveMapsUrl(url) {
+  try {
+    // A standard fetch follows redirects by default. 
+    // We don't care about the body (which might fail CORS), we just want the final resolved URL.
+    // However, opaque responses hide the URL. We can try to ping it with 'no-cors' 
+    // but we can't read the redirected URL that way.
+    // Instead, we rely on the fact that Google Maps often puts the real place name directly 
+    // in the HTML <title> tag. We can use a reliable public CORS proxy to grab just the title.
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const res = await fetch(proxyUrl);
+    const data = await res.json();
+    if (data.contents) {
+      // Look for the <title> tag
+      const match = data.contents.match(/<title>([^<]+)<\/title>/i);
+      if (match && match[1] && !match[1].includes('Dynamic Link')) {
+        return { extractedName: match[1].replace(' - Google Maps', '').trim() };
+      }
+    }
+  } catch (e) {
+    console.log("Could not pre-resolve maps URL", e);
+  }
+  return { extractedName: null };
+}
+
 function CityCard({ city }) {
   const { activeTrip, dispatch } = useTripContext()
   const [loading, setLoading] = useState(false)
@@ -194,8 +218,18 @@ function CityCard({ city }) {
                   // If it's a URL, fire the background AI fetch
                   if (isUrl) {
                     try {
-                      // Call Wanda to extract name and emoji
-                      const aiResult = await generatePinFromUrl(url);
+                      let extractionContext = url;
+
+                      // Pre-flight check for Google Maps to grab the title tag before asking Gemini
+                      if (url.includes('maps.app.goo.gl') || url.includes('google.com/maps')) {
+                        const { extractedName } = await resolveMapsUrl(url);
+                        if (extractedName) {
+                          extractionContext = `URL: ${url}\nPage Title: ${extractedName}`;
+                        }
+                      }
+
+                      // Call Wanda to extract name and emoji using the enriched context
+                      const aiResult = await generatePinFromUrl(extractionContext);
 
                       // Dispatch a fresh secondary update finding the temp pin
                       dispatch({

@@ -231,8 +231,8 @@ export async function generatePinFromUrl(url) {
 A user pasted this URL into their travel planner:
 ${url}
 
-Visit or analyze this URL.
-Figure out the name of the place, restaurant, landmark, or link title.
+Visit or analyze this URL. If it is a shortened link (like maps.app.goo.gl/XXXXXXXX), you MUST use your Google Search tool to search for the EXACT unique ID string at the end of the URL (e.g. search for "XXXXXXXX") or the URL itself to discover what place or business it redirects to. Do not guess. Search it.
+Figure out the real name of the place, restaurant, landmark, or link title.
 Then, pick ONE single emoji that best categorizes it (e.g. 🍜 for ramen, 🏨 for hotel, 🏛️ for museum, ✈️ for airport, etc.). If it's just a generic link, use 🔗.
 
 Return ONLY a valid JSON object with the exact keys:
@@ -249,6 +249,9 @@ DO NOT wrap the output in markdown code blocks like \`\`\`json. Output raw JSON 
     systemInstruction: {
       parts: [{ text: "You are Wanda, a travel assistant built into Wanderplan." }],
     },
+    tools: [
+      { googleSearch: {} }
+    ],
     generationConfig: {
       temperature: 0.2, // Low temp for more accurate/consistent extraction
       maxOutputTokens: 64,
