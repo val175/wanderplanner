@@ -9,18 +9,23 @@ import { generateCityGuide, generatePinFromUrl } from '../../hooks/useAI'
 
 async function resolveMapsUrl(url) {
   try {
-    // A standard fetch follows redirects by default. 
-    // We don't care about the body (which might fail CORS), we just want the final resolved URL.
-    // However, opaque responses hide the URL. We can try to ping it with 'no-cors' 
-    // but we can't read the redirected URL that way.
-    // Instead, we rely on the fact that Google Maps often puts the real place name directly 
-    // in the HTML <title> tag. We can use a reliable public CORS proxy to grab just the title.
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-    const res = await fetch(proxyUrl);
-    const data = await res.json();
-    if (data.contents) {
+    // We rely on the fact that Google Maps often puts the real place name directly 
+    // in the HTML <title> tag. We can use corsproxy to grab the raw HTML string.
+    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+
+    // Add a quick abort controller so it doesn't hang forever
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+    const res = await fetch(proxyUrl, { signal: controller.signal }).catch(() => null);
+    clearTimeout(timeoutId);
+
+    if (!res || !res.ok) return { extractedName: null };
+
+    const htmlText = await res.text().catch(() => '');
+    if (htmlText) {
       // Look for the <title> tag
-      const match = data.contents.match(/<title>([^<]+)<\/title>/i);
+      const match = htmlText.match(/<title>([^<]+)<\/title>/i);
       if (match && match[1] && !match[1].includes('Dynamic Link')) {
         return { extractedName: match[1].replace(' - Google Maps', '').trim() };
       }
