@@ -120,87 +120,171 @@ function WeatherCell({ destinations }) {
 /* ─────────────────────────────────────────────────────────────
    Route bento cell — horizontal node chain
 ───────────────────────────────────────────────────────────── */
-function guessTransit(from, to) {
-  if (!from || !to) return '✈️'
-  return from.country !== to.country ? '✈️' : '🚌'
-}
+import Map, { Marker, Source, Layer } from 'react-map-gl'
+import 'mapbox-gl/dist/mapbox-gl.css'
+import { geocodeCity, haversineDistance } from '../../utils/helpers'
 
-function RouteCell({ trip }) {
+function RouteMapCell({ trip }) {
   const dests = trip.destinations || []
+  const [coords, setCoords] = useState([])
+  const [totalDist, setTotalDist] = useState(0)
 
-  const destDates = useMemo(() => {
-    const map = {}
-      ; (trip.itinerary || []).forEach(day => {
-        const loc = (day.location || '').toLowerCase()
-        dests.forEach(d => {
-          if (!map[d.city] && loc.includes(d.city.toLowerCase())) map[d.city] = day.date
-        })
-      })
-    return map
-  }, [trip.itinerary, dests])
+  // Fetch coordinates for all destinations
+  useEffect(() => {
+    let active = true
+    async function loadCoords() {
+      if (dests.length < 2) {
+        if (active) setCoords([])
+        return
+      }
+
+      // Fetch all geolocations in parallel
+      const promises = dests.map(d => geocodeCity(d.city))
+      const results = await Promise.all(promises)
+
+      if (!active) return
+
+      // Filter out failures and build route
+      const validCoords = results.filter(c => c !== null)
+      setCoords(validCoords)
+
+      // Calculate total distance
+      let dist = 0
+      for (let i = 0; i < validCoords.length - 1; i++) {
+        dist += haversineDistance(
+          validCoords[i][1], validCoords[i][0],
+          validCoords[i + 1][1], validCoords[i + 1][0]
+        )
+      }
+      setTotalDist(Math.round(dist))
+    }
+    loadCoords()
+    return () => { active = false }
+  }, [dests])
+
+  // Don't render map if fewer than 2 distinct valid points
+  if (coords.length < 2) {
+    return (
+      <BentoCard>
+        <div className="p-4 flex flex-col h-full bg-[var(--color-bg-secondary)]">
+          <Label>Route</Label>
+          <div className="flex-1 flex items-center justify-center">
+            <span className="text-sm font-medium text-[var(--color-text-muted)]">
+              Add at least two destinations to see your route map
+            </span>
+          </div>
+        </div>
+      </BentoCard>
+    )
+  }
+
+  // Calculate bounding box for auto-zoom (LngLatBounds format: [minLng, minLat, maxLng, maxLat])
+  const lons = coords.map(c => c[0])
+  const lats = coords.map(c => c[1])
+  const bounds = [
+    [Math.min(...lons), Math.min(...lats)], // sw
+    [Math.max(...lons), Math.max(...lats)]  // ne
+  ]
+
+  // GeoJSON LineString for the dashed trajectory
+  const routeGeoJSON = {
+    type: 'Feature',
+    properties: {},
+    geometry: {
+      type: 'LineString',
+      coordinates: coords
+    }
+  }
+
+  // Line layer styling matching the user's uploaded Gemini design
+  const lineLayer = {
+    id: 'route-line',
+    type: 'line',
+    source: 'route',
+    layout: {
+      'line-join': 'round',
+      'line-cap': 'round'
+    },
+    paint: {
+      'line-color': '#E86E50', // accent color
+      'line-width': 2.5,
+      'line-dasharray': [2, 3]
+    }
+  }
 
   return (
-    <BentoCard>
-      <div className="p-4 flex flex-col h-full">
-        <Label>Route</Label>
-        {dests.length < 2 ? (
-          <div className="flex-1 flex items-center">
-            <span className="text-xs text-[var(--color-text-muted)]">Add destinations to see your route</span>
-          </div>
-        ) : (
-          <div className="relative flex-1 flex items-center mt-4 -mx-1 px-1">
-            {/* Right scroll blur cue — always rendered when >6, fades out last city */}
-            {dests.length > 6 && (
-              <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-[var(--color-bg-card)] to-transparent z-10 pointer-events-none" />
-            )}
+    <BentoCard className="relative overflow-hidden group">
+      {/* 
+        We use a light, minimalist mapbox style. 
+        Note: The user's mock had a specific subtle dotted grid look. 
+        Mapbox's "light-v11" is the closest native base map without creating a custom studio style.
+      */}
+      <Map
+        mapboxAccessToken={import.meta.env.VITE_MAPBOX_TOKEN}
+        initialViewState={{
+          bounds,
+          fitBoundsOptions: { padding: 60, maxZoom: 12 }
+        }}
+        mapStyle="mapbox://styles/mapbox/light-v11"
+        interactive={false} // Match the card vibe by locking pan/zoom until expanded
+        style={{ width: '100%', height: '100%', minHeight: '300px' }}
+      >
+        <Source id="route" type="geojson" data={routeGeoJSON}>
+          <Layer {...lineLayer} />
+        </Source>
 
-            <div className="w-full overflow-x-auto scrollbar-hide pb-2">
-              {/*
-                ≤6 cities: flex-1 on slots stretches them to fill the card (current nice layout).
-                >6 cities: fixed min-width per slot so the row naturally exceeds card width,
-                           making overflow-x-auto actually scroll. flex-1 would prevent overflow.
-              */}
-              <div className={`flex items-center ${dests.length <= 6 ? 'w-full' : ''}`}>
-                {dests.map((dest, i) => {
-                  const isLast = i === dests.length - 1
-                  const isFirst = i === 0
-                  const date = destDates[dest.city]
-                  const scrollable = dests.length > 6
-                  return (
-                    <div key={i} className={`flex items-center ${isLast
-                        ? 'shrink-0'
-                        : scrollable
-                          ? 'shrink-0 min-w-[8rem]'   // fixed width → content overflows → scroll
-                          : 'flex-1 min-w-[5rem]'      // grows to fill card width
-                      }`}>
-                      {/* Node */}
-                      <div className="flex flex-col items-center text-center w-14 shrink-0">
-                        <div className="text-[9px] text-[var(--color-text-muted)] mb-1.5 h-3 leading-none font-medium">
-                          {date ? formatDate(date, 'short') : ''}
-                        </div>
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm border-2
-                          ${isFirst ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10'
-                            : isLast ? 'border-[var(--color-success)] bg-[var(--color-success)]/10'
-                              : 'border-[var(--color-border-strong)] bg-[var(--color-bg-secondary)]'}`}>
-                          {dest.flag}
-                        </div>
-                        <p className="text-[10px] font-semibold text-[var(--color-text-primary)] mt-1 leading-tight">{dest.city}</p>
-                      </div>
-                      {/* Connector */}
-                      {!isLast && (
-                        <div className="flex flex-col items-center flex-1 px-2 min-w-[1.5rem]">
-                          <div className="text-[10px] mb-1">{guessTransit(dest, dests[i + 1])}</div>
-                          <div className="w-full border-t-2 border-dashed border-[var(--color-border-strong)]" />
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
+        {coords.map((c, i) => {
+          const isStart = i === 0
+          const isEnd = i === coords.length - 1
+          const dest = dests[i]
+
+          return (
+            <Marker key={i} longitude={c[0]} latitude={c[1]} anchor="center">
+              <div
+                className={`w-8 h-8 rounded-full border-2 shadow-sm flex items-center justify-center bg-white z-10 relative
+                  ${isStart ? 'border-[var(--color-info)]'
+                    : isEnd ? 'border-[var(--color-accent)]'
+                      : 'border-[var(--color-success)]'}`}
+              >
+                <div className="text-sm leading-none drop-shadow-sm">{dest.flag}</div>
               </div>
-            </div>
-          </div>
-        )}
+            </Marker>
+          )
+        })}
+      </Map>
+
+      {/* Floating UI Overlays */}
+
+      {/* Top Bar: Title & Expand Button */}
+      <div className="absolute top-0 left-0 right-0 p-4 flex items-start justify-between z-10 pointer-events-none">
+        <div>
+          <h2 className="text-lg font-bold text-[var(--color-text-primary)] leading-tight flex items-center gap-2 drop-shadow-sm">
+            🗺️ Route Overview
+          </h2>
+          <p className="text-xs font-semibold text-[var(--color-text-muted)] mt-1 drop-shadow-sm">
+            {dests.length} destinations • {totalDist.toLocaleString()} km total distance
+          </p>
+        </div>
+        <button
+          className="pointer-events-auto bg-white/90 backdrop-blur-sm border border-[var(--color-border)] rounded-[var(--radius-sm)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-secondary)] shadow-sm hover:bg-white hover:border-[var(--color-text-muted)] transition-colors flex items-center gap-1.5 mt-1"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" /></svg>
+          Expand Map
+        </button>
       </div>
+
+      {/* Bottom Left Legend Box */}
+      <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md border border-[var(--color-border)] rounded-[var(--radius-md)] px-3 py-2 shadow-sm pointer-events-none z-10">
+        <div className="flex items-center gap-2 mb-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-[var(--color-info)] opacity-80" />
+          <span className="text-xs font-semibold text-[var(--color-text-secondary)]">Start: {dests[0]?.city}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-2.5 h-2.5 rounded-full bg-[var(--color-accent)] opacity-80" />
+          <span className="text-xs font-semibold text-[var(--color-text-secondary)]">End: {dests[dests.length - 1]?.city}</span>
+        </div>
+      </div>
+
     </BentoCard>
   )
 }

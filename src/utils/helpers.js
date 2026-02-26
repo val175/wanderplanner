@@ -79,3 +79,34 @@ export function cloneDeep(obj) {
 export function pluralize(count, singular, plural) {
   return count === 1 ? singular : (plural || singular + 's')
 }
+
+/** 
+ * Calculate distance between two coordinate pairs in kilometers 
+ * using the Haversine formula
+ */
+export function haversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+/**
+ * Fetch latitude/longitude for a given city string using Open-Meteo Geocoding
+ */
+export async function geocodeCity(cityStr) {
+  try {
+    const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityStr)}&count=1&language=en&format=json`);
+    const data = await res.json();
+    if (data.results && data.results.length > 0) {
+      return [data.results[0].longitude, data.results[0].latitude];
+    }
+  } catch (err) {
+    console.error("Geocoding failed for", cityStr, err);
+  }
+  return null;
+}
