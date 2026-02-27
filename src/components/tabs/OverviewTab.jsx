@@ -239,7 +239,7 @@ function RouteMapCell({ trip }) {
   }
 
   return (
-    <BentoCard className="relative overflow-hidden group p-0" style={{ minHeight: '340px' }}>
+    <BentoCard className="relative overflow-hidden group p-0 min-h-[340px]">
       {/* Full screen wrapper toggle */}
       <div
         className={isExpanded
