@@ -133,11 +133,13 @@ function RouteMapCell({ trip }) {
   // Calculate days spent in each city for the marker labels
   const destDaysCount = useMemo(() => {
     const map = {}
-    dests.forEach(d => { map[d.city] = 0 })
+    dests.forEach(d => {
+      if (d && d.city) map[d.city] = 0
+    })
       ; (trip.itinerary || []).forEach(day => {
         const loc = (day.location || '').toLowerCase()
         dests.forEach(d => {
-          if (loc.includes(d.city.toLowerCase())) {
+          if (d && d.city && loc.includes(d.city.toLowerCase())) {
             map[d.city] += 1
           }
         })
@@ -149,13 +151,16 @@ function RouteMapCell({ trip }) {
   useEffect(() => {
     let active = true
     async function loadCoords() {
-      if (dests.length < 2) {
+      // Filter out invalid destinations that might exist during a magic import skeleton setup
+      const validDests = dests.filter(d => Boolean(d && d.city))
+
+      if (validDests.length < 2) {
         if (active) setCoords([])
         return
       }
 
       // Fetch all geolocations in parallel
-      const promises = dests.map(d => geocodeCity(d.city))
+      const promises = validDests.map(d => geocodeCity(d.city))
       const results = await Promise.all(promises)
 
       if (!active) return
@@ -187,6 +192,26 @@ function RouteMapCell({ trip }) {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isExpanded])
+
+  // Check if Mapbox token exists to prevent fatal crash
+  if (!import.meta.env.VITE_MAPBOX_TOKEN) {
+    return (
+      <BentoCard>
+        <div className="p-4 flex flex-col h-full bg-[#FFFBF0] border border-[var(--color-warning)] rounded-[var(--radius-lg)]">
+          <Label>Route Map Error</Label>
+          <div className="flex-1 flex flex-col items-center justify-center text-center gap-2 max-w-sm mx-auto p-4">
+            <span className="text-2xl">🔑</span>
+            <span className="text-sm font-semibold text-[var(--color-warning)]">
+              Mapbox Integration Required
+            </span>
+            <span className="text-xs text-[var(--color-text-secondary)]">
+              Please add <code>VITE_MAPBOX_TOKEN</code> to your <code>.env.local</code> file and restart the dev server to view interactive routes.
+            </span>
+          </div>
+        </div>
+      </BentoCard>
+    )
+  }
 
   // Don't render map if fewer than 2 distinct valid points
   if (coords.length < 2) {
