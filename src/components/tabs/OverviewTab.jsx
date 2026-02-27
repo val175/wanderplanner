@@ -120,7 +120,7 @@ function WeatherCell({ destinations }) {
 /* ─────────────────────────────────────────────────────────────
    Route bento cell — horizontal node chain
 ───────────────────────────────────────────────────────────── */
-import Map, { Marker, Source, Layer } from 'react-map-gl'
+import Map, { Marker, Source, Layer, NavigationControl } from 'react-map-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { geocodeCity, haversineDistance } from '../../utils/helpers'
 
@@ -128,6 +128,22 @@ function RouteMapCell({ trip }) {
   const dests = trip.destinations || []
   const [coords, setCoords] = useState([])
   const [totalDist, setTotalDist] = useState(0)
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  // Calculate days spent in each city for the marker labels
+  const destDaysCount = useMemo(() => {
+    const map = {}
+    dests.forEach(d => { map[d.city] = 0 })
+      ; (trip.itinerary || []).forEach(day => {
+        const loc = (day.location || '').toLowerCase()
+        dests.forEach(d => {
+          if (loc.includes(d.city.toLowerCase())) {
+            map[d.city] += 1
+          }
+        })
+      })
+    return map
+  }, [trip.itinerary, dests])
 
   // Fetch coordinates for all destinations
   useEffect(() => {
@@ -212,79 +228,120 @@ function RouteMapCell({ trip }) {
     }
   }
 
+  // Handle escape key to close full screen map
+  useEffect(() => {
+    if (!isExpanded) return
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setIsExpanded(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isExpanded])
+
   return (
-    <BentoCard className="relative overflow-hidden group">
-      {/* 
-        We use a light, minimalist mapbox style. 
-        Note: The user's mock had a specific subtle dotted grid look. 
-        Mapbox's "light-v11" is the closest native base map without creating a custom studio style.
-      */}
-      <Map
-        mapboxAccessToken={import.meta.env.VITE_MAPBOX_TOKEN}
-        initialViewState={{
-          bounds,
-          fitBoundsOptions: { padding: 90, maxZoom: 12 }
-        }}
-        mapStyle="mapbox://styles/mapbox/light-v11"
-        interactive={false} // Match the card vibe by locking pan/zoom until expanded
-        style={{ width: '100%', height: '100%', minHeight: '300px' }}
+    <BentoCard className="relative overflow-hidden group p-0" style={{ minHeight: '340px' }}>
+      {/* Full screen wrapper toggle */}
+      <div
+        className={isExpanded
+          ? "fixed inset-0 z-[9999] bg-[var(--color-bg-primary)] p-4 md:p-8"
+          : "absolute inset-0 w-full h-full"
+        }
       >
-        <Source id="route" type="geojson" data={routeGeoJSON}>
-          <Layer {...lineLayer} />
-        </Source>
+        <div className={`relative w-full h-full ${isExpanded ? 'rounded-[var(--radius-xl)] overflow-hidden shadow-2xl border border-[var(--color-border)]' : ''}`}>
+          <Map
+            mapboxAccessToken={import.meta.env.VITE_MAPBOX_TOKEN}
+            initialViewState={{
+              bounds,
+              // Extra left padding to make room for the large top-left card overlay
+              fitBoundsOptions: { padding: { top: 90, bottom: 90, left: 260, right: 90 }, maxZoom: 12 }
+            }}
+            mapStyle="mapbox://styles/mapbox/light-v11"
+            interactive={isExpanded} // Lock pan/zoom until expanded to prevent stealing scroll
+            style={{ width: '100%', height: '100%' }}
+          >
+            <Source id="route" type="geojson" data={routeGeoJSON}>
+              <Layer {...lineLayer} />
+            </Source>
 
-        {coords.map((c, i) => {
-          const isStart = i === 0
-          const isEnd = i === coords.length - 1
-          const dest = dests[i]
+            {coords.map((c, i) => {
+              const isStart = i === 0
+              const isEnd = i === coords.length - 1
+              const dest = dests[i]
+              const days = destDaysCount[dest.city] || 0
+              const label = days > 0 ? `${dest.city} (${days} Days)` : dest.city
 
-          return (
-            <Marker key={i} longitude={c[0]} latitude={c[1]} anchor="center">
-              <div
-                className={`w-8 h-8 rounded-full border-2 shadow-sm flex items-center justify-center bg-white z-10 relative
-                  ${isStart ? 'border-[var(--color-info)]'
-                    : isEnd ? 'border-[var(--color-accent)]'
-                      : 'border-[var(--color-success)]'}`}
-              >
-                <div className="text-sm leading-none drop-shadow-sm">{dest.flag}</div>
+              return (
+                <Marker key={i} longitude={c[0]} latitude={c[1]} anchor="bottom">
+                  <div className="flex flex-col items-center pb-2">
+                    {/* Pin Head */}
+                    <div
+                      className={`w-9 h-9 rounded-full border-2 shadow-sm flex items-center justify-center bg-white z-10 relative
+                        ${isStart ? 'border-[#7CA2CE]'
+                          : isEnd ? 'border-[#E58F76]'
+                            : 'border-[#89A88F]'}`}
+                    >
+                      <div className="text-base leading-none drop-shadow-sm">{dest.flag}</div>
+                      {/* Pin Point */}
+                      <div className={`absolute -bottom-[7px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] z-[-1]
+                        ${isStart ? 'border-t-[#7CA2CE]'
+                          : isEnd ? 'border-t-[#E58F76]'
+                            : 'border-t-[#89A88F]'}`} />
+                    </div>
+                    {/* Pin Label */}
+                    <div className="mt-1.5 bg-[#0F172A] text-white text-[10px] font-bold px-2.5 py-1 rounded-[6px] shadow-md whitespace-nowrap z-20">
+                      {label}
+                    </div>
+                  </div>
+                </Marker>
+              )
+            })}
+
+            {isExpanded && (
+              <NavigationControl position="bottom-right" showCompass={false} />
+            )}
+          </Map>
+
+          {/* Floating UI Overlays */}
+
+          {/* Top Left: Combined Overview Card */}
+          <div className="absolute top-5 left-5 bg-white border border-[var(--color-border)] rounded-[16px] p-5 shadow-sm pointer-events-none z-10 flex flex-col min-w-[240px]">
+            <h2 className="text-[16px] font-bold text-[var(--color-text-primary)] leading-tight flex items-center gap-2">
+              🗺️ Route Overview
+            </h2>
+            <p className="text-[12px] font-medium text-[var(--color-text-muted)] mt-1 tracking-wide">
+              {dests.length} destinations • {totalDist.toLocaleString()} km total
+            </p>
+
+            <div className="h-px bg-gray-100 w-full my-4" />
+
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-3.5 h-3.5 rounded-full bg-[#7CA2CE]" />
+                <span className="text-[10px] font-bold tracking-[0.08em] text-[var(--color-text-secondary)] uppercase">Start: {dests[0]?.city}</span>
               </div>
-            </Marker>
-          )
-        })}
-      </Map>
+              <div className="flex items-center gap-3">
+                <div className="w-3.5 h-3.5 rounded-full bg-[#E58F76]" />
+                <span className="text-[10px] font-bold tracking-[0.08em] text-[var(--color-text-secondary)] uppercase">End: {dests[dests.length - 1]?.city}</span>
+              </div>
+            </div>
+          </div>
 
-      {/* Floating UI Overlays */}
-
-      {/* Top Bar: Title & Expand Button */}
-      <div className="absolute top-0 left-0 right-0 p-6 flex items-start justify-between z-10 pointer-events-none">
-        <div>
-          <h2 className="text-lg font-bold text-[var(--color-text-primary)] leading-tight flex items-center gap-2 drop-shadow-sm">
-            🗺️ Route Overview
-          </h2>
-          <p className="text-xs font-semibold text-[var(--color-text-muted)] mt-1 drop-shadow-sm">
-            {dests.length} destinations • {totalDist.toLocaleString()} km total distance
-          </p>
-        </div>
-        <button
-          className="pointer-events-auto bg-white/90 backdrop-blur-sm border border-[var(--color-border)] rounded-[var(--radius-sm)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-secondary)] shadow-sm hover:bg-white hover:border-[var(--color-text-muted)] transition-colors flex items-center gap-1.5 mt-1"
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" /></svg>
-          Expand Map
-        </button>
-      </div>
-
-      {/* Bottom Left Legend Box */}
-      <div className="absolute bottom-6 left-6 bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-[var(--radius-lg)] px-5 py-3 shadow-md pointer-events-none z-10 flex flex-col gap-2.5">
-        <div className="flex items-center gap-3">
-          <div className="w-3.5 h-3.5 rounded-full bg-[#7CA2CE]" />
-          <span className="text-sm font-bold text-[var(--color-text-primary)]">Start: {dests[0]?.city}</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="w-3.5 h-3.5 rounded-full bg-[#E58F76]" />
-          <span className="text-sm font-bold text-[var(--color-text-primary)]">End: {dests[dests.length - 1]?.city}</span>
+          {/* Top Right: Expand/Collapse Button */}
+          <div className="absolute top-5 right-5 z-10">
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="pointer-events-auto bg-white border border-[var(--color-border)] w-10 h-10 rounded-full flex items-center justify-center text-[var(--color-text-secondary)] shadow-sm hover:bg-gray-50 transition-colors cursor-pointer"
+              aria-label={isExpanded ? "Close map" : "Expand map"}
+            >
+              {isExpanded ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" /></svg>
+              )}
+            </button>
+          </div>
         </div>
       </div>
-
     </BentoCard>
   )
 }
