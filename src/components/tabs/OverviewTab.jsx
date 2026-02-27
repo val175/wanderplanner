@@ -178,6 +178,16 @@ function RouteMapCell({ trip }) {
     return () => { active = false }
   }, [dests])
 
+  // Handle escape key to close full screen map
+  useEffect(() => {
+    if (!isExpanded) return
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setIsExpanded(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isExpanded])
+
   // Don't render map if fewer than 2 distinct valid points
   if (coords.length < 2) {
     return (
@@ -227,16 +237,6 @@ function RouteMapCell({ trip }) {
       'line-dasharray': [2, 3]
     }
   }
-
-  // Handle escape key to close full screen map
-  useEffect(() => {
-    if (!isExpanded) return
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') setIsExpanded(false)
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isExpanded])
 
   return (
     <BentoCard className="relative overflow-hidden group p-0" style={{ minHeight: '340px' }}>
