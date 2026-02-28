@@ -326,19 +326,19 @@ export default function TodoTab() {
         </div>
 
         {/* View Toggle */}
-        <div className="flex items-center rounded-lg bg-bg-secondary p-1 shrink-0 w-full sm:w-auto border border-border">
+        <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
           <button
             onClick={() => setFilter('all')}
-            className={`flex-1 sm:px-5 py-1.5 text-sm font-medium rounded-md transition-all ${filter === 'all' ? 'bg-bg-card border border-border text-text-primary' : 'text-text-muted hover:text-text-secondary border border-transparent'}`}
+            className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${filter === 'all' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}
           >
             All Tasks
           </button>
           <button
             onClick={() => setFilter('mine')}
-            className={`flex-1 sm:px-5 py-1.5 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2 ${filter === 'mine' ? 'bg-bg-card border border-border text-text-primary' : 'text-text-muted hover:text-text-secondary border border-transparent'}`}
+            className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all flex items-center justify-center gap-1.5 ${filter === 'mine' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}
           >
             {currentUserProfile && (
-              <AvatarCircle profile={currentUserProfile} size={16} />
+              <AvatarCircle profile={currentUserProfile} size={14} />
             )}
             My Tasks
           </button>
