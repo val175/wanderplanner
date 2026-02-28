@@ -19,16 +19,17 @@ export default function AIAssistant() {
   const systemPrompt = buildTripSystemPrompt(activeTrip)
 
   // useChat completely replaces manual fetch, loading, and message array logic
-  const { messages, input, handleInputChange, handleSubmit, isLoading, append, setInput } = useChat({
+  const { messages, input, setInput, handleInputChange, handleSubmit, isLoading } = useChat({
     api: '/api/chat',
     body: {
       data: { systemPrompt }
     }
   })
 
+  // The Pill Function
   const handlePillClick = (text) => {
-    setInput(text)
-  }
+    setInput(text);
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -99,15 +100,20 @@ export default function AIAssistant() {
         </div>
       )}
 
+      {/* Input Form */}
       <form onSubmit={handleSubmit} className="p-3 border-t border-gray-100 bg-white flex gap-2">
         <input
           value={input}
           onChange={handleInputChange}
-          placeholder="Ask about your trip..."
+          placeholder="Ask Wanda anything..."
           className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#DE7A5E]/50"
           disabled={isLoading}
         />
-        <button type="submit" disabled={isLoading || !input?.trim()} className="px-4 py-2 bg-[#DE7A5E] disabled:bg-[#DE7A5E]/50 text-white rounded-xl text-sm font-medium transition-colors">
+        <button
+          type="submit"
+          disabled={isLoading || !input.trim()}
+          className="px-4 py-2 bg-[#DE7A5E] disabled:bg-gray-300 text-white rounded-xl text-sm font-medium transition-colors"
+        >
           Send
         </button>
       </form>
