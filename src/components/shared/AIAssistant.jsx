@@ -8,10 +8,16 @@ export default function AIAssistant() {
   const [isOpen, setIsOpen] = useState(false)
   const messagesEndRef = useRef(null)
 
-  const systemPrompt = buildTripSystemPrompt(activeTrip)
+  const SUGGESTIONS = [
+    "💰 Help with budget",
+    "📅 Optimize itinerary",
+    "📍 Find hidden gems",
+    "🚗 Transport tips",
+    "🍽️ Food recommendations"
+  ]
 
   // useChat completely replaces manual fetch, loading, and message array logic
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
     api: '/api/chat',
     body: {
       data: { systemPrompt }
@@ -68,6 +74,23 @@ export default function AIAssistant() {
         )}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Suggestion Pills */}
+      {!isLoading && messages.length === 0 && (
+        <div className="px-3 pt-2 bg-white">
+          <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+            {SUGGESTIONS.map(s => (
+              <button
+                key={s}
+                onClick={() => append({ role: 'user', content: s })}
+                className="whitespace-nowrap px-3 py-1.5 rounded-full border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="p-3 border-t border-gray-100 bg-white flex gap-2">
         <input
