@@ -1,6 +1,6 @@
 // api/chat.js
 import { streamText } from 'ai'
-import { google } from '@ai-sdk/google'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
 
 // THIS IS THE MAGIC LINE: Bypasses the 10s timeout on Vercel Hobby tier
 export const config = {
@@ -28,10 +28,14 @@ export default async function handler(req) {
         const { messages, data } = await req.json()
         const systemPrompt = data?.systemPrompt || "You are Wanda, a travel assistant."
 
+        // createGoogleGenerativeAI lets us supply GEMINI_API_KEY explicitly;
+        // the default google() export reads GOOGLE_GENERATIVE_AI_API_KEY instead
+        const google = createGoogleGenerativeAI({
+            apiKey: process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY
+        })
+
         const result = await streamText({
-            model: google('gemini-2.0-flash', {
-                apiKey: process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY
-            }),
+            model: google('gemini-2.0-flash'),
             system: systemPrompt,
             messages: messages,
         })
