@@ -5,9 +5,8 @@
  * so every response is grounded in the user's actual trip data.
  */
 
-// Requests go to our Cloudflare Worker proxy — the Gemini API key
-// lives there as an encrypted secret, never in the frontend bundle.
-const PROXY_URL = 'https://wanderplan-ai.valentin-bonite.workers.dev/ai'
+// Requests go to our Vercel Serverless Function proxy to protect the API key
+const PROXY_URL = '/api/gemini'
 
 /**
  * Build a rich system prompt from the active trip.
