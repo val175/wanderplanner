@@ -21,20 +21,23 @@ async function scrapeMetadata(url) {
 }
 
 export default async function handler(req, res) {
-    res.setHeader('Access-Control-Allow-Credentials', true);
+    // Set CORS headers for all requests
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Origin', 'https://planner.vlbonite.co');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
     res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
+    // Handle the preflight OPTIONS request immediately
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
 
-    if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' })
+    // Rest of your POST logic...
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
     try {
-        const { url, currency = 'USD' } = req.body;
-        if (!url) return res.status(400).json({ error: 'URL is required.' });
+        const { url } = req.body;
+        if (!url) return res.status(400).json({ error: 'URL is required' });
         const scrapedData = await scrapeMetadata(url);
         const prompt = `
         You are Wanda, a travel planner. A user pasted this URL: ${scrapedData.url}
