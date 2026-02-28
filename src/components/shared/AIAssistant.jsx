@@ -1,14 +1,24 @@
-import React from 'react';
-import { useChat } from '@ai-sdk/react'; // This is the correct, modern import
-import { Send, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { useChat } from '@ai-sdk/react';
+import { Send } from 'lucide-react';
 
 export default function AIAssistant() {
-  const { messages, input, handleInputChange, handleSubmit, setInput, isLoading } = useChat({
+  const [input, setInput] = useState('');
+
+  // @ai-sdk/react@3.x useChat API: sendMessage(text), status, messages
+  const { messages, sendMessage, status } = useChat({
     api: 'https://wanderplan-rust.vercel.app/api/chat',
-    initialInput: '',
   });
 
-  const safeInput = input || '';
+  const isLoading = status === 'submitted' || status === 'streaming';
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const text = input.trim();
+    if (!text || isLoading) return;
+    sendMessage(text);
+    setInput('');
+  };
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--color-bg-card)' }}>
@@ -30,7 +40,8 @@ export default function AIAssistant() {
           >
             {text}
           </button>
-        ))}</div>
+        ))}
+      </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -43,7 +54,9 @@ export default function AIAssistant() {
                 : { background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }
               }
             >
-              {m.content}
+              {m.parts
+                ? m.parts.filter(p => p.type === 'text').map((p, i) => <span key={i}>{p.text}</span>)
+                : m.content}
             </div>
           </div>
         ))}
@@ -52,8 +65,8 @@ export default function AIAssistant() {
       {/* Input */}
       <form onSubmit={handleSubmit} className="p-4 flex gap-2" style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-bg-card)' }}>
         <input
-          value={safeInput}
-          onChange={handleInputChange}
+          value={input}
+          onChange={e => setInput(e.target.value)}
           placeholder="Ask Wanda..."
           className="flex-1 p-2 rounded-xl outline-none text-sm transition-colors"
           style={{
@@ -66,11 +79,11 @@ export default function AIAssistant() {
         />
         <button
           type="submit"
-          disabled={isLoading || !safeInput.trim()}
+          disabled={isLoading || !input.trim()}
           className="px-4 py-2 rounded-xl transition-colors flex items-center justify-center min-w-[50px]"
           style={{
-            background: isLoading || !safeInput.trim() ? 'var(--color-bg-hover)' : 'var(--color-accent)',
-            color: isLoading || !safeInput.trim() ? 'var(--color-text-muted)' : '#fff',
+            background: isLoading || !input.trim() ? 'var(--color-bg-hover)' : 'var(--color-accent)',
+            color: isLoading || !input.trim() ? 'var(--color-text-muted)' : '#fff',
             boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
           }}
         >
