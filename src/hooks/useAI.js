@@ -288,27 +288,20 @@ DO NOT wrap the output in markdown code blocks like \`\`\`json. Output raw JSON 
     throw new Error("Invalid format returned from AI")
   }
 }
-/**
- * extractIdeaDetails extracts structured info from a URL for the Voting Room.
- * Delegated to a server-side Edge function (api/extract.js) for robust tool-use and grounding.
- */
-export async function extractIdeaDetails(url, activeTrip) {
+export async function extractIdeaDetails(url, tripCurrency) {
   try {
-    const res = await fetch('https://wanderplan-rust.vercel.app/api/extract', {
+    const res = await fetch('/api/extract-idea', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, activeTrip }),
-    })
-
+      body: JSON.stringify({ url, currency: tripCurrency }),
+    });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      throw new Error(err?.error || `Extraction error ${res.status}`)
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Server error ${res.status}`);
     }
-
-    return await res.json()
+    return await res.json();
   } catch (error) {
-    console.error("Link Extraction Failed:", error)
-    // Fallback on error if needed, or rethrow
-    throw error
+    console.error("Failed to parse Idea extraction:", error);
+    throw new Error("Failed to extract details from this link.");
   }
 }
