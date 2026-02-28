@@ -1,5 +1,5 @@
 import React from 'react';
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function AIAssistant() {
   // We initialize with an empty string to prevent .trim() from ever hitting 'undefined'
