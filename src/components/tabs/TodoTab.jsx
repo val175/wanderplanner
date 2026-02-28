@@ -315,7 +315,7 @@ export default function TodoTab() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12 max-w-4xl mx-auto">
+    <div className="space-y-6 animate-fade-in pb-12 w-full">
       <CelebrationEffect trigger={celebration} />
 
       {/* Header Area */}

@@ -92,3 +92,9 @@ All tables (e.g., Budget Spending Log, Bookings Table, Packing Table) must follo
 - **Cells (`<td>`)**: `px-2 py-3 align-middle text-sm`. No vertical borders (`border-r`) between columns.
 - **Inputs (`EditableText`)**: Add `inputClassName="w-full"` on every table cell `EditableText` so the input stays within its column width. Amounts should always be formatted via `formatCurrency`.
 - **Grouped Tables (e.g., Itinerary)**: For tables broken into collapsible groups, the outer container may use standard card-like classes (`border border-border rounded-[var(--radius-md)] overflow-hidden bg-bg-card`) with a custom stylized header instead of `Card`. The internal `<table>` structure, headers, and rows must still adhere strictly to the design rules above.
+
+### 6. Tab Layouts
+When building a top-level Tab component (e.g., `BookingsTab`, `TodoTab`, `PackingTab`):
+- **Width**: Tabs should naturally expand to fill the width provided by their parent container. **Do not** arbitrarily choke the layout with classes like `max-w-3xl` or `max-w-4xl` unless explicitly requested. Let them breathe horizontally (`w-full`), stacking cards or stretching tables as needed to provide a true data-dense app experience.
+- **Bottom Padding**: Always ensure the root wrapper of a tab has `pb-12` or `pb-24` to prevent content from being trapped under floating action bars or mobile browsers.
+- **Animation**: Use `className="space-y-6 animate-fade-in"` for the root tab container.
