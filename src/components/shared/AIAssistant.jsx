@@ -84,7 +84,8 @@ export default function AIAssistant() {
             {SUGGESTIONS.map(s => (
               <button
                 key={s}
-                onClick={() => append({ role: 'user', content: s })}
+                type="button"
+                onClick={() => append?.({ role: 'user', content: s })}
                 className="whitespace-nowrap px-3 py-1.5 rounded-full border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer"
               >
                 {s}
