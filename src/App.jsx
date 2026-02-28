@@ -29,6 +29,7 @@ import ItineraryTab from './components/tabs/ItineraryTab'
 import BookingsTab from './components/tabs/BookingsTab'
 import BudgetTab from './components/tabs/BudgetTab'
 import TodoTab from './components/tabs/TodoTab'
+import VotingTab from './components/tabs/VotingTab'
 import CitiesTab from './components/tabs/CitiesTab'
 import PackingTab from './components/tabs/PackingTab'
 import ConcertTab from './components/tabs/ConcertTab'
@@ -43,6 +44,7 @@ function TabPanel({ activeTab, onTabSwitch }) {
     case 'bookings': return <BookingsTab />
     case 'budget': return <BudgetTab />
     case 'todo': return <TodoTab />
+    case 'voting': return <VotingTab />
     case 'cities': return <CitiesTab />
     case 'packing': return <PackingTab />
     case 'concert': return <ConcertTab />

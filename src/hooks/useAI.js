@@ -289,3 +289,74 @@ DO NOT wrap the output in markdown code blocks like \`\`\`json. Output raw JSON 
     throw new Error("Invalid format returned from AI")
   }
 }
+/**
+ * extractIdeaDetails extracts structured info from a URL for the Voting Room.
+ * Uses Google Search tool to resolve short links if needed, then formats it.
+ */
+export async function extractIdeaDetails(url, tripCurrency) {
+    const prompt = `
+A user pasted this URL into their travel planner's "Voting Room":
+${url}
+
+You need to figure out what this idea is. 
+If it is a shortened link (like maps.app.goo.gl, vm.tiktok.com, bit.ly, t.co), you MUST use your Google Search tool to search for the EXACT string or visit it to discover what place or business it redirects to.
+Then, extract or infer the following details to create a Voting Room Idea card:
+
+Return ONLY a valid JSON object with the exact keys:
+{
+  "title": "Short title (e.g. Copacabana Oceanfront Penthouse or Sugarloaf Mountain Sunset Tour)",
+  "type": "lodging" OR "activity" OR "food" OR "other",
+  "priceDetails": "Short string like '$250 / total' or '¥3,500 / per person' or 'Free'. Guess reasonably if the exact price isn't visible, formatted in ${tripCurrency || 'USD'}",
+  "description": "A very short 1-2 sentence catchy description of what this is.",
+  "emoji": "🏠 (for lodging), 🥩 (for food), 🚠 (for activity), etc.",
+  "sourceName": "Airbnb, TikTok, TripAdvisor, Viator, etc."
+}
+
+DO NOT wrap the output in markdown code blocks like \`\`\`json. Output raw JSON only.
+  `;
+
+    const body = {
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        systemInstruction: {
+            parts: [{ text: "You are Wanda, a travel assistant built into Wanderplan." }],
+        },
+        tools: [
+            { googleSearch: {} }
+        ],
+        generationConfig: {
+            temperature: 0.3, // Low temp for more accurate extraction
+            maxOutputTokens: 256,
+        },
+    }
+
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY
+    const apiUrl = apiKey
+        ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
+        : PROXY_URL;
+
+    const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    })
+
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.error?.message || `Gemini API error ${res.status}`)
+    }
+
+    const data = await res.json()
+    let text = data.candidates?.[0]?.content?.parts?.[0]?.text
+
+    if (!text) throw new Error('No response from Gemini API')
+
+    // Clean potential markdown blocks
+    text = text.replace(/^\`\`\`json/m, '').replace(/^\`\`\`/m, '').trim()
+
+    try {
+        return JSON.parse(text)
+    } catch (e) {
+        console.error("Failed to parse Idea extraction JSON:", text)
+        throw new Error("Invalid format returned from AI parsing")
+    }
+}

@@ -61,6 +61,12 @@ export const ACTIONS = {
   RESET_PACKING: 'RESET_PACKING',
   ADD_PACKING_SECTION: 'ADD_PACKING_SECTION',
 
+  // Ideas
+  ADD_IDEA: 'ADD_IDEA',
+  VOTE_IDEA: 'VOTE_IDEA',
+  UPDATE_IDEA_STATUS: 'UPDATE_IDEA_STATUS',
+  DELETE_IDEA: 'DELETE_IDEA',
+
   // Cities
   UPDATE_CITY: 'UPDATE_CITY',
   ADD_CITY: 'ADD_CITY',
@@ -418,6 +424,50 @@ export function tripReducer(state, action) {
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
         packingList: trip.packingList.map(p => ({ ...p, packed: false, packedBy: null })),
+      }))
+
+    // ─── Ideas (Voting Room) ───
+    case ACTIONS.ADD_IDEA:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        ideas: [{
+          id: generateId(),
+          status: 'pending', // pending, consensus, rejected
+          votes: {}, // { userId: 1 | -1 }
+          createdAt: new Date().toISOString(),
+          ...payload
+        }, ...(trip.ideas || [])],
+      }))
+
+    case ACTIONS.VOTE_IDEA:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        ideas: (trip.ideas || []).map(idea => {
+          if (idea.id !== payload.ideaId) return idea
+          const currentVote = idea.votes[payload.userId]
+          const newVotes = { ...idea.votes }
+
+          if (currentVote === payload.voteType) {
+            // Toggle off if clicking the same vote again
+            delete newVotes[payload.userId]
+          } else {
+            // Apply new vote
+            newVotes[payload.userId] = payload.voteType
+          }
+          return { ...idea, votes: newVotes }
+        }),
+      }))
+
+    case ACTIONS.UPDATE_IDEA_STATUS:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        ideas: (trip.ideas || []).map(idea => idea.id === payload.ideaId ? { ...idea, status: payload.status } : idea),
+      }))
+
+    case ACTIONS.DELETE_IDEA:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        ideas: (trip.ideas || []).filter(idea => idea.id !== payload),
       }))
 
     // ─── Cities ───
