@@ -1,75 +1,78 @@
 // api/extract.js
-import { generateObject } from 'ai'
-import { google } from '@ai-sdk/google'
-import { z } from 'zod'
+// Rewritten to use @google/genai directly (no ai package dependency)
+// This is the "Voting Room" idea extractor — same pattern as extract-idea.js
+import * as cheerio from 'cheerio'
+import { GoogleGenAI } from '@google/genai'
 
-export const config = {
-  runtime: 'edge',
+async function scrapeMetadata(url) {
+    const response = await fetch(url, {
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml',
+            'Accept-Language': 'en-US,en;q=0.9',
+        }
+    });
+    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+    const html = await response.text();
+    const $ = cheerio.load(html);
+    const title = $('meta[property="og:title"]').attr('content') || $('title').text() || '';
+    const description = $('meta[property="og:description"]').attr('content') || $('meta[name="description"]').attr('content') || '';
+    const siteName = $('meta[property="og:site_name"]').attr('content') || '';
+    const rawBody = $('body').text().replace(/\s+/g, ' ').substring(0, 1500);
+    return { title, description, siteName, rawBody, url };
 }
 
-export default async function handler(req) {
-  if (req.method !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405 })
-  }
+export default async function handler(req, res) {
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Origin', 'https://planner.vlbonite.co');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
-  try {
-    const { url, activeTrip } = await req.json()
-    const tripCurrency = activeTrip?.currency || 'USD'
-    const tripLocation = activeTrip?.name || 'the selected destination'
-    const tripCities = activeTrip?.cities?.map(c => c.city).join(', ') || ''
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-    const { object } = await generateObject({
-      model: google('gemini-2.0-flash', {
-        structuredOutputs: true,
-        apiKey: process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY 
-      }),
-      tools: {
-        googleSearch: {
-          description: 'Used to search the web for listing details, locations, and prices.',
-          parameters: z.object({
-            query: z.string().description('The search query (e.g. the listing ID or name and city).'),
-          }),
-          execute: async () => ({}) // The SDK handles the actual search internally for Google Search tool
-        },
-      },
-      // Note: For Google Search tool in AI SDK, we often use the standard google('gemini-1.5-pro') style
-      // but let's stick to the prompt-based grounding if the tool isn't 100% supported in generateObject yet
-      system: `You are Wanda, a travel assistant. You extract structured data from URLs for a "Voting Room".
-      
-      CRITICAL: You must accurately identify the location. The user is currently planning a trip to: ${tripLocation} (${tripCities}).
-      If the link is a hotel or activity, it is HIGHLY LIKELY to be in or near these cities.
-      
-      DO NOT HALLUCINATE. If you see an Airbnb link, search for the room ID to find the REAL city.
-      DO NOT GUESS "Rome" or "Amsterdam" as a default. If unknown, use the trip location: ${tripLocation}.`,
-      
-      prompt: `Extract details from this URL: ${url}
-      
-      Rules:
-      1. Identify if it is lodging, an activity, food, or other.
-      2. Find a name and very short catchy description.
-      3. Format the price in ${tripCurrency}.
-      4. Use a relevant emoji.
-      5. Identify the source (e.g. Airbnb, Viator, Booking.com, TikTok).`,
-      
-      schema: z.object({
-        title: z.string().describe('Short descriptive title of the place/activity'),
-        type: z.enum(['lodging', 'activity', 'food', 'other']),
-        priceDetails: z.string().describe(`Price string formatted in ${tripCurrency}`),
-        description: z.string().describe('1-2 sentence catchy description'),
-        emoji: z.string().describe('A single relevant emoji'),
-        sourceName: z.string().describe('The name of the website/source')
-      }),
-    })
+    try {
+        const { url, activeTrip } = req.body;
+        if (!url) return res.status(400).json({ error: 'URL is required' });
 
-    return new Response(JSON.stringify(object), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    })
-  } catch (error) {
-    console.error('Extraction Error:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    })
-  }
+        const tripCurrency = activeTrip?.currency || 'USD';
+        const tripCities = activeTrip?.cities?.map(c => c.city).join(', ') || '';
+        const tripName = activeTrip?.name || 'the selected destination';
+
+        const scrapedData = await scrapeMetadata(url);
+
+        const prompt = `
+You are Wanda, a travel assistant. A user pasted this URL for a trip called "${tripName}" (cities: ${tripCities}).
+
+URL: ${scrapedData.url}
+Site: ${scrapedData.siteName}
+Title: ${scrapedData.title}
+Description: ${scrapedData.description}
+Content snippet: ${scrapedData.rawBody}
+
+Extract details and return ONLY a valid JSON object:
+{
+  "title": "Short, clean title of the place/activity",
+  "type": "lodging",
+  "priceDetails": "Price in ${tripCurrency} based on text. If unknown, write 'Price TBD'.",
+  "description": "1-2 sentence catchy description.",
+  "emoji": "🏡",
+  "sourceName": "Airbnb, TripAdvisor, TikTok, etc."
+}
+type must be one of: "lodging", "activity", "food", "other".
+Do not wrap in markdown.`;
+
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY });
+        const result = await ai.models.generateContent({
+            model: 'gemini-1.5-flash',
+            contents: prompt,
+            config: { temperature: 0.1, responseMimeType: 'application/json' }
+        });
+
+        const cleanJSON = result.text.replace(/```json/g, '').replace(/```/g, '').trim();
+        return res.status(200).json(JSON.parse(cleanJSON));
+    } catch (error) {
+        console.error('[extract] Error:', error);
+        return res.status(500).json({ error: error.message });
+    }
 }
