@@ -85,7 +85,7 @@ function AssigneePill({ value, onChange, tripTravelers, resolveProfile, currentU
       {open && coords && createPortal(
         <div
           ref={dropdownRef}
-          className="absolute z-[100] rounded-[var(--radius-md)] border border-border bg-bg-card shadow-lg min-w-[170px] py-1"
+          className="absolute z-[100] rounded-[var(--radius-md)] border border-border bg-bg-card min-w-[170px] py-1"
           style={{ top: coords.top, left: coords.left - 150 }}
         >
           <button
@@ -329,13 +329,13 @@ export default function TodoTab() {
         <div className="flex items-center rounded-lg bg-bg-secondary p-1 shrink-0 w-full sm:w-auto border border-border">
           <button
             onClick={() => setFilter('all')}
-            className={`flex-1 sm:px-5 py-1.5 text-sm font-semibold rounded-md transition-all ${filter === 'all' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}
+            className={`flex-1 sm:px-5 py-1.5 text-sm font-medium rounded-md transition-all ${filter === 'all' ? 'bg-bg-card border border-border text-text-primary' : 'text-text-muted hover:text-text-secondary border border-transparent'}`}
           >
             All Tasks
           </button>
           <button
             onClick={() => setFilter('mine')}
-            className={`flex-1 sm:px-5 py-1.5 text-sm font-semibold rounded-md transition-all flex items-center justify-center gap-2 ${filter === 'mine' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}
+            className={`flex-1 sm:px-5 py-1.5 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2 ${filter === 'mine' ? 'bg-bg-card border border-border text-text-primary' : 'text-text-muted hover:text-text-secondary border border-transparent'}`}
           >
             {currentUserProfile && (
               <AvatarCircle profile={currentUserProfile} size={16} />
@@ -355,7 +355,7 @@ export default function TodoTab() {
 
           return (
             <Card key={phase.id} className="p-0 overflow-hidden border border-border">
-              <div className="p-5 sm:p-6 bg-white dark:bg-[#111823]">
+              <div className="p-5 sm:p-6">
                 {/* Board Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
                   <div>

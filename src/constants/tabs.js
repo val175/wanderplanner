@@ -25,10 +25,10 @@ export const BOOKING_STATUSES = [
 ]
 
 export const TODO_PHASES = [
-  { id: 'planning', label: 'Planning & Booking', subtitle: 'Months before departure', color: 'bg-orange-500', textClass: 'text-orange-500' },
-  { id: 'logistics', label: 'Logistics & Prep', subtitle: 'Weeks before departure', color: 'bg-emerald-500', textClass: 'text-emerald-500' },
-  { id: 'last_minute', label: 'Last Minute', subtitle: 'Days before departure', color: 'bg-rose-500', textClass: 'text-rose-500' },
-  { id: 'post_trip', label: 'Post-Trip', subtitle: 'After returning home', color: 'bg-slate-500', textClass: 'text-slate-500' }
+  { id: 'planning', label: 'Planning & Booking', subtitle: 'Months before departure', color: 'bg-accent', textClass: 'text-accent' },
+  { id: 'logistics', label: 'Logistics & Prep', subtitle: 'Weeks before departure', color: 'bg-accent', textClass: 'text-text-primary' },
+  { id: 'last_minute', label: 'Last Minute', subtitle: 'Days before departure', color: 'bg-accent', textClass: 'text-text-primary' },
+  { id: 'post_trip', label: 'Post-Trip', subtitle: 'After returning home', color: 'bg-accent', textClass: 'text-text-primary' }
 ]
 
 export const PACKING_SECTIONS = ['Documents', 'Clothing', 'Tech', 'Concert Essentials', 'Toiletries', 'Misc']
