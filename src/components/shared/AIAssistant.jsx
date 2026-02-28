@@ -77,7 +77,7 @@ export default function AIAssistant() {
           className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#DE7A5E]/50"
           disabled={isLoading}
         />
-        <button type="submit" disabled={isLoading || !input.trim()} className="px-4 py-2 bg-[#DE7A5E] disabled:bg-[#DE7A5E]/50 text-white rounded-xl text-sm font-medium transition-colors">
+        <button type="submit" disabled={isLoading || !(input || '').trim()} className="px-4 py-2 bg-[#DE7A5E] disabled:bg-[#DE7A5E]/50 text-white rounded-xl text-sm font-medium transition-colors">
           Send
         </button>
       </form>

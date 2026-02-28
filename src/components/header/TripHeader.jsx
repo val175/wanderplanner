@@ -73,7 +73,7 @@ function TravelerPicker({ trip, travelerProfiles, dispatch }) {
               </span>
             ))}
             <span className="ml-1 text-xs text-text-muted">
-              {travelerProfiles.map(p => p.name.split(' ')[0]).join(' & ')}
+              {travelerProfiles.map(p => (p.name || 'Anonymous').split(' ')[0]).join(' & ')}
             </span>
           </>
         ) : (
@@ -195,7 +195,7 @@ function InlineTripName({ value, onSave }) {
   }
 
   const save = () => {
-    const trimmed = draft.trim()
+    const trimmed = (draft || '').trim()
     if (trimmed && trimmed !== value) onSave(trimmed)
     else setDraft(value)
     setEditing(false)
