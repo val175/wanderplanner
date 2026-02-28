@@ -364,7 +364,7 @@ export function tripReducer(state, action) {
     case ACTIONS.ADD_TODO:
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
-        todos: [...trip.todos, { id: generateId(), done: false, priority: 'normal', dueDate: '', category: 'Misc', ...payload }],
+        todos: [...trip.todos, { id: generateId(), done: false, priority: 'normal', dueDate: '', phase: 'planning', assigneeId: null, ...payload }],
       }))
 
     case ACTIONS.TOGGLE_TODO:
