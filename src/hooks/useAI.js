@@ -294,7 +294,7 @@ DO NOT wrap the output in markdown code blocks like \`\`\`json. Output raw JSON 
  * Uses Google Search tool to resolve short links if needed, then formats it.
  */
 export async function extractIdeaDetails(url, tripCurrency) {
-    const prompt = `
+  const prompt = `
 A user pasted this URL into their travel planner's "Voting Room":
 ${url}
 
@@ -315,48 +315,45 @@ Return ONLY a valid JSON object with the exact keys:
 DO NOT wrap the output in markdown code blocks like \`\`\`json. Output raw JSON only.
   `;
 
-    const body = {
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        systemInstruction: {
-            parts: [{ text: "You are Wanda, a travel assistant built into Wanderplan." }],
-        },
-        tools: [
-            { googleSearch: {} }
-        ],
-        generationConfig: {
-            temperature: 0.3, // Low temp for more accurate extraction
-            maxOutputTokens: 256,
-        },
-    }
+  const body = {
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    systemInstruction: {
+      parts: [{ text: "You are Wanda, a travel assistant built into Wanderplan." }],
+    },
+    generationConfig: {
+      temperature: 0.3, // Low temp for more accurate extraction
+      maxOutputTokens: 256,
+    },
+  }
 
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY
-    const apiUrl = apiKey
-        ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
-        : PROXY_URL;
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
+  const apiUrl = apiKey
+    ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
+    : PROXY_URL;
 
-    const res = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-    })
+  const res = await fetch(apiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
 
-    if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err?.error?.message || `Gemini API error ${res.status}`)
-    }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err?.error?.message || `Gemini API error ${res.status}`)
+  }
 
-    const data = await res.json()
-    let text = data.candidates?.[0]?.content?.parts?.[0]?.text
+  const data = await res.json()
+  let text = data.candidates?.[0]?.content?.parts?.[0]?.text
 
-    if (!text) throw new Error('No response from Gemini API')
+  if (!text) throw new Error('No response from Gemini API')
 
-    // Clean potential markdown blocks
-    text = text.replace(/^\`\`\`json/m, '').replace(/^\`\`\`/m, '').trim()
+  // Clean potential markdown blocks
+  text = text.replace(/^\`\`\`json/m, '').replace(/^\`\`\`/m, '').trim()
 
-    try {
-        return JSON.parse(text)
-    } catch (e) {
-        console.error("Failed to parse Idea extraction JSON:", text)
-        throw new Error("Invalid format returned from AI parsing")
-    }
+  try {
+    return JSON.parse(text)
+  } catch (e) {
+    console.error("Failed to parse Idea extraction JSON:", text)
+    throw new Error("Invalid format returned from AI parsing")
+  }
 }
