@@ -114,8 +114,8 @@ export async function sendMessage(systemPrompt, history, userMessage) {
     },
   }
 
-  // If local API key exists, use it instantly to avoid proxy failures
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
+  // If local API key exists in DEV, use it instantly to avoid proxy CORS failures
+  const apiKey = import.meta.env.DEV ? import.meta.env.VITE_GEMINI_API_KEY : null
   if (apiKey) {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
@@ -190,7 +190,7 @@ Rules:
     },
   }
 
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
+  const apiKey = import.meta.env.DEV ? import.meta.env.VITE_GEMINI_API_KEY : null
   const url = apiKey
     ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
     : PROXY_URL;
@@ -258,7 +258,7 @@ DO NOT wrap the output in markdown code blocks like \`\`\`json. Output raw JSON 
     },
   }
 
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
+  const apiKey = import.meta.env.DEV ? import.meta.env.VITE_GEMINI_API_KEY : null
   const apiUrl = apiKey
     ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
     : PROXY_URL;
@@ -326,7 +326,7 @@ DO NOT wrap the output in markdown code blocks like \`\`\`json. Output raw JSON 
     },
   }
 
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
+  const apiKey = import.meta.env.DEV ? import.meta.env.VITE_GEMINI_API_KEY : null
   const apiUrl = apiKey
     ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
     : PROXY_URL;
