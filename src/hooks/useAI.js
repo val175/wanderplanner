@@ -6,7 +6,7 @@
  */
 
 // Requests go to our Vercel Serverless Function proxy to protect the API key
-const PROXY_URL = '/api/gemini'
+const PROXY_URL = 'https://wanderplan-rust.vercel.app/api/gemini'
 
 /**
  * Build a rich system prompt from the active trip.
