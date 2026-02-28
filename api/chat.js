@@ -7,9 +7,21 @@ export const config = {
     runtime: 'edge',
 }
 
+const CORS_HEADERS = {
+    'Access-Control-Allow-Origin': 'https://planner.vlbonite.co',
+    'Access-Control-Allow-Methods': 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
+    'Access-Control-Allow-Headers': 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version',
+    'Access-Control-Allow-Credentials': 'true',
+}
+
 export default async function handler(req) {
+    // Handle preflight OPTIONS request
+    if (req.method === 'OPTIONS') {
+        return new Response(null, { status: 200, headers: CORS_HEADERS })
+    }
+
     if (req.method !== 'POST') {
-        return new Response('Method Not Allowed', { status: 405 })
+        return new Response('Method Not Allowed', { status: 405, headers: CORS_HEADERS })
     }
 
     try {
@@ -24,10 +36,13 @@ export default async function handler(req) {
             messages: messages,
         })
 
-        return result.toDataStreamResponse()
+        return result.toDataStreamResponse({ headers: CORS_HEADERS })
 
     } catch (error) {
         console.error('Streaming Error:', error)
-        return new Response(JSON.stringify({ error: error.message }), { status: 500 })
+        return new Response(JSON.stringify({ error: error.message }), {
+            status: 500,
+            headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
+        })
     }
 }

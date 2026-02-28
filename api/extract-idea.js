@@ -36,7 +36,7 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
     try {
-        const { url } = req.body;
+        const { url, currency = 'PHP' } = req.body;
         if (!url) return res.status(400).json({ error: 'URL is required' });
         const scrapedData = await scrapeMetadata(url);
         const prompt = `
@@ -58,16 +58,14 @@ export default async function handler(req, res) {
         Do not wrap in markdown blocks.
     `;
 
-        // Corrected SDK usage and model name (gemini-1.5-flash)
-        const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY });
+        const result = await ai.models.generateContent({
             model: 'gemini-1.5-flash',
-            generationConfig: { temperature: 0.1, responseMimeType: 'application/json' }
+            contents: prompt,
+            config: { temperature: 0.1, responseMimeType: 'application/json' }
         });
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        let cleanJSONString = response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+        let cleanJSONString = result.text.replace(/```json/g, '').replace(/```/g, '').trim();
 
         return res.status(200).json(JSON.parse(cleanJSONString));
     } catch (error) {

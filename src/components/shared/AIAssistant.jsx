@@ -4,33 +4,45 @@ import { Send, Sparkles } from 'lucide-react';
 
 export default function AIAssistant() {
   const { messages, input, handleInputChange, handleSubmit, setInput, isLoading } = useChat({
-    api: '/api/chat',
+    api: 'https://wanderplan-rust.vercel.app/api/chat',
     initialInput: '',
   });
 
   const safeInput = input || '';
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full" style={{ background: 'var(--color-bg-card)' }}>
       {/* Pills */}
-      <div className="flex gap-2 p-4 overflow-x-auto border-b">
+      <div className="flex gap-2 p-4 overflow-x-auto" style={{ borderBottom: '1px solid var(--color-border)' }}>
         {["💰 Help with budget", "📅 Optimize itinerary"].map((text) => (
           <button
             key={text}
             type="button"
             onClick={() => setInput(text)}
-            className="px-3 py-1 text-sm border rounded-full hover:bg-gray-50 flex-shrink-0"
+            className="px-3 py-1 text-sm rounded-full flex-shrink-0 transition-colors"
+            style={{
+              border: '1px solid var(--color-border)',
+              background: 'transparent',
+              color: 'var(--color-text-secondary)',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--color-bg-hover)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           >
             {text}
           </button>
-        ))}
-      </div>
+        ))}</div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map(m => (
           <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`p-3 rounded-lg max-w-[85%] ${m.role === 'user' ? 'bg-[#DE7A5E] text-white shadow-sm' : 'bg-gray-100 text-gray-800'}`}>
+            <div
+              className="p-3 rounded-lg max-w-[85%] text-sm"
+              style={m.role === 'user'
+                ? { background: 'var(--color-accent)', color: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
+                : { background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }
+              }
+            >
               {m.content}
             </div>
           </div>
@@ -38,20 +50,32 @@ export default function AIAssistant() {
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSubmit} className="p-4 border-t flex gap-2 bg-white">
+      <form onSubmit={handleSubmit} className="p-4 flex gap-2" style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-bg-card)' }}>
         <input
           value={safeInput}
           onChange={handleInputChange}
           placeholder="Ask Wanda..."
-          className="flex-1 border border-gray-200 p-2 rounded-xl outline-none focus:ring-2 focus:ring-[#DE7A5E]/20 focus:border-[#DE7A5E] text-sm"
+          className="flex-1 p-2 rounded-xl outline-none text-sm transition-colors"
+          style={{
+            border: '1px solid var(--color-border)',
+            background: 'var(--color-bg-secondary)',
+            color: 'var(--color-text-primary)',
+          }}
+          onFocus={e => e.target.style.borderColor = 'var(--color-accent)'}
+          onBlur={e => e.target.style.borderColor = 'var(--color-border)'}
         />
         <button
           type="submit"
           disabled={isLoading || !safeInput.trim()}
-          className="bg-[#DE7A5E] text-white px-4 py-2 rounded-xl disabled:bg-gray-300 transition-colors shadow-sm flex items-center justify-center min-w-[50px]"
+          className="px-4 py-2 rounded-xl transition-colors flex items-center justify-center min-w-[50px]"
+          style={{
+            background: isLoading || !safeInput.trim() ? 'var(--color-bg-hover)' : 'var(--color-accent)',
+            color: isLoading || !safeInput.trim() ? 'var(--color-text-muted)' : '#fff',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          }}
         >
           {isLoading ? (
-            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
           ) : (
             <Send size={18} />
           )}
