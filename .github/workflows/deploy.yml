@@ -1,0 +1,48 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches:
+      - main
+
+# Ensure the GITHUB_TOKEN has permission to commit to the repo
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Create .env file
+        run: |
+          echo "VITE_FIREBASE_API_KEY=AIzaSyCLnLTVNRck2Ezz1z3VTTNobarWy7l_TMs" > .env
+          echo "VITE_FIREBASE_AUTH_DOMAIN=wanderplanner-dbee7.firebaseapp.com" >> .env
+          echo "VITE_FIREBASE_PROJECT_ID=wanderplanner-dbee7" >> .env
+          echo "VITE_FIREBASE_STORAGE_BUCKET=wanderplanner-dbee7.firebasestorage.app" >> .env
+          echo "VITE_FIREBASE_MESSAGING_SENDER_ID=151242477554" >> .env
+          echo "VITE_FIREBASE_APP_ID=1:151242477554:web:f8a46861d6c46390dee56b" >> .env
+          echo "VITE_GEMINI_API_KEY=${{ secrets.VITE_GEMINI_API_KEY }}" >> .env
+          echo "VITE_MAPBOX_TOKEN=${{ secrets.VITE_MAPBOX_TOKEN }}" >> .env
+
+      - name: Build project
+        run: npm run build
+
+      - name: Deploy to deploy branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: deploy
+          # By default, this keeps commit history on the deploy branch
+          # and creates a clean commit matching the main branch SHA.
