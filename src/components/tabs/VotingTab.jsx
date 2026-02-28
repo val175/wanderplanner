@@ -240,7 +240,7 @@ export default function VotingTab() {
         setIsExtracting(true)
         try {
             showToast("Wanda is reading the link...", "info")
-            const data = await extractIdeaDetails(urlInput, activeTrip?.currency)
+            const data = await extractIdeaDetails(urlInput, activeTrip)
 
             const newIdea = {
                 url: urlInput,

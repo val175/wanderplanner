@@ -292,35 +292,45 @@ DO NOT wrap the output in markdown code blocks like \`\`\`json. Output raw JSON 
  * extractIdeaDetails extracts structured info from a URL for the Voting Room.
  * Uses Google Search tool to resolve short links if needed, then formats it.
  */
-export async function extractIdeaDetails(url, tripCurrency) {
+export async function extractIdeaDetails(url, activeTrip) {
+  const tripCurrency = activeTrip?.currency || 'USD';
+  const tripLocation = activeTrip?.name || 'an unknown destination';
+
   const prompt = `
 A user pasted this URL into their travel planner's "Voting Room":
 ${url}
 
-You need to figure out what this idea is. 
-If it is a shortened link (like maps.app.goo.gl, vm.tiktok.com, bit.ly, t.co), you MUST use your Google Search tool to search for the EXACT string or visit it to discover what place or business it redirects to.
-Then, extract or infer the following details to create a Voting Room Idea card:
+Current Trip Context: The user is planning a trip to ${tripLocation}. 
+
+Your Task:
+1. Extract or infer the following details to create a Voting Room Idea card.
+2. If this is a specific listing (Airbnb, Viator, Booking.com, etc.), you MUST find the REAL name of the place and its REAL location.
+3. If it is a shortened link (maps.app.goo.gl, etc.), use your Google Search tool to resolve it.
+4. DO NOT guess the location as "Rome" or any other placeholder if you are unsure. If the location is absolutely unknown, omit it from the title.
 
 Return ONLY a valid JSON object with the exact keys:
 {
-  "title": "Short title (e.g. Copacabana Oceanfront Penthouse or Sugarloaf Mountain Sunset Tour)",
+  "title": "Short title (e.g. Stylish Metro Apartment or Oceanfront Villa)",
   "type": "lodging" OR "activity" OR "food" OR "other",
-  "priceDetails": "Short string like '$250 / total' or '¥3,500 / per person' or 'Free'. Guess reasonably if the exact price isn't visible, formatted in ${tripCurrency || 'USD'}",
-  "description": "A very short 1-2 sentence catchy description of what this is.",
+  "priceDetails": "Short string like '$250 / total' or '₱5,000 / night' or 'Free'. Format currency in ${tripCurrency}",
+  "description": "A very short 1-2 sentence catchy description of what this is. Highlight why it fits a trip to ${tripLocation}.",
   "emoji": "🏠 (for lodging), 🥩 (for food), 🚠 (for activity), etc.",
   "sourceName": "Airbnb, TikTok, TripAdvisor, Viator, etc."
 }
 
-DO NOT wrap the output in markdown code blocks like \`\`\`json. Output raw JSON only.
+DO NOT wrap the output in markdown code blocks. Output raw JSON only.
   `;
 
   const body = {
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
     systemInstruction: {
-      parts: [{ text: "You are Wanda, a travel assistant built into Wanderplan." }],
+      parts: [{ text: "You are Wanda, a travel assistant built into Wanderplan. Use your tools to verify link details accurately." }],
     },
+    tools: [
+      { googleSearch: {} }
+    ],
     generationConfig: {
-      temperature: 0.3, // Low temp for more accurate extraction
+      temperature: 0.1, // Very low temp for strict extraction
       maxOutputTokens: 256,
     },
   }
