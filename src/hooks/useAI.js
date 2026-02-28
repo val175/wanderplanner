@@ -290,7 +290,7 @@ DO NOT wrap the output in markdown code blocks like \`\`\`json. Output raw JSON 
 }
 export async function extractIdeaDetails(url, tripCurrency) {
   try {
-    const res = await fetch('/api/extract-idea', {
+    const res = await fetch('https://wanderplan-rust.vercel.app/api/extract-idea', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url, currency: tripCurrency }),
