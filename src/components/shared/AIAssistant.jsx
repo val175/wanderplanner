@@ -16,6 +16,8 @@ export default function AIAssistant() {
     "🍽️ Food recommendations"
   ]
 
+  const systemPrompt = buildTripSystemPrompt(activeTrip)
+
   // useChat completely replaces manual fetch, loading, and message array logic
   const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
     api: '/api/chat',
