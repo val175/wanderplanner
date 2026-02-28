@@ -26,6 +26,10 @@ export default function AIAssistant() {
     }
   })
 
+  const handlePillClick = (text) => {
+    append?.({ role: 'user', content: text })
+  }
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
@@ -85,7 +89,7 @@ export default function AIAssistant() {
               <button
                 key={s}
                 type="button"
-                onClick={() => append?.({ role: 'user', content: s })}
+                onClick={() => handlePillClick(s)}
                 className="whitespace-nowrap px-3 py-1.5 rounded-full border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer"
               >
                 {s}
