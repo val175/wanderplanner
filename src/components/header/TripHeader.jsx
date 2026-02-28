@@ -6,6 +6,7 @@ import { useTripContext } from '../../context/TripContext'
 import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { calculateReadiness } from '../../utils/readiness'
+import { getTripStatus } from '../../utils/tripStatus'
 import { formatDateRange } from '../../utils/helpers'
 import { useCountdown } from '../../hooks/useCountdown'
 
@@ -62,7 +63,7 @@ function TravelerPicker({ trip, travelerProfiles, dispatch }) {
         onClick={handleOpen}
         className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)]
                    hover:bg-bg-hover px-1.5 py-0.5 -mx-1.5 transition-colors group"
-        title="Edit travelers"
+        title="Edit wanderers"
       >
         {travelerProfiles.length > 0 ? (
           <>
@@ -86,7 +87,7 @@ function TravelerPicker({ trip, travelerProfiles, dispatch }) {
               <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
             <span className="text-xs text-text-muted">
-              {travelerCount} {travelerCount === 1 ? 'traveler' : 'travelers'}
+              {travelerCount} {travelerCount === 1 ? 'wanderer' : 'wanderers'}
             </span>
           </>
         )}
@@ -101,10 +102,10 @@ function TravelerPicker({ trip, travelerProfiles, dispatch }) {
         <div
           ref={dropdownRef}
           style={{ position: 'fixed', top: coords.top, left: coords.left, zIndex: 9999 }}
-          className="bg-bg-card border border-border rounded-[var(--radius-lg)] shadow-xl p-2 min-w-[180px]"
+          className="bg-bg-card border border-border rounded-[var(--radius-lg)] p-2 min-w-[180px]"
         >
           {profiles.length === 0 ? (
-            <p className="text-xs text-text-muted px-2 py-1.5">No profiles yet — add travelers from the sidebar.</p>
+            <p className="text-xs text-text-muted px-2 py-1.5">No profiles yet — add wanderers from the sidebar.</p>
           ) : (
             <div className="space-y-0.5">
               {profiles.map(p => {
@@ -313,6 +314,42 @@ function CityBreadcrumbs({ destinations }) {
 }
 
 /* ─────────────────────────────────────────────────────────────
+   ShareTripButton — copies page URL to clipboard
+───────────────────────────────────────────────────────────── */
+function ShareTripButton({ tripName }) {
+  const [copied, setCopied] = useState(false)
+  const handleCopy = () => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+  return (
+    <button
+      onClick={handleCopy}
+      className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5
+                 text-xs font-medium rounded-[var(--radius-md)]
+                 border border-border text-text-secondary
+                 hover:border-accent/40 hover:text-text-primary hover:bg-bg-hover
+                 transition-all duration-150"
+      title={`Share "${tripName}"`}
+    >
+      {copied ? (
+        <>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-success"><polyline points="20 6 9 17 4 12" /></svg>
+          <span className="text-success">Copied!</span>
+        </>
+      ) : (
+        <>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
+          Share Trip
+        </>
+      )}
+    </button>
+  )
+}
+
+/* ─────────────────────────────────────────────────────────────
    TripHeader — sparse typographic hero layout.
 
    Design principle: the massive countdown number is the dominant
@@ -332,10 +369,12 @@ export default function TripHeader() {
 
   const trip = activeTrip
   const dateRange = formatDateRange(trip.startDate, trip.endDate)
+  const tripStatus = getTripStatus(trip.startDate, trip.endDate)
   const destinations = trip.destinations || []
 
+  // Prefer resolving from the live profiles list; fall back to the embedded snapshot in the trip doc
   const travelerProfiles = (trip.travelerIds || [])
-    .map(id => profiles.find(p => p.id === id))
+    .map(id => profiles.find(p => p.id === id) || (trip.travelersSnapshot || []).find(p => p.id === id))
     .filter(Boolean)
 
   const handleRename = (newName) => {
@@ -344,7 +383,7 @@ export default function TripHeader() {
 
   return (
     <header className="animate-fade-in border-b border-border bg-bg-primary/95 backdrop-blur-sm">
-      <div className="max-w-5xl mx-auto px-4 sm:px-8 py-5">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-8 py-5">
         <div className="flex items-start justify-between gap-6">
 
           {/* LEFT — 3-row identity block; pl-12 clears the mobile hamburger on small screens */}
@@ -392,15 +431,30 @@ export default function TripHeader() {
             </div>
           </div>
 
-          {/* RIGHT — typographic countdown hero */}
-          {trip.startDate && (
-            <div className="shrink-0 flex flex-col items-end pt-0.5">
-              <CountdownHero targetDate={trip.startDate} />
-              <span className="text-[9px] text-text-muted uppercase tracking-[0.2em] font-semibold mt-0.5">
-                to departure
-              </span>
-            </div>
-          )}
+          {/* RIGHT — global actions + status/countdown cluster */}
+          <div className="shrink-0 flex items-start gap-3 pt-0.5">
+            {/* Share Trip action */}
+            <ShareTripButton tripName={trip.name} />
+
+            {tripStatus === 'ongoing' ? (
+              <div className="flex flex-col items-end">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5
+                  rounded-full text-xs font-semibold
+                  bg-success/12 text-success border border-success/25
+                  animate-pulse-warm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-success inline-block" />
+                  Ongoing
+                </span>
+              </div>
+            ) : trip.startDate && tripStatus === 'upcoming' ? (
+              <div className="flex flex-col items-end">
+                <CountdownHero targetDate={trip.startDate} />
+                <span className="text-[9px] text-text-muted uppercase tracking-[0.2em] font-semibold mt-0.5">
+                  to departure
+                </span>
+              </div>
+            ) : null}
+          </div>
 
         </div>
       </div>

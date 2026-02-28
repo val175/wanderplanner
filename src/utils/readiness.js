@@ -10,7 +10,7 @@ export function calculateReadiness(trip) {
 
   // Bookings score — 0 if no bookings yet
   const totalBookings = trip.bookings?.length || 0
-  const confirmedBookings = trip.bookings?.filter(b => b.status === 'booked').length || 0
+  const confirmedBookings = trip.bookings?.filter(b => b.status === 'confirmed' || b.status === 'booked').length || 0
   const bookingScore = totalBookings > 0 ? confirmedBookings / totalBookings : 0
 
   // Todos score — 0 if no todos yet
@@ -25,8 +25,8 @@ export function calculateReadiness(trip) {
 
   const score = Math.round(
     (bookingScore * weights.bookings +
-     todoScore * weights.todos +
-     packingScore * weights.packing) * 100
+      todoScore * weights.todos +
+      packingScore * weights.packing) * 100
   )
 
   return Math.min(100, Math.max(0, score))
@@ -40,7 +40,7 @@ export function getReadinessBreakdown(trip) {
 
   return {
     bookings: {
-      done: trip.bookings?.filter(b => b.status === 'booked').length || 0,
+      done: trip.bookings?.filter(b => b.status === 'confirmed' || b.status === 'booked').length || 0,
       total: trip.bookings?.length || 0,
     },
     todos: {

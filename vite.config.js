@@ -7,8 +7,7 @@ export default defineConfig({
     tailwindcss(),
     react(),
   ],
-  build: {
-    minify: false,
-    sourcemap: true,
+  server: {
+    port: 3000
   }
 })

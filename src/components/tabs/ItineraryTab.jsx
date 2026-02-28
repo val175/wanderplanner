@@ -1,393 +1,648 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo, Fragment } from 'react'
 import Card from '../shared/Card'
 import EditableText from '../shared/EditableText'
 import TimePicker from '../shared/TimePicker'
+import Modal from '../shared/Modal'
+import Button from '../shared/Button'
+import DatePicker from '../shared/DatePicker'
+import ConfirmDialog from '../shared/ConfirmDialog'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
-import { formatDate } from '../../utils/helpers'
+import { formatDate, formatCurrency } from '../../utils/helpers'
 import { ACTIVITY_EMOJIS } from '../../constants/emojis'
 
-// ── 24h → 12h display (e.g. "14:30" → "2:30 PM") ─────────────────────────
-function fmt12h(t) {
-  const [h, m] = t.split(':').map(Number)
-  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`
-}
-
-// ── Activity type → left-border accent color ───────────────────────────────
-// Maps emoji to a CSS left-border color token so each activity type is
-// instantly scannable without reading the text.
+// ── Utilities ──────────────────────────────────────────────────────────────
 function getActivityAccent(emoji) {
   const map = {
-    '✈️': 'border-l-info',        // flight — blue
-    '🛫': 'border-l-info',
-    '🛬': 'border-l-info',
-    '🏨': 'border-l-success',     // hotel — green
-    '🛏️': 'border-l-success',
-    '🍜': 'border-l-warning',     // food — gold
-    '🍽️': 'border-l-warning',
-    '🥘': 'border-l-warning',
-    '🍺': 'border-l-warning',
-    '☕': 'border-l-warning',
-    '🎵': 'border-l-accent',      // concert/music — terra cotta
-    '🎸': 'border-l-accent',
-    '🎤': 'border-l-accent',
-    '🎯': 'border-l-accent',      // experience
-    '🏛️': 'border-l-accent',
-    '🚕': 'border-l-[var(--color-text-muted)]', // transport — neutral
-    '🚂': 'border-l-[var(--color-text-muted)]',
-    '⛴️': 'border-l-[var(--color-text-muted)]',
+    '✈️': 'border-l-info text-info', '🛫': 'border-l-info text-info', '🛬': 'border-l-info text-info',
+    '🏨': 'border-l-success text-success', '🛏️': 'border-l-success text-success',
+    '🍜': 'border-l-warning text-warning', '🍽️': 'border-l-warning text-warning', '🥘': 'border-l-warning text-warning', '🍺': 'border-l-warning text-warning', '☕': 'border-l-warning text-warning',
+    '🎵': 'border-l-accent text-accent', '🎸': 'border-l-accent text-accent', '🎤': 'border-l-accent text-accent',
+    '🎯': 'border-l-accent text-accent', '🏛️': 'border-l-accent text-accent',
+    '🚕': 'border-l-[var(--color-text-muted)] text-text-muted', '🚂': 'border-l-[var(--color-text-muted)] text-text-muted', '⛴️': 'border-l-[var(--color-text-muted)] text-text-muted',
   }
-  return map[emoji] || 'border-l-border'
+  return map[emoji] || 'border-l-border text-border-strong'
 }
 
-// ── Time gap indicator between activities ──────────────────────────────────
-function GapIndicator({ fromTime, toTime }) {
-  if (!fromTime || !toTime) return null
-  const toMins = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m }
-  const gap = toMins(toTime) - toMins(fromTime)
-  if (gap < 90) return null
-  const h = Math.floor(gap / 60)
-  const m = gap % 60
-  const label = m === 0 ? `${h}h free` : `${h}h ${m}m free`
-  return (
-    <div className="flex items-center gap-2 py-1 px-2 select-none pointer-events-none">
-      <div className="flex-1 h-px bg-border" />
-      <span className="text-[10px] text-text-muted tracking-wide">· {label} ·</span>
-      <div className="flex-1 h-px bg-border" />
-    </div>
-  )
-}
-
-// ── Activity Item with drag reorder ────────────────────────────────────────
-function ActivityItem({ activity, dayId, index, onUpdate, onDelete, onReorder }) {
-  const [dragOver, setDragOver] = useState(false)
-  const accentBorder = getActivityAccent(activity.emoji)
-
-  return (
-    <div
-      draggable
-      onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('activityIndex', String(index)) }}
-      onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-      onDragLeave={() => setDragOver(false)}
-      onDrop={e => {
-        e.preventDefault(); setDragOver(false)
-        const fromIndex = Number(e.dataTransfer.getData('activityIndex'))
-        if (fromIndex !== index) onReorder(fromIndex, index)
-      }}
-      className={`flex items-start gap-2 group py-2 pl-2 rounded transition-all cursor-default
-        border-l-2 ${accentBorder}
-        ${dragOver ? 'bg-bg-hover' : ''}`}
-    >
-      <span className="flex-shrink-0 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-30 mt-1 text-text-muted select-none text-base">⠿</span>
-      {/* Time — custom TimePicker popover */}
-      <div className="flex-shrink-0 w-[4.5rem] pt-0.5 text-right">
-        <TimePicker
-          value={activity.time}
-          onChange={time => onUpdate({ time })}
-          className={!activity.time ? 'opacity-0 group-hover:opacity-40 transition-opacity text-text-muted' : 'text-text-muted'}
-          placeholder="＋time"
-        />
-      </div>
-      <span className="text-lg flex-shrink-0 mt-0.5">{activity.emoji}</span>
-      <div className="flex-1 min-w-0">
-        {/* Title · notes inline with dot separator */}
-        <div className="flex items-baseline gap-1.5 flex-wrap">
-          <EditableText
-            value={activity.name}
-            onSave={val => onUpdate({ name: val })}
-            className="text-text-primary font-medium text-sm leading-snug"
-            placeholder="Activity name"
-          />
-          {(activity.notes || activity.notes === '') && (
-            <>
-              {activity.notes && <span className="text-text-muted text-xs select-none">·</span>}
-              <EditableText
-                value={activity.notes || ''}
-                onSave={val => onUpdate({ notes: val })}
-                className="text-xs text-text-muted leading-relaxed"
-                placeholder="Add notes…"
-                multiline
-              />
-            </>
-          )}
-        </div>
-      </div>
-      <button
-        onClick={onDelete}
-        className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger text-sm transition-opacity p-1 flex-shrink-0"
-      >✕</button>
-    </div>
-  )
-}
-
-// ── Add Activity Form ───────────────────────────────────────────────────────
-function AddActivityForm({ onAdd, onCancel }) {
+// ── Kanban Add Activity Inline ──────────────────────────────────────────────
+function KanbanAddRow({ onAdd }) {
   const [name, setName] = useState('')
   const [time, setTime] = useState('')
-  const [emoji, setEmoji] = useState('📌')
-  const [notes, setNotes] = useState('')
-  const [showEmojis, setShowEmojis] = useState(false)
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!name.trim()) return
-    onAdd({ name: name.trim(), time, emoji, notes: notes.trim() })
-    setName(''); setTime(''); setEmoji('📌'); setNotes('')
+    onAdd({ name: name.trim(), time })
+    setName('')
+    setTime('')
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-3 p-3 bg-bg-primary rounded-[var(--radius-md)] border border-border">
-      <div className="flex gap-2 items-start">
+    <form onSubmit={handleSubmit} className="flex items-center gap-3 w-full group">
+      <div className="w-[80px] shrink-0">
         <TimePicker
           value={time}
           onChange={setTime}
-          variant="input"
-          placeholder="Time"
-          className="w-24"
+          className="text-sm border-transparent hover:border-border focus:border-accent bg-transparent"
+          placeholder="+time"
         />
-        <div className="relative">
-          <button type="button" onClick={() => setShowEmojis(!showEmojis)}
-            className="text-xl p-1.5 border border-border rounded-[var(--radius-sm)] hover:bg-bg-hover">{emoji}</button>
-          {showEmojis && (
-            <div className="absolute top-full left-0 mt-1 p-2 bg-bg-secondary border border-border rounded-[var(--radius-md)] grid grid-cols-4 gap-1 z-10">
-              {ACTIVITY_EMOJIS.map(e => (
-                <button key={e.emoji} type="button" onClick={() => { setEmoji(e.emoji); setShowEmojis(false) }}
-                  className="text-lg p-1 hover:bg-bg-hover rounded" title={e.label}>{e.emoji}</button>
-              ))}
-            </div>
-          )}
-        </div>
-        <input value={name} onChange={e => setName(e.target.value)} placeholder="Activity name"
-          className="flex-1 px-3 py-1.5 text-sm bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary placeholder:text-text-muted" />
       </div>
-      <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes (optional)"
-        className="w-full mt-2 px-3 py-1.5 text-sm bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary placeholder:text-text-muted" />
-      <div className="flex gap-2 mt-2 justify-end">
-        <button type="button" onClick={onCancel} className="px-3 py-1 text-sm text-text-muted hover:text-text-secondary">Cancel</button>
-        <button type="submit" className="px-3 py-1 text-sm bg-accent text-white rounded-[var(--radius-sm)] hover:bg-accent-hover">Add</button>
+      <div className="relative shrink-0 w-[4px] flex items-center justify-center">
+      </div>
+      <input
+        value={name}
+        onChange={e => setName(e.target.value)}
+        placeholder="+ Add item"
+        className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted focus:outline-none min-w-0"
+      />
+      <div className="w-[80px] shrink-0 text-right opacity-0 group-hover:opacity-100 transition-opacity">
+        <button type="submit" className="text-xs font-medium bg-bg-secondary hover:bg-border/50 text-text-secondary px-3 py-1.5 rounded-[var(--radius-pill)]" disabled={!name.trim()}>
+          Add
+        </button>
       </div>
     </form>
   )
 }
 
-// ── Day Card with drag reorder ──────────────────────────────────────────────
-function DayCard({ day, dayIndex, isConcertDay, onReorderDay }) {
+// ── Table Add Row Inline ──────────────────────────────────────────────
+function TableAddRow({ onAdd }) {
+  const [name, setName] = useState('')
+  const [time, setTime] = useState('')
+  const inputRef = useRef(null)
+
+  const handleSubmit = (e) => {
+    e?.preventDefault()
+    if (!name.trim()) return
+    onAdd({ name: name.trim(), time })
+    setName('')
+    setTime('')
+    inputRef.current?.focus()
+  }
+
+  return (
+    <tr className="border-t border-border/40 bg-accent/[0.02]">
+      <td className="px-2 py-2 align-middle"></td>
+      <td className="px-2 py-2 align-middle">
+        <TimePicker
+          value={time}
+          onChange={setTime}
+          className="text-sm border-transparent hover:border-border focus:border-accent bg-transparent text-text-secondary font-mono w-[80px]"
+          placeholder="+time"
+        />
+      </td>
+      <td className="px-2 py-2 align-middle" colSpan={2}>
+        <form onSubmit={handleSubmit} className="flex h-full">
+          <input
+            ref={inputRef}
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSubmit(e)}
+            placeholder="+ Add item (press Enter)"
+            className="w-full px-2 py-1.5 text-[13px] bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors"
+          />
+        </form>
+      </td>
+      <td className="px-2 py-2 align-middle text-xs text-text-muted italic opacity-60"></td>
+    </tr>
+  )
+}
+
+// ── Table View: Day Group ───────────────────────────────────────────────────
+function DayGroupTable({ day, onReorderDay, trip }) {
   const { dispatch } = useTripContext()
   const [expanded, setExpanded] = useState(true)
-  const [adding, setAdding] = useState(false)
-  const [editingNotes, setEditingNotes] = useState(false)
-  const [notesValue, setNotesValue] = useState(day.notes || '')
-  const [dragOver, setDragOver] = useState(false)
+  const [dragOverGroup, setDragOverGroup] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
-  const cardClasses = isConcertDay ? 'border-concert-red/30 bg-concert-dark/5 dark:bg-concert-dark/30' : ''
+  const handleDropActivity = (e, targetIndex) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOverGroup(false)
+    const sourceDataStr = e.dataTransfer.getData('application/json')
+    if (!sourceDataStr) return
+    const { type, sourceDayId, activityId, sourceIndex } = JSON.parse(sourceDataStr)
 
-  // Google Maps search URL built from location text
-  const mapsUrl = day.location
-    ? `https://www.google.com/maps/search/${encodeURIComponent(day.location)}`
-    : null
-
-  const saveNotes = () => {
-    dispatch({ type: ACTIONS.UPDATE_DAY, payload: { dayId: day.id, updates: { notes: notesValue } } })
-    setEditingNotes(false)
+    if (type === 'activity') {
+      if (sourceDayId === day.id) {
+        if (sourceIndex !== targetIndex) {
+          dispatch({ type: ACTIONS.REORDER_ACTIVITIES, payload: { dayId: day.id, fromIndex: sourceIndex, toIndex: targetIndex } })
+        }
+      } else {
+        dispatch({ type: ACTIONS.MOVE_ACTIVITY_BETWEEN_DAYS, payload: { fromDayId: sourceDayId, toDayId: day.id, activityId, toIndex: targetIndex } })
+      }
+    }
   }
 
   return (
     <div
-      className={`relative animate-fade-in transition-all ${dragOver ? 'border-t-2 border-accent' : ''}`}
+      className={`mb-8 transition-all ${dragOverGroup ? 'ring-2 ring-accent rounded-[var(--radius-md)]' : ''}`}
       draggable
-      onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('dayIndex', String(dayIndex)) }}
-      onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-      onDragLeave={() => setDragOver(false)}
+      onDragStart={e => {
+        if (!e.target.closest('.group-drag-handle')) {
+          e.preventDefault()
+          return
+        }
+        e.dataTransfer.setData('application/json', JSON.stringify({ type: 'day', dayId: day.id }))
+      }}
+      onDragOver={e => {
+        e.preventDefault()
+        setDragOverGroup(true)
+      }}
+      onDragLeave={() => setDragOverGroup(false)}
       onDrop={e => {
-        e.preventDefault(); setDragOver(false)
-        const fromIndex = Number(e.dataTransfer.getData('dayIndex'))
-        if (fromIndex !== dayIndex) onReorderDay(fromIndex, dayIndex)
+        e.preventDefault()
+        setDragOverGroup(false)
+        const sourceDataStr = e.dataTransfer.getData('application/json')
+        if (!sourceDataStr) return
+        const sourceData = JSON.parse(sourceDataStr)
+        if (sourceData.type === 'day') {
+          const fromIndex = trip.itinerary.findIndex(d => d.id === sourceData.dayId)
+          const toIndex = trip.itinerary.findIndex(d => d.id === day.id)
+          if (fromIndex !== -1 && toIndex !== -1 && fromIndex !== toIndex) {
+            onReorderDay(fromIndex, toIndex)
+          }
+        } else if (sourceData.type === 'activity') {
+          handleDropActivity(e, day.activities?.length || 0)
+        }
       }}
     >
-      {/* Timeline */}
-      <div className="absolute left-5 top-0 bottom-0 w-px bg-border hidden md:block" />
-      <div className={`absolute left-3 top-6 w-5 h-5 rounded-full border-2 hidden md:block z-10
-        ${isConcertDay ? 'border-concert-red bg-concert-red/20' : 'border-accent bg-accent/20'}`} />
+      <ConfirmDialog
+        isOpen={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={() => dispatch({ type: ACTIONS.REMOVE_DAY, payload: day.id })}
+        title={`Remove Day ${day.dayNumber}?`}
+        message="This will permanently delete this day and all its activities. Cannot be undone."
+        confirmLabel="Remove Day"
+        danger
+      />
 
-      <Card className={`md:ml-12 ${cardClasses}`}>
-        {/* Header */}
+      {/* Group Header (Monday-style smart headers) */}
+      <div className="group/day relative flex items-center justify-between py-2 mb-2">
         <div className="flex items-center gap-2">
-          <span className="hidden md:block cursor-grab active:cursor-grabbing text-text-muted opacity-30 hover:opacity-60 select-none" title="Drag to reorder">⠿</span>
-          <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => setExpanded(!expanded)}>
-            <span className="text-2xl">{day.emoji}</span>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className={`font-heading font-semibold ${isConcertDay ? 'text-concert-red' : 'text-text-primary'}`}>
-                  Day {day.dayNumber}
-                </span>
-                <span className="text-text-muted text-sm">·</span>
-                <span className="text-sm text-text-secondary">{formatDate(day.date, 'long')}</span>
-              </div>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <EditableText
-                  value={day.location}
-                  onSave={val => dispatch({ type: ACTIONS.UPDATE_DAY, payload: { dayId: day.id, updates: { location: val } } })}
-                  className="text-sm text-text-muted"
-                  placeholder="Location"
-                />
-                {mapsUrl && (
-                  <a
-                    href={mapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={e => e.stopPropagation()}
-                    className="text-sm hover:opacity-70 transition-opacity flex-shrink-0"
-                    title="View on Google Maps"
-                  >
-                    🗺️
-                  </a>
-                )}
-              </div>
+          <div className="group-drag-handle cursor-grab active:cursor-grabbing text-text-muted opacity-20 hover:opacity-100 transition-opacity mr-2">⠿</div>
+          <button onClick={() => setExpanded(!expanded)} className="text-text-muted hover:text-text-primary transition-colors text-lg w-5 flex justify-center shadow-sm bg-bg-card border border-border rounded">
+            <span className={`transform transition-transform ${expanded ? 'rotate-90' : ''}`}>›</span>
+          </button>
+
+          <div className="flex flex-col ml-2">
+            <div className="flex items-center gap-2">
+              <span className="font-heading font-semibold text-text-primary text-base whitespace-nowrap">
+                Day {day.dayNumber}:
+              </span>
+              <span className="font-heading font-semibold text-text-primary text-base whitespace-nowrap">
+                {day.date ? new Date(day.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' }) : 'Day'}
+              </span>
+              <EditableText
+                value={day.location || ''}
+                onSave={val => dispatch({ type: ACTIONS.UPDATE_DAY, payload: { dayId: day.id, updates: { location: val } } })}
+                className="font-heading font-semibold text-text-primary text-base hover:text-text-secondary transition-colors"
+                placeholder="Day Title (e.g. Rio Explorations)"
+              />
             </div>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-xs text-text-muted">{day.activities?.length || 0}</span>
-            <button
-              onClick={e => { e.stopPropagation(); dispatch({ type: ACTIONS.REMOVE_DAY, payload: day.id }) }}
-              className="text-xs text-text-muted hover:text-danger transition-colors px-1"
-            >✕</button>
-            <span className={`text-text-muted cursor-pointer transition-transform ${expanded ? 'rotate-180' : ''}`}
-              onClick={() => setExpanded(!expanded)}>▾</span>
+            <div className="text-xs font-medium text-text-muted mt-0.5 uppercase tracking-wider relative min-w-[150px]">
+              <DatePicker
+                value={day.date}
+                onChange={val => dispatch({ type: ACTIONS.UPDATE_DAY, payload: { dayId: day.id, updates: { date: val } } })}
+                placeholder="ADD DATE (e.g. WED, FEB 25)"
+                className="bg-transparent border-transparent hover:border-border text-xs !px-1 w-auto max-w-[200px]"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Body */}
-        {expanded && (
-          <div className="mt-3 border-t border-border pt-3">
-            {day.activities?.length > 0 ? (
-              <div className="divide-y divide-border/50">
-                {day.activities.map((activity, actIndex) => (
-                  <div key={activity.id}>
-                    <GapIndicator
-                      fromTime={day.activities[actIndex - 1]?.time}
-                      toTime={activity.time}
-                    />
-                    <ActivityItem
-                      activity={activity}
-                      dayId={day.id}
-                      index={actIndex}
-                      onUpdate={updates => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates } })}
-                      onDelete={() => dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })}
-                      onReorder={(fromIndex, toIndex) => dispatch({ type: ACTIONS.REORDER_ACTIVITIES, payload: { dayId: day.id, fromIndex, toIndex } })}
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-text-muted italic py-2">No activities yet</p>
-            )}
-
-            {/* Day Notes */}
-            <div className="mt-3 pt-2 border-t border-border/50">
-              {editingNotes ? (
-                <div>
-                  <textarea
-                    value={notesValue}
-                    onChange={e => setNotesValue(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Escape') { setNotesValue(day.notes || ''); setEditingNotes(false) } }}
-                    placeholder="Day notes…"
-                    rows={2}
-                    autoFocus
-                    className="w-full px-3 py-2 text-xs bg-bg-input border border-accent rounded-[var(--radius-sm)] text-text-primary resize-none focus:outline-none"
-                  />
-                  <div className="flex gap-2 mt-1 justify-end">
-                    <button onClick={() => { setNotesValue(day.notes || ''); setEditingNotes(false) }} className="text-xs text-text-muted">Cancel</button>
-                    <button onClick={saveNotes} className="text-xs text-accent font-medium">Save</button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => { setNotesValue(day.notes || ''); setEditingNotes(true) }}
-                  className="text-xs text-text-muted hover:text-text-secondary transition-colors text-left w-full"
-                >
-                  {day.notes
-                    ? <span>📝 <span className="italic">{day.notes}</span></span>
-                    : <span className="opacity-50">+ Add day notes…</span>
-                  }
-                </button>
-              )}
-            </div>
-
-            {/* Add Activity */}
-            {adding ? (
-              <AddActivityForm
-                onAdd={activity => { dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity } }); setAdding(false) }}
-                onCancel={() => setAdding(false)}
-              />
-            ) : (
-              <button onClick={() => setAdding(true)} className="mt-2 text-sm text-accent hover:text-accent-hover transition-colors">
-                + Add activity
-              </button>
-            )}
+        <div className="flex items-center gap-4 text-xs font-medium text-text-muted">
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-bg-secondary/30">
+            <span className="text-danger">📍</span>
+            {day.activities?.length || 0} activities/locations
           </div>
-        )}
-      </Card>
+          {(() => {
+            const count = day.activities?.length || 0;
+            if (count < 5) return (
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-success/10 text-success">
+                <span>🔋</span> Chill
+              </div>
+            );
+            if (count <= 8) return (
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-info/10 text-info">
+                <span>⚡</span> Active
+              </div>
+            );
+            return (
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#E27D60]/10 text-[#E27D60]">
+                <span>🪫</span> Packed
+              </div>
+            );
+          })()}
+          <button onClick={() => { (day.activities?.length > 0) ? setConfirmDelete(true) : dispatch({ type: ACTIONS.REMOVE_DAY, payload: day.id }) }} className="text-text-muted hover:text-danger text-lg px-2 opacity-0 group-hover/day:opacity-100 transition-opacity">✕</button>
+        </div>
+      </div>
+
+      {/* Group Grid Content */}
+      {expanded && (
+        <Card className="border border-border/50 p-0 overflow-hidden">
+          <div className="w-full overflow-x-auto overflow-y-visible scrollbar-thin">
+            <table className="w-full text-left border-collapse table-fixed min-w-[600px] text-sm">
+              <thead>
+                <tr className="border-b border-border/50 bg-bg-secondary/10">
+                  <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[30px] overflow-hidden"></th>
+                  <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[80px] overflow-hidden">TIME</th>
+                  <th className="px-0 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[30px] text-center overflow-hidden"></th>
+                  <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-auto text-left overflow-hidden">ACTIVITY</th>
+                  <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[25%] text-left overflow-hidden">LOCATION</th>
+                  <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[40px] overflow-hidden"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {day.activities?.map((activity, index, arr) => {
+                  const accentMatch = getActivityAccent(activity.emoji).match(/text-([a-z]+)/)
+                  const dotColor = accentMatch ? `bg-${accentMatch[1]}` : 'bg-border-strong'
+
+                  return (
+                    <Fragment key={activity.id}>
+                      <tr
+                        draggable
+                        onDragStart={(e) => {
+                          e.stopPropagation()
+                          e.dataTransfer.setData('application/json', JSON.stringify({ type: 'activity', sourceDayId: day.id, activityId: activity.id, sourceIndex: index }))
+                        }}
+                        onDragOver={e => e.preventDefault()}
+                        onDrop={e => handleDropActivity(e, index)}
+                        className="group/row hover:bg-bg-hover transition-colors relative cursor-pointer"
+                      >
+                        {/* Drag Handle */}
+                        <td className="px-2 pt-4 pb-2 align-top">
+                          <div className="cursor-grab active:cursor-grabbing text-text-muted opacity-0 group-hover/row:opacity-100 text-center w-full pt-0.5">⠿</div>
+                        </td>
+
+                        {/* Time */}
+                        <td className="px-2 pt-4 pb-2 align-top font-mono text-[13px] text-text-primary font-semibold">
+                          <TimePicker
+                            value={activity.time}
+                            onChange={time => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { time } } })}
+                            className="border-transparent hover:border-border text-inherit w-full !px-1 bg-transparent text-left max-w-[70px]"
+                            placeholder="-:-"
+                          />
+                        </td>
+
+                        {/* Timeline */}
+                        <td className="px-0 relative w-[30px] align-top group/timeline">
+                          <div className={`absolute left-1/2 top-0 bottom-0 -ml-[1px] w-[2px] bg-border z-0 ${index === 0 ? 'top-5' : ''} ${index === arr.length - 1 ? 'bottom-[20%]' : ''}`}></div>
+                          <div className={`relative z-10 w-2.5 h-2.5 rounded-full ${dotColor} mx-auto ring-4 ring-bg-card mt-5 shadow-sm`}></div>
+                          <button
+                            onClick={() => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: {}, index: index } })}
+                            className="absolute -top-3 left-1/2 -ml-3 w-6 h-6 rounded-full bg-bg-card border border-border text-lg font-light text-text-muted flex items-center justify-center opacity-0 group-hover/timeline:opacity-100 hover:bg-bg-hover hover:text-accent z-20 transition-all shadow-md pb-0.5"
+                            title="Insert before"
+                          >+</button>
+                        </td>
+
+                        {/* Activity block */}
+                        <td className="px-2 pt-3 pb-2 align-top group/activity">
+                          <div className="flex items-start gap-3 w-full">
+                            <div className="flex-1 min-w-0">
+                              <EditableText
+                                value={activity.name}
+                                onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { name: val } } })}
+                                className="text-[14px] text-text-primary font-semibold w-full block truncate"
+                                inputClassName="w-full font-semibold px-0 py-0 h-auto min-h-0"
+                                placeholder="Activity name"
+                              />
+                              {(activity.notes !== undefined) && (
+                                <EditableText
+                                  value={activity.notes || ''}
+                                  onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { notes: val } } })}
+                                  className="text-[12px] text-text-muted block mt-1 hover:text-text-secondary w-full"
+                                  inputClassName="w-full text-[12px] px-0 py-0"
+                                  placeholder="+ Add note"
+                                  multiline
+                                />
+                              )}
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Location */}
+                        <td className="px-2 pt-4 pb-2 align-top">
+                          <div className="flex items-start gap-1.5 text-[13px] text-text-secondary">
+                            <span className="text-danger flex-shrink-0 opacity-80 mt-0.5 text-xs">📍</span>
+                            <EditableText
+                              value={activity.location || ''}
+                              onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { location: val } } })}
+                              className="truncate hover:text-text-primary w-full leading-snug"
+                              inputClassName="w-full px-0 py-0 leading-snug"
+                              placeholder="+ Location"
+                              multiline
+                            />
+                          </div>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-2 pt-4 pb-2 align-top">
+                          <button onClick={() => dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })} className="w-full text-center text-text-muted hover:text-danger opacity-0 group-hover/row:opacity-100 transition-opacity mt-0.5" title="Delete">
+                            ×
+                          </button>
+                        </td>
+                      </tr>
+
+                      {/* Transit Row between activities */}
+                      {index < arr.length - 1 && (
+                        <tr className="group/transit hover:bg-bg-hover/50 transition-colors">
+                          <td></td>
+                          <td></td>
+                          <td className="relative px-0 w-[30px] group/timeline">
+                            <div className="absolute left-1/2 top-0 bottom-0 -ml-[1px] w-[2px] border-l-[2px] border-dashed border-border z-0"></div>
+                            <button
+                              onClick={() => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: {}, index: index + 1 } })}
+                              className="absolute top-1/2 left-1/2 -mt-3 -ml-3 w-6 h-6 rounded-full bg-bg-card border border-border text-lg font-light text-text-muted flex items-center justify-center opacity-0 group-hover/timeline:opacity-100 hover:bg-bg-hover hover:text-accent z-20 transition-all shadow-md pb-0.5"
+                              title="Insert activity here"
+                            >+</button>
+                          </td>
+                          <td colSpan={4} className="py-2 pl-2">
+                            <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-text-muted bg-bg-secondary/30 border border-border/50 rounded-full px-2.5 py-0.5 hover:border-text-primary transition-colors hover:shadow-sm relative z-10 cursor-pointer">
+                              <span className="opacity-70 relative">
+                                {activity.transitEmoji || '🚕'}
+                                <select
+                                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                  value={activity.transitEmoji || '🚕'}
+                                  onChange={e => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { transitEmoji: e.target.value } } })}
+                                  title="Change transit type"
+                                >
+                                  <option value="🚕">🚕 Taxi / Rideshare</option>
+                                  <option value="🚶">🚶 Walking</option>
+                                  <option value="🚇">🚇 Subway / Metro</option>
+                                  <option value="🚌">🚌 Bus</option>
+                                  <option value="🚆">🚆 Train</option>
+                                  <option value="🚲">🚲 Bicycle</option>
+                                  <option value="✈️">✈️ Flight</option>
+                                  <option value="⛴️">⛴️ Ferry / Boat</option>
+                                  <option value="🚗">🚗 Rental Car</option>
+                                </select>
+                              </span>
+                              <EditableText
+                                value={activity.transit || ''}
+                                onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { transit: val } } })}
+                                className="min-w-[50px] inline-flex items-center"
+                                inputClassName="px-0 py-0 text-[11px] font-medium w-[100px] bg-transparent"
+                                placeholder="Add transit..."
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  )
+                })}
+
+                {/* Final Anchor Row (So the timeline line has somewhere to land cleanly) */}
+                <tr className="h-4">
+                  <td></td><td></td>
+                  <td className="relative px-0 w-[30px]">
+                    {day.activities?.length > 0 && <div className="absolute left-1/2 top-0 h-4 -ml-[1px] w-[2px] bg-border z-0"></div>}
+                  </td>
+                  <td colSpan={4}></td>
+                </tr>
+
+                <TableAddRow
+                  onAdd={act => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: act } })}
+                />
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
     </div>
   )
 }
 
-// ── Main ───────────────────────────────────────────────────────────────────
-export default function ItineraryTab() {
-  const { activeTrip, dispatch } = useTripContext()
-  if (!activeTrip) return null
+// ── Kanban View: Day Column ──────────────────────────────────────────────────
+function KanbanColumn({ day }) {
+  const { dispatch } = useTripContext()
+  const [dragOverCol, setDragOverCol] = useState(false)
 
-  const trip = activeTrip
-  const concertBooking = trip.bookings?.find(b => b.category === 'concert')
+  const handleDrop = (e) => {
+    e.preventDefault()
+    setDragOverCol(false)
+    const dataStr = e.dataTransfer.getData('application/json')
+    if (!dataStr) return
+    const { type, sourceDayId, activityId, sourceIndex } = JSON.parse(dataStr)
+    if (type === 'activity' && sourceDayId !== day.id) {
+      dispatch({ type: ACTIONS.MOVE_ACTIVITY_BETWEEN_DAYS, payload: { fromDayId: sourceDayId, toDayId: day.id, activityId, toIndex: day.activities?.length || 0 } })
+    }
+  }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+    <div
+      className={`flex flex-col flex-shrink-0 w-72 bg-bg-secondary/20 border rounded-[var(--radius-lg)] p-2 transition-colors ${dragOverCol ? 'border-accent/50 bg-accent/5' : 'border-border/50'}`}
+      onDragOver={e => { e.preventDefault(); setDragOverCol(true) }}
+      onDragLeave={() => setDragOverCol(false)}
+      onDrop={handleDrop}
+    >
+      <div className="px-3 py-2 mb-2 flex items-center justify-between border-b border-border/30">
+        <h3 className="font-semibold text-sm text-text-primary flex items-center gap-2">
+          <span>{day.emoji}</span> Day {day.dayNumber}
+        </h3>
+        <div className="flex items-center gap-1.5">
+          {(() => {
+            const count = day.activities?.length || 0;
+            if (count < 5) return (
+              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-success/10 text-success whitespace-nowrap">
+                🔋 Chill
+              </span>
+            );
+            if (count <= 8) return (
+              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-info/10 text-info whitespace-nowrap">
+                ⚡ Active
+              </span>
+            );
+            return (
+              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#E27D60]/10 text-[#E27D60] whitespace-nowrap">
+                🪫 Packed
+              </span>
+            );
+          })()}
+          <span className="text-xs font-medium text-text-muted bg-bg-card px-2 py-0.5 rounded-full border border-border/50">
+            {day.activities?.length || 0}
+          </span>
+        </div>
+      </div>
+      <div className="px-3 mb-2">
+        <p className="text-[11px] text-text-muted truncate">{formatDate(day.date, 'short')} {day.location && `· ${day.location}`}</p>
+      </div>
+
+      <div className="flex-1 overflow-y-auto space-y-2 min-h-[150px] scrollbar-hide px-1">
+        {day.activities?.map((activity, i) => (
+          <div
+            key={activity.id}
+            draggable
+            onDragStart={(e) => {
+              e.stopPropagation()
+              e.dataTransfer.setData('application/json', JSON.stringify({ type: 'activity', sourceDayId: day.id, activityId: activity.id, sourceIndex: i }))
+            }}
+            className="group bg-bg-card border shadow-sm rounded-[var(--radius-md)] p-3 transition-colors block text-left cursor-grab active:cursor-grabbing border-border/50 hover:border-accent/40 active:border-accent relative"
+          >
+            <div className="flex items-start gap-2 mb-2 w-full">
+              <div className="flex-1 min-w-0 pr-6">
+                <EditableText
+                  value={activity.name}
+                  onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { name: val } } })}
+                  className="font-semibold text-sm text-text-primary leading-tight truncate w-full"
+                  inputClassName="w-full text-sm font-semibold p-0 h-auto"
+                />
+              </div>
+              <button
+                onClick={() => dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })}
+                className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger text-xs p-1 rounded hover:bg-bg-hover transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Bottom Row */}
+            <div className="flex items-center justify-between pt-2 border-t border-border/30 mt-2">
+              <TimePicker
+                value={activity.time}
+                onChange={time => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { time } } })}
+                className="text-xs font-mono font-medium text-text-secondary bg-bg-hover rounded-full px-2 py-0.5 max-w-[70px] border-none"
+                placeholder="Time"
+              />
+            </div>
+            {(activity.notes || activity.notes === '') && (
+              <div className="mt-2 pt-2 border-t border-border/30">
+                <EditableText
+                  value={activity.notes || ''}
+                  onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { notes: val } } })}
+                  className="text-xs text-text-muted italic block w-full"
+                  placeholder="Notes..."
+                  multiline
+                />
+              </div>
+            )}
+          </div>
+        ))}
+
+        {(!day.activities || day.activities.length === 0) && (
+          <div className="h-full min-h-[100px] flex items-center justify-center border-2 border-dashed border-border/40 rounded-[var(--radius-md)] text-xs text-text-muted/60 italic">
+            Drop items here
+          </div>
+        )}
+      </div>
+
+      <div className="mt-2 text-center text-text-muted opacity-60 hover:opacity-100 transition-opacity">
+        <KanbanAddRow
+          onAdd={act => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: act } })}
+          defaultEmoji="📌"
+        />
+      </div>
+    </div>
+  )
+}
+
+// ── Main Itinerary Tab ─────────────────────────────────────────────────────
+export default function ItineraryTab() {
+  const { activeTrip, dispatch } = useTripContext()
+  const [viewMode, setViewMode] = useState('table') // 'table' | 'kanban'
+
+  if (!activeTrip) return null
+  const trip = activeTrip
+
+  const handleAddDay = () => {
+    const lastDay = trip.itinerary?.[trip.itinerary.length - 1]
+    let nextDate = ''
+    if (lastDay?.date) {
+      // Parse YYYY-MM-DD safely to avoid JS timezone offset bugs
+      const [year, month, day] = lastDay.date.split('-').map(Number)
+      const d = new Date(year, month - 1, day)
+      d.setDate(d.getDate() + 1)
+
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      const dd = String(d.getDate()).padStart(2, '0')
+      nextDate = `${y}-${m}-${dd}`
+    }
+    dispatch({ type: ACTIONS.ADD_DAY, payload: { date: nextDate, location: 'New Location', emoji: '📍' } })
+  }
+
+  return (
+    <div className="space-y-6 animate-fade-in flex flex-col h-full min-h-[calc(100vh-120px)]">
+      {/* Header Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="font-heading text-xl text-text-primary">📅 Itinerary · {trip.itinerary?.length || 0} days</h2>
-          {(trip.itinerary?.length || 0) > 1 && (
-            <p className="text-xs text-text-muted mt-0.5">Drag ⠿ to reorder days or activities</p>
+          <h2 className="font-heading text-xl text-text-primary">📅 Itinerary</h2>
+          <p className="text-xs text-text-muted mt-0.5">{trip.itinerary?.reduce((acc, d) => acc + (d.activities?.length || 0), 0) || 0} activities across {trip.itinerary?.length || 0} days</p>
+        </div>
+
+        <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+          {/* View Toggle */}
+          <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
+            <button
+              onClick={() => setViewMode('table')}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors ${viewMode === 'table' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+            >
+              ≡ Table
+            </button>
+            <button
+              onClick={() => setViewMode('kanban')}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors ${viewMode === 'kanban' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+            >
+              ◫ Board
+            </button>
+          </div>
+
+          <Button size="sm" onClick={handleAddDay} className="shrink-0">
+            + New Day
+          </Button>
+        </div>
+      </div>
+
+      {/* Content Area */}
+      {trip.itinerary && trip.itinerary.length > 0 ? (
+        <div className="flex-1 w-full relative">
+          {viewMode === 'table' ? (
+            <div className="w-full pb-20">
+              {trip.itinerary.map((day, dayIndex) => (
+                <DayGroupTable
+                  key={day.id}
+                  day={day}
+                  trip={trip}
+                  onReorderDay={(from, to) => dispatch({ type: ACTIONS.REORDER_DAYS, payload: { fromIndex: from, toIndex: to } })}
+                />
+              ))}
+              <button
+                onClick={handleAddDay}
+                className="w-full py-3 rounded-lg border border-dashed border-border text-text-muted hover:text-text-secondary hover:border-border-strong transition-colors text-sm font-medium"
+              >
+                + Add another day group
+              </button>
+            </div>
+          ) : (
+            <div className="absolute inset-0 right-[-24px] pr-6 pb-6 overflow-x-auto overflow-y-hidden custom-scrollbar">
+              <div className="flex gap-4 min-fit-content h-full items-start">
+                {trip.itinerary.map(day => (
+                  <KanbanColumn key={day.id} day={day} />
+                ))}
+                <button
+                  onClick={handleAddDay}
+                  className="w-72 shrink-0 h-[100px] rounded-[var(--radius-lg)] border-2 border-dashed border-border/40 bg-transparent text-text-muted hover:text-text-secondary hover:bg-bg-hover transition-colors text-sm font-medium flex items-center justify-center flex-col gap-2"
+                >
+                  <span className="text-xl">➕</span>
+                  Add Day
+                </button>
+              </div>
+            </div>
           )}
         </div>
-        <button
-          onClick={() => {
-            const lastDay = trip.itinerary?.[trip.itinerary.length - 1]
-            let nextDate = ''
-            if (lastDay?.date) {
-              const d = new Date(lastDay.date + 'T00:00:00')
-              d.setDate(d.getDate() + 1)
-              nextDate = d.toISOString().slice(0, 10)
-            }
-            dispatch({ type: ACTIONS.ADD_DAY, payload: { date: nextDate, location: '', emoji: '📍' } })
-          }}
-          className="px-3 py-1.5 text-sm bg-accent text-white rounded-[var(--radius-md)] hover:bg-accent-hover transition-colors"
-        >
-          + Add Day
-        </button>
-      </div>
-
-      <div className="relative space-y-5">
-        {trip.itinerary?.map((day, dayIndex) => {
-          const isConcertDay = concertBooking && day.activities?.some(a =>
-            a.name?.toLowerCase().includes('mcr') ||
-            a.name?.toLowerCase().includes('concert') ||
-            a.emoji === '🎵' || a.emoji === '🎸'
-          )
-          return (
-            <DayCard
-              key={day.id}
-              day={day}
-              dayIndex={dayIndex}
-              isConcertDay={isConcertDay}
-              onReorderDay={(fromIndex, toIndex) => dispatch({ type: ACTIONS.REORDER_DAYS, payload: { fromIndex, toIndex } })}
-            />
-          )
-        })}
-      </div>
-
-      {(!trip.itinerary || trip.itinerary.length === 0) && (
-        <Card className="text-center py-12">
-          <p className="text-4xl mb-3">📅</p>
-          <p className="text-text-muted">No itinerary yet. Add your first day!</p>
+      ) : (
+        <Card className="text-center py-10 px-4 flex flex-col items-center max-w-2xl mx-auto">
+          <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mb-5 text-3xl">
+            🗺️
+          </div>
+          <h3 className="text-2xl font-heading font-medium text-text-primary mb-2">Build your perfect trip</h3>
+          <p className="text-text-muted mb-8 text-sm leading-relaxed">
+            Start outlining your days and dragging activities around until your schedule is air-tight.
+          </p>
+          <Button variant="primary" size="lg" onClick={handleAddDay}>
+            <span className="text-xl leading-none mr-2">+</span> Add First Day
+          </Button>
         </Card>
       )}
     </div>

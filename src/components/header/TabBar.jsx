@@ -123,8 +123,8 @@ export default function TabBar() {
         borderBottom: '1px solid var(--color-border)',
       }}
     >
-      {/* Constrained inner — matches header's max-w-5xl so pills align with content */}
-      <div className="max-w-5xl mx-auto relative flex items-center min-h-[48px]">
+      {/* Constrained inner — matches content max-w-[1400px] so pills left-align with trip title and tables */}
+      <div className="max-w-[1400px] mx-auto relative flex items-center min-h-[48px] px-4 sm:px-8">
 
         {/* Left fade mask */}
         {showLeftMask && (
@@ -143,8 +143,6 @@ export default function TabBar() {
           role="tablist"
           aria-label="Trip sections"
         >
-          {/* Left padding — matches header px-4 sm:px-8 */}
-          <div className="w-4 sm:w-8 shrink-0" />
 
           {/* Pill row */}
           <div className="flex items-center gap-0.5 py-2">
@@ -169,7 +167,7 @@ export default function TabBar() {
                     transition-all duration-200 shrink-0
                     ${isActive
                       /* Active: solid white pill — card elevation above the glass nav */
-                      ? 'bg-[var(--color-bg-card)] text-[var(--color-text-primary)] shadow-sm'
+                      ? 'bg-[var(--color-bg-card)] text-[var(--color-text-primary)]'
                       /* Inactive: ghost — just text, no background */
                       : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]'
                     }
@@ -182,21 +180,17 @@ export default function TabBar() {
             })}
           </div>
 
-          {/* Right padding */}
-          <div className="w-4 sm:w-8 shrink-0" />
         </div>
 
-        {/* Right fade mask */}
-        {showRightMask && (
-          <div
-            className="absolute right-0 top-0 bottom-0 pointer-events-none z-10"
-            style={{
-              width: hasOverflow ? '80px' : '32px',
-              background: 'linear-gradient(to left, var(--color-bg-primary) 40%, transparent)',
-            }}
-            aria-hidden="true"
-          />
-        )}
+        {/* Right fade mask — always rendered to signal scrollability; wider when overflow menu present */}
+        <div
+          className="absolute right-0 top-0 bottom-0 pointer-events-none z-10"
+          style={{
+            width: hasOverflow ? '80px' : '40px',
+            background: 'linear-gradient(to left, var(--color-bg-primary) 30%, transparent)',
+          }}
+          aria-hidden="true"
+        />
 
         {/* "More ▾" — pill-style, consistent with active tab treatment */}
         {hasOverflow && (
@@ -207,7 +201,7 @@ export default function TabBar() {
                 flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-full
                 transition-all duration-200
                 ${activeIsOverflow
-                  ? 'bg-[var(--color-bg-card)] text-[var(--color-text-primary)] shadow-sm'
+                  ? 'bg-[var(--color-bg-card)] text-[var(--color-text-primary)]'
                   : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]'
                 }
               `}
@@ -235,7 +229,6 @@ export default function TabBar() {
                 style={{
                   background: 'var(--color-bg-card)',
                   border: '1px solid var(--color-border)',
-                  boxShadow: 'var(--shadow-modal)',
                   backdropFilter: 'blur(8px)',
                   WebkitBackdropFilter: 'blur(8px)',
                 }}

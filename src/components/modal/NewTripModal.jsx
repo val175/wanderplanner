@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Modal from '../shared/Modal'
 import DatePicker from '../shared/DatePicker'
 import CityCombobox, { COUNTRY_FLAGS_MAP, resolveCity } from '../shared/CityCombobox'
@@ -10,6 +10,7 @@ import { CURRENCIES } from '../../constants/currencies'
 import { createEmptyTrip } from '../../data/defaultTrip'
 import { formatDate } from '../../utils/helpers'
 import AvatarCircle from '../shared/AvatarCircle'
+import Button from '../shared/Button'
 
 const TOTAL_STEPS = 4
 
@@ -57,7 +58,95 @@ function StepIndicator({ currentStep }) {
 /* ─────────────────── Step 1: Basics ─────────────────── */
 function StepBasics({ form, setForm }) {
   const [customEmoji, setCustomEmoji] = useState('')
+  const [importUrl, setImportUrl] = useState('')
+  const [isImporting, setIsImporting] = useState(false)
+  const [importError, setImportError] = useState('')
+  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0)
   const { profiles, currentUserProfile } = useProfiles()
+
+  const LOADING_MESSAGES = [
+    "Reading the travel blog...",
+    "Whipping up your itinerary...",
+    "Finding the best destinations...",
+    "Estimating budget costs...",
+    "Packing your bags..."
+  ]
+
+  useEffect(() => {
+    if (isImporting) {
+      const id = setInterval(() => {
+        setLoadingMessageIndex(idx => (idx + 1) % LOADING_MESSAGES.length)
+      }, 2500)
+      return () => clearInterval(id)
+    } else {
+      setLoadingMessageIndex(0)
+    }
+  }, [isImporting])
+
+  const handleImport = async () => {
+    if (!importUrl) return
+    setIsImporting(true)
+    setImportError('')
+    try {
+      const res = await fetch('https://wanderplan-rust.vercel.app/api/extract-trip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: importUrl })
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to extract trip data')
+
+      if (data.success && data.data) {
+        const tripData = data.data
+        setForm(f => ({
+          ...f,
+          name: tripData.name || f.name,
+          emoji: tripData.emoji || f.emoji,
+          startDate: tripData.startDate || f.startDate,
+          endDate: tripData.endDate || f.endDate,
+          currency: tripData.currency || f.currency,
+          destinations: tripData.destinations?.length > 0
+            ? tripData.destinations.map(d => ({ ...d, selected: true }))
+            : f.destinations,
+          budgetCategories: tripData.budgetCategories?.length > 0
+            ? tripData.budgetCategories.map(c => ({ ...c, selected: true }))
+            : f.budgetCategories,
+          todos: tripData.todos?.length > 0
+            ? tripData.todos.map(t => ({ ...t, selected: true }))
+            : f.todos,
+          itinerary: tripData.itinerary?.length > 0
+            ? tripData.itinerary.map(day => ({
+              id: 'day-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6) + '-' + day.dayNumber,
+              date: day.date || '',
+              dayNumber: day.dayNumber,
+              location: day.location || '',
+              emoji: '',
+              notes: '',
+              activities: (day.activities || []).map(a => ({
+                id: 'act-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6),
+                time: a.time || '',
+                name: a.name || 'Activity',
+                emoji: a.emoji || '📌',
+                location: a.location || '',
+                estCost: a.estCost || '',
+                transit: a.transit || '',
+                transitEmoji: a.transitEmoji || '🚕',
+                notes: a.notes || '',
+                done: false
+              }))
+            }))
+            : f.itinerary || []
+        }))
+        // Automatically skip to the review step (Step 4) so they can see the draft
+        setForm(f => ({ ...f, __forceStep: 4 }))
+      }
+    } catch (err) {
+      setImportError(err.message)
+    } finally {
+      setIsImporting(false)
+    }
+  }
 
   const handleCustomEmoji = (val) => {
     const match = val.match(/\p{Emoji}/u)
@@ -85,8 +174,61 @@ function StepBasics({ form, setForm }) {
     ...profiles,
   ]
 
+  if (isImporting) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 space-y-5 animate-fade-in text-center">
+        <div className="relative w-16 h-16 flex items-center justify-center">
+          <div className="absolute inset-0 border-4 border-accent/20 rounded-full"></div>
+          <div className="absolute inset-0 border-4 border-accent rounded-full border-t-transparent animate-spin"></div>
+          <span className="text-2xl animate-pulse">✨</span>
+        </div>
+        <div>
+          <h3 className="text-lg font-heading font-semibold text-text-primary mb-1">
+            {LOADING_MESSAGES[loadingMessageIndex]}
+          </h3>
+          <p className="text-sm text-text-muted">This usually takes about 10-15 seconds.</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-5 animate-fade-in">
+      {/* AI Import Option */}
+      <div className="p-4 bg-accent-muted/20 border border-accent/20 rounded-[var(--radius-lg)]">
+        <h3 className="font-heading text-sm font-semibold text-accent mb-2 flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+          Magic Import
+        </h3>
+        <p className="text-xs text-text-muted mb-3">Paste a travel blog URL and we'll automatically draft your itinerary.</p>
+        <div className="flex gap-2">
+          <input
+            type="url"
+            value={importUrl}
+            onChange={e => setImportUrl(e.target.value)}
+            placeholder="e.g. nomadicmatt.com/japan-itinerary"
+            className="flex-1 px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
+          />
+          <button
+            type="button"
+            onClick={handleImport}
+            disabled={isImporting || !importUrl}
+            className="px-4 py-2 text-sm font-medium bg-accent hover:bg-accent-hover text-text-inverse rounded-[var(--radius-md)] disabled:opacity-50 transition-colors shrink-0 flex items-center gap-2"
+          >
+            {isImporting ? (
+              <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            ) : 'Generate'}
+          </button>
+        </div>
+        {importError && <p className="text-xs text-danger mt-2">{importError}</p>}
+      </div>
+
+      <div className="relative flex items-center py-2">
+        <div className="flex-grow border-t border-border"></div>
+        <span className="flex-shrink-0 mx-4 text-xs text-text-muted font-medium uppercase tracking-wider">Or create manually</span>
+        <div className="flex-grow border-t border-border"></div>
+      </div>
+
       <div>
         <h2 className="font-heading text-xl text-text-primary mb-1">Name your adventure</h2>
         <p className="text-sm text-text-muted">What should we call this trip?</p>
@@ -143,7 +285,7 @@ function StepBasics({ form, setForm }) {
 
       {/* Travelers — avatar picker using allTravelers (current user always first + selected) */}
       <div>
-        <label className="block text-sm font-medium text-text-secondary mb-2">Travelers</label>
+        <label className="block text-sm font-medium text-text-secondary mb-2">Wanderers</label>
         <div className="flex flex-wrap gap-2">
           {allTravelers.map(p => {
             const selected = (form.travelerIds || []).includes(p.id)
@@ -373,21 +515,41 @@ function StepBudget({ form, setForm }) {
 }
 
 /* ─────────────────── Step 4: Review ─────────────────── */
-function StepReview({ form }) {
+function StepReview({ form, setForm }) {
   const { profiles } = useProfiles()
   const currencyObj = CURRENCIES.find(c => c.code === form.currency)
   const symbol = currencyObj ? currencyObj.symbol : form.currency
-  const totalMin = form.budgetCategories.reduce((s, c) => s + (c.min || 0), 0)
-  const totalMax = form.budgetCategories.reduce((s, c) => s + (c.max || 0), 0)
-  const validDests = form.destinations.filter(d => d.city.trim())
+
+  const selectedBudget = form.budgetCategories.filter(c => c.selected !== false)
+  const totalMin = selectedBudget.reduce((s, c) => s + (c.min || 0), 0)
+  const totalMax = selectedBudget.reduce((s, c) => s + (c.max || 0), 0)
+
   const selectedProfiles = profiles.filter(p => (form.travelerIds || []).includes(p.id))
+
+  const toggleItem = (listKey, idx) => {
+    setForm(f => {
+      const arr = [...(f[listKey] || [])]
+      arr[idx] = { ...arr[idx], selected: arr[idx].selected === false ? true : false }
+      return { ...f, [listKey]: arr }
+    })
+  }
+
+  // Group Todos by category
+  const todosByCategory = (form.todos || []).reduce((acc, todo, idx) => {
+    if (!todo.text) return acc
+    const cat = todo.category || 'Tasks'
+    if (!acc[cat]) acc[cat] = []
+    acc[cat].push({ ...todo, originalIndex: idx })
+    return acc
+  }, {})
 
   return (
     <div className="space-y-5 animate-fade-in">
       <div>
-        <h2 className="font-heading text-xl text-text-primary mb-1">Review your trip</h2>
-        <p className="text-sm text-text-muted">Everything look good? You can edit details later.</p>
+        <h2 className="font-heading text-xl text-text-primary mb-1">Review your itinerary</h2>
+        <p className="text-sm text-text-muted">Uncheck anything you don't want to include in the trip.</p>
       </div>
+
       <div className="bg-bg-secondary border border-border rounded-[var(--radius-lg)] overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
           <div className="flex items-center gap-3">
@@ -400,36 +562,98 @@ function StepReview({ form }) {
                   <span className="text-xs text-text-muted ml-1">{selectedProfiles.map(p => p.name).join(', ')}</span>
                 </div>
               ) : (
-                <p className="text-sm text-text-muted">{form.travelers} {form.travelers === 1 ? 'traveler' : 'travelers'}</p>
+                <p className="text-sm text-text-muted">{form.travelers} {form.travelers === 1 ? 'wanderer' : 'wanderers'}</p>
               )}
             </div>
           </div>
         </div>
-        <div className="px-5 py-4 space-y-4">
-          {(form.startDate || form.endDate) && (
+        <div className="px-5 py-4 space-y-5">
+          <div>
+            <p className="text-xs text-text-muted uppercase tracking-wider font-medium mb-1.5">Dates</p>
+            <div className="flex items-center gap-3">
+              <DatePicker
+                value={form.startDate}
+                onChange={val => setForm(f => ({ ...f, startDate: val }))}
+                placeholder="Start Date"
+                className="w-full px-3 py-2 bg-bg-input border border-border rounded-[var(--radius-sm)] text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
+              />
+              <span className="text-text-muted text-sm px-1">to</span>
+              <DatePicker
+                value={form.endDate}
+                onChange={val => setForm(f => ({ ...f, endDate: val }))}
+                min={form.startDate || undefined}
+                placeholder="End Date"
+                className="w-full px-3 py-2 bg-bg-input border border-border rounded-[var(--radius-sm)] text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
+              />
+            </div>
+          </div>
+
+          {form.destinations.some(d => d.city.trim()) && (
             <div>
-              <p className="text-xs text-text-muted uppercase tracking-wider font-medium mb-1">Dates</p>
-              <p className="text-sm text-text-primary">
-                {form.startDate ? formatDate(form.startDate) : 'TBD'} &mdash; {form.endDate ? formatDate(form.endDate) : 'TBD'}
-              </p>
+              <p className="text-xs text-text-muted uppercase tracking-wider font-medium mb-2">Destinations</p>
+              <div className="space-y-1.5">
+                {form.destinations.map((d, i) => d.city.trim() ? (
+                  <label key={i} className="flex items-center gap-2.5 p-2 rounded-[var(--radius-sm)] hover:bg-bg-hover cursor-pointer transition-colors border border-transparent hover:border-border">
+                    <input type="checkbox" className="w-4 h-4 text-accent bg-bg-input border-border rounded focus:ring-accent focus:ring-2"
+                      checked={d.selected !== false} onChange={() => toggleItem('destinations', i)} />
+                    <span className={`text-sm ${d.selected === false ? 'text-text-muted line-through' : 'text-text-primary'}`}>
+                      {d.flag || '📍'} {d.city}{d.country ? `, ${d.country}` : ''}
+                    </span>
+                  </label>
+                ) : null)}
+              </div>
             </div>
           )}
-          {validDests.length > 0 && (
+
+          {Object.keys(todosByCategory).length > 0 && (
             <div>
-              <p className="text-xs text-text-muted uppercase tracking-wider font-medium mb-1.5">Destinations</p>
-              <div className="flex flex-wrap gap-1.5">
-                {validDests.map((d, i) => (
-                  <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-bg-hover rounded-[var(--radius-pill)] text-text-secondary">
-                    {d.flag || '📍'} {d.city}{d.country ? `, ${d.country}` : ''}
-                  </span>
+              <p className="text-xs text-text-muted uppercase tracking-wider font-medium mb-2">Activities & Tasks</p>
+              <div className="space-y-3">
+                {Object.entries(todosByCategory).map(([cat, tasks]) => (
+                  <div key={cat}>
+                    <p className="text-xs font-semibold text-text-secondary mb-1">{cat}</p>
+                    <div className="space-y-1.5 pl-1.5 border-l-2 border-border/50">
+                      {tasks.map(t => (
+                        <label key={t.originalIndex} className="flex items-start gap-2.5 p-1.5 rounded-[var(--radius-sm)] hover:bg-bg-hover cursor-pointer transition-colors">
+                          <input type="checkbox" className="w-4 h-4 mt-0.5 text-accent bg-bg-input border-border rounded focus:ring-accent focus:ring-2 shrink-0"
+                            checked={t.selected !== false} onChange={() => toggleItem('todos', t.originalIndex)} />
+                          <span className={`text-sm leading-snug ${t.selected === false ? 'text-text-muted line-through' : 'text-text-primary'}`}>
+                            {t.text}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
           )}
-          {(totalMin > 0 || totalMax > 0) && (
+
+          {(form.budgetCategories || []).some(c => c.min > 0 || c.max > 0) && (
             <div>
-              <p className="text-xs text-text-muted uppercase tracking-wider font-medium mb-1">Budget</p>
-              <p className="text-sm text-text-primary">{symbol}{totalMin.toLocaleString()} – {symbol}{totalMax.toLocaleString()} {form.currency}</p>
+              <p className="text-xs text-text-muted uppercase tracking-wider font-medium mb-2">Budget Estimates</p>
+              <div className="space-y-1.5">
+                {form.budgetCategories.map((c, i) => (c.min > 0 || c.max > 0) ? (
+                  <label key={i} className="flex items-center justify-between gap-2.5 p-2 rounded-[var(--radius-sm)] hover:bg-bg-hover cursor-pointer transition-colors border border-transparent hover:border-border">
+                    <div className="flex items-center gap-2.5">
+                      <input type="checkbox" className="w-4 h-4 text-accent bg-bg-input border-border rounded focus:ring-accent focus:ring-2"
+                        checked={c.selected !== false} onChange={() => toggleItem('budgetCategories', i)} />
+                      <span className={`text-sm ${c.selected === false ? 'text-text-muted line-through' : 'text-text-primary'}`}>
+                        {c.emoji} {c.name}
+                      </span>
+                    </div>
+                    <span className={`text-sm font-medium ${c.selected === false ? 'text-text-muted line-through' : 'text-text-secondary'}`}>
+                      {symbol}{c.min.toLocaleString()} – {symbol}{c.max.toLocaleString()}
+                    </span>
+                  </label>
+                ) : null)}
+              </div>
+              <div className="mt-3 flex justify-between items-center pt-3 border-t border-border">
+                <span className="text-sm font-medium text-text-secondary">Selected Total</span>
+                <span className="text-sm font-heading font-semibold text-accent">
+                  {symbol}{totalMin.toLocaleString()} – {symbol}{totalMax.toLocaleString()} {form.currency}
+                </span>
+              </div>
             </div>
           )}
         </div>
@@ -441,7 +665,7 @@ function StepReview({ form }) {
 /* ─────────────────── Main Modal Component ─────────────────── */
 export default function NewTripModal({ isOpen, onClose }) {
   const { dispatch, showToast } = useTripContext()
-  const { currentUserProfile } = useProfiles()
+  const { currentUserProfile, resolveProfile, profiles } = useProfiles()
   const [step, setStep] = useState(1)
   const [form, setForm] = useState(() => getInitialForm())
 
@@ -455,11 +679,35 @@ export default function NewTripModal({ isOpen, onClose }) {
       travelerIds: myId ? [myId] : [],
       startDate: '',
       endDate: '',
-      destinations: [{ city: '', country: '', flag: '' }],
+      destinations: [{ city: '', country: '', flag: '', selected: true }],
       currency: 'PHP',
-      budgetCategories: DEFAULT_BUDGET_CATEGORIES.map(c => ({ ...c, min: 0, max: 0 })),
+      budgetCategories: DEFAULT_BUDGET_CATEGORIES.map(c => ({ ...c, min: 0, max: 0, selected: true })),
+      todos: [],
+      itinerary: [],
     }
   }
+
+  // If the modal mounted before currentUserProfile loaded (async Firestore),
+  // inject the user's UID into travelerIds as soon as the profile arrives.
+  useEffect(() => {
+    const myId = currentUserProfile?.uid
+    if (!myId) return
+    setForm(f => {
+      if (f.travelerIds.includes(myId)) return f
+      return { ...f, travelerIds: [myId, ...f.travelerIds] }
+    })
+  }, [currentUserProfile?.uid])
+
+  useEffect(() => {
+    if (form.__forceStep) {
+      setStep(form.__forceStep)
+      setForm(f => {
+        const copy = { ...f }
+        delete copy.__forceStep
+        return copy
+      })
+    }
+  }, [form.__forceStep])
 
   const handleClose = () => { setStep(1); setForm(getInitialForm()); onClose() }
 
@@ -471,7 +719,7 @@ export default function NewTripModal({ isOpen, onClose }) {
 
   const handleCreate = () => {
     const destinations = form.destinations
-      .filter(d => d.city.trim())
+      .filter(d => d.city.trim() && d.selected !== false)
       .map(d => resolveCity(d.city, d.country, d.flag))
 
     // Mirror destinations into CitiesTab city cards (deduplicated by city name)
@@ -489,29 +737,52 @@ export default function NewTripModal({ isOpen, onClose }) {
           weather: '',
           currencyTip: '',
           notes: '',
+          savedPins: [],
         })
       }
     })
     const cities = Array.from(seen.values())
 
     const budgetItems = form.budgetCategories
-      .filter(c => c.min > 0 || c.max > 0)
+      .filter(c => (c.min > 0 || c.max > 0) && c.selected !== false)
       .map(c => ({
         id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
         name: c.name, emoji: c.emoji, min: c.min, max: c.max, actual: 0,
       }))
 
-    const { resolveProfile } = useProfiles()
+    const importedTodos = (form.todos || [])
+      .filter(t => t.selected !== false && t.text)
+      .map((t, idx) => ({
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8) + idx,
+        text: t.text,
+        category: t.category || 'Misc',
+        done: false,
+        priority: 'normal',
+        dueDate: ''
+      }))
+
     const memberIds = Array.from(new Set([
       currentUserProfile?.uid,
       ...(form.travelerIds || []).map(tid => resolveProfile(tid)?.uid).filter(Boolean)
     ])).filter(Boolean)
 
+    // Build a snapshot of traveler profiles so TripHeader can show avatars
+    // even before the external profiles list loads from Firestore
+    const allAvailableProfiles = [
+      ...(currentUserProfile ? [{ ...currentUserProfile, id: currentUserProfile.uid }] : []),
+      ...profiles,
+    ]
+    const travelersSnapshot = (form.travelerIds || [])
+      .map(tid => allAvailableProfiles.find(p => p.id === tid || p.uid === tid))
+      .filter(Boolean)
+      .map(p => ({ id: p.id || p.uid, uid: p.uid || p.id, name: p.name, photo: p.customPhoto || p.photo || null }))
+
     const newTrip = createEmptyTrip({
       name: form.name.trim() || 'New Trip',
       emoji: form.emoji,
-      travelers: form.travelers,
+      travelers: Math.max((form.travelerIds || []).length, 1),
       travelerIds: form.travelerIds || [],
+      travelersSnapshot,
       memberIds,
       startDate: form.startDate,
       endDate: form.endDate,
@@ -519,6 +790,8 @@ export default function NewTripModal({ isOpen, onClose }) {
       cities,
       currency: form.currency,
       budget: budgetItems,
+      todos: importedTodos,
+      itinerary: form.itinerary || [],
     })
 
     dispatch({ type: ACTIONS.ADD_TRIP, payload: newTrip })
@@ -543,48 +816,41 @@ export default function NewTripModal({ isOpen, onClose }) {
           {step === 1 && <StepBasics form={form} setForm={setForm} />}
           {step === 2 && <StepDestinations form={form} setForm={setForm} />}
           {step === 3 && <StepBudget form={form} setForm={setForm} />}
-          {step === 4 && <StepReview form={form} />}
+          {step === 4 && <StepReview form={form} setForm={setForm} />}
         </div>
       </div>
 
       <div className="flex items-center justify-between px-6 py-4 border-t border-border mt-2">
         <div>
           {step > 1 && (
-            <button type="button" onClick={() => setStep(s => s - 1)}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-hover rounded-[var(--radius-md)] transition-colors"
-            >
+            <Button variant="ghost" size="md" onClick={() => setStep(s => s - 1)}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="15 18 9 12 15 6" />
               </svg>
               Back
-            </button>
+            </Button>
           )}
         </div>
         <div className="flex items-center gap-2">
           {step === 3 && (
-            <button type="button"
-              onClick={() => { setForm(f => ({ ...f, budgetCategories: DEFAULT_BUDGET_CATEGORIES.map(c => ({ ...c, min: 0, max: 0 })) })); setStep(4) }}
-              className="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-secondary hover:bg-bg-hover rounded-[var(--radius-md)] transition-colors"
-            >Skip</button>
+            <Button variant="ghost" size="md" onClick={() => { setForm(f => ({ ...f, budgetCategories: DEFAULT_BUDGET_CATEGORIES.map(c => ({ ...c, min: 0, max: 0 })) })); setStep(4) }}>
+              Skip
+            </Button>
           )}
           {step < TOTAL_STEPS ? (
-            <button type="button" onClick={() => setStep(s => s + 1)} disabled={!canProceed}
-              className="flex items-center gap-1.5 px-5 py-2 text-sm font-medium bg-accent hover:bg-accent-hover text-text-inverse rounded-[var(--radius-md)] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
-            >
+            <Button size="md" onClick={() => setStep(s => s + 1)} disabled={!canProceed}>
               Next
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
-            </button>
+            </Button>
           ) : (
-            <button type="button" onClick={handleCreate}
-              className="flex items-center gap-2 px-6 py-2.5 text-sm font-semibold bg-accent hover:bg-accent-hover text-text-inverse rounded-[var(--radius-md)] transition-all duration-200 active:scale-[0.98]"
-            >
+            <Button size="lg" onClick={handleCreate}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
               </svg>
               Create Trip
-            </button>
+            </Button>
           )}
         </div>
       </div>

@@ -1,180 +1,507 @@
-import { useState, useMemo } from 'react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import Card from '../shared/Card'
 import EditableText from '../shared/EditableText'
 import { useTripContext } from '../../context/TripContext'
+import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { formatCurrency } from '../../utils/helpers'
+import Button from '../shared/Button'
+import { calculateBalances, simplifyDebts, buildSplits } from '../../utils/splitwise'
 
-function BudgetChart({ budget, currency }) {
-  const data = budget.map(cat => ({
-    name: cat.name,
-    emoji: cat.emoji,
-    min: cat.min || 0,
-    max: cat.max || 0,
-    actual: cat.actual || 0,
-  }))
+// ── Shared Colors ─────────────────────────────────────────────────────────────
+const CHART_COLORS = [
+  '#D97757', '#8FB3D9', '#82A88D', '#E6C27A', '#B88FB5', '#7A8B99',
+]
 
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (!active || !payload?.length) return null
-    return (
-      <div className="bg-bg-secondary border border-border rounded-[var(--radius-md)] p-3">
-        <p className="text-text-primary font-medium text-sm mb-1">{label}</p>
-        {payload.map((entry, i) => (
-          <p key={i} className="text-xs" style={{ color: entry.color }}>
-            {entry.name}: {formatCurrency(entry.value, currency)}
-          </p>
-        ))}
-      </div>
-    )
-  }
+const inputCls = 'w-full px-2 py-1.5 text-sm bg-bg-input border border-border rounded-md text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors'
+const selectCls = 'w-full px-2 py-1.5 text-sm bg-bg-input border border-border rounded-md text-text-primary focus:border-accent focus:outline-none transition-colors'
+
+// ── Overall Budget Summary Card ───────────────────────────────────────────────
+function OverallBudgetCard({ budget, totals, currency, perPerson, onTogglePerPerson, divisor }) {
+  const targetMax = totals.max || 1
+  const isOver = totals.actual > totals.max && totals.max > 0
+  const remaining = Math.max(0, totals.max - totals.actual)
 
   return (
-    <ResponsiveContainer width="100%" height={280}>
-      <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-        <XAxis
-          dataKey="name"
-          stroke="var(--color-text-muted)"
-          fontSize={11}
-          tickLine={false}
-          axisLine={false}
-        />
-        <YAxis
-          stroke="var(--color-text-muted)"
-          fontSize={11}
-          tickLine={false}
-          axisLine={false}
-          tickFormatter={v => formatCurrency(v, currency)}
-        />
-        <Tooltip content={<CustomTooltip />} />
-        <Bar dataKey="min" name="Min Budget" fill="#6A9BCC" opacity={0.4} radius={[2, 2, 0, 0]} />
-        <Bar dataKey="max" name="Max Budget" fill="#6A9BCC" opacity={0.7} radius={[2, 2, 0, 0]} />
-        <Bar dataKey="actual" name="Actual Spent" radius={[4, 4, 0, 0]}>
-          {data.map((entry, index) => (
-            <Cell
-              key={index}
-              fill={entry.actual > entry.max ? '#C15F3C' : '#D97757'}
-            />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
-  )
-}
-
-function CategoryCard({ category, currency, travelers, perPerson }) {
-  const { dispatch } = useTripContext()
-  const divisor = perPerson ? Math.max(travelers, 1) : 1
-  const isOver = category.actual > category.max && category.max > 0
-
-  return (
-    <Card className="animate-fade-in">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">{category.emoji}</span>
-          <EditableText
-            value={category.name}
-            onSave={val => dispatch({ type: ACTIONS.UPDATE_BUDGET_CATEGORY, payload: { id: category.id, updates: { name: val } } })}
-            className="font-medium text-text-primary text-sm"
-          />
-        </div>
+    <Card className="border border-border/60 relative overflow-hidden">
+      <div className="flex items-center justify-between mb-6 pl-1">
+        <h2 className="font-heading text-lg text-text-primary flex items-center gap-2">
+          <span className="text-xl">💰</span> Overall Budget
+        </h2>
         <button
-          onClick={() => dispatch({ type: ACTIONS.DELETE_BUDGET_CATEGORY, payload: category.id })}
-          className="text-xs text-text-muted hover:text-danger transition-colors"
+          onClick={onTogglePerPerson}
+          className={`px-4 py-1.5 text-[11px] font-medium rounded-full border transition-all duration-200 uppercase tracking-widest
+            ${perPerson ? 'bg-accent text-white border-accent' : 'border-border text-text-secondary hover:text-text-primary hover:bg-bg-hover'}`}
         >
-          ✕
+          {perPerson ? 'Per Person' : 'Total'}
         </button>
       </div>
-      <div className="mt-3 grid grid-cols-3 gap-4 text-sm">
-        <div>
-          <span className="text-text-muted text-xs block">Min</span>
-          <EditableText
-            value={category.min ? String(Math.round(category.min / divisor)) : ''}
-            onSave={val => dispatch({ type: ACTIONS.UPDATE_BUDGET_CATEGORY, payload: { id: category.id, updates: { min: (Number(val) || 0) * divisor } } })}
-            className="text-text-primary font-mono text-xs"
-            placeholder="0"
-          />
+
+      <div className="grid grid-cols-2 gap-5 text-center mb-5 pl-1">
+        <div className="relative">
+          <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest mb-1.5">Target Budget</p>
+          <p className="font-heading text-2xl sm:text-3xl text-text-secondary tracking-tight">
+            {formatCurrency(Math.round(totals.max / divisor), currency)}
+          </p>
+          <div className="absolute right-0 top-2 bottom-2 w-px bg-border/50 hidden sm:block" />
         </div>
         <div>
-          <span className="text-text-muted text-xs block">Max</span>
-          <EditableText
-            value={category.max ? String(Math.round(category.max / divisor)) : ''}
-            onSave={val => dispatch({ type: ACTIONS.UPDATE_BUDGET_CATEGORY, payload: { id: category.id, updates: { max: (Number(val) || 0) * divisor } } })}
-            className="text-text-primary font-mono text-xs"
-            placeholder="0"
-          />
-        </div>
-        <div>
-          <span className="text-text-muted text-xs block">Actual</span>
-          <EditableText
-            value={category.actual ? String(Math.round(category.actual / divisor)) : ''}
-            onSave={val => dispatch({ type: ACTIONS.UPDATE_BUDGET_CATEGORY, payload: { id: category.id, updates: { actual: (Number(val) || 0) * divisor } } })}
-            className={`font-mono text-xs ${isOver ? 'text-danger font-bold' : 'text-text-primary'}`}
-            placeholder="0"
-          />
+          <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest mb-1.5">Spent</p>
+          <p className={`font-heading text-2xl sm:text-3xl tracking-tight ${isOver ? 'text-danger' : 'text-text-primary'}`}>
+            {formatCurrency(Math.round(totals.actual / divisor), currency)}
+          </p>
         </div>
       </div>
-      {isOver && (
-        <p className="text-xs text-danger mt-2 font-medium">⚠ Over budget by {formatCurrency(category.actual - category.max, currency)}</p>
-      )}
-      <div className="mt-2 text-xs text-text-muted">
-        Range: {formatCurrency(Math.round(category.min / divisor), currency)} – {formatCurrency(Math.round(category.max / divisor), currency)}
-        {perPerson && ' per person'}
+
+      {/* Stacked bar */}
+      <div className="h-5 w-full rounded-md bg-bg-secondary flex overflow-hidden border border-border/30">
+        {budget.map((cat, i) => {
+          if (!cat.actual || cat.actual <= 0) return null
+          const w = Math.min(100, (cat.actual / targetMax) * 100)
+          return (
+            <div key={cat.id} className="h-full border-r border-black/5 last:border-r-0 transition-all duration-300"
+              style={{ width: `${w}%`, backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }}
+              title={`${cat.name}: ${formatCurrency(Math.round(cat.actual / divisor), currency)}`} />
+          )
+        })}
+        {isOver && (
+          <div className="h-full bg-danger/80 transition-all"
+            style={{ width: `${Math.min(40, ((totals.actual - totals.max) / totals.actual) * 100)}%` }} />
+        )}
+      </div>
+
+      <div className="flex items-center justify-between mt-2 pl-0.5">
+        <div className="flex flex-wrap gap-x-3 gap-y-1">
+          {budget.filter(c => c.actual > 0).map((cat, i) => {
+            const idx = budget.indexOf(cat)
+            return (
+              <span key={cat.id} className="flex items-center gap-1 text-[10px] text-text-muted">
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }} />
+                {cat.name}
+              </span>
+            )
+          })}
+        </div>
+        {!isOver && totals.max > 0 ? (
+          <span className="text-[11px] font-medium text-text-muted whitespace-nowrap">
+            {formatCurrency(Math.round(remaining / divisor), currency)} Remaining
+          </span>
+        ) : isOver ? (
+          <span className="text-[11px] font-medium text-danger whitespace-nowrap">
+            {formatCurrency(Math.round((totals.actual - totals.max) / divisor), currency)} Over Budget
+          </span>
+        ) : null}
       </div>
     </Card>
   )
 }
 
-function AddSpendingForm({ onAdd, onCancel, categories, currency }) {
-  const [desc, setDesc] = useState('')
-  const [amount, setAmount] = useState('')
-  const [cat, setCat] = useState(categories[0]?.name || '')
+// ── Group Balances Card ───────────────────────────────────────────────────────
+function GroupBalancesCard({ spendingLog, travelers, currency }) {
+  const balances = useMemo(() => calculateBalances(spendingLog, travelers), [spendingLog, travelers])
+  const transactions = useMemo(() => simplifyDebts(balances), [balances])
+  const [showSettle, setShowSettle] = useState(false)
 
-  const handleSubmit = (e) => {
+  // "Total fronted" per person — how much each payer put out
+  // Must be declared before any early return to satisfy Rules of Hooks
+  const fronted = useMemo(() => {
+    const t = {}
+    travelers.forEach(tr => { t[tr.id] = 0 })
+    spendingLog.forEach(e => {
+      if (e.paidBy && t[e.paidBy] !== undefined) t[e.paidBy] += e.amount || 0
+    })
+    return t
+  }, [spendingLog, travelers])
+
+  const hasData = spendingLog.some(e => e.paidBy && e.splits) && travelers.length > 1
+  if (!hasData) return null
+
+  return (
+    <Card className="border border-border/50">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-heading text-base text-text-primary">Group Balances</h3>
+        {transactions.length > 0 && (
+          <button
+            onClick={() => setShowSettle(p => !p)}
+            className="text-[10px] font-bold uppercase tracking-widest text-accent hover:text-accent-hover transition-colors"
+          >
+            Settle up
+          </button>
+        )}
+      </div>
+
+      {/* Per-person net balance */}
+      <div className="space-y-2 mb-3">
+        {travelers.map(t => {
+          const bal = balances[t.id] || 0
+          const isPos = bal > 0.01
+          const isNeg = bal < -0.01
+          return (
+            <div key={t.id} className="flex items-center gap-2">
+              {t.avatar
+                ? <img src={t.avatar} alt={t.name} className="w-6 h-6 rounded-full object-cover shrink-0" />
+                : <div className="w-6 h-6 rounded-full bg-bg-secondary border border-border flex items-center justify-center text-[10px] font-semibold text-text-secondary shrink-0">
+                  {t.name?.[0]?.toUpperCase()}
+                </div>
+              }
+              <span className="flex-1 text-[13px] text-text-primary truncate">{t.name}</span>
+              <span className={`text-[13px] font-mono font-semibold tabular-nums ${isPos ? 'text-green-500' : isNeg ? 'text-danger' : 'text-text-muted'}`}>
+                {isPos ? '+' : ''}{formatCurrency(Math.sign(bal) * Math.round(Math.abs(bal)), currency)}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* "Total fronted" summary */}
+      <p className="text-[10px] text-text-muted border-t border-border/40 pt-2">
+        Total fronted: {travelers.map(t => `${t.name.split(' ')[0]} (${formatCurrency(Math.round(fronted[t.id] || 0), currency)})`).join(' · ')}
+      </p>
+
+      {/* Settle-up transactions */}
+      {showSettle && transactions.length > 0 && (
+        <div className="mt-3 space-y-1.5 border-t border-border/40 pt-3">
+          <p className="text-[10px] text-text-muted uppercase tracking-widest font-medium mb-2">How to settle</p>
+          {transactions.map((tx, i) => {
+            const from = travelers.find(t => t.id === tx.from)
+            const to = travelers.find(t => t.id === tx.to)
+            return (
+              <div key={i} className="flex items-center gap-2 py-1.5 px-2.5 bg-bg-secondary rounded-lg text-[12px]">
+                <span className="font-medium text-text-primary">{from?.name?.split(' ')[0]}</span>
+                <span className="text-text-muted">→</span>
+                <span className="font-medium text-text-primary">{to?.name?.split(' ')[0]}</span>
+                <span className="ml-auto font-mono font-semibold">{formatCurrency(Math.round(tx.amount), currency)}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </Card>
+  )
+}
+
+// ── Compact Category Budgets Card ─────────────────────────────────────────────
+function CategoryBudgetsCard({ budget, currency, divisor, perPerson, travelers }) {
+  const { dispatch } = useTripContext()
+  const [addingCategory, setAddingCategory] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newEmoji, setNewEmoji] = useState('📌')
+  const commonEmojis = ['🍽️', '🚕', '🏨', '🎟️', '🛍️', '🎁', '🍸', '✈️', '💆', '📸', '💊', '📌']
+
+  const handleAddCategory = (e) => {
     e.preventDefault()
-    if (!desc.trim() || !amount) return
-    onAdd({ description: desc.trim(), amount: Number(amount), category: cat })
-    setDesc('')
-    setAmount('')
+    if (!newName.trim()) return
+    dispatch({ type: ACTIONS.ADD_BUDGET_CATEGORY, payload: { name: newName.trim(), emoji: newEmoji } })
+    setNewName(''); setNewEmoji('📌'); setAddingCategory(false)
   }
 
   return (
-    <Card>
-      <form onSubmit={handleSubmit} className="flex flex-wrap gap-2 items-end">
-        <div className="flex-1 min-w-[160px]">
-          <label className="text-xs text-text-muted block mb-1">Description</label>
-          <input value={desc} onChange={e => setDesc(e.target.value)} placeholder="What did you spend on?"
-            className="w-full px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary placeholder:text-text-muted" autoFocus />
-        </div>
-        <div className="w-28">
-          <label className="text-xs text-text-muted block mb-1">Amount</label>
-          <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0"
-            className="w-full px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary" />
-        </div>
-        <div>
-          <label className="text-xs text-text-muted block mb-1">Category</label>
-          <select value={cat} onChange={e => setCat(e.target.value)}
-            className="px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary">
-            {categories.map(c => <option key={c.id} value={c.name}>{c.emoji} {c.name}</option>)}
+    <Card className="border border-border/50">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-heading text-base text-text-primary">Category Budgets</h3>
+        <button
+          onClick={() => setAddingCategory(p => !p)}
+          className="text-[10px] font-bold uppercase tracking-widest text-accent hover:text-accent-hover transition-colors"
+        >
+          {addingCategory ? 'Cancel' : '+ Add'}
+        </button>
+      </div>
+
+      {addingCategory && (
+        <form onSubmit={handleAddCategory} className="flex items-center gap-2 mb-3 pb-3 border-b border-border/40">
+          <select value={newEmoji} onChange={e => setNewEmoji(e.target.value)}
+            className="px-2 py-1 text-base bg-bg-input border border-border rounded-md focus:outline-none">
+            {commonEmojis.map(e => <option key={e} value={e}>{e}</option>)}
           </select>
-        </div>
-        <button type="submit" className="px-4 py-2 text-sm bg-accent text-white rounded-[var(--radius-sm)] hover:bg-accent-hover">Add</button>
-        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-text-muted hover:text-text-secondary">Cancel</button>
-      </form>
+          <input value={newName} onChange={e => setNewName(e.target.value)}
+            placeholder="Category name..." autoFocus
+            className="flex-1 px-2 py-1.5 text-sm bg-bg-input border border-border rounded-md text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none" />
+          <Button type="submit" size="sm" disabled={!newName.trim()}>Add</Button>
+        </form>
+      )}
+
+      <div className="space-y-3">
+        {budget.map((cat, i) => {
+          const isOver = cat.actual > cat.max && cat.max > 0
+          const pct = cat.max > 0 ? Math.min(100, (cat.actual / cat.max) * 100) : 0
+          const color = CHART_COLORS[i % CHART_COLORS.length]
+
+          return (
+            <div key={cat.id} className="group">
+              <div className="flex items-baseline justify-between mb-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[14px]">{cat.emoji}</span>
+                  <EditableText
+                    value={cat.name}
+                    onSave={val => dispatch({ type: ACTIONS.UPDATE_BUDGET_CATEGORY, payload: { id: cat.id, updates: { name: val } } })}
+                    className="text-[13px] font-medium text-text-primary px-0.5"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-[12px] font-mono font-semibold ${isOver ? 'text-danger' : 'text-text-primary'}`}>
+                    {formatCurrency(Math.round((cat.actual || 0) / divisor), currency)}
+                  </span>
+                  <span className="text-[10px] text-text-muted/60 font-medium">
+                    /{cat.max > 0 ? formatCurrency(Math.round(cat.max / divisor), currency, true) : 'No max'}
+                  </span>
+                  <button
+                    onClick={() => dispatch({ type: ACTIONS.DELETE_BUDGET_CATEGORY, payload: cat.id })}
+                    className="opacity-0 group-hover:opacity-100 w-4 h-4 rounded-full flex items-center justify-center text-text-muted hover:text-danger transition-all text-[9px]"
+                  >✕</button>
+                </div>
+              </div>
+              <div className="h-[5px] bg-bg-secondary rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${pct}%`, backgroundColor: isOver ? 'var(--color-danger)' : color }} />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {budget.length === 0 && (
+        <p className="text-[12px] text-text-muted text-center py-4">No categories yet</p>
+      )}
     </Card>
   )
 }
 
+// ── Inline Expense Table Row ──────────────────────────────────────────────────
+function InlineExpenseRow({ categories, travelers, currency, onAdd }) {
+  const today = new Date().toISOString().slice(0, 10)
+  const [desc, setDesc] = useState('')
+  const [cat, setCat] = useState(categories[0]?.name || '')
+  const [paidBy, setPaidBy] = useState(travelers[0]?.id || '')
+  const [amount, setAmount] = useState('')
+  const descRef = useRef()
+  const amtRef = useRef()
+
+  // Sync selects when props change (must be effects, not useMemo, to avoid rendering side-effects)
+  useEffect(() => { if (categories[0] && !cat) setCat(categories[0].name) }, [categories])
+  useEffect(() => { if (travelers[0] && !paidBy) setPaidBy(travelers[0].id) }, [travelers])
+
+  const handleSubmit = (e) => {
+    e?.preventDefault()
+    if (!desc.trim() || !amount) return
+    const splits = buildSplits(Number(amount), travelers.map(t => t.id), 'equal')
+    onAdd({
+      description: desc.trim(),
+      amount: Number(amount),
+      category: cat,
+      paidBy,
+      splitBetween: travelers.map(t => t.id),
+      splits,
+      splitMode: 'equal',
+    })
+    setDesc(''); setAmount('')
+    descRef.current?.focus()
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') handleSubmit()
+  }
+
+  return (
+    <tr className="border-t border-border/30 bg-accent/[0.03]">
+      {/* Date */}
+      <td className="py-2 px-3 text-[11px] text-text-muted whitespace-nowrap">Today</td>
+      {/* Description */}
+      <td className="py-2 px-2">
+        <input
+          ref={descRef}
+          value={desc}
+          onChange={e => setDesc(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="What did you spend on?"
+          className={inputCls}
+          autoFocus
+        />
+      </td>
+      {/* Category */}
+      <td className="py-2 px-2 min-w-[130px]">
+        <select value={cat} onChange={e => setCat(e.target.value)} className={selectCls}>
+          {categories.map(c => <option key={c.id} value={c.name}>{c.emoji} {c.name}</option>)}
+        </select>
+      </td>
+      {/* Paid By */}
+      {travelers.length > 1 && (
+        <td className="py-2 px-2 min-w-[110px]">
+          <select value={paidBy} onChange={e => setPaidBy(e.target.value)} className={selectCls}>
+            {travelers.map(t => <option key={t.id} value={t.id}>{t.name.split(' ')[0]}</option>)}
+          </select>
+        </td>
+      )}
+      {/* Amount */}
+      <td className="py-2 px-2 min-w-[90px]">
+        <input
+          ref={amtRef}
+          type="number" min="0"
+          value={amount}
+          onChange={e => setAmount(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="0"
+          className={inputCls + ' text-right font-mono'}
+        />
+      </td>
+      {/* Submit */}
+      <td className="py-2 px-3">
+        <button
+          onClick={handleSubmit}
+          disabled={!desc.trim() || !amount}
+          className="w-7 h-7 rounded-lg bg-accent text-white flex items-center justify-center disabled:opacity-30 hover:bg-accent-hover transition-colors text-sm font-bold shrink-0"
+          title="Add expense (Enter)"
+        >+</button>
+      </td>
+    </tr>
+  )
+}
+
+// ── Spending Log Table ─────────────────────────────────────────────────────────
+function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onDelete }) {
+  const [search, setSearch] = useState('')
+  const [showInline, setShowInline] = useState(false)
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return spendingLog
+    const q = search.toLowerCase()
+    return spendingLog.filter(e =>
+      e.description?.toLowerCase().includes(q) || e.category?.toLowerCase().includes(q)
+    )
+  }, [spendingLog, search])
+
+  const showPaidBy = travelers.length > 1
+
+  return (
+    <Card className="border border-border/50">
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/50">
+        <h3 className="font-heading text-base text-text-primary">Spending Log</h3>
+        <div className="flex items-center gap-2">
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search..."
+            className="px-3 py-1.5 text-sm bg-bg-secondary border border-border/50 rounded-lg text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors w-36"
+          />
+          <button
+            onClick={() => setShowInline(p => !p)}
+            className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest rounded-lg border transition-all ${showInline
+              ? 'bg-bg-secondary border-border text-text-muted'
+              : 'bg-accent text-white border-accent hover:bg-accent-hover'
+              }`}
+          >
+            {showInline ? 'Cancel' : '+ Log Expense'}
+          </button>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto -mx-5">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border/50">
+              <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[80px]">Date</th>
+              <th className="text-left py-2 px-2 text-[10px] font-bold uppercase tracking-widest text-text-muted">Description</th>
+              <th className="text-left py-2 px-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[130px]">Category</th>
+              {showPaidBy && <th className="text-left py-2 px-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[100px]">Paid by</th>}
+              <th className="text-right py-2 px-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[100px]">Amount</th>
+              <th className="w-[40px]" />
+            </tr>
+          </thead>
+          <tbody>
+            {/* Inline input row */}
+            {showInline && (
+              <InlineExpenseRow
+                categories={budget}
+                travelers={travelers}
+                currency={currency}
+                onAdd={(data) => { onAdd(data); setShowInline(false) }}
+              />
+            )}
+
+            {filtered.length === 0 && !showInline && (
+              <tr>
+                <td colSpan={showPaidBy ? 6 : 5} className="py-10 text-center text-text-muted">
+                  {search ? (
+                    <span className="text-[13px]">No results for "{search}"</span>
+                  ) : (
+                    <span className="text-[13px]">No expenses yet — click + Log Expense to add one</span>
+                  )}
+                </td>
+              </tr>
+            )}
+
+            {filtered.map(entry => {
+              const catIndex = budget.findIndex(c => c.name === entry.category)
+              const dotColor = catIndex >= 0 ? CHART_COLORS[catIndex % CHART_COLORS.length] : 'var(--color-border)'
+              const catEmoji = budget.find(c => c.name === entry.category)?.emoji || '💸'
+              const paidByName = travelers.find(t => t.id === entry.paidBy)?.name?.split(' ')[0]
+              const dateLabel = entry.date ? entry.date.replace(/^\d{4}-/, '').replace('-', ' ') : ''
+
+              return (
+                <tr key={entry.id} className="border-t border-border/20 hover:bg-bg-hover group transition-colors">
+                  <td className="py-3 px-3 text-[11px] text-text-muted tabular-nums whitespace-nowrap">{dateLabel}</td>
+                  <td className="py-3 px-2">
+                    <span className="text-[13px] font-medium text-text-primary">{entry.description}</span>
+                  </td>
+                  <td className="py-3 px-2">
+                    <span className="flex items-center gap-1.5 text-[12px] text-text-secondary">
+                      <span className="text-[11px]">{catEmoji}</span>
+                      <span className="flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: dotColor }} />
+                        {entry.category}
+                      </span>
+                    </span>
+                  </td>
+                  {showPaidBy && (
+                    <td className="py-3 px-2 text-[12px] text-text-secondary">
+                      {paidByName || '—'}
+                    </td>
+                  )}
+                  <td className="py-3 px-2 text-right">
+                    <span className="text-[13px] font-mono font-semibold text-text-primary tabular-nums">
+                      {formatCurrency(entry.amount, currency)}
+                    </span>
+                  </td>
+                  <td className="py-3 px-3">
+                    <button
+                      onClick={() => onDelete(entry.id)}
+                      className="w-5 h-5 rounded-full flex items-center justify-center text-text-muted hover:text-danger hover:bg-danger/10 opacity-0 group-hover:opacity-100 transition-all text-[10px]"
+                      title="Delete"
+                    >✕</button>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  )
+}
+
+// ── Main BudgetTab ─────────────────────────────────────────────────────────────
 export default function BudgetTab() {
   const { activeTrip, dispatch } = useTripContext()
+  const { currentUserProfile } = useProfiles()
   const [perPerson, setPerPerson] = useState(false)
-  const [addingSpend, setAddingSpend] = useState(false)
 
   if (!activeTrip) return null
   const trip = activeTrip
   const budget = trip.budget || []
   const currency = trip.currency || 'PHP'
+
+  const travelers = useMemo(() => {
+    const snapshot = trip.travelersSnapshot || []
+    if (!snapshot.length) {
+      return currentUserProfile
+        ? [{ id: currentUserProfile.uid || 'me', name: currentUserProfile.name || 'You', avatar: currentUserProfile.customPhoto || currentUserProfile.photo || null }]
+        : []
+    }
+    return snapshot.map(s => ({
+      id: s.id,
+      name: s.name || s.displayName || 'Traveler',
+      avatar: s.avatar || s.photoURL || null,
+    }))
+  }, [trip.travelersSnapshot, currentUserProfile])
 
   const totals = useMemo(() => ({
     min: budget.reduce((s, b) => s + (b.min || 0), 0),
@@ -184,100 +511,58 @@ export default function BudgetTab() {
 
   const divisor = perPerson ? Math.max(trip.travelers, 1) : 1
 
+  const handleAddSpending = (data) => {
+    dispatch({ type: ACTIONS.ADD_SPENDING, payload: data })
+  }
+
+  const handleDeleteSpending = (id) => {
+    dispatch({ type: ACTIONS.DELETE_SPENDING, payload: id })
+  }
+
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Summary */}
-      <Card>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-heading text-lg text-text-primary">💰 Budget</h2>
-          <button
-            onClick={() => setPerPerson(!perPerson)}
-            className={`px-3 py-1 text-xs rounded-[var(--radius-pill)] border transition-colors
-              ${perPerson ? 'bg-accent text-white border-accent' : 'border-border text-text-muted hover:text-text-secondary'}`}
-          >
-            {perPerson ? 'Per Person' : 'Total'}
-          </button>
-        </div>
-        <div className="grid grid-cols-3 gap-5 text-center">
-          <div>
-            <p className="text-xs text-text-muted uppercase tracking-wider">Min Estimate</p>
-            <p className="font-heading text-xl text-text-primary mt-1">{formatCurrency(Math.round(totals.min / divisor), currency)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-text-muted uppercase tracking-wider">Max Estimate</p>
-            <p className="font-heading text-xl text-text-primary mt-1">{formatCurrency(Math.round(totals.max / divisor), currency)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-text-muted uppercase tracking-wider">Spent</p>
-            <p className={`font-heading text-xl mt-1 ${totals.actual > totals.max && totals.max > 0 ? 'text-danger' : 'text-accent'}`}>
-              {formatCurrency(Math.round(totals.actual / divisor), currency)}
-            </p>
-          </div>
-        </div>
-        {perPerson && <p className="text-xs text-text-muted text-center mt-2">Showing per person ({trip.travelers} travelers)</p>}
-      </Card>
+    <div className="space-y-5 animate-fade-in">
+      {/* Full-width Overall Budget card */}
+      <OverallBudgetCard
+        budget={budget}
+        totals={totals}
+        currency={currency}
+        perPerson={perPerson}
+        divisor={divisor}
+        onTogglePerPerson={() => setPerPerson(p => !p)}
+      />
 
-      {/* Chart */}
-      {budget.length > 0 && (
-        <Card>
-          <BudgetChart budget={budget} currency={currency} />
-        </Card>
-      )}
+      {/* 3-column grid: wide left (2/3 spending log), narrow right (1/3 sidebar) */}
+      <div className="grid sm:grid-cols-3 gap-5 items-start">
 
-      {/* Category cards */}
-      <div className="grid sm:grid-cols-2 gap-5">
-        {budget.map(cat => (
-          <CategoryCard key={cat.id} category={cat} currency={currency} travelers={trip.travelers} perPerson={perPerson} />
-        ))}
+        {/* Left column — Spending Log table (2/3 width) */}
+        <div className="sm:col-span-2">
+          <SpendingLogTable
+            spendingLog={trip.spendingLog || []}
+            budget={budget}
+            travelers={travelers}
+            currency={currency}
+            onAdd={handleAddSpending}
+            onDelete={handleDeleteSpending}
+          />
+        </div>
+
+        {/* Right column — Balances at top, then Category Budgets */}
+        <div className="sm:col-span-1 space-y-4 sm:sticky sm:top-[88px]">
+          <GroupBalancesCard
+            spendingLog={trip.spendingLog || []}
+            travelers={travelers}
+            currency={currency}
+          />
+          <CategoryBudgetsCard
+            budget={budget}
+            currency={currency}
+            divisor={divisor}
+            perPerson={perPerson}
+            travelers={travelers}
+          />
+        </div>
+
       </div>
-
-      <button
-        onClick={() => dispatch({ type: ACTIONS.ADD_BUDGET_CATEGORY, payload: { name: 'New Category', emoji: '📌' } })}
-        className="text-sm text-accent hover:text-accent-hover transition-colors"
-      >
-        + Add budget category
-      </button>
-
-      {/* Spending Log */}
-      <Card>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-heading text-sm text-text-primary">Spending Log</h3>
-          <button onClick={() => setAddingSpend(true)} className="text-xs text-accent hover:text-accent-hover">+ Log expense</button>
-        </div>
-        {addingSpend && (
-          <div className="mb-3">
-            <AddSpendingForm
-              categories={budget}
-              currency={currency}
-              onAdd={data => { dispatch({ type: ACTIONS.ADD_SPENDING, payload: data }); setAddingSpend(false) }}
-              onCancel={() => setAddingSpend(false)}
-            />
-          </div>
-        )}
-        {trip.spendingLog?.length > 0 ? (
-          <div className="space-y-2">
-            {trip.spendingLog.map(entry => (
-              <div key={entry.id} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0 group">
-                <div>
-                  <p className="text-sm text-text-primary">{entry.description}</p>
-                  <p className="text-xs text-text-muted">{entry.date} · {entry.category}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-mono text-text-primary">{formatCurrency(entry.amount, currency)}</span>
-                  <button
-                    onClick={() => dispatch({ type: ACTIONS.DELETE_SPENDING, payload: entry.id })}
-                    className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger text-xs transition-opacity"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-text-muted italic">No expenses logged yet.</p>
-        )}
-      </Card>
     </div>
   )
 }

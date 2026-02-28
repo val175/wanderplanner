@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 
 export default function EditableText({
   value,
+  displayValue,
   onSave,
   tag: Tag = 'span',
   className = '',
@@ -54,9 +55,9 @@ export default function EditableText({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className={`
-          bg-bg-input border border-accent/30 rounded-[var(--radius-sm)]
-          px-2 py-1 outline-none focus:border-accent focus:ring-1 focus:ring-accent/20
-          text-text-primary
+          bg-bg-input border border-border rounded-[var(--radius-md)]
+          px-2 py-1.5 outline-none focus:border-accent transition-colors
+          text-text-primary text-sm
           ${multiline ? 'min-h-[80px] resize-y w-full' : ''}
           ${inputClassName}
         `}
@@ -69,14 +70,14 @@ export default function EditableText({
     <Tag
       onClick={() => { setDraft(value); setEditing(true) }}
       className={`
-        cursor-pointer border-b border-transparent
-        hover:border-accent/30 transition-colors duration-150
+        cursor-pointer rounded-[var(--radius-md)] px-1 -mx-1 border border-transparent
+        hover:border-border/50 hover:bg-bg-hover transition-colors duration-150
         ${!value ? 'text-text-muted italic' : ''}
         ${className}
       `}
       title="Click to edit"
     >
-      {value || placeholder}
+      {displayValue !== undefined ? displayValue : (value || placeholder)}
     </Tag>
   )
 }

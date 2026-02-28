@@ -3,6 +3,7 @@ import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { calculateReadiness } from '../../utils/readiness'
 import { formatDateRange } from '../../utils/helpers'
+import { getTripStatus } from '../../utils/tripStatus'
 import ProgressRing from '../shared/ProgressRing'
 import StatusBadge from '../shared/StatusBadge'
 import TripContextMenu from './TripContextMenu'
@@ -14,12 +15,14 @@ export default function TripCard({ trip, isActive, isMobile }) {
 
   const readiness = calculateReadiness(trip)
   const dateRange = formatDateRange(trip.startDate, trip.endDate)
+  const tripStatus = getTripStatus(trip.startDate, trip.endDate)
+  const isOngoing = tripStatus === 'ongoing'
 
   // Build flag list with +N overflow badge
   const MAX_FLAGS = 3
   const allFlags = trip.destinations && trip.destinations.length > 0
     ? [...new Set(trip.destinations.map(d => d.flag || (d.country ? d.country.slice(0, 2) : '')))]
-        .filter(Boolean)
+      .filter(Boolean)
     : []
   const visibleFlags = allFlags.slice(0, MAX_FLAGS)
   const hiddenFlagCount = allFlags.length - MAX_FLAGS

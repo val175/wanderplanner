@@ -31,6 +31,7 @@ export const ACTIONS = {
   UPDATE_ACTIVITY: 'UPDATE_ACTIVITY',
   DELETE_ACTIVITY: 'DELETE_ACTIVITY',
   REORDER_ACTIVITIES: 'REORDER_ACTIVITIES',
+  MOVE_ACTIVITY_BETWEEN_DAYS: 'MOVE_ACTIVITY_BETWEEN_DAYS',
 
   // Bookings
   ADD_BOOKING: 'ADD_BOOKING',
@@ -55,9 +56,16 @@ export const ACTIONS = {
   // Packing
   ADD_PACKING_ITEM: 'ADD_PACKING_ITEM',
   TOGGLE_PACKING_ITEM: 'TOGGLE_PACKING_ITEM',
+  UPDATE_PACKING_ITEM: 'UPDATE_PACKING_ITEM',
   DELETE_PACKING_ITEM: 'DELETE_PACKING_ITEM',
   RESET_PACKING: 'RESET_PACKING',
   ADD_PACKING_SECTION: 'ADD_PACKING_SECTION',
+
+  // Ideas
+  ADD_IDEA: 'ADD_IDEA',
+  VOTE_IDEA: 'VOTE_IDEA',
+  UPDATE_IDEA_STATUS: 'UPDATE_IDEA_STATUS',
+  DELETE_IDEA: 'DELETE_IDEA',
 
   // Cities
   UPDATE_CITY: 'UPDATE_CITY',
@@ -148,7 +156,6 @@ export function tripReducer(state, action) {
     case ACTIONS.TOGGLE_DARK_MODE:
       return { ...state, darkMode: !state.darkMode }
 
-    // ─── Itinerary ───
     case ACTIONS.ADD_DAY:
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
@@ -158,8 +165,8 @@ export function tripReducer(state, action) {
           dayNumber: trip.itinerary.length + 1,
           location: payload.location || '',
           emoji: payload.emoji || '📍',
-          activities: [],
-          notes: '',
+          activities: payload.activities || [],
+          notes: payload.notes || '',
         }],
       }))
 
@@ -187,11 +194,27 @@ export function tripReducer(state, action) {
     case ACTIONS.ADD_ACTIVITY:
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
-        itinerary: trip.itinerary.map(d =>
-          d.id === payload.dayId
-            ? { ...d, activities: [...d.activities, { id: generateId(), time: '', name: '', emoji: '📌', notes: '', ...payload.activity }] }
-            : d
-        ),
+        itinerary: trip.itinerary.map(d => {
+          if (d.id !== payload.dayId) return d
+          const newActivity = {
+            id: generateId(),
+            time: '',
+            name: '',
+            notes: '',
+            location: '',
+            estCost: '',
+            transit: '',
+            transitEmoji: '🚕',
+            ...payload.activity
+          }
+          const newActivities = [...(d.activities || [])]
+          if (typeof payload.index === 'number') {
+            newActivities.splice(payload.index, 0, newActivity)
+          } else {
+            newActivities.push(newActivity)
+          }
+          return { ...d, activities: newActivities }
+        }),
       }))
 
     case ACTIONS.UPDATE_ACTIVITY:
@@ -226,6 +249,39 @@ export function tripReducer(state, action) {
           return { ...d, activities }
         }),
       }))
+
+    // payload: { fromDayId, toDayId, activityId, toIndex }
+    case ACTIONS.MOVE_ACTIVITY_BETWEEN_DAYS:
+      return updateTrip(state, activeTripId, trip => {
+        let movedActivity = null
+
+        // Remove from source day
+        const srcItin = trip.itinerary.map(d => {
+          if (d.id === payload.fromDayId) {
+            movedActivity = d.activities.find(a => a.id === payload.activityId)
+            return { ...d, activities: d.activities.filter(a => a.id !== payload.activityId) }
+          }
+          return d
+        })
+
+        if (!movedActivity) return trip // Guard
+
+        // Add to dest day
+        const finalItin = srcItin.map(d => {
+          if (d.id === payload.toDayId) {
+            const nextActivities = [...d.activities]
+            if (payload.toIndex !== undefined) {
+              nextActivities.splice(payload.toIndex, 0, movedActivity)
+            } else {
+              nextActivities.push(movedActivity)
+            }
+            return { ...d, activities: nextActivities }
+          }
+          return d
+        })
+
+        return { ...trip, itinerary: finalItin }
+      })
 
     // ─── Bookings ───
     case ACTIONS.ADD_BOOKING:
@@ -314,7 +370,7 @@ export function tripReducer(state, action) {
     case ACTIONS.ADD_TODO:
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
-        todos: [...trip.todos, { id: generateId(), done: false, priority: 'normal', dueDate: '', category: 'Misc', ...payload }],
+        todos: [...trip.todos, { id: generateId(), done: false, priority: 'normal', dueDate: '', phase: 'planning', assigneeId: null, ...payload }],
       }))
 
     case ACTIONS.TOGGLE_TODO:
@@ -345,7 +401,17 @@ export function tripReducer(state, action) {
     case ACTIONS.TOGGLE_PACKING_ITEM:
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
-        packingList: trip.packingList.map(p => p.id === payload ? { ...p, packed: !p.packed } : p),
+        packingList: trip.packingList.map(p => {
+          if (p.id !== payload.itemId) return p
+          const nextPacked = !p.packed
+          return { ...p, packed: nextPacked, packedBy: nextPacked ? payload.userId : null }
+        }),
+      }))
+
+    case ACTIONS.UPDATE_PACKING_ITEM:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        packingList: trip.packingList.map(p => p.id === payload.id ? { ...p, ...payload.updates } : p),
       }))
 
     case ACTIONS.DELETE_PACKING_ITEM:
@@ -357,7 +423,51 @@ export function tripReducer(state, action) {
     case ACTIONS.RESET_PACKING:
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
-        packingList: trip.packingList.map(p => ({ ...p, packed: false })),
+        packingList: trip.packingList.map(p => ({ ...p, packed: false, packedBy: null })),
+      }))
+
+    // ─── Ideas (Voting Room) ───
+    case ACTIONS.ADD_IDEA:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        ideas: [{
+          id: generateId(),
+          status: 'pending', // pending, consensus, rejected
+          votes: {}, // { userId: 1 | -1 }
+          createdAt: new Date().toISOString(),
+          ...payload
+        }, ...(trip.ideas || [])],
+      }))
+
+    case ACTIONS.VOTE_IDEA:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        ideas: (trip.ideas || []).map(idea => {
+          if (idea.id !== payload.ideaId) return idea
+          const currentVote = idea.votes[payload.userId]
+          const newVotes = { ...idea.votes }
+
+          if (currentVote === payload.voteType) {
+            // Toggle off if clicking the same vote again
+            delete newVotes[payload.userId]
+          } else {
+            // Apply new vote
+            newVotes[payload.userId] = payload.voteType
+          }
+          return { ...idea, votes: newVotes }
+        }),
+      }))
+
+    case ACTIONS.UPDATE_IDEA_STATUS:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        ideas: (trip.ideas || []).map(idea => idea.id === payload.ideaId ? { ...idea, status: payload.status } : idea),
+      }))
+
+    case ACTIONS.DELETE_IDEA:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        ideas: (trip.ideas || []).filter(idea => idea.id !== payload),
       }))
 
     // ─── Cities ───
@@ -374,15 +484,15 @@ export function tripReducer(state, action) {
         // Sync name / country / flag changes into route waypoints
         destinations: (identityChanged && oldName)
           ? (trip.destinations || []).map(d =>
-              d.city === oldName
-                ? {
-                    ...d,
-                    ...(newName !== undefined && { city: newName }),
-                    ...(newCountry !== undefined && { country: newCountry }),
-                    ...(newFlag !== undefined && { flag: newFlag }),
-                  }
-                : d
-            )
+            d.city === oldName
+              ? {
+                ...d,
+                ...(newName !== undefined && { city: newName }),
+                ...(newCountry !== undefined && { country: newCountry }),
+                ...(newFlag !== undefined && { flag: newFlag }),
+              }
+              : d
+          )
           : trip.destinations,
       }))
     }
@@ -401,6 +511,7 @@ export function tripReducer(state, action) {
           weather: '',
           currencyTip: '',
           notes: '',
+          savedPins: [],
         }],
         // Keep destinations in sync — append new waypoint to route
         destinations: [...(trip.destinations || []), {
@@ -434,15 +545,27 @@ export function tripReducer(state, action) {
     // Preserves activeTripId if the active trip still exists in the new map.
     case ACTIONS.SET_TRIPS_FROM_FIRESTORE: {
       const newTrips = payload
-      const ids = Object.keys(newTrips)
+      // MERGE strategy: Firestore is authoritative for trips it knows about.
+      // Preserve any locally-created trips that Firestore hasn't confirmed yet
+      // (i.e. they exist in local state but not in the snapshot).
+      // This prevents the race condition where a new trip disappears because the
+      // snapshot arrives before the setDoc write is confirmed.
+      const mergedTrips = { ...state.trips }
+      // Apply all trips from Firestore (these are authoritative)
+      Object.assign(mergedTrips, newTrips)
+      // Remove local trips that Firestore has explicitly deleted
+      // (i.e. they were in local state before but are no longer in any snapshot)
+      // We can't do this here safely without knowing the "previous" Firestore state,
+      // so we defer deletion to explicit DELETE_TRIP actions only.
+      const ids = Object.keys(mergedTrips)
       const currentActiveId = state.activeTripId
       const newActiveId =
-        currentActiveId && newTrips[currentActiveId]
+        currentActiveId && mergedTrips[currentActiveId]
           ? currentActiveId
           : ids.length > 0
-          ? ids[0]
-          : null
-      return { ...state, trips: newTrips, activeTripId: newActiveId }
+            ? ids[0]
+            : null
+      return { ...state, trips: mergedTrips, activeTripId: newActiveId }
     }
 
     default:

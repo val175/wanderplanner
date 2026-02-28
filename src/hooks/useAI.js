@@ -5,9 +5,8 @@
  * so every response is grounded in the user's actual trip data.
  */
 
-// Requests go to our Cloudflare Worker proxy — the Gemini API key
-// lives there as an encrypted secret, never in the frontend bundle.
-const PROXY_URL = 'https://wanderplan-ai.valentin-bonite.workers.dev/ai'
+// Requests go to our Vercel Serverless Function proxy to protect the API key
+const PROXY_URL = '/api/gemini'
 
 /**
  * Build a rich system prompt from the active trip.
@@ -25,18 +24,23 @@ Be concise, warm, and practical. Use emojis sparingly. The user hasn't selected 
   const startDate = trip.startDate || 'TBD'
   const endDate = trip.endDate || 'TBD'
 
+  // Use the trip's own currency — fall back to PHP if unset
+  const currency = trip.currency || 'PHP'
+  const currencySymbols = { USD: '$', EUR: '€', GBP: '£', JPY: '¥', PHP: '₱', AUD: 'A$', CAD: 'C$', SGD: 'S$', HKD: 'HK$', THB: '฿', IDR: 'Rp', KRW: '₩', MYR: 'RM', VND: '₫', INR: '₹' }
+  const sym = currencySymbols[currency] || currency
+
   const daysCount = trip.itinerary?.length || 0
   const activitiesCount = trip.itinerary?.reduce((sum, d) => sum + (d.activities?.length || 0), 0) || 0
 
   const budgetSummary = trip.budget?.length
-    ? trip.budget.map(b => `${b.emoji || ''} ${b.name}: €${b.max} budget (€${b.actual || 0} spent)`).join(', ')
+    ? trip.budget.map(b => `${b.emoji || ''} ${b.name}: ${sym}${b.max} budget (${sym}${b.actual || 0} spent)`).join(', ')
     : 'No budget set'
 
   const totalBudget = trip.budget?.reduce((s, b) => s + (b.max || 0), 0) || 0
   const totalSpent = trip.budget?.reduce((s, b) => s + (b.actual || 0), 0) || 0
 
   const bookings = trip.bookings || []
-  const confirmedBookings = bookings.filter(b => b.status === 'booked').length
+  const confirmedBookings = bookings.filter(b => b.status === 'booked' || b.status === 'confirmed').length
   const pendingBookings = bookings.filter(b => b.status !== 'booked').length
 
   const todos = trip.todos || []
@@ -57,9 +61,9 @@ You are helping plan this specific trip:
 📅 Dates: ${startDate} → ${endDate} (${daysCount} days planned)
 👥 Travelers: ${travelers}
 
-💰 BUDGET:
+💰 BUDGET (currency: ${currency}):
 ${budgetSummary}
-Total: €${totalBudget} budget, €${totalSpent} spent, €${totalBudget - totalSpent} remaining
+Total: ${sym}${totalBudget} budget, ${sym}${totalSpent} spent, ${sym}${totalBudget - totalSpent} remaining
 
 ✈️ BOOKINGS: ${confirmedBookings} confirmed, ${pendingBookings} pending
 ✅ TODOS: ${doneTodos}/${todos.length} done
@@ -71,8 +75,9 @@ ${itinerarySummary}
 Your role:
 - Give specific, actionable advice tailored to THIS trip's cities, budget, and timeline
 - Be concise — 2-4 sentences per response unless the user asks for a detailed list
+- ALWAYS use ${currency} (${sym}) when discussing money — NEVER use any other currency symbol
 - Use emojis sparingly (1-2 per response max)
-- When suggesting activities, consider the budget remaining (€${totalBudget - totalSpent})
+- When suggesting activities, consider the budget remaining (${sym}${totalBudget - totalSpent})
 - If the user asks to "optimize" or "improve" something, give concrete suggestions
 - Be warm and conversational, like a knowledgeable travel-savvy friend`
 }
@@ -108,7 +113,27 @@ export async function sendMessage(systemPrompt, history, userMessage) {
     },
   }
 
-  // Call our Worker proxy — not Gemini directly
+  // If local API key exists in DEV, use it instantly to avoid proxy CORS failures
+  const apiKey = import.meta.env.DEV ? import.meta.env.VITE_GEMINI_API_KEY : null
+  if (apiKey) {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err?.error?.message || `Gemini API error ${res.status}`)
+    }
+
+    const data = await res.json()
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text
+    if (!text) throw new Error('No response from Gemini API')
+    return text
+  }
+
+  // Fallback to proxy
   const res = await fetch(PROXY_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -124,4 +149,210 @@ export async function sendMessage(systemPrompt, history, userMessage) {
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text
   if (!text) throw new Error('No response from Gemini')
   return text
+}
+
+/**
+ * Generate an auto-filled city guide (Weather, Currency, Must-Do).
+ * Requests JSON format from Gemini to easily map to the city object.
+ */
+export async function generateCityGuide(city, trip) {
+  const prompt = `
+You are Wanda, a travel assistant.
+The user is traveling to: ${city.city}, ${city.country}.
+Trip Dates: ${trip.startDate || 'Unknown'} to ${trip.endDate || 'Unknown'}.
+Trip Currency: ${trip.currency || 'USD'}.
+
+Please generate a quick travel guide for this city.
+Return ONLY a valid JSON object with the following exact keys and format:
+
+{
+  "weather": "🌸 MARCH AVG\\n14°C / 5°C",
+  "currencyTip": "¥ CURRENCY\\n1 USD = 150 JPY",
+  "mustDo": "Neon lights, ancient temples, and the best food in the world. Don't miss the Shibuya Scramble, teamLab Planets, and eating ramen in Shinjuku."
+}
+
+Rules:
+1. "weather": Based on the trip dates (or general averages if unknown), give a 2-line summary. Line 1: Emoji, Month, "AVG". Line 2: High/Low temp.
+2. "currencyTip": 2-line summary. Line 1: Currency Symbol and "CURRENCY". Line 2: Exchange rate from ${trip.currency || 'USD'} to local.
+3. "mustDo": A punchy, 2-to-3 sentence summary of the "Vibe & Must Do" highlights of the city.
+4. DO NOT wrap the output in markdown code blocks like \`\`\`json. Output raw JSON only.
+  `;
+
+  const body = {
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    systemInstruction: {
+      parts: [{ text: "You are Wanda, a travel assistant built into Wanderplan." }],
+    },
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 256,
+    },
+  }
+
+  const apiKey = import.meta.env.DEV ? import.meta.env.VITE_GEMINI_API_KEY : null
+  const url = apiKey
+    ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
+    : PROXY_URL;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err?.error?.message || `Gemini API error ${res.status} `)
+  }
+
+  const data = await res.json()
+  let text = data.candidates?.[0]?.content?.parts?.[0]?.text
+
+  if (!text) throw new Error('No response from Gemini')
+
+  // Clean potential markdown blocks if the AI still included them
+  text = text.replace(/^\`\`\`json/m, '').replace(/^\`\`\`/m, '').trim()
+
+  try {
+    return JSON.parse(text)
+  } catch (e) {
+    console.error("Failed to parse city guide JSON:", text)
+    throw new Error("Invalid format returned from AI")
+  }
+}
+
+/**
+ * Generate a pin's name and emoji given a raw URL.
+ * Requests JSON format from Gemini.
+ */
+export async function generatePinFromUrl(url) {
+  const prompt = `
+A user pasted this URL into their travel planner:
+${url}
+
+Visit or analyze this URL. If it is a shortened link (like maps.app.goo.gl/XXXXXXXX), you MUST use your Google Search tool to search for the EXACT unique ID string at the end of the URL (e.g. search for "XXXXXXXX") or the URL itself to discover what place or business it redirects to. Do not guess. Search it.
+Figure out the real name of the place, restaurant, landmark, or link title.
+Then, pick ONE single emoji that best categorizes it (e.g. 🍜 for ramen, 🏨 for hotel, 🏛️ for museum, ✈️ for airport, etc.). If it's just a generic link, use 🔗.
+
+Return ONLY a valid JSON object with the exact keys:
+{
+  "name": "Ichiran Shibuya",
+  "emoji": "🍜"
+}
+
+DO NOT wrap the output in markdown code blocks like \`\`\`json. Output raw JSON only.
+  `;
+
+  const body = {
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    systemInstruction: {
+      parts: [{ text: "You are Wanda, a travel assistant built into Wanderplan." }],
+    },
+    tools: [
+      { googleSearch: {} }
+    ],
+    generationConfig: {
+      temperature: 0.2, // Low temp for more accurate/consistent extraction
+      maxOutputTokens: 64,
+    },
+  }
+
+  const apiKey = import.meta.env.DEV ? import.meta.env.VITE_GEMINI_API_KEY : null
+  const apiUrl = apiKey
+    ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
+    : PROXY_URL;
+
+  const res = await fetch(apiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err?.error?.message || `Gemini API error ${res.status}`)
+  }
+
+  const data = await res.json()
+  let text = data.candidates?.[0]?.content?.parts?.[0]?.text
+
+  if (!text) throw new Error('No response from Gemini')
+
+  // Clean potential markdown blocks if the AI still included them
+  text = text.replace(/^\`\`\`json/m, '').replace(/^\`\`\`/m, '').trim()
+
+  try {
+    return JSON.parse(text)
+  } catch (e) {
+    console.error("Failed to parse pin JSON:", text)
+    throw new Error("Invalid format returned from AI")
+  }
+}
+/**
+ * extractIdeaDetails extracts structured info from a URL for the Voting Room.
+ * Uses Google Search tool to resolve short links if needed, then formats it.
+ */
+export async function extractIdeaDetails(url, tripCurrency) {
+  const prompt = `
+A user pasted this URL into their travel planner's "Voting Room":
+${url}
+
+You need to figure out what this idea is. 
+If it is a shortened link (like maps.app.goo.gl, vm.tiktok.com, bit.ly, t.co), you MUST use your Google Search tool to search for the EXACT string or visit it to discover what place or business it redirects to.
+Then, extract or infer the following details to create a Voting Room Idea card:
+
+Return ONLY a valid JSON object with the exact keys:
+{
+  "title": "Short title (e.g. Copacabana Oceanfront Penthouse or Sugarloaf Mountain Sunset Tour)",
+  "type": "lodging" OR "activity" OR "food" OR "other",
+  "priceDetails": "Short string like '$250 / total' or '¥3,500 / per person' or 'Free'. Guess reasonably if the exact price isn't visible, formatted in ${tripCurrency || 'USD'}",
+  "description": "A very short 1-2 sentence catchy description of what this is.",
+  "emoji": "🏠 (for lodging), 🥩 (for food), 🚠 (for activity), etc.",
+  "sourceName": "Airbnb, TikTok, TripAdvisor, Viator, etc."
+}
+
+DO NOT wrap the output in markdown code blocks like \`\`\`json. Output raw JSON only.
+  `;
+
+  const body = {
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    systemInstruction: {
+      parts: [{ text: "You are Wanda, a travel assistant built into Wanderplan." }],
+    },
+    generationConfig: {
+      temperature: 0.3, // Low temp for more accurate extraction
+      maxOutputTokens: 256,
+    },
+  }
+
+  const apiKey = import.meta.env.DEV ? import.meta.env.VITE_GEMINI_API_KEY : null
+  const apiUrl = apiKey
+    ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
+    : PROXY_URL;
+
+  const res = await fetch(apiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err?.error?.message || `Gemini API error ${res.status}`)
+  }
+
+  const data = await res.json()
+  let text = data.candidates?.[0]?.content?.parts?.[0]?.text
+
+  if (!text) throw new Error('No response from Gemini API')
+
+  // Clean potential markdown blocks
+  text = text.replace(/^\`\`\`json/m, '').replace(/^\`\`\`/m, '').trim()
+
+  try {
+    return JSON.parse(text)
+  } catch (e) {
+    console.error("Failed to parse Idea extraction JSON:", text)
+    throw new Error("Invalid format returned from AI parsing")
+  }
 }

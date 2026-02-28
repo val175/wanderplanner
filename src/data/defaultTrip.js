@@ -332,6 +332,7 @@ export const DEFAULT_TRIP = {
       weather: 'Hot & humid year-round, 27-32°C. Rain possible anytime.',
       currencyTip: 'SGD. Cashless-friendly, cards accepted everywhere.',
       notes: '',
+      savedPins: [],
     },
     {
       id: 'c2',
@@ -343,6 +344,7 @@ export const DEFAULT_TRIP = {
       weather: 'November is end of monsoon season. Expect some rain, 26-30°C.',
       currencyTip: 'THB. Cash is king for street food and markets.',
       notes: '',
+      savedPins: [],
     },
     {
       id: 'c3',
@@ -354,6 +356,7 @@ export const DEFAULT_TRIP = {
       weather: 'Hot & humid, 27-33°C. Afternoon thunderstorms common.',
       currencyTip: 'MYR. Very affordable. Cards widely accepted in malls.',
       notes: '',
+      savedPins: [],
     },
   ],
 

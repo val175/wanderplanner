@@ -12,11 +12,11 @@ import { createPortal } from 'react-dom'
 ───────────────────────────────────────────────────────────── */
 
 const MONTHS = [
-  'January','February','March','April','May','June',
-  'July','August','September','October','November','December',
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
 ]
-const SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-const DOW   = ['Su','Mo','Tu','We','Th','Fr','Sa']
+const SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const DOW = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
 function toDate(iso) {
   if (!iso) return null
@@ -45,19 +45,19 @@ export default function DatePicker({
   className = '', // applied to the trigger button
 }) {
   const [open, setOpen] = useState(false)
-  const [pos,  setPos]  = useState({ top: 0, left: 0 })
-  const btnRef   = useRef(null)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const btnRef = useRef(null)
   const panelRef = useRef(null)
 
-  const today     = new Date()
-  const todayISO  = toISO(today)
-  const selected  = toDate(value)
-  const minDate   = toDate(min)
+  const today = new Date()
+  const todayISO = toISO(today)
+  const selected = toDate(value)
+  const minDate = toDate(min)
 
   // Start the calendar view at: selected date → min date (e.g. startDate) → today
   // This ensures the end-date picker opens at the start date's month, not today.
-  const initDate  = selected || minDate || today
-  const [viewYear,  setViewYear]  = useState(initDate.getFullYear())
+  const initDate = selected || minDate || today
+  const [viewYear, setViewYear] = useState(initDate.getFullYear())
   const [viewMonth, setViewMonth] = useState(initDate.getMonth())
 
   // Keep view in sync when value or min changes externally.
@@ -105,7 +105,7 @@ export default function DatePicker({
   }
 
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
-  const firstDow    = new Date(viewYear, viewMonth, 1).getDay()
+  const firstDow = new Date(viewYear, viewMonth, 1).getDay()
 
   const selectDay = day => {
     onChange(toISO(new Date(viewYear, viewMonth, day)))
@@ -147,8 +147,8 @@ export default function DatePicker({
           className="text-[var(--color-text-muted)] shrink-0 opacity-70">
           <rect x="3" y="4" width="18" height="18" rx="2" />
           <line x1="16" y1="2" x2="16" y2="6" />
-          <line x1="8"  y1="2" x2="8"  y2="6" />
-          <line x1="3"  y1="10" x2="21" y2="10" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
         </svg>
       </button>
 
@@ -161,7 +161,6 @@ export default function DatePicker({
             background: 'var(--color-bg-card)',
             border: '1px solid var(--color-border)',
             borderRadius: 'var(--radius-lg)',
-            boxShadow: 'var(--shadow-modal)',
             padding: '16px 14px 12px',
           }}
         >

@@ -84,7 +84,7 @@ export default function ConcertTab() {
   // Use custom tips if stored on the booking, otherwise use defaults
   const tips = concertBooking.eventTips?.length ? concertBooking.eventTips : DEFAULT_TIPS
 
-  const statusLabel = concertBooking.status === 'booked'
+  const statusLabel = concertBooking.status === 'booked' || concertBooking.status === 'confirmed'
     ? '✅ Confirmed'
     : `⏳ ${(concertBooking.status || 'pending').replace('_', ' ')}`
 

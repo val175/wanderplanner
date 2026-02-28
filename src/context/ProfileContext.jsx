@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
-import { doc, onSnapshot, setDoc, collection, query, where, getDocs } from 'firebase/firestore'
+import { doc, getDoc, onSnapshot, setDoc, collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '../firebase/config'
 
 // Each user's own profile lives at users/{uid}/profile
@@ -34,6 +34,18 @@ export function ProfileProvider({ user, children }) {
     if (!profileDocRef || !user) return
 
     const unsub = onSnapshot(profileDocRef, async (snap) => {
+      // ALWAYS ensure the root document has the email for lookups,
+      // even if their profile already existed from before this feature was added.
+      try {
+        await setDoc(doc(db, 'users', uid), {
+          email: user.email?.toLowerCase().trim(),
+          uid,
+          updatedAt: new Date().toISOString()
+        }, { merge: true })
+      } catch (err) {
+        console.warn('[ProfileContext] Failed to update root user doc:', err)
+      }
+
       if (snap.exists()) {
         setCurrentUserProfile(snap.data())
       } else {
@@ -46,12 +58,6 @@ export function ProfileProvider({ user, children }) {
           customPhoto: null,
           createdAt: new Date().toISOString(),
         }
-        // Root doc for lookup
-        await setDoc(doc(db, 'users', uid), {
-          email: user.email?.toLowerCase().trim(),
-          uid,
-          updatedAt: new Date().toISOString()
-        })
         // Profile doc
         await setDoc(profileDocRef, seed)
         setCurrentUserProfile(seed)
@@ -69,23 +75,42 @@ export function ProfileProvider({ user, children }) {
       travelersDocRef,
       (snap) => {
         if (snap.exists()) {
-          const data = snap.data().profiles || []
+          const firestoreData = snap.data().profiles || []
+          // Merge Firestore data with localStorage so locally-added travelers are never wiped
+          const localData = loadFromLocalStorage()
+          const merged = [...firestoreData]
+          localData.forEach(localProfile => {
+            if (!merged.some(p => p.id === localProfile.id)) {
+              merged.push(localProfile)
+            }
+          })
+          // Only set isRemoteRef immediately before calling setProfiles
           isRemoteRef.current = true
-          setProfiles(data)
-          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)) } catch { }
+          setProfiles(merged)
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)) } catch { }
+          // Heal Firestore if our merged list has more data than what's there
+          if (merged.length > firestoreData.length) {
+            setDoc(travelersDocRef, { profiles: merged }).catch(console.warn)
+          }
         } else {
+          // Doc doesn't exist yet — push local data to Firestore if we have any.
+          // DO NOT set isRemoteRef here since we are NOT calling setProfiles.
+          // Setting it without a matching setProfiles call would cause the next
+          // user-driven addProfile() to be silently skipped by the outbound sync.
           const local = loadFromLocalStorage()
           if (local.length > 0) {
-            isRemoteRef.current = true
             setDoc(travelersDocRef, { profiles: local }).catch(console.error)
-          } else {
-            isRemoteRef.current = true
           }
         }
         readyRef.current = true
       },
       (err) => {
         console.warn('[Wanderplan] Travelers listener error:', err)
+        const local = loadFromLocalStorage()
+        if (local.length > 0) {
+          isRemoteRef.current = true
+          setProfiles(local)
+        }
         readyRef.current = true
       }
     )
@@ -95,9 +120,13 @@ export function ProfileProvider({ user, children }) {
   // ── 3. Outbound sync: shared travelers local state → Firestore ─────────
   useEffect(() => {
     if (isRemoteRef.current) { isRemoteRef.current = false; return }
-    if (!readyRef.current || !travelersDocRef) return
-    setDoc(travelersDocRef, { profiles }).catch(console.error)
+    if (!readyRef.current) return
+    // Always persist to localStorage first (works even without Firestore access)
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles)) } catch { }
+    // Then try Firestore (may fail if rules aren't configured; that's OK)
+    if (travelersDocRef) {
+      setDoc(travelersDocRef, { profiles }).catch(console.warn)
+    }
   }, [profiles]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Current user profile actions ───────────────────────────────────────
@@ -152,6 +181,7 @@ export function ProfileProvider({ user, children }) {
       name: profile.name.trim(),
       photo: profile.photo || null,
     }
+
     setProfiles(prev => {
       // Avoid duplicates
       if (prev.some(p => p.id === newProfile.id || (p.email && p.email === newProfile.email))) {
@@ -159,8 +189,30 @@ export function ProfileProvider({ user, children }) {
       }
       return [...prev, newProfile]
     })
+
+    // Add current user to other person's travelers list if they have a real account
+    if (newProfile.uid && currentUserProfile && newProfile.uid !== currentUserProfile.uid) {
+      const otherTravelersRef = doc(db, 'users', newProfile.uid, 'travelers', 'data')
+      const reciprocalProfile = {
+        id: currentUserProfile.id || currentUserProfile.uid,
+        uid: currentUserProfile.uid,
+        name: currentUserProfile.name,
+        email: currentUserProfile.email,
+        photo: currentUserProfile.photo || currentUserProfile.customPhoto || null
+      }
+
+      getDoc(otherTravelersRef).then(snap => {
+        const otherProfiles = snap.exists() ? snap.data().profiles || [] : []
+        if (!otherProfiles.some(p => p.id === reciprocalProfile.id || (p.email && p.email === reciprocalProfile.email))) {
+          otherProfiles.push(reciprocalProfile)
+          setDoc(otherTravelersRef, { profiles: otherProfiles }, { merge: true })
+            .catch(err => console.warn('[ProfileContext] Failed to add reciprocal traveler:', err))
+        }
+      }).catch(err => console.warn('[ProfileContext] Failed to retrieve other travelers:', err))
+    }
+
     return newProfile
-  }, [])
+  }, [currentUserProfile])
 
   const updateProfile = useCallback((id, updates) => {
     setProfiles(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p))
