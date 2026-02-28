@@ -290,79 +290,25 @@ DO NOT wrap the output in markdown code blocks like \`\`\`json. Output raw JSON 
 }
 /**
  * extractIdeaDetails extracts structured info from a URL for the Voting Room.
- * Uses Google Search tool to resolve short links if needed, then formats it.
+ * Delegated to a server-side Edge function (api/extract.js) for robust tool-use and grounding.
  */
 export async function extractIdeaDetails(url, activeTrip) {
-  const tripCurrency = activeTrip?.currency || 'USD';
-  const tripLocation = activeTrip?.name || 'an unknown destination';
-
-  const prompt = `
-A user pasted this URL into their travel planner's "Voting Room":
-${url}
-
-Current Trip Context: The user is planning a trip to ${tripLocation}. 
-
-Your Task:
-1. Extract or infer the following details to create a Voting Room Idea card.
-2. If this is a specific listing (Airbnb, Viator, Booking.com, etc.), you MUST find the REAL name of the place and its REAL location.
-3. If it is a shortened link (maps.app.goo.gl, etc.), use your Google Search tool to resolve it.
-4. DO NOT guess the location as "Rome" or any other placeholder if you are unsure. If the location is absolutely unknown, omit it from the title.
-
-Return ONLY a valid JSON object with the exact keys:
-{
-  "title": "Short title (e.g. Stylish Metro Apartment or Oceanfront Villa)",
-  "type": "lodging" OR "activity" OR "food" OR "other",
-  "priceDetails": "Short string like '$250 / total' or '₱5,000 / night' or 'Free'. Format currency in ${tripCurrency}",
-  "description": "A very short 1-2 sentence catchy description of what this is. Highlight why it fits a trip to ${tripLocation}.",
-  "emoji": "🏠 (for lodging), 🥩 (for food), 🚠 (for activity), etc.",
-  "sourceName": "Airbnb, TikTok, TripAdvisor, Viator, etc."
-}
-
-DO NOT wrap the output in markdown code blocks. Output raw JSON only.
-  `;
-
-  const body = {
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    systemInstruction: {
-      parts: [{ text: "You are Wanda, a travel assistant built into Wanderplan. Use your tools to verify link details accurately." }],
-    },
-    tools: [
-      { googleSearch: {} }
-    ],
-    generationConfig: {
-      temperature: 0.1, // Very low temp for strict extraction
-      maxOutputTokens: 256,
-    },
-  }
-
-  const apiKey = import.meta.env.DEV ? import.meta.env.VITE_GEMINI_API_KEY : null
-  const apiUrl = apiKey
-    ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
-    : PROXY_URL;
-
-  const res = await fetch(apiUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err?.error?.message || `Gemini API error ${res.status}`)
-  }
-
-  const data = await res.json()
-  let text = data.candidates?.[0]?.content?.parts?.[0]?.text
-
-  if (!text) throw new Error('No response from Gemini API')
-
-  // Clean potential markdown blocks
-  text = text.replace(/^\`\`\`json/m, '').replace(/^\`\`\`/m, '').trim()
-
   try {
-    return JSON.parse(text)
-  } catch (e) {
-    console.error("Failed to parse Idea extraction JSON:", text)
-    throw new Error("Invalid format returned from AI parsing")
+    const res = await fetch('https://wanderplan-rust.vercel.app/api/extract', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, activeTrip }),
+    })
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err?.error || `Extraction error ${res.status}`)
+    }
+
+    return await res.json()
+  } catch (error) {
+    console.error("Link Extraction Failed:", error)
+    // Fallback on error if needed, or rethrow
+    throw error
   }
 }
