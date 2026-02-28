@@ -127,6 +127,7 @@ import { geocodeCity, haversineDistance } from '../../utils/helpers'
 function RouteMapCell({ trip }) {
   const dests = trip.destinations || []
   const [coords, setCoords] = useState([])
+  const [mappedDests, setMappedDests] = useState([])
   const [totalDist, setTotalDist] = useState(0)
   const [isExpanded, setIsExpanded] = useState(false)
 
@@ -166,8 +167,16 @@ function RouteMapCell({ trip }) {
       if (!active) return
 
       // Filter out failures and build route
-      const validCoords = results.filter(c => c !== null)
+      const validCoords = []
+      const validDestinations = []
+      results.forEach((c, i) => {
+        if (c !== null) {
+          validCoords.push(c)
+          validDestinations.push(validDests[i])
+        }
+      })
       setCoords(validCoords)
+      setMappedDests(validDestinations)
 
       // Calculate total distance
       let dist = 0
@@ -291,7 +300,7 @@ function RouteMapCell({ trip }) {
             {coords.map((c, i) => {
               const isStart = i === 0
               const isEnd = i === coords.length - 1
-              const dest = dests[i]
+              const dest = mappedDests[i]
               const days = destDaysCount[dest.city] || 0
               const label = days > 0 ? `${dest.city} (${days} Days)` : dest.city
 
