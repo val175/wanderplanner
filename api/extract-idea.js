@@ -24,7 +24,11 @@ async function scrapeMetadata(url) {
     const title = $('meta[property="og:title"]').attr('content') || $('title').text() || '';
     const description = $('meta[property="og:description"]').attr('content') || $('meta[name="description"]').attr('content') || '';
     const siteName = $('meta[property="og:site_name"]').attr('content') || '';
-    const imageUrl = $('meta[property="og:image"]').attr('content') || $('meta[name="twitter:image"]').attr('content') || '';
+    const imageUrl = $('meta[property="og:image"]').attr('content')
+        || $('meta[property="og: image"]').attr('content')   // TripAdvisor uses a space after the colon
+        || $('meta[name="twitter:image"]').attr('content')
+        || $('meta[name="twitter:image:src"]').attr('content')
+        || '';
     const rawBody = $('body').text().replace(/\s+/g, ' ').substring(0, 1000);
     return { title, description, siteName, imageUrl, rawBody, url };
 }
