@@ -62,8 +62,29 @@ function IdeaCard({ idea, activeUserId, resolveProfile, onVote, onConvert }) {
                 </div>
             )}
 
-            {/* Top Half: Image Simulation & Meta */}
-            <div className={`relative h-44 w-full flex items-center justify-center bg-bg-secondary ${isConsensus ? 'mt-6' : ''}`}>
+            {/* Top Half: Real image or emoji fallback */}
+            <div className={`relative h-44 w-full flex items-center justify-center bg-bg-secondary overflow-hidden ${isConsensus ? 'mt-6' : ''}`}>
+
+                {/* Real og:image when available */}
+                {idea.imageUrl ? (
+                    <img
+                        src={idea.imageUrl}
+                        alt={idea.title}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        loading="lazy"
+                        onError={e => { e.currentTarget.style.display = 'none' }}
+                    />
+                ) : (
+                    /* Emoji fallback */
+                    <div className="text-6xl drop-shadow-md filter saturate-150 transform hover:scale-110 transition-transform duration-300">
+                        {idea.emoji || '✨'}
+                    </div>
+                )}
+
+                {/* Subtle dark scrim over images so badges stay readable */}
+                {idea.imageUrl && (
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/20 pointer-events-none" />
+                )}
 
                 {/* Source Badge */}
                 {idea.sourceName && (
@@ -82,11 +103,6 @@ function IdeaCard({ idea, activeUserId, resolveProfile, onVote, onConvert }) {
                         <AvatarCircle profile={resolveProfile(idea.proposerId)} size={18} />
                     </div>
                 )}
-
-                {/* Massive Emoji/Image proxy */}
-                <div className="text-6xl drop-shadow-md filter saturate-150 transform hover:scale-110 transition-transform duration-300">
-                    {idea.emoji || '✨'}
-                </div>
             </div>
 
             {/* Bottom Half: Details */}

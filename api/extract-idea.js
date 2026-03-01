@@ -24,8 +24,9 @@ async function scrapeMetadata(url) {
     const title = $('meta[property="og:title"]').attr('content') || $('title').text() || '';
     const description = $('meta[property="og:description"]').attr('content') || $('meta[name="description"]').attr('content') || '';
     const siteName = $('meta[property="og:site_name"]').attr('content') || '';
+    const imageUrl = $('meta[property="og:image"]').attr('content') || $('meta[name="twitter:image"]').attr('content') || '';
     const rawBody = $('body').text().replace(/\s+/g, ' ').substring(0, 1000);
-    return { title, description, siteName, rawBody, url };
+    return { title, description, siteName, imageUrl, rawBody, url };
 }
 
 export default async function handler(req, res) {
@@ -70,11 +71,15 @@ export default async function handler(req, res) {
         {
           "title": "Short, clean title of the place/activity",
           "type": "lodging",
-          "priceDetails": "Guess price format based on text. Format in ${currency}",
+          "priceDetails": "Best-effort price estimate in ${currency}. Use text clues if available. If unknown, make a reasonable market estimate and add '(est.)' — never leave blank.",
           "description": "A short 1-2 sentence catchy description.",
           "emoji": "🏡",
-          "sourceName": "Airbnb, TripAdvisor, TikTok, etc."
+          "sourceName": "Airbnb, TripAdvisor, TikTok, etc.",
+          "imageUrl": "${scrapedData.imageUrl || ''}"
         }
+        Rules:
+        - imageUrl: use the value provided above exactly as-is (already scraped). If empty string, keep it empty — do not invent a URL.
+        - priceDetails format: "₱2500/night" or "₱1200/person" or "₱8000 (est.)" — always include a slash + period unit or '(est.)' suffix.
         Do not wrap in markdown blocks.`
             : `You are Wanda, a travel planner. A user pasted this URL: ${url}
         ${scrapeWarning}
@@ -82,10 +87,11 @@ export default async function handler(req, res) {
         {
           "title": "Short, clean title of the place/activity inferred from the URL",
           "type": "lodging",
-          "priceDetails": "Unknown — please check the link",
+          "priceDetails": "Make a reasonable market-rate estimate in ${currency} for this type of place/activity and add '(est.)' — never leave blank.",
           "description": "A short 1-2 sentence description based on what you can infer from the URL.",
           "emoji": "🔗",
-          "sourceName": "Infer from the domain (e.g. airbnb.com → Airbnb)"
+          "sourceName": "Infer from the domain (e.g. airbnb.com → Airbnb)",
+          "imageUrl": ""
         }
         Do not wrap in markdown blocks.`;
 
