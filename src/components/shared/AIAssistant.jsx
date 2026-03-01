@@ -3,48 +3,12 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { Send, X, Sparkles } from 'lucide-react';
 import { TripContext } from '../../context/TripContext';
-
-// Build a rich system prompt from the active trip so Wanda has full context
-function buildSystemPrompt(trip) {
-  if (!trip) {
-    return `You are Wanda, a friendly and knowledgeable travel planning assistant built into Wanderplan.
-Help users plan trips, optimize itineraries, manage budgets, and give destination advice.
-Be concise, practical, and enthusiastic. Format responses clearly.`;
-  }
-
-  const fmt = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'TBD';
-  const duration = trip.startDate && trip.endDate
-    ? Math.round((new Date(trip.endDate) - new Date(trip.startDate)) / 86400000) + ' days'
-    : 'unknown duration';
-
-  const cities = Array.isArray(trip.cities) && trip.cities.length
-    ? trip.cities.map(c => c.name || c).join(', ')
-    : (trip.destinations || 'not set');
-
-  const budgetLines = Array.isArray(trip.budget) && trip.budget.length
-    ? trip.budget.map(b => `  - ${b.emoji || ''} ${b.name}: ${trip.currency} ${(b.actual || 0).toLocaleString()} spent / ${trip.currency} ${(b.max || 0).toLocaleString()} budgeted`).join('\n')
-    : '  (no budget categories set)';
-
-  return `You are Wanda, a friendly travel planning assistant built into Wanderplan.
-
-The user is currently planning this trip:
-- Name: ${trip.name || 'Unnamed Trip'} ${trip.emoji || ''}
-- Dates: ${fmt(trip.startDate)} → ${fmt(trip.endDate)} (${duration})
-- Destinations: ${cities}
-- Travelers: ${trip.travelers || 1}
-- Currency: ${trip.currency || 'USD'}
-- Budget breakdown:
-${budgetLines}
-
-Use this context to give specific, relevant advice. Reference the trip details naturally.
-Be concise, practical, and enthusiastic. If asked about budget, use the actual numbers above.
-Format with bullet points or short paragraphs — avoid markdown headers in chat.`;
-}
+import { buildTripSystemPrompt } from '../../hooks/useAI';
 
 // Transport is created once. Its body option is a function (Resolvable<object>)
 // so it gets called fresh on every send, reading the latest system prompt from the ref.
 // This avoids both stale closures AND the need to recreate the transport on re-renders.
-let _systemPromptRef = buildSystemPrompt(null);
+let _systemPromptRef = buildTripSystemPrompt(null);
 
 const chatTransport = new DefaultChatTransport({
   api: 'https://wanderplan-rust.vercel.app/api/chat',
@@ -60,7 +24,7 @@ export default function AIAssistant() {
 
   // Keep the module-level prompt ref in sync with the current trip
   useEffect(() => {
-    _systemPromptRef = buildSystemPrompt(activeTrip);
+    _systemPromptRef = buildTripSystemPrompt(activeTrip);
   }, [activeTrip]);
 
   const { messages, sendMessage, status, error } = useChat({
@@ -119,15 +83,15 @@ export default function AIAssistant() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Sparkles size={16} style={{ color: 'var(--color-accent)' }} />
-              <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-text-primary)' }}>
-                Ask Wanda
-              </span>
-              {activeTrip && (
-                <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginLeft: '2px' }}>
-                  · {activeTrip.name}
-                </span>
-              )}
+              <span style={{ fontSize: '18px' }}>🪄</span>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-text-primary)', lineHeight: 1.2 }}>
+                  Wanda
+                </div>
+                <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', lineHeight: 1.2 }}>
+                  {activeTrip ? `Knows your ${activeTrip.name} trip` : 'AI travel assistant'}
+                </div>
+              </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
@@ -195,8 +159,8 @@ export default function AIAssistant() {
             {messages.length === 0 && !error && (
               <p style={{ color: 'var(--color-text-muted)', fontSize: '13px', textAlign: 'center', marginTop: '24px' }}>
                 {activeTrip
-                  ? `Hi! I'm Wanda. I know all about your ${activeTrip.name} trip — ask me anything!`
-                  : "Hi! I'm Wanda, your travel assistant. Ask me anything about your trip!"}
+                  ? `Hi! I know all about your ${activeTrip.name} trip — ask me anything!`
+                  : "Hi! I'm Wanda, your AI travel assistant. Select a trip and I'll know all about it!"}
               </p>
             )}
             {error && (
