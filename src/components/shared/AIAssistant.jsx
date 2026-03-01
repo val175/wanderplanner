@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import { Send, X, Sparkles } from 'lucide-react';
 
 export default function AIAssistant() {
@@ -8,7 +9,9 @@ export default function AIAssistant() {
   const bottomRef = useRef(null);
 
   const { messages, sendMessage, status } = useChat({
-    api: 'https://wanderplan-rust.vercel.app/api/chat',
+    transport: new DefaultChatTransport({
+      api: 'https://wanderplan-rust.vercel.app/api/chat',
+    }),
   });
 
   const isLoading = status === 'submitted' || status === 'streaming';

@@ -1,5 +1,5 @@
 // api/chat.js
-import { streamText } from 'ai'
+import { streamText, convertToModelMessages } from 'ai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 
 // THIS IS THE MAGIC LINE: Bypasses the 10s timeout on Vercel Hobby tier
@@ -37,10 +37,11 @@ export default async function handler(req) {
         const result = await streamText({
             model: google('gemini-2.0-flash'),
             system: systemPrompt,
-            messages: messages,
+            // convertToModelMessages converts UIMessage[] (parts-based) → ModelMessage[]
+            messages: convertToModelMessages(messages),
         })
 
-        return result.toDataStreamResponse({ headers: CORS_HEADERS })
+        return result.toUIMessageStreamResponse({ headers: CORS_HEADERS })
 
     } catch (error) {
         console.error('Streaming Error:', error)
