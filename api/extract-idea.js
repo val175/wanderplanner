@@ -54,13 +54,25 @@ export default async function handler(req, res) {
 
         // Best-effort scrape — if the site blocks us (403, 429, etc.) we fall back
         // to URL-only inference so the user still gets a useful result
-        let scrapedData = { url, title: '', description: '', siteName: '', rawBody: '' };
+        let scrapedData = { url, title: '', description: '', siteName: '', imageUrl: '', rawBody: '' };
         let scrapeWarning = '';
         try {
             scrapedData = await scrapeMetadata(url);
         } catch (scrapeErr) {
             console.warn('[extract-idea] Scrape failed, using URL-only fallback:', scrapeErr.message);
             scrapeWarning = `(Note: the page could not be fetched — ${scrapeErr.message}. Infer from the URL alone.)`;
+        }
+
+        // Many travel sites (Agoda, Expedia, etc.) inject og:image via React/JS at runtime,
+        // so static cheerio scraping misses it. Microlink renders with a headless browser.
+        if (!scrapedData.imageUrl) {
+            try {
+                const ml = await fetch(`https://api.microlink.io?url=${encodeURIComponent(url)}`);
+                if (ml.ok) {
+                    const mlJson = await ml.json();
+                    scrapedData.imageUrl = mlJson?.data?.image?.url || '';
+                }
+            } catch (_) { /* non-fatal */ }
         }
 
         const hasScrapedContent = scrapedData.title || scrapedData.description || scrapedData.rawBody;
