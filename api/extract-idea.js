@@ -4,9 +4,17 @@ import { GoogleGenAI } from '@google/genai'
 async function scrapeMetadata(url) {
     const response = await fetch(url, {
         headers: {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml',
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'Referer': 'https://www.google.com/',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'cross-site',
+            'Upgrade-Insecure-Requests': '1',
         }
     });
 
@@ -38,9 +46,21 @@ export default async function handler(req, res) {
     try {
         const { url, currency = 'PHP' } = req.body;
         if (!url) return res.status(400).json({ error: 'URL is required' });
-        const scrapedData = await scrapeMetadata(url);
-        const prompt = `
-        You are Wanda, a travel planner. A user pasted this URL: ${scrapedData.url}
+
+        // Best-effort scrape — if the site blocks us (403, 429, etc.) we fall back
+        // to URL-only inference so the user still gets a useful result
+        let scrapedData = { url, title: '', description: '', siteName: '', rawBody: '' };
+        let scrapeWarning = '';
+        try {
+            scrapedData = await scrapeMetadata(url);
+        } catch (scrapeErr) {
+            console.warn('[extract-idea] Scrape failed, using URL-only fallback:', scrapeErr.message);
+            scrapeWarning = `(Note: the page could not be fetched — ${scrapeErr.message}. Infer from the URL alone.)`;
+        }
+
+        const hasScrapedContent = scrapedData.title || scrapedData.description || scrapedData.rawBody;
+        const prompt = hasScrapedContent
+            ? `You are Wanda, a travel planner. A user pasted this URL: ${scrapedData.url}
         Scraped data:
         Site Name: ${scrapedData.siteName}
         Title: ${scrapedData.title}
@@ -49,14 +69,25 @@ export default async function handler(req, res) {
         Extract details and return ONLY a valid JSON object matching this schema:
         {
           "title": "Short, clean title of the place/activity",
-          "type": "lodging", // Must be "lodging", "activity", "food", or "other"
+          "type": "lodging",
           "priceDetails": "Guess price format based on text. Format in ${currency}",
           "description": "A short 1-2 sentence catchy description.",
-          "emoji": "🏡", // 1 single relevant emoji
+          "emoji": "🏡",
           "sourceName": "Airbnb, TripAdvisor, TikTok, etc."
         }
-        Do not wrap in markdown blocks.
-    `;
+        Do not wrap in markdown blocks.`
+            : `You are Wanda, a travel planner. A user pasted this URL: ${url}
+        ${scrapeWarning}
+        Based on the URL alone, make your best guess and return ONLY a valid JSON object matching this schema:
+        {
+          "title": "Short, clean title of the place/activity inferred from the URL",
+          "type": "lodging",
+          "priceDetails": "Unknown — please check the link",
+          "description": "A short 1-2 sentence description based on what you can infer from the URL.",
+          "emoji": "🔗",
+          "sourceName": "Infer from the domain (e.g. airbnb.com → Airbnb)"
+        }
+        Do not wrap in markdown blocks.`;
 
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY });
         const result = await ai.models.generateContent({
