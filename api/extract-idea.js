@@ -64,6 +64,9 @@ export default async function handler(req, res) {
         }
 
         const hasScrapedContent = scrapedData.title || scrapedData.description || scrapedData.rawBody;
+
+        // imageUrl is NOT passed through Gemini — LLMs corrupt URLs (truncation,
+        // re-encoding of &amp; etc). We inject it directly from the scrape result below.
         const prompt = hasScrapedContent
             ? `You are Wanda, a travel planner. A user pasted this URL: ${scrapedData.url}
         Scraped data:
@@ -78,11 +81,9 @@ export default async function handler(req, res) {
           "priceDetails": "Best-effort price estimate in ${currency}. Use text clues if available. If unknown, make a reasonable market estimate and add '(est.)' — never leave blank.",
           "description": "A short 1-2 sentence catchy description.",
           "emoji": "🏡",
-          "sourceName": "Airbnb, TripAdvisor, TikTok, etc.",
-          "imageUrl": "${scrapedData.imageUrl || ''}"
+          "sourceName": "Airbnb, TripAdvisor, TikTok, etc."
         }
         Rules:
-        - imageUrl: use the value provided above exactly as-is (already scraped). If empty string, keep it empty — do not invent a URL.
         - priceDetails format: "₱2500/night" or "₱1200/person" or "₱8000 (est.)" — always include a slash + period unit or '(est.)' suffix.
         Do not wrap in markdown blocks.`
             : `You are Wanda, a travel planner. A user pasted this URL: ${url}
@@ -94,8 +95,7 @@ export default async function handler(req, res) {
           "priceDetails": "Make a reasonable market-rate estimate in ${currency} for this type of place/activity and add '(est.)' — never leave blank.",
           "description": "A short 1-2 sentence description based on what you can infer from the URL.",
           "emoji": "🔗",
-          "sourceName": "Infer from the domain (e.g. airbnb.com → Airbnb)",
-          "imageUrl": ""
+          "sourceName": "Infer from the domain (e.g. airbnb.com → Airbnb)"
         }
         Do not wrap in markdown blocks.`;
 
@@ -107,8 +107,10 @@ export default async function handler(req, res) {
         });
 
         let cleanJSONString = result.text.replace(/```json/g, '').replace(/```/g, '').trim();
+        const geminiData = JSON.parse(cleanJSONString);
 
-        return res.status(200).json(JSON.parse(cleanJSONString));
+        // Merge: Gemini handles text inference, scraper owns imageUrl exactly as-is
+        return res.status(200).json({ ...geminiData, imageUrl: scrapedData.imageUrl || '' });
     } catch (error) {
         console.error('[extract-idea] Error:', error);
         return res.status(500).json({ error: error.message });
