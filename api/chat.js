@@ -25,8 +25,8 @@ export default async function handler(req) {
     }
 
     try {
-        const { messages, data } = await req.json()
-        const systemPrompt = data?.systemPrompt || "You are Wanda, a travel assistant."
+        const { messages, systemPrompt: clientPrompt } = await req.json()
+        const systemPrompt = clientPrompt || "You are Wanda, a friendly travel planning assistant."
 
         // createGoogleGenerativeAI lets us supply GEMINI_API_KEY explicitly;
         // the default google() export reads GOOGLE_GENERATIVE_AI_API_KEY instead
