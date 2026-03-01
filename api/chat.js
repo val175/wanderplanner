@@ -1,5 +1,5 @@
 // api/chat.js
-import { streamText, convertToModelMessages } from 'ai'
+import { streamText } from 'ai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 
 // THIS IS THE MAGIC LINE: Bypasses the 10s timeout on Vercel Hobby tier
@@ -34,11 +34,19 @@ export default async function handler(req) {
             apiKey: process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY
         })
 
+        // UIMessage[] has parts:[{type:'text',text}] — flatten to simple {role,content} strings
+        // that streamText's ModelMessage schema definitely accepts
+        const modelMessages = (messages || []).map(m => ({
+            role: m.role,
+            content: Array.isArray(m.parts)
+                ? m.parts.filter(p => p.type === 'text').map(p => p.text).join('\n')
+                : (m.content || ''),
+        }))
+
         const result = await streamText({
             model: google('gemini-2.0-flash'),
             system: systemPrompt,
-            // convertToModelMessages converts UIMessage[] (parts-based) → ModelMessage[]
-            messages: convertToModelMessages(messages),
+            messages: modelMessages,
         })
 
         return result.toUIMessageStreamResponse({ headers: CORS_HEADERS })

@@ -3,15 +3,19 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { Send, X, Sparkles } from 'lucide-react';
 
+// Instantiate once at module level — creating a new transport on every render
+// would cause useChat to lose its internal state and reset the conversation
+const chatTransport = new DefaultChatTransport({
+  api: 'https://wanderplan-rust.vercel.app/api/chat',
+});
+
 export default function AIAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const bottomRef = useRef(null);
 
-  const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({
-      api: 'https://wanderplan-rust.vercel.app/api/chat',
-    }),
+  const { messages, sendMessage, status, error } = useChat({
+    transport: chatTransport,
   });
 
   const isLoading = status === 'submitted' || status === 'streaming';
@@ -134,9 +138,14 @@ export default function AIAssistant() {
               gap: '10px',
             }}
           >
-            {messages.length === 0 && (
+            {messages.length === 0 && !error && (
               <p style={{ color: 'var(--color-text-muted)', fontSize: '13px', textAlign: 'center', marginTop: '24px' }}>
                 Hi! I'm Wanda, your travel assistant. Ask me anything about your trip!
+              </p>
+            )}
+            {error && (
+              <p style={{ color: '#e53e3e', fontSize: '12px', textAlign: 'center', padding: '8px', background: '#fff5f5', borderRadius: '8px' }}>
+                ⚠️ {error.message || 'Something went wrong. Please try again.'}
               </p>
             )}
             {messages.map(m => (
