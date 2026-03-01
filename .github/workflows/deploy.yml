@@ -1,4 +1,4 @@
-name: Deploy to Hostinger
+name: Deploy
 
 on:
   push:
@@ -10,7 +10,8 @@ permissions:
   contents: write
 
 jobs:
-  build-and-deploy:
+  # ── Job 1: Build React app → deploy static files to Hostinger ──────────────
+  build-and-deploy-hostinger:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -44,5 +45,17 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
           publish_branch: deploy
-          # By default, this keeps commit history on the deploy branch
-          # and creates a clean commit matching the main branch SHA.
+
+  # ── Job 2: Deploy API functions to Vercel (runs in parallel) ───────────────
+  deploy-vercel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: npx vercel --prod --token=$VERCEL_TOKEN --yes
