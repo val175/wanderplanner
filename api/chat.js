@@ -41,7 +41,7 @@ export default async function handler(req) {
         }))
 
         const result = await streamText({
-            model: openrouter('google/gemma-3-27b-it:free'),
+            model: openrouter('mistralai/mistral-small-3.1-24b-instruct:free'),
             system: systemPrompt,
             messages: modelMessages,
         })

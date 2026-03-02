@@ -155,7 +155,7 @@ ${articleText.substring(0, 30000)} // Limiting length to be safe
                 'X-Title': 'Wanderplan',
             },
             body: JSON.stringify({
-                model: 'google/gemma-3-27b-it:free',
+                model: 'mistralai/mistral-small-3.1-24b-instruct:free',
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.1,
                 response_format: { type: 'json_object' },
