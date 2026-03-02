@@ -14,7 +14,7 @@ import { useCountdown } from '../../hooks/useCountdown'
    TravelerPicker — portal-based dropdown (unchanged logic)
 ───────────────────────────────────────────────────────────── */
 function TravelerPicker({ trip, travelerProfiles, dispatch }) {
-  const { profiles } = useProfiles()
+  const { profiles, resolveProfile } = useProfiles()
   const [open, setOpen] = useState(false)
   const [coords, setCoords] = useState({ top: 0, left: 0 })
   const btnRef = useRef(null)
@@ -22,8 +22,18 @@ function TravelerPicker({ trip, travelerProfiles, dispatch }) {
 
   const toggleProfile = (id) => {
     const current = trip.travelerIds || []
-    const next = current.includes(id) ? current.filter(x => x !== id) : [...current, id]
-    dispatch({ type: ACTIONS.UPDATE_TRIP, payload: { id: trip.id, updates: { travelerIds: next, travelers: Math.max(next.length, 1) } } })
+    const isRemoving = current.includes(id)
+    const next = isRemoving ? current.filter(x => x !== id) : [...current, id]
+
+    // Keep memberIds in sync so co-planners can see the trip in their sidebar.
+    // travelerIds stores profile IDs; memberIds must hold Firebase Auth UIDs.
+    const resolvedUid = resolveProfile(id)?.uid
+    const currentMemberIds = trip.memberIds || []
+    const nextMemberIds = isRemoving
+      ? currentMemberIds.filter(uid => uid !== resolvedUid)
+      : resolvedUid ? [...new Set([...currentMemberIds, resolvedUid])] : currentMemberIds
+
+    dispatch({ type: ACTIONS.UPDATE_TRIP, payload: { id: trip.id, updates: { travelerIds: next, travelers: Math.max(next.length, 1), memberIds: nextMemberIds } } })
   }
 
   const handleOpen = () => {
