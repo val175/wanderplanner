@@ -47,7 +47,15 @@ export default async function handler(req, res) {
                 return res.status(response.status).json(err)
             }
 
-            return res.status(200).json(await response.json())
+            const data = await response.json()
+            // OpenRouter may return 200 with an error body (e.g. "No endpoints found")
+            if (!data.choices?.length) {
+                const errMsg = data.error?.message || 'No choices in response'
+                console.log(`[gemini] ${model} no valid response: ${errMsg}, trying next...`)
+                continue
+            }
+
+            return res.status(200).json(data)
         }
 
         return res.status(429).json({ error: 'All AI models are currently rate limited. Please try again in a moment.' })
