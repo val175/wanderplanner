@@ -8,7 +8,7 @@
 // All requests go through our Vercel proxy to keep the API key server-side
 const PROXY_URL = 'https://wanderplan-rust.vercel.app/api/gemini'
 
-const DEFAULT_MODEL = 'google/gemini-2.0-flash-exp:free'
+const DEFAULT_MODEL = 'google/gemma-3-27b-it:free'
 
 /**
  * Build a rich system prompt from the active trip.
