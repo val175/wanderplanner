@@ -37,8 +37,8 @@ export default async function handler(req, res) {
                 body: JSON.stringify({ ...req.body, model }),
             })
 
-            if (response.status === 429) {
-                console.log(`[gemini] ${model} rate limited, trying next fallback...`)
+            if (response.status === 429 || response.status === 404) {
+                console.log(`[gemini] ${model} skipped (${response.status}), trying next fallback...`)
                 continue
             }
 
