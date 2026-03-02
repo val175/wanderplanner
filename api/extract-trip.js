@@ -1,5 +1,4 @@
 import * as cheerio from 'cheerio'
-import { GoogleGenAI } from '@google/genai'
 import 'dotenv/config'
 
 // We don't initialize `ai` at the top level anymore because Vercel Serverless Functions
@@ -76,7 +75,7 @@ async function extractArticleText(url) {
 }
 
 /**
- * Parses article text into a structured Trip Draft using Gemini
+ * Parses article text into a structured Trip Draft using OpenRouter
  */
 async function parseTripWithGemini(articleTitle, articleText) {
     const prompt = `
@@ -147,27 +146,28 @@ ${articleText.substring(0, 30000)} // Limiting length to be safe
 `
 
     try {
-        // Initialize AI client here where the environment variables are guaranteed to be loaded
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: {
-                temperature: 0.1, // Keep it deterministic
-                responseMimeType: 'application/json'
-            }
-        })
-
-        // In the new @google/genai SDK, .text is a property, not a function
-        const rawJSON = response.text;
-
-        // Remove markdown formatting if Gemini wrapped it in ```json blocks anyway
+        const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://planner.vlbonite.co',
+                'X-Title': 'Wanderplan',
+            },
+            body: JSON.stringify({
+                model: 'google/gemini-2.5-pro-exp-03-25:free',
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.1,
+                response_format: { type: 'json_object' },
+            }),
+        });
+        if (!aiRes.ok) throw new Error(`OpenRouter error ${aiRes.status}`);
+        const aiData = await aiRes.json();
+        const rawJSON = aiData.choices[0].message.content;
         const cleanJSONString = rawJSON.replace(/```json/g, '').replace(/```/g, '').trim()
-
         return JSON.parse(cleanJSONString)
     } catch (error) {
-        console.error("Gemini Parsing error:", error)
+        console.error("AI Parsing error:", error)
         throw new Error("AI failed to parse the itinerary from the text.")
     }
 }
@@ -200,8 +200,8 @@ export default async function handler(req, res) {
         }
 
         // Ensure API Key exists
-        if (!process.env.GEMINI_API_KEY) {
-            console.error("ERROR: GEMINI_API_KEY is not set in environment variables.")
+        if (!process.env.OPENROUTER_API_KEY) {
+            console.error("ERROR: OPENROUTER_API_KEY is not set in environment variables.")
             return res.status(500).json({ error: "Server misconfiguration: AI API key missing." })
         }
 

@@ -1,12 +1,14 @@
 /**
  * useAI.js
- * Gemini 2.0 Flash wrapper for Wanderplan.
+ * OpenRouter wrapper for Wanderplan.
  * Builds a trip-aware system prompt from the active trip's state,
  * so every response is grounded in the user's actual trip data.
  */
 
-// Requests go to our Vercel Serverless Function proxy to protect the API key
+// All requests go through our Vercel proxy to keep the API key server-side
 const PROXY_URL = 'https://wanderplan-rust.vercel.app/api/gemini'
+
+const DEFAULT_MODEL = 'google/gemini-2.0-flash-exp:free'
 
 /**
  * Build a rich system prompt from the active trip.
@@ -24,7 +26,6 @@ Be concise, warm, and practical. Use emojis sparingly. The user hasn't selected 
   const startDate = trip.startDate || 'TBD'
   const endDate = trip.endDate || 'TBD'
 
-  // Use the trip's own currency — fall back to PHP if unset
   const currency = trip.currency || 'PHP'
   const currencySymbols = { USD: '$', EUR: '€', GBP: '£', JPY: '¥', PHP: '₱', AUD: 'A$', CAD: 'C$', SGD: 'S$', HKD: 'HK$', THB: '฿', IDR: 'Rp', KRW: '₩', MYR: 'RM', VND: '₫', INR: '₹' }
   const sym = currencySymbols[currency] || currency
@@ -83,77 +84,51 @@ Your role:
 }
 
 /**
- * Send a message to Gemini with full conversation history.
+ * Low-level helper: POST to the proxy in OpenAI format, return response text.
+ */
+async function callProxy(messages, opts = {}) {
+  const res = await fetch(PROXY_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: opts.model || DEFAULT_MODEL,
+      messages,
+      temperature: opts.temperature ?? 0.8,
+      max_tokens: opts.max_tokens ?? 512,
+      ...(opts.jsonMode && { response_format: { type: 'json_object' } }),
+    }),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err?.error?.message || `AI proxy error ${res.status}`)
+  }
+
+  const data = await res.json()
+  const text = data.choices?.[0]?.message?.content
+  if (!text) throw new Error('No response from AI')
+  return text
+}
+
+/**
+ * Send a message to the AI with full conversation history.
  * @param {string} systemPrompt - The trip-aware system prompt
  * @param {Array<{role: 'user'|'model', text: string}>} history - Prior messages
  * @param {string} userMessage - The new user message
  * @returns {Promise<string>} The AI's reply text
  */
 export async function sendMessage(systemPrompt, history, userMessage) {
-  // Gemini uses 'contents' array for history; 'user' and 'model' roles
-  const contents = [
-    ...history.map(msg => ({
-      role: msg.role,
-      parts: [{ text: msg.text }],
-    })),
-    {
-      role: 'user',
-      parts: [{ text: userMessage }],
-    },
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    // Gemini used 'model' for assistant turns; OpenAI uses 'assistant'
+    ...history.map(msg => ({ role: msg.role === 'model' ? 'assistant' : msg.role, content: msg.text })),
+    { role: 'user', content: userMessage },
   ]
-
-  const body = {
-    contents,
-    systemInstruction: {
-      parts: [{ text: systemPrompt }],
-    },
-    generationConfig: {
-      temperature: 0.8,
-      maxOutputTokens: 512,
-    },
-  }
-
-  // If local API key exists in DEV, use it instantly to avoid proxy CORS failures
-  const apiKey = import.meta.env.DEV ? import.meta.env.VITE_GEMINI_API_KEY : null
-  if (apiKey) {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      throw new Error(err?.error?.message || `Gemini API error ${res.status}`)
-    }
-
-    const data = await res.json()
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text
-    if (!text) throw new Error('No response from Gemini API')
-    return text
-  }
-
-  // Fallback to proxy
-  const res = await fetch(PROXY_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err?.error?.message || `Gemini API error ${res.status}`)
-  }
-
-  const data = await res.json()
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text
-  if (!text) throw new Error('No response from Gemini')
-  return text
+  return callProxy(messages, { temperature: 0.8, max_tokens: 512 })
 }
 
 /**
  * Generate an auto-filled city guide (Weather, Currency, Must-Do).
- * Requests JSON format from Gemini to easily map to the city object.
  */
 export async function generateCityGuide(city, trip) {
   const prompt = `
@@ -176,63 +151,33 @@ Rules:
 2. "currencyTip": 2-line summary. Line 1: Currency Symbol and "CURRENCY". Line 2: Exchange rate from ${trip.currency || 'USD'} to local.
 3. "mustDo": A punchy, 2-to-3 sentence summary of the "Vibe & Must Do" highlights of the city.
 4. DO NOT wrap the output in markdown code blocks like \`\`\`json. Output raw JSON only.
-  `;
+  `
 
-  const body = {
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    systemInstruction: {
-      parts: [{ text: "You are Wanda, a travel assistant built into Wanderplan." }],
-    },
-    generationConfig: {
-      temperature: 0.7,
-      maxOutputTokens: 256,
-    },
-  }
+  const messages = [
+    { role: 'system', content: 'You are Wanda, a travel assistant built into Wanderplan.' },
+    { role: 'user', content: prompt },
+  ]
 
-  const apiKey = import.meta.env.DEV ? import.meta.env.VITE_GEMINI_API_KEY : null
-  const url = apiKey
-    ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
-    : PROXY_URL;
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err?.error?.message || `Gemini API error ${res.status} `)
-  }
-
-  const data = await res.json()
-  let text = data.candidates?.[0]?.content?.parts?.[0]?.text
-
-  if (!text) throw new Error('No response from Gemini')
-
-  // Clean potential markdown blocks if the AI still included them
-  text = text.replace(/^\`\`\`json/m, '').replace(/^\`\`\`/m, '').trim()
-
+  const text = await callProxy(messages, { temperature: 0.7, max_tokens: 256, jsonMode: true })
+  const clean = text.replace(/^```json/m, '').replace(/^```/m, '').trim()
   try {
-    return JSON.parse(text)
+    return JSON.parse(clean)
   } catch (e) {
-    console.error("Failed to parse city guide JSON:", text)
+    console.error("Failed to parse city guide JSON:", clean)
     throw new Error("Invalid format returned from AI")
   }
 }
 
 /**
  * Generate a pin's name and emoji given a raw URL.
- * Requests JSON format from Gemini.
  */
 export async function generatePinFromUrl(url) {
   const prompt = `
 A user pasted this URL into their travel planner:
 ${url}
 
-Visit or analyze this URL. If it is a shortened link (like maps.app.goo.gl/XXXXXXXX), you MUST use your Google Search tool to search for the EXACT unique ID string at the end of the URL (e.g. search for "XXXXXXXX") or the URL itself to discover what place or business it redirects to. Do not guess. Search it.
 Figure out the real name of the place, restaurant, landmark, or link title.
-Then, pick ONE single emoji that best categorizes it (e.g. 🍜 for ramen, 🏨 for hotel, 🏛️ for museum, ✈️ for airport, etc.). If it's just a generic link, use 🔗.
+Pick ONE single emoji that best categorizes it (e.g. 🍜 for ramen, 🏨 for hotel, 🏛️ for museum, ✈️ for airport, etc.). If it's just a generic link, use 🔗.
 
 Return ONLY a valid JSON object with the exact keys:
 {
@@ -241,53 +186,23 @@ Return ONLY a valid JSON object with the exact keys:
 }
 
 DO NOT wrap the output in markdown code blocks like \`\`\`json. Output raw JSON only.
-  `;
+  `
 
-  const body = {
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    systemInstruction: {
-      parts: [{ text: "You are Wanda, a travel assistant built into Wanderplan." }],
-    },
-    tools: [
-      { googleSearch: {} }
-    ],
-    generationConfig: {
-      temperature: 0.2, // Low temp for more accurate/consistent extraction
-      maxOutputTokens: 64,
-    },
-  }
+  const messages = [
+    { role: 'system', content: 'You are Wanda, a travel assistant built into Wanderplan.' },
+    { role: 'user', content: prompt },
+  ]
 
-  const apiKey = import.meta.env.DEV ? import.meta.env.VITE_GEMINI_API_KEY : null
-  const apiUrl = apiKey
-    ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
-    : PROXY_URL;
-
-  const res = await fetch(apiUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err?.error?.message || `Gemini API error ${res.status}`)
-  }
-
-  const data = await res.json()
-  let text = data.candidates?.[0]?.content?.parts?.[0]?.text
-
-  if (!text) throw new Error('No response from Gemini')
-
-  // Clean potential markdown blocks if the AI still included them
-  text = text.replace(/^\`\`\`json/m, '').replace(/^\`\`\`/m, '').trim()
-
+  const text = await callProxy(messages, { temperature: 0.2, max_tokens: 64, jsonMode: true })
+  const clean = text.replace(/^```json/m, '').replace(/^```/m, '').trim()
   try {
-    return JSON.parse(text)
+    return JSON.parse(clean)
   } catch (e) {
-    console.error("Failed to parse pin JSON:", text)
+    console.error("Failed to parse pin JSON:", clean)
     throw new Error("Invalid format returned from AI")
   }
 }
+
 export async function extractIdeaDetails(url, tripCurrency) {
   try {
     const res = await fetch('https://wanderplan-rust.vercel.app/api/extract-idea', {

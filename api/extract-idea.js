@@ -1,5 +1,4 @@
 import * as cheerio from 'cheerio'
-import { GoogleGenAI } from '@google/genai'
 
 async function scrapeMetadata(url) {
     const response = await fetch(url, {
@@ -111,15 +110,24 @@ export default async function handler(req, res) {
         }
         Do not wrap in markdown blocks.`;
 
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY });
-        const result = await ai.models.generateContent({
-            model: 'gemini-2.0-flash',
-            contents: prompt,
-            config: { temperature: 0.1, responseMimeType: 'application/json' }
+        const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://planner.vlbonite.co',
+                'X-Title': 'Wanderplan',
+            },
+            body: JSON.stringify({
+                model: 'google/gemini-2.0-flash-exp:free',
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.1,
+                response_format: { type: 'json_object' },
+            }),
         });
-
-        let cleanJSONString = result.text.replace(/```json/g, '').replace(/```/g, '').trim();
-        const geminiData = JSON.parse(cleanJSONString);
+        if (!aiRes.ok) throw new Error(`OpenRouter error ${aiRes.status}`);
+        const aiData = await aiRes.json();
+        const geminiData = JSON.parse(aiData.choices[0].message.content);
 
         // Merge: Gemini handles text inference, scraper owns imageUrl exactly as-is
         return res.status(200).json({ ...geminiData, imageUrl: scrapedData.imageUrl || '' });

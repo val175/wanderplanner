@@ -1,6 +1,6 @@
 // api/chat.js
 import { streamText } from 'ai'
-import { createGoogleGenerativeAI } from '@ai-sdk/google'
+import { createOpenAI } from '@ai-sdk/openai'
 
 // THIS IS THE MAGIC LINE: Bypasses the 10s timeout on Vercel Hobby tier
 export const config = {
@@ -15,7 +15,6 @@ const CORS_HEADERS = {
 }
 
 export default async function handler(req) {
-    // Handle preflight OPTIONS request
     if (req.method === 'OPTIONS') {
         return new Response(null, { status: 200, headers: CORS_HEADERS })
     }
@@ -28,14 +27,12 @@ export default async function handler(req) {
         const { messages, systemPrompt: clientPrompt } = await req.json()
         const systemPrompt = clientPrompt || "You are Wanda, a friendly travel planning assistant."
 
-        // createGoogleGenerativeAI lets us supply GEMINI_API_KEY explicitly;
-        // the default google() export reads GOOGLE_GENERATIVE_AI_API_KEY instead
-        const google = createGoogleGenerativeAI({
-            apiKey: process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY
+        const openrouter = createOpenAI({
+            baseURL: 'https://openrouter.ai/api/v1',
+            apiKey: process.env.OPENROUTER_API_KEY,
         })
 
         // UIMessage[] has parts:[{type:'text',text}] — flatten to simple {role,content} strings
-        // that streamText's ModelMessage schema definitely accepts
         const modelMessages = (messages || []).map(m => ({
             role: m.role,
             content: Array.isArray(m.parts)
@@ -44,7 +41,7 @@ export default async function handler(req) {
         }))
 
         const result = await streamText({
-            model: google('gemini-2.0-flash'),
+            model: openrouter('google/gemini-2.0-flash-exp:free'),
             system: systemPrompt,
             messages: modelMessages,
         })

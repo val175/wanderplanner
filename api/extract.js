@@ -1,8 +1,5 @@
 // api/extract.js
-// Rewritten to use @google/genai directly (no ai package dependency)
-// This is the "Voting Room" idea extractor — same pattern as extract-idea.js
 import * as cheerio from 'cheerio'
-import { GoogleGenAI } from '@google/genai'
 
 async function scrapeMetadata(url) {
     const response = await fetch(url, {
@@ -62,15 +59,24 @@ Extract details and return ONLY a valid JSON object:
 type must be one of: "lodging", "activity", "food", "other".
 Do not wrap in markdown.`;
 
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY });
-        const result = await ai.models.generateContent({
-            model: 'gemini-2.0-flash',
-            contents: prompt,
-            config: { temperature: 0.1, responseMimeType: 'application/json' }
+        const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://planner.vlbonite.co',
+                'X-Title': 'Wanderplan',
+            },
+            body: JSON.stringify({
+                model: 'google/gemini-2.0-flash-exp:free',
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.1,
+                response_format: { type: 'json_object' },
+            }),
         });
-
-        const cleanJSON = result.text.replace(/```json/g, '').replace(/```/g, '').trim();
-        return res.status(200).json(JSON.parse(cleanJSON));
+        if (!aiRes.ok) throw new Error(`OpenRouter error ${aiRes.status}`);
+        const aiData = await aiRes.json();
+        return res.status(200).json(JSON.parse(aiData.choices[0].message.content));
     } catch (error) {
         console.error('[extract] Error:', error);
         return res.status(500).json({ error: error.message });
