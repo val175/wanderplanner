@@ -63,7 +63,6 @@ Do not wrap in markdown.`;
         const aiData = await callOpenRouter(process.env.OPENROUTER_API_KEY, {
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.1,
-            response_format: { type: 'json_object' },
         });
         return res.status(200).json(JSON.parse(aiData.choices[0].message.content));
     } catch (error) {
