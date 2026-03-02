@@ -1,5 +1,6 @@
 // api/extract.js
 import * as cheerio from 'cheerio'
+import { callOpenRouter } from './_openrouter.js'
 
 async function scrapeMetadata(url) {
     const response = await fetch(url, {
@@ -59,23 +60,11 @@ Extract details and return ONLY a valid JSON object:
 type must be one of: "lodging", "activity", "food", "other".
 Do not wrap in markdown.`;
 
-        const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-                'Content-Type': 'application/json',
-                'HTTP-Referer': 'https://planner.vlbonite.co',
-                'X-Title': 'Wanderplan',
-            },
-            body: JSON.stringify({
-                model: 'mistralai/mistral-small-3.1-24b-instruct:free',
-                messages: [{ role: 'user', content: prompt }],
-                temperature: 0.1,
-                response_format: { type: 'json_object' },
-            }),
+        const aiData = await callOpenRouter(process.env.OPENROUTER_API_KEY, {
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.1,
+            response_format: { type: 'json_object' },
         });
-        if (!aiRes.ok) throw new Error(`OpenRouter error ${aiRes.status}`);
-        const aiData = await aiRes.json();
         return res.status(200).json(JSON.parse(aiData.choices[0].message.content));
     } catch (error) {
         console.error('[extract] Error:', error);

@@ -1,5 +1,6 @@
 import * as cheerio from 'cheerio'
 import 'dotenv/config'
+import { callOpenRouter } from './_openrouter.js'
 
 // We don't initialize `ai` at the top level anymore because Vercel Serverless Functions
 // sometimes load the file BEFORE injecting the environment variables on cold start.
@@ -161,23 +162,11 @@ ${content}
 `
 
     try {
-        const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-                'Content-Type': 'application/json',
-                'HTTP-Referer': 'https://planner.vlbonite.co',
-                'X-Title': 'Wanderplan',
-            },
-            body: JSON.stringify({
-                model: 'mistralai/mistral-small-3.1-24b-instruct:free',
-                messages: [{ role: 'user', content: prompt }],
-                temperature: 0.1,
-                response_format: { type: 'json_object' },
-            }),
+        const aiData = await callOpenRouter(process.env.OPENROUTER_API_KEY, {
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.1,
+            response_format: { type: 'json_object' },
         });
-        if (!aiRes.ok) throw new Error(`OpenRouter error ${aiRes.status}`);
-        const aiData = await aiRes.json();
         const rawJSON = aiData.choices[0].message.content;
         const cleanJSONString = rawJSON.replace(/```json/g, '').replace(/```/g, '').trim()
         return JSON.parse(cleanJSONString)

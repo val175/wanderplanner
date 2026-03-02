@@ -4,11 +4,7 @@
 //
 // Includes a model fallback chain: free models have per-model rate limits,
 // so on 429 we try the next model in the list (each has its own bucket).
-const FALLBACK_MODELS = [
-    'mistralai/mistral-small-3.1-24b-instruct:free',
-    'google/gemma-3-27b-it:free',
-    'meta-llama/llama-3.1-8b-instruct:free',
-]
+import { FALLBACK_MODELS } from './_openrouter.js'
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*')
