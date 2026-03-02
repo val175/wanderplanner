@@ -6,13 +6,14 @@ import 'dotenv/config'
 // Instead, we instantiate it when needed inside the function scope.
 
 /**
- * Extracts the main article text from a given URL using a headless browser.
+ * Extracts a compact, structured summary from a travel blog URL.
+ * Uses heading-first extraction: og:meta + (heading + first snippet per section).
+ * Targets ~3–6k chars instead of a 30k full-text dump.
  */
 async function extractArticleText(url) {
     try {
         console.log(`[extract-trip] Fetching HTML from ${url}...`)
 
-        // We use a regular fetch, but pretend to be a standard Mac Chrome browser
         const response = await fetch(url, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
@@ -34,39 +35,54 @@ async function extractArticleText(url) {
         }
 
         const html = await response.text();
-        // Continue existing cheerio parsing
-
-        // Parse HTML with cheerio to do some initial cleanup (remove scripts, styles, etc)
         const $ = cheerio.load(html)
-        $('script, style, noscript, nav, header, footer, aside, iframe, SVG, .ad, .advertisement').remove()
-        const cleanHtml = $.html()
 
-        // Custom text extraction: instead of Readability (which uses JSDOM and breaks on Vercel ESM),
-        // we'll explicitly pull text from headings, paragraphs, and lists.
-        const contentChunks = []
+        // Compact meta info (same approach as the voting room scraper)
+        const title = $('meta[property="og:title"]').attr('content')
+            || $('title').text().trim()
+            || 'Imported Trip'
+        const description = $('meta[property="og:description"]').attr('content')
+            || $('meta[name="description"]').attr('content')
+            || ''
 
-        $('h1, h2, h3, h4, h5, h6, p, li').each((_, el) => {
-            const text = $(el).text().trim()
-            if (text) {
-                // Determine if it's a heading based on tag name
-                const isHeading = el.tagName.match(/^h[1-6]$/i)
-                contentChunks.push(isHeading ? `\n## ${text}\n` : text)
+        // Strip noise before extracting content
+        $('script, style, noscript, nav, header, footer, aside, iframe, .ad, .advertisement, .comments, .sidebar, .related-posts, .newsletter').remove()
+
+        // Heading-first extraction: travel blogs are structured by day headings.
+        // Grab each heading + the first meaningful snippet after it (~250 chars).
+        const sections = []
+        $('h2, h3, h4').each((_, el) => {
+            const headingText = $(el).text().trim()
+            if (!headingText || headingText.length < 3) return
+
+            let snippet = ''
+            let sibling = $(el).next()
+            while (sibling.length && !snippet && !sibling.is('h1,h2,h3,h4')) {
+                const text = sibling.text().trim()
+                if (text) snippet = text.substring(0, 250)
+                sibling = sibling.next()
             }
+            sections.push(snippet ? `## ${headingText}\n${snippet}` : `## ${headingText}`)
         })
 
-        const rawText = contentChunks.join('\n')
-
-        if (!rawText) {
-            throw new Error("Could not extract main article content from this URL.")
+        let content
+        if (sections.length >= 3) {
+            // Well-structured blog — headings + snippets give the AI all it needs
+            content = sections.join('\n\n')
+        } else {
+            // Fallback: flat body text, tightly capped at 6k chars
+            const bodyChunks = []
+            $('h1, h2, h3, p, li').each((_, el) => {
+                const text = $(el).text().trim()
+                if (text) bodyChunks.push(text)
+            })
+            content = bodyChunks.join('\n').substring(0, 6000)
         }
 
-        // Compress massive amounts of whitespace
-        const compressedText = rawText.replace(/\n\s*\n/g, '\n\n').trim()
+        if (!content) throw new Error("Could not extract main article content from this URL.")
 
-        // Extract title
-        const parsedTitle = $('title').text().trim() || 'Imported Trip'
-
-        return { title: parsedTitle, content: compressedText }
+        console.log(`[extract-trip] Extracted ${content.length} chars across ${sections.length} sections`)
+        return { title, description, content }
 
     } catch (error) {
         console.error("Extraction error:", error)
@@ -75,24 +91,23 @@ async function extractArticleText(url) {
 }
 
 /**
- * Parses article text into a structured Trip Draft using OpenRouter
+ * Parses compact article data into a structured Trip Draft using OpenRouter
  */
-async function parseTripWithGemini(articleTitle, articleText) {
+async function parseTripWithAI({ title, description, content }) {
     const prompt = `
-You are an expert travel assistant. I am providing you the text extracted from a travel blog post: "${articleTitle}".
+You are an expert travel assistant. Extract the travel itinerary from this blog post and output a STRICT JSON object representing a "Trip Draft".
 
-Your task is to extract the travel itinerary and output a STRICT JSON object representing a "Trip Draft".
+Title: "${title}"${description ? `\nSummary: ${description}` : ''}
 
 Requirements:
 1. Extract all logical destinations mentioned (cities/regions).
 2. Attempt to infer a start Date and end Date if mentioned (ISO 8601 format: YYYY-MM-DD). If no specific dates are mentioned but duration is (e.g., "7 days"), leave dates empty. If no dates are mentioned, leave them empty strings "".
-3. Suggest a fun "name" for the trip based on the article (e.g. "2 Weeks in Backpacking Vietnam")
+3. Suggest a fun "name" for the trip based on the article (e.g. "2 Weeks Backpacking Vietnam")
 4. Suggest a single relevant emoji for the trip.
-5. Create budget categories based on standard travel needs (Flights, Accommodation, Food, Activities, Transport). 
+5. Create budget categories based on standard travel needs (Flights, Accommodation, Food, Activities, Transport).
    - If the article mentions specific expected costs, use those.
-   - CRITICAL: If the blog DOES NOT mention specific costs for a category, DO NOT leave it at 0. You MUST use your own world knowledge to infer a realistic, rough estimate for a middle-class traveler for the TOTAL DURATION of the itinerary described.
-   - For example, a 10-day trip to Europe should realistically cost upwards of 50,000+ PHP, not 500 PHP. 
-   - ALL COSTS MUST BE CONVERTED AND ESTIMATED IN PHP (Philippine Pesos). If the blog quotes prices in USD, EUR, AUD, or other currencies, you MUST mathematically convert them to PHP using current approximate exchange rates.
+   - CRITICAL: If costs are not mentioned, use your world knowledge to infer realistic estimates for a middle-class traveler in PHP (Philippine Pesos) for the full trip duration.
+   - ALL COSTS MUST BE IN PHP. Convert from USD/EUR/AUD/etc. using current approximate exchange rates.
 6. The exact output MUST be a valid JSON matching this schema:
 
 {
@@ -110,8 +125,8 @@ Requirements:
   "budgetCategories": [
      { "name": "Flights", "emoji": "✈️", "min": 0, "max": 0 },
      { "name": "Accommodation", "emoji": "🏨", "min": 0, "max": 0 },
-     { "name": "Food", "emoji": "🍜", "min": 400, "max": 506 },
-     { "name": "Activities", "emoji": "🎯", "min": 20, "max": 970 }
+     { "name": "Food", "emoji": "🍜", "min": 0, "max": 0 },
+     { "name": "Activities", "emoji": "🎯", "min": 0, "max": 0 }
   ],
   "todos": [
      { "text": "String (Activity, sight to see, or task mentioned)", "category": "String (e.g. Activity, Sightseeing, Admin, Tech)" }
@@ -139,9 +154,9 @@ Requirements:
 
 DO NOT wrap the response in markdown blocks (no \`\`\`json). Output RAW JSON only.
 
-Blog Post Content:
+Blog Content:
 ---
-${articleText.substring(0, 30000)} // Limiting length to be safe
+${content}
 ---
 `
 
@@ -208,11 +223,11 @@ export default async function handler(req, res) {
         console.log(`[extract-trip] Processing URL: ${url}`)
 
         // 1. Scrape the URL
-        const { title, content } = await extractArticleText(url)
-        console.log(`[extract-trip] Successfully extracted ${content.length} characters from: ${title}`)
+        const scraped = await extractArticleText(url)
+        console.log(`[extract-trip] Successfully extracted ${scraped.content.length} chars from: ${scraped.title}`)
 
         // 2. Parse with AI
-        const draftJson = await parseTripWithGemini(title, content)
+        const draftJson = await parseTripWithAI(scraped)
         console.log(`[extract-trip] Successfully parsed trip data.`)
 
         // 3. Return the result
