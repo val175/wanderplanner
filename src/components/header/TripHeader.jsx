@@ -2,6 +2,7 @@ import { useMemo, useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import ProgressRing from '../shared/ProgressRing'
 import AvatarCircle from '../shared/AvatarCircle'
+import DatePicker from '../shared/DatePicker'
 import { useTripContext } from '../../context/TripContext'
 import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
@@ -418,22 +419,28 @@ function DateRangeEditor({ trip, dispatch }) {
   return (
     <div className="inline-flex items-center gap-1.5 flex-wrap">
       {calIcon}
-      <input
-        type="date"
+      <DatePicker
         value={start}
-        onChange={e => setStart(e.target.value)}
-        className="text-[12px] bg-transparent border-b border-accent/60 focus:border-accent outline-none text-text-primary cursor-pointer"
+        onChange={val => {
+          setStart(val)
+          if (val && end && new Date(val) > new Date(end)) {
+            setEnd(val) // ensure end date isn't before start date
+          }
+        }}
+        placeholder="Start date"
+        className="text-[12px] bg-transparent border-b border-accent/60 focus:border-accent outline-none text-text-primary px-1 hover:border-accent min-w-[90px]"
       />
       <span className="text-text-muted text-[11px]">→</span>
-      <input
-        type="date"
+      <DatePicker
         value={end}
-        onChange={e => setEnd(e.target.value)}
-        className="text-[12px] bg-transparent border-b border-accent/60 focus:border-accent outline-none text-text-primary cursor-pointer"
+        onChange={setEnd}
+        min={start} // Prevent selecting an end date before start date
+        placeholder="End date"
+        className="text-[12px] bg-transparent border-b border-accent/60 focus:border-accent outline-none text-text-primary px-1 hover:border-accent min-w-[90px]"
       />
       <button
         onClick={save}
-        className="text-[10px] px-2 py-0.5 bg-accent text-white rounded-[4px] font-semibold hover:bg-accent-hover transition-colors"
+        className="text-[10px] px-2 py-0.5 bg-accent text-white rounded-[4px] font-semibold hover:bg-accent-hover transition-colors ml-1"
       >
         Save
       </button>
