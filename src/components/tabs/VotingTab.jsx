@@ -35,7 +35,7 @@ function SkeletonCard() {
 }
 
 // ── Idea Card ──
-function IdeaCard({ idea, activeUserId, resolveProfile, onVote, onConvert }) {
+function IdeaCard({ idea, activeUserId, resolveProfile, onVote, onConvert, onDelete }) {
     const upvotes = Object.values(idea.votes || {}).filter(v => v === 1).length
     const downvotes = Object.values(idea.votes || {}).filter(v => v === -1).length
     const myVote = (idea.votes || {})[activeUserId]
@@ -48,9 +48,10 @@ function IdeaCard({ idea, activeUserId, resolveProfile, onVote, onConvert }) {
 
     const isConsensus = idea.status === 'consensus'
     const isRejected = idea.status === 'rejected'
+    const isBooked = idea.status === 'booked'
 
     return (
-        <div className={`relative flex flex-col rounded-[var(--radius-lg)] border bg-bg-card overflow-hidden transition-all duration-300
+        <div className={`group relative flex flex-col rounded-[var(--radius-lg)] border bg-bg-card overflow-hidden transition-all duration-300
       ${isConsensus ? 'border-success ring-1 ring-success shadow-sm' : 'border-border'}
       ${isRejected ? 'opacity-60 grayscale' : ''}
     `}>
@@ -60,6 +61,23 @@ function IdeaCard({ idea, activeUserId, resolveProfile, onVote, onConvert }) {
                     <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                     CONSENSUS REACHED
                 </div>
+            )}
+
+            {/* Delete button — visible on card hover */}
+            {onDelete && (
+                <button
+                    onClick={(e) => { e.stopPropagation(); onDelete(idea.id) }}
+                    className="absolute top-2 right-2 z-30 p-1.5 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 hover:bg-danger transition-all duration-150"
+                    aria-label="Delete idea"
+                    title="Delete idea"
+                >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                        <path d="M10 11v6M14 11v6" />
+                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                    </svg>
+                </button>
             )}
 
             {/* Top Half: Real image or emoji fallback */}
@@ -137,7 +155,12 @@ function IdeaCard({ idea, activeUserId, resolveProfile, onVote, onConvert }) {
                 {/* Action Row */}
                 <div className="mt-auto pt-4 border-t border-border flex items-center justify-between gap-3">
 
-                    {isConsensus ? (
+                    {isBooked ? (
+                        <span className="text-xs font-bold text-success uppercase tracking-widest flex items-center gap-1.5 w-full justify-center">
+                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                            Added to Bookings
+                        </span>
+                    ) : isConsensus ? (
                         <Button className="w-full bg-success hover:bg-success border-success text-white shadow-sm flex items-center justify-center gap-2" onClick={() => onConvert(idea)}>
                             Book It <span aria-hidden="true">&rarr;</span>
                         </Button>
@@ -281,16 +304,30 @@ export default function VotingTab() {
         }
     }
 
+    const handleDeleteIdea = (ideaId) => {
+        dispatch({ type: ACTIONS.DELETE_IDEA, payload: ideaId })
+        showToast("Idea removed")
+    }
+
     const handleConvertToBooking = (idea) => {
-        // Push to Bookings Tab Payload
+        // Guard against duplicate — if already booked, just navigate
+        if (idea.status === 'booked') {
+            showToast("Already added to bookings!", "info")
+            dispatch({ type: ACTIONS.SET_TAB, payload: 'bookings' })
+            return
+        }
+
         dispatch({
             type: ACTIONS.ADD_BOOKING,
             payload: {
+                name: idea.title || idea.sourceName || 'Untitled',
                 provider: idea.sourceName || '',
                 category: (idea.type === 'lodging' ? 'hotel' : (idea.type === 'activity' ? 'experience' : 'custom')),
-                notes: idea.url || ''
+                providerLink: idea.url || '',
             }
         })
+        // Mark idea as booked so the "Book It" button becomes "Added to Bookings"
+        dispatch({ type: ACTIONS.UPDATE_IDEA_STATUS, payload: { ideaId: idea.id, status: 'booked' } })
         showToast("Booking draft created! Redirecting...")
         dispatch({ type: ACTIONS.SET_TAB, payload: 'bookings' })
     }
@@ -369,6 +406,7 @@ export default function VotingTab() {
                             resolveProfile={resolveProfile}
                             onVote={handleVote}
                             onConvert={handleConvertToBooking}
+                            onDelete={handleDeleteIdea}
                         />
                     ))}
                 </div>

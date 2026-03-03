@@ -404,10 +404,21 @@ export default function PackingTab() {
 
   const handleStarterList = () => {
     const travelers = activeTrip.travelerIds || []
-    STARTER_ITEMS.forEach(item =>
+    // Deduplicate: skip items whose name already exists (case-insensitive)
+    const existingNames = new Set(items.map(i => i.name.toLowerCase()))
+    const newItems = STARTER_ITEMS.filter(item => !existingNames.has(item.name.toLowerCase()))
+    if (newItems.length === 0) {
+      showToast("All starter items are already in your list!", "info")
+      return
+    }
+    newItems.forEach(item =>
       dispatch({ type: ACTIONS.ADD_PACKING_ITEM, payload: { ...item, assignee: travelers } })
     )
-    showToast("Starter list added! Remove what you don't need 🧳")
+    const skipped = STARTER_ITEMS.length - newItems.length
+    const msg = skipped > 0
+      ? `Added ${newItems.length} items (${skipped} already present) 🧳`
+      : "Starter list added! Remove what you don't need 🧳"
+    showToast(msg)
   }
 
   // Filters — only show categories that have at least one visible item
