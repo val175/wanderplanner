@@ -370,6 +370,83 @@ function ShareTripButton({ tripName }) {
    The readiness ring moves here as a tiny compact element rather
    than competing with the overview tab content.
 ───────────────────────────────────────────────────────────── */
+
+/* ─────────────────────────────────────────────────────────────
+   DateRangeEditor — click the date to edit start/end inline
+───────────────────────────────────────────────────────────── */
+function DateRangeEditor({ trip, dispatch }) {
+  const [editing, setEditing] = useState(false)
+  const [start, setStart] = useState(trip.startDate || '')
+  const [end, setEnd] = useState(trip.endDate || '')
+  const dateRange = formatDateRange(trip.startDate, trip.endDate)
+
+  const openEdit = () => {
+    setStart(trip.startDate || '')
+    setEnd(trip.endDate || '')
+    setEditing(true)
+  }
+
+  const save = () => {
+    dispatch({ type: ACTIONS.UPDATE_TRIP, payload: { id: trip.id, updates: { startDate: start, endDate: end } } })
+    setEditing(false)
+  }
+
+  const calIcon = (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-60">
+      <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  )
+
+  if (!editing) {
+    return (
+      <button
+        onClick={openEdit}
+        title="Edit trip dates"
+        className="inline-flex items-center gap-1 text-[13px] text-text-muted hover:text-accent transition-colors group"
+      >
+        {calIcon}
+        <span className="group-hover:underline underline-offset-2">
+          {dateRange || 'Add dates…'}
+        </span>
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 group-hover:opacity-60 transition-opacity ml-0.5">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+        </svg>
+      </button>
+    )
+  }
+
+  return (
+    <div className="inline-flex items-center gap-1.5 flex-wrap">
+      {calIcon}
+      <input
+        type="date"
+        value={start}
+        onChange={e => setStart(e.target.value)}
+        className="text-[12px] bg-transparent border-b border-accent/60 focus:border-accent outline-none text-text-primary cursor-pointer"
+      />
+      <span className="text-text-muted text-[11px]">→</span>
+      <input
+        type="date"
+        value={end}
+        onChange={e => setEnd(e.target.value)}
+        className="text-[12px] bg-transparent border-b border-accent/60 focus:border-accent outline-none text-text-primary cursor-pointer"
+      />
+      <button
+        onClick={save}
+        className="text-[10px] px-2 py-0.5 bg-accent text-white rounded-[4px] font-semibold hover:bg-accent-hover transition-colors"
+      >
+        Save
+      </button>
+      <button
+        onClick={() => setEditing(false)}
+        className="text-[10px] text-text-muted hover:text-text-primary transition-colors"
+      >
+        Cancel
+      </button>
+    </div>
+  )
+}
+
 export default function TripHeader() {
   const { activeTrip, dispatch } = useTripContext()
   const { profiles } = useProfiles()
@@ -409,19 +486,7 @@ export default function TripHeader() {
 
               {/* Row 2 — date · travelers · readiness ring, all inline */}
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
-                {dateRange && (
-                  <span className="inline-flex items-center gap-1 text-[13px] text-text-muted">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                      className="shrink-0 opacity-60">
-                      <rect x="3" y="4" width="18" height="18" rx="2" />
-                      <line x1="16" y1="2" x2="16" y2="6" />
-                      <line x1="8" y1="2" x2="8" y2="6" />
-                      <line x1="3" y1="10" x2="21" y2="10" />
-                    </svg>
-                    {dateRange}
-                  </span>
-                )}
+                <DateRangeEditor trip={trip} dispatch={dispatch} />
                 <TravelerPicker trip={trip} travelerProfiles={travelerProfiles} dispatch={dispatch} />
                 {/* Readiness ring inline — compact, no competing row */}
                 <span className="inline-flex items-center gap-1.5">
