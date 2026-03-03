@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import ProgressRing from '../shared/ProgressRing'
 import ProgressBar from '../shared/ProgressBar'
 import { useTripContext } from '../../context/TripContext'
@@ -130,6 +130,8 @@ function RouteMapCell({ trip }) {
   const [mappedDests, setMappedDests] = useState([])
   const [totalDist, setTotalDist] = useState(0)
   const [isExpanded, setIsExpanded] = useState(false)
+  const [coordsLoading, setCoordsLoading] = useState(false)
+  const mapRef = useRef(null)
 
   // Calculate days spent in each city for the marker labels
   const destDaysCount = useMemo(() => {
@@ -152,16 +154,20 @@ function RouteMapCell({ trip }) {
   useEffect(() => {
     let active = true
     async function loadCoords() {
+      // Reset immediately on trip switch so stale route isn't shown
+      if (active) { setCoords([]); setMappedDests([]); setCoordsLoading(true) }
+
       // Filter out invalid destinations that might exist during a magic import skeleton setup
       const validDests = dests.filter(d => Boolean(d && d.city))
 
       if (validDests.length < 2) {
-        if (active) setCoords([])
+        if (active) { setCoords([]); setCoordsLoading(false) }
         return
       }
 
-      // Fetch all geolocations in parallel
-      const promises = validDests.map(d => geocodeCity(d.city))
+      // Fetch all geolocations in parallel — pass country for accurate disambiguation
+      // (e.g. "Santander" → Spain without hint; "Santander Philippines" → Cebu)
+      const promises = validDests.map(d => geocodeCity(d.city, d.country || null))
       const results = await Promise.all(promises)
 
       if (!active) return
@@ -187,10 +193,23 @@ function RouteMapCell({ trip }) {
         )
       }
       setTotalDist(Math.round(dist))
+      setCoordsLoading(false)
     }
     loadCoords()
     return () => { active = false }
   }, [dests])
+
+  // Re-fit map to new bounds whenever coords update (trip switch or initial load).
+  // initialViewState only applies on mount, so we need this for subsequent updates.
+  useEffect(() => {
+    if (!mapRef.current || coords.length < 2) return
+    const lons = coords.map(c => c[0])
+    const lats = coords.map(c => c[1])
+    mapRef.current.fitBounds(
+      [[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]],
+      { padding: { top: 90, bottom: 90, left: 260, right: 90 }, maxZoom: 12, duration: 800 }
+    )
+  }, [coords])
 
   // Handle escape key to close full screen map
   useEffect(() => {
@@ -232,9 +251,15 @@ function RouteMapCell({ trip }) {
         <div className="p-4 flex flex-col h-full bg-[var(--color-bg-secondary)]">
           <Label>Route</Label>
           <div className="flex-1 flex items-center justify-center">
-            <span className="text-sm font-medium text-[var(--color-text-muted)]">
-              Add at least two destinations to see your route map
-            </span>
+            {coordsLoading ? (
+              <span className="text-sm font-medium text-[var(--color-text-muted)] animate-pulse">
+                Mapping your route…
+              </span>
+            ) : (
+              <span className="text-sm font-medium text-[var(--color-text-muted)]">
+                Add at least two destinations to see your route map
+              </span>
+            )}
           </div>
         </div>
       </BentoCard>
@@ -286,6 +311,7 @@ function RouteMapCell({ trip }) {
       >
         <div className={`relative w-full h-full ${isExpanded ? 'rounded-[var(--radius-xl)] overflow-hidden shadow-2xl border border-[var(--color-border)]' : ''}`}>
           <Map
+            ref={mapRef}
             mapboxAccessToken={mapboxToken}
             initialViewState={{
               bounds,

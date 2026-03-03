@@ -96,17 +96,45 @@ export function haversineDistance(lat1, lon1, lat2, lon2) {
 }
 
 /**
- * Fetch latitude/longitude for a given city string using Open-Meteo Geocoding
+ * Module-level geocoding cache — persists across renders and trip switches.
+ * Key: "City|Country" (with country hint) or "City" (without).
+ * This makes switching back to a previously-viewed trip instant.
  */
-export async function geocodeCity(cityStr) {
+const _geocodeCache = {}
+
+/**
+ * Fetch latitude/longitude for a given city using Open-Meteo Geocoding.
+ * @param {string} cityStr   City name (e.g. "Santander")
+ * @param {string} [countryHint]  Country name to disambiguate (e.g. "Philippines")
+ *   Without a hint, "Santander" → Santander, Spain.
+ *   With hint "Philippines" → searches "Santander Philippines" first.
+ */
+export async function geocodeCity(cityStr, countryHint = null) {
+  const cacheKey = countryHint ? `${cityStr}|${countryHint}` : cityStr
+  if (_geocodeCache[cacheKey]) return _geocodeCache[cacheKey]
+
   try {
-    const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityStr)}&count=1&language=en&format=json`);
-    const data = await res.json();
-    if (data.results && data.results.length > 0) {
-      return [data.results[0].longitude, data.results[0].latitude];
+    // First attempt: city + country for accurate disambiguation
+    if (countryHint) {
+      const q = encodeURIComponent(`${cityStr} ${countryHint}`)
+      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${q}&count=3&language=en&format=json`)
+      const data = await res.json()
+      if (data.results?.length > 0) {
+        const result = [data.results[0].longitude, data.results[0].latitude]
+        _geocodeCache[cacheKey] = result
+        return result
+      }
+    }
+    // Fallback: city name only
+    const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityStr)}&count=1&language=en&format=json`)
+    const data = await res.json()
+    if (data.results?.length > 0) {
+      const result = [data.results[0].longitude, data.results[0].latitude]
+      _geocodeCache[cacheKey] = result
+      return result
     }
   } catch (err) {
-    console.error("Geocoding failed for", cityStr, err);
+    console.error("Geocoding failed for", cityStr, err)
   }
-  return null;
+  return null
 }
