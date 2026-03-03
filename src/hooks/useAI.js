@@ -212,9 +212,9 @@ export async function generatePinFromUrl(urlOrContext) {
     if (titleMatch) titleFromContext = titleMatch[1];
 
     let extractedName = titleFromContext;
+    let imageUrl = null;
 
-    // If we didn't get a pre-resolved title, try to scrape it via corsproxy
-    if (!extractedName && url) {
+    if (url) {
       try {
         const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
         const controller = new AbortController();
@@ -224,16 +224,24 @@ export async function generatePinFromUrl(urlOrContext) {
 
         if (res && res.ok) {
           const htmlText = await res.text();
-          // Try og:title first
-          const ogMatch = htmlText.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["'][^>]*>/i)
-            || htmlText.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:title["'][^>]*>/i);
-          if (ogMatch && ogMatch[1]) {
-            extractedName = ogMatch[1].trim();
-          } else {
-            const titleTagMatch = htmlText.match(/<title>([^<]+)<\/title>/i);
-            if (titleTagMatch && titleTagMatch[1]) {
-              extractedName = titleTagMatch[1].trim();
+
+          if (!extractedName) {
+            const ogMatch = htmlText.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["'][^>]*>/i)
+              || htmlText.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:title["'][^>]*>/i);
+            if (ogMatch && ogMatch[1]) {
+              extractedName = ogMatch[1].trim();
+            } else {
+              const titleTagMatch = htmlText.match(/<title>([^<]+)<\/title>/i);
+              if (titleTagMatch && titleTagMatch[1]) {
+                extractedName = titleTagMatch[1].trim();
+              }
             }
+          }
+
+          const imgMatch = htmlText.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["'][^>]*>/i)
+            || htmlText.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["'][^>]*>/i);
+          if (imgMatch && imgMatch[1]) {
+            imageUrl = imgMatch[1].trim();
           }
         }
       } catch (e) {
@@ -272,11 +280,12 @@ export async function generatePinFromUrl(urlOrContext) {
 
     return {
       name: finalName,
-      emoji: emoji
+      emoji: emoji,
+      imageUrl: imageUrl
     };
   } catch (e) {
     console.error("Failed to parse pin JSON:", e)
-    return { name: "Saved Link", emoji: "🔗" };
+    return { name: "Saved Link", emoji: "🔗", imageUrl: null };
   }
 }
 

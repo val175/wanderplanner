@@ -7,35 +7,6 @@ import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { generateCityGuide, generatePinFromUrl } from '../../hooks/useAI'
 
-async function resolveMapsUrl(url) {
-  try {
-    // We rely on the fact that Google Maps often puts the real place name directly 
-    // in the HTML <title> tag. We can use corsproxy to grab the raw HTML string.
-    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-
-    // Add a quick abort controller so it doesn't hang forever
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-    const res = await fetch(proxyUrl, { signal: controller.signal }).catch(() => null);
-    clearTimeout(timeoutId);
-
-    if (!res || !res.ok) return { extractedName: null };
-
-    const htmlText = await res.text().catch(() => '');
-    if (htmlText) {
-      // Look for the <title> tag
-      const match = htmlText.match(/<title>([^<]+)<\/title>/i);
-      if (match && match[1] && !match[1].includes('Dynamic Link')) {
-        return { extractedName: match[1].replace(' - Google Maps', '').trim() };
-      }
-    }
-  } catch (e) {
-    console.log("Could not pre-resolve maps URL", e);
-  }
-  return { extractedName: null };
-}
-
 function CityCard({ city }) {
   const { activeTrip, dispatch } = useTripContext()
   const [loading, setLoading] = useState(false)
@@ -150,8 +121,12 @@ function CityCard({ city }) {
             <div className="space-y-3 mb-3">
               {(city.savedPins || []).map(pin => (
                 <div key={pin.id} className="group flex items-start gap-3">
-                  <div className="w-8 h-8 rounded bg-bg-secondary border border-border flex items-center justify-center shrink-0 text-sm">
-                    {pin.emoji || '📌'}
+                  <div className="w-8 h-8 rounded bg-bg-secondary border border-border flex items-center justify-center shrink-0 text-sm overflow-hidden">
+                    {pin.imageUrl ? (
+                      <img src={pin.imageUrl} alt={pin.name} className="w-full h-full object-cover" />
+                    ) : (
+                      pin.emoji || '📌'
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <EditableText
@@ -220,51 +195,20 @@ function CityCard({ city }) {
                   const tempPin = { id: pinId, name, notes: '', emoji, url };
                   updateCity({ savedPins: [...(city.savedPins || []), tempPin] });
 
-                  // If it's a URL, fire the background AI fetch
+                  // If it's a URL, fire the background fetch
                   if (isUrl) {
                     try {
-                      let extractionContext = url;
+                      // Call Wanda to extract name, emoji, and image
+                      const aiResult = await generatePinFromUrl(url);
 
-                      // Pre-flight check for Google Maps to grab the title tag before asking Gemini
-                      if (url.includes('maps.app.goo.gl') || url.includes('google.com/maps')) {
-                        const { extractedName } = await resolveMapsUrl(url);
-                        if (extractedName) {
-                          extractionContext = `URL: ${url}\nPage Title: ${extractedName}`;
-                        }
-                      }
-
-                      // Call Wanda to extract name and emoji using the enriched context
-                      const aiResult = await generatePinFromUrl(extractionContext);
-
-                      // Dispatch a fresh secondary update finding the temp pin
-                      dispatch({
-                        type: ACTIONS.UPDATE_CITY,
-                        payload: {
-                          id: city.id,
-                          // Use a function-based update if possible, but since we are firing inside an async block
-                          // we need to be careful with stale 'city' state. We rely on the reducer merging capabilities.
-                          // It's safer to read from activeTrip.cities directly to get the latest array.
-                          // However, since we just pushed it, updating it eagerly is easiest via a map.
-                        }
-                      });
-
-                      // We can just rely on dispatching a new array derived from the CURRENT state or
-                      // re-using the `updateCity` function if it's safe. Instead of trusting lexical `city`, 
-                      // we should use a more robust update mechanism or simply rely on React's next render.
-                      // Let's implement a clean state swap.
-                      const newPins = (city.savedPins || []).map(p =>
-                        p.id === pinId ? { ...p, name: aiResult.name || '📍 Pinned Location', emoji: aiResult.emoji || '🌍' } : p
-                      );
-                      // Since `city` might be stale during the await, we must append it to whatever is current.
-                      // To handle this perfectly, we will just dispatch the fix:
                       updateCity({
                         savedPins: [...(city.savedPins || []), tempPin].map(p =>
-                          p.id === pinId ? { ...p, name: aiResult.name || '📍 Pinned Location', emoji: aiResult.emoji || '🌍' } : p
+                          p.id === pinId ? { ...p, name: aiResult.name || '📍 Pinned Location', emoji: aiResult.emoji || '🌍', imageUrl: aiResult.imageUrl } : p
                         )
                       })
 
                     } catch (err) {
-                      console.error("AI pin generation failed:", err);
+                      console.error("Link generation failed:", err);
                       // Fallback name
                       updateCity({
                         savedPins: [...(city.savedPins || []), tempPin].map(p =>
