@@ -1,10 +1,7 @@
-// api/gemini.js — OpenRouter proxy for frontend AI calls
-// Accepts OpenAI-format request bodies and forwards to OpenRouter,
-// keeping the API key server-side.
-//
-// Includes a model fallback chain: free models have per-model rate limits,
-// so on 429 we try the next model in the list (each has its own bucket).
-import { FALLBACK_MODELS } from './_openrouter.js'
+// api/gemini.js — AI proxy for frontend Wanda chat calls
+// Keeps its own inline provider loop — never delegates to callAI — so req.body
+// handling is explicit and safe. (Delegating caused the Antigravity 500 bug.)
+import { PROVIDERS } from './_openrouter.js'
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*')
@@ -15,50 +12,51 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' })
 
     try {
-        const apiKey = process.env.OPENROUTER_API_KEY
-        if (!apiKey) {
-            console.error("OPENROUTER_API_KEY missing in Vercel environment variables")
-            return res.status(500).json({ error: 'Server misconfiguration: AI API key missing.' })
+        const geminiKey = process.env.GEMINI_API_KEY
+        const openrouterKey = process.env.OPENROUTER_API_KEY
+
+        if (!geminiKey && !openrouterKey) {
+            console.error('No AI API keys configured')
+            return res.status(500).json({ error: 'Server misconfiguration: No AI API keys.' })
         }
 
-        // Build deduplicated model list: requested model first, then fallbacks
-        const requested = req.body?.model
-        const models = [...new Set([requested, ...FALLBACK_MODELS].filter(Boolean))]
+        for (const provider of PROVIDERS) {
+            const apiKey = provider.keyType === 'gemini' ? geminiKey : openrouterKey
+            if (!apiKey) continue  // skip providers whose key isn't configured
 
-        for (const model of models) {
-            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            const headers = { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' }
+            if (provider.keyType === 'openrouter') {
+                headers['HTTP-Referer'] = 'https://planner.vlbonite.co'
+                headers['X-Title'] = 'Wanderplan'
+            }
+
+            const response = await fetch(provider.endpoint, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`,
-                    'Content-Type': 'application/json',
-                    'HTTP-Referer': 'https://planner.vlbonite.co',
-                    'X-Title': 'Wanderplan',
-                },
-                body: JSON.stringify({ ...req.body, model }),
+                headers,
+                body: JSON.stringify({ ...req.body, model: provider.model }),
             })
 
             if (response.status === 429 || response.status === 404) {
-                console.log(`[gemini] ${model} skipped (${response.status}), trying next fallback...`)
+                console.log(`[gemini-proxy] ${provider.model} skipped (${response.status})`)
                 continue
             }
 
             if (!response.ok) {
-                const err = await response.json().catch(() => ({}))
-                return res.status(response.status).json(err)
+                console.error(`[gemini-proxy] ${provider.model} non-ok (${response.status})`)
+                continue
             }
 
             const data = await response.json()
-            // OpenRouter may return 200 with an error body (e.g. "No endpoints found")
             if (!data.choices?.length) {
-                const errMsg = data.error?.message || 'No choices in response'
-                console.log(`[gemini] ${model} no valid response: ${errMsg}, trying next...`)
+                const errMsg = data.error?.message || 'No choices'
+                console.log(`[gemini-proxy] ${provider.model} no valid response: ${errMsg}`)
                 continue
             }
 
             return res.status(200).json(data)
         }
 
-        return res.status(429).json({ error: 'All AI models are currently rate limited. Please try again in a moment.' })
+        return res.status(429).json({ error: 'All AI models unavailable. Please try again in a moment.' })
     } catch (error) {
         console.error('AI Proxy Error:', error)
         return res.status(500).json({ error: error.message || 'Internal Server Error' })
