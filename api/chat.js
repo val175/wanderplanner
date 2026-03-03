@@ -36,7 +36,7 @@ export default async function handler(req) {
         const geminiKey = process.env.GEMINI_API_KEY
         const openrouterKey = process.env.OPENROUTER_API_KEY
 
-        // Try Gemini first (gemini-2.0-flash-lite: 30 RPM free tier)
+        // Try Gemini first (gemini-2.5-flash: 5 RPM, 20 RPD on Wanderplanner free-tier project)
         if (geminiKey) {
             try {
                 const gemini = createOpenAI({
@@ -44,7 +44,7 @@ export default async function handler(req) {
                     apiKey: geminiKey,
                 })
                 const result = await streamText({
-                    model: gemini.chat('gemini-2.0-flash-lite'),
+                    model: gemini.chat('gemini-2.5-flash'),
                     system: systemPrompt,
                     messages: modelMessages,
                 })
