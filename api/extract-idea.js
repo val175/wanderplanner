@@ -77,26 +77,33 @@ export default async function handler(req, res) {
 
         const hasScrapedContent = scrapedData.title || scrapedData.description || scrapedData.rawBody;
 
-        // imageUrl is NOT passed through Gemini — LLMs corrupt URLs (truncation,
-        // re-encoding of &amp; etc). We inject it directly from the scrape result below.
+        let pricingContext = "";
+        if (scrapedData.rawBody) {
+            const priceRegex = /[\₱\$\€\£\¥]|AUD|CAD|SGD|THB|IDR|KRW|VND|INR|PHP|USD|EUR|GBP|JPY/i;
+            const sentences = scrapedData.rawBody.match(/[^.!?]+[.!?]+/g) || [scrapedData.rawBody];
+            pricingContext = sentences.filter(s => priceRegex.test(s)).slice(0, 3).join(' ');
+        }
+
+        const fallbackTitle = scrapedData.title ? scrapedData.title.replace(/"/g, "'") : "Short, clean title";
+        const fallbackDesc = scrapedData.description ? scrapedData.description.replace(/"/g, "'") : "A short 1-2 sentence catchy description.";
+        const fallbackSite = scrapedData.siteName ? scrapedData.siteName.replace(/"/g, "'") : "Source Name (e.g. Airbnb)";
+
         const prompt = hasScrapedContent
-            ? `You are Wanda, a travel planner. A user pasted this URL: ${scrapedData.url}
-        Scraped data:
-        Site Name: ${scrapedData.siteName}
-        Title: ${scrapedData.title}
-        Description: ${scrapedData.description}
-        Raw Text Snippet: ${scrapedData.rawBody}
+            ? `You are Wanda. URL: ${scrapedData.url}
         Extract details and return ONLY a valid JSON object matching this schema:
         {
-          "title": "Short, clean title of the place/activity",
+          "title": "${fallbackTitle}",
           "type": "lodging",
           "priceDetails": "Best-effort price estimate in ${currency}. Use text clues if available. If unknown, make a reasonable market estimate and add '(est.)' — never leave blank.",
-          "description": "A short 1-2 sentence catchy description.",
+          "description": "${fallbackDesc}",
           "emoji": "🏡",
-          "sourceName": "Airbnb, TripAdvisor, TikTok, etc."
+          "sourceName": "${fallbackSite}"
         }
+        Pricing text clues: ${pricingContext || 'None found.'}
         Rules:
+        - If title/description/sourceName are already present in the schema above, just use them directly or slightly clean them up.
         - priceDetails format: "₱2500/night" or "₱1200/person" or "₱8000 (est.)" — always include a slash + period unit or '(est.)' suffix.
+        - type must be lodging, activity, food, transport, or other.
         Do not wrap in markdown blocks.`
             : `You are Wanda, a travel planner. A user pasted this URL: ${url}
         ${scrapeWarning}

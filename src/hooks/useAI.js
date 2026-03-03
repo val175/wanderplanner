@@ -127,83 +127,156 @@ export async function sendMessage(systemPrompt, history, userMessage) {
   return callProxy(messages, { temperature: 0.8, max_tokens: 512 })
 }
 
-/**
- * Generate an auto-filled city guide (Weather, Currency, Must-Do).
- */
 export async function generateCityGuide(city, trip) {
-  const prompt = `
-You are Wanda, a travel assistant.
-The user is traveling to: ${city.city}, ${city.country}.
-Trip Dates: ${trip.startDate || 'Unknown'} to ${trip.endDate || 'Unknown'}.
-Trip Currency: ${trip.currency || 'USD'}.
-
-Please generate a quick travel guide for this city.
-Return ONLY a valid JSON object with the following exact keys and format:
-
-{
-  "weather": "🌸 MARCH AVG\\n14°C / 5°C",
-  "currencyTip": "¥ CURRENCY\\n1 USD = 150 JPY",
-  "mustDo": "Neon lights, ancient temples, and the best food in the world. Don't miss the Shibuya Scramble, teamLab Planets, and eating ramen in Shinjuku."
-}
-
-Rules:
-1. "weather": Based on the trip dates (or general averages if unknown), give a 2-line summary. Line 1: Emoji, Month, "AVG". Line 2: High/Low temp.
-2. "currencyTip": 2-line summary. Line 1: Currency Symbol and "CURRENCY". Line 2: Exchange rate from ${trip.currency || 'USD'} to local.
-3. "mustDo": A punchy, 2-to-3 sentence summary of the "Vibe & Must Do" highlights of the city.
-4. DO NOT wrap the output in markdown code blocks like \`\`\`json. Output raw JSON only.
-  `
-
-  const messages = [
-    { role: 'system', content: 'You are Wanda, a travel assistant built into Wanderplan.' },
-    { role: 'user', content: prompt },
-  ]
-
-  const text = await callProxy(messages, { temperature: 0.7, max_tokens: 256, jsonMode: true })
-  // Strip markdown fences, then extract the first {...} block in case the model
-  // added a prose preamble like "Here is the JSON requested:" before the object.
-  const stripped = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
-  const jsonStr = stripped.startsWith('{') ? stripped : (stripped.match(/\{[\s\S]*\}/) || [''])[0]
   try {
-    return JSON.parse(jsonStr)
-  } catch (e) {
-    console.error("Failed to parse city guide JSON:", stripped)
-    throw new Error("Invalid format returned from AI")
+    const [weatherResult, currencyTip, mustDo] = await Promise.all([
+      // 1. Weather via Open-Meteo
+      (async () => {
+        try {
+          const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city.city)}&count=1`)
+          const geoData = await geoRes.json()
+          if (geoData.results && geoData.results.length > 0) {
+            const { latitude, longitude } = geoData.results[0]
+            const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min&forecast_days=1`)
+            const weatherData = await weatherRes.json()
+            if (weatherData.daily) {
+              let monthStr = "ESTIMATED AVG"
+              if (trip.startDate) {
+                const date = new Date(trip.startDate)
+                monthStr = date.toLocaleString('default', { month: 'long' }).toUpperCase() + " AVG"
+              }
+              const max = Math.round(weatherData.daily.temperature_2m_max[0])
+              const min = Math.round(weatherData.daily.temperature_2m_min[0])
+              return `🌤️ ${monthStr}\n${max}°C / ${min}°C`
+            }
+          }
+        } catch (e) { console.warn("Weather fetch failed", e) }
+        return "Weather unavailable"
+      })(),
+
+      // 2. Currency via Open.er-api.com & RestCountries
+      (async () => {
+        try {
+          const baseCurrency = trip.currency || 'USD'
+          let toCurrency = null
+          if (city.country) {
+            const countryRes = await fetch(`https://restcountries.com/v3.1/name/${encodeURIComponent(city.country)}`)
+            const countryData = await countryRes.json()
+            if (countryData && countryData[0] && countryData[0].currencies) {
+              toCurrency = Object.keys(countryData[0].currencies)[0]
+            }
+          }
+          if (toCurrency && toCurrency !== baseCurrency) {
+            const erRes = await fetch(`https://open.er-api.com/v6/latest/${baseCurrency}`)
+            const erData = await erRes.json()
+            if (erData.rates && erData.rates[toCurrency]) {
+              return `💱 CURRENCY\n1 ${baseCurrency} = ${erData.rates[toCurrency]} ${toCurrency}`
+            }
+          } else if (toCurrency === baseCurrency) {
+            return `💱 CURRENCY\nUses ${baseCurrency}`
+          }
+        } catch (e) { console.warn("Currency fetch failed", e) }
+        return "¥ CURRENCY\nExchange rate unavailable"
+      })(),
+
+      // 3. Must Do via Wikipedia Summary
+      (async () => {
+        try {
+          const wikiRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(city.city)}`)
+          if (wikiRes.ok) {
+            const wikiData = await wikiRes.json()
+            if (wikiData.extract) {
+              const sentences = wikiData.extract.match(/[^.!?]+[.!?]+/g) || [wikiData.extract]
+              return sentences.slice(0, 2).join(' ').trim()
+            }
+          }
+        } catch (e) { console.warn("Wikipedia fetch failed", e) }
+        return "Highlight not found. Add your own must-do activities!"
+      })()
+    ])
+
+    return { weather: weatherResult, currencyTip, mustDo }
+  } catch (error) {
+    console.error("Failed to generate city guide:", error)
+    throw new Error("Failed to load city guide data")
   }
 }
 
-/**
- * Generate a pin's name and emoji given a raw URL.
- */
-export async function generatePinFromUrl(url) {
-  const prompt = `
-A user pasted this URL into their travel planner:
-${url}
-
-Figure out the real name of the place, restaurant, landmark, or link title.
-Pick ONE single emoji that best categorizes it (e.g. 🍜 for ramen, 🏨 for hotel, 🏛️ for museum, ✈️ for airport, etc.). If it's just a generic link, use 🔗.
-
-Return ONLY a valid JSON object with the exact keys:
-{
-  "name": "Ichiran Shibuya",
-  "emoji": "🍜"
-}
-
-DO NOT wrap the output in markdown code blocks like \`\`\`json. Output raw JSON only.
-  `
-
-  const messages = [
-    { role: 'system', content: 'You are Wanda, a travel assistant built into Wanderplan.' },
-    { role: 'user', content: prompt },
-  ]
-
-  const text = await callProxy(messages, { temperature: 0.2, max_tokens: 64, jsonMode: true })
-  const stripped = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
-  const jsonStr = stripped.startsWith('{') ? stripped : (stripped.match(/\{[\s\S]*\}/) || [''])[0]
+export async function generatePinFromUrl(urlOrContext) {
   try {
-    return JSON.parse(jsonStr)
+    const urlMatch = urlOrContext.match(/http[s]?:\/\/[^\s]+/);
+    const url = urlMatch ? urlMatch[0] : urlOrContext;
+
+    let titleFromContext = "";
+    const titleMatch = urlOrContext.match(/Page Title: (.*)/);
+    if (titleMatch) titleFromContext = titleMatch[1];
+
+    let extractedName = titleFromContext;
+
+    // If we didn't get a pre-resolved title, try to scrape it via corsproxy
+    if (!extractedName && url) {
+      try {
+        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        const res = await fetch(proxyUrl, { signal: controller.signal }).catch(() => null);
+        clearTimeout(timeoutId);
+
+        if (res && res.ok) {
+          const htmlText = await res.text();
+          // Try og:title first
+          const ogMatch = htmlText.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["'][^>]*>/i)
+            || htmlText.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:title["'][^>]*>/i);
+          if (ogMatch && ogMatch[1]) {
+            extractedName = ogMatch[1].trim();
+          } else {
+            const titleTagMatch = htmlText.match(/<title>([^<]+)<\/title>/i);
+            if (titleTagMatch && titleTagMatch[1]) {
+              extractedName = titleTagMatch[1].trim();
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Fast scrape failed for pin", e);
+      }
+    }
+
+    // Clean up title
+    let finalName = extractedName || "Saved Link";
+    finalName = finalName.replace(/ - Google Maps/i, '').replace(/[\r\n]+/g, ' ').trim();
+    if (finalName.length > 50) finalName = finalName.substring(0, 50) + '...';
+
+    // Figure out Emoji directly using Regex dictionary
+    let emoji = "🔗";
+    const textToAnalyze = (finalName + " " + url).toLowerCase();
+
+    if (/hotel|resort|airbnb|booking|hostel|villa|inn|stay/i.test(textToAnalyze)) {
+      emoji = "🏨";
+    } else if (/restaurant|cafe|food|dining|eats|menu|ramen|sushi|bistro/i.test(textToAnalyze)) {
+      emoji = "🍜";
+    } else if (/museum|gallery|art|exhibit|history/i.test(textToAnalyze)) {
+      emoji = "🏛️";
+    } else if (/airport|flight|airline|terminal/i.test(textToAnalyze)) {
+      emoji = "✈️";
+    } else if (/park|garden|nature|forest/i.test(textToAnalyze)) {
+      emoji = "🌳";
+    } else if (/beach|coast|ocean|sea/i.test(textToAnalyze)) {
+      emoji = "🏖️";
+    } else if (/temple|shrine|church|mosque/i.test(textToAnalyze)) {
+      emoji = "⛩️";
+    } else if (/train|station|rail|metro/i.test(textToAnalyze)) {
+      emoji = "🚆";
+    } else if (/store|shop|mall|market/i.test(textToAnalyze)) {
+      emoji = "🛍️";
+    }
+
+    return {
+      name: finalName,
+      emoji: emoji
+    };
   } catch (e) {
-    console.error("Failed to parse pin JSON:", stripped)
-    throw new Error("Invalid format returned from AI")
+    console.error("Failed to parse pin JSON:", e)
+    return { name: "Saved Link", emoji: "🔗" };
   }
 }
 

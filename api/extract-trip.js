@@ -49,6 +49,21 @@ async function extractArticleText(url) {
         // Strip noise before extracting content
         $('script, style, noscript, nav, header, footer, aside, iframe, .ad, .advertisement, .comments, .sidebar, .related-posts, .newsletter').remove()
 
+        $('a').each((_, el) => {
+            const text = $(el).text().trim().toLowerCase();
+            if (
+                text.includes('read more') ||
+                text.includes('click here') ||
+                text.includes('affiliate') ||
+                text.includes('commission') ||
+                text.includes('continue reading') ||
+                text.includes('buy now') ||
+                text.includes('book here')
+            ) {
+                $(el).remove();
+            }
+        })
+
         // Heading-first extraction: travel blogs are structured by day headings.
         // Grab each heading + the first meaningful snippet after it (~250 chars).
         const sections = []

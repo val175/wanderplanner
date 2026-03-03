@@ -39,25 +39,33 @@ export default async function handler(req, res) {
 
         const scrapedData = await scrapeMetadata(url);
 
+        let pricingContext = "";
+        if (scrapedData.rawBody) {
+            const priceRegex = /[\₱\$\€\£\¥]|AUD|CAD|SGD|THB|IDR|KRW|VND|INR|PHP|USD|EUR|GBP|JPY/i;
+            const sentences = scrapedData.rawBody.match(/[^.!?]+[.!?]+/g) || [scrapedData.rawBody];
+            pricingContext = sentences.filter(s => priceRegex.test(s)).slice(0, 3).join(' ');
+        }
+
+        const fallbackTitle = scrapedData.title ? scrapedData.title.replace(/"/g, "'") : "Place title";
+        const fallbackDesc = scrapedData.description ? scrapedData.description.replace(/"/g, "'") : "1-2 sentence description.";
+        const fallbackSite = scrapedData.siteName ? scrapedData.siteName.replace(/"/g, "'") : "Source Network";
+
         const prompt = `
-You are Wanda, a travel assistant. A user pasted this URL for a trip called "${tripName}" (cities: ${tripCities}).
-
-URL: ${scrapedData.url}
-Site: ${scrapedData.siteName}
-Title: ${scrapedData.title}
-Description: ${scrapedData.description}
-Content snippet: ${scrapedData.rawBody}
-
+You are Wanda. URL: ${scrapedData.url}
+Trip: "${tripName}" (cities: ${tripCities})
 Extract details and return ONLY a valid JSON object:
 {
-  "title": "Short, clean title of the place/activity",
+  "title": "${fallbackTitle}",
   "type": "lodging",
-  "priceDetails": "Price in ${tripCurrency} based on text. If unknown, write 'Price TBD'.",
-  "description": "1-2 sentence catchy description.",
+  "priceDetails": "Price in ${tripCurrency} based on text clues. If unknown, write 'Price TBD'.",
+  "description": "${fallbackDesc}",
   "emoji": "🏡",
-  "sourceName": "Airbnb, TripAdvisor, TikTok, etc."
+  "sourceName": "${fallbackSite}"
 }
-type must be one of: "lodging", "activity", "food", "other".
+Pricing text clues: ${pricingContext || 'None found.'}
+Rules:
+- If title/description/sourceName are already present in the schema above, just use them directly or clean them up.
+- type must be one of: "lodging", "activity", "food", "other".
 Do not wrap in markdown.`;
 
         const aiData = await callOpenRouter(process.env.OPENROUTER_API_KEY, {
