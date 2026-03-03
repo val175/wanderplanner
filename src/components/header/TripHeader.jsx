@@ -79,7 +79,7 @@ function TravelerPicker({ trip, travelerProfiles, dispatch }) {
         {travelerProfiles.length > 0 ? (
           <>
             {travelerProfiles.map((p, i) => (
-              <span key={p.id} style={{ marginLeft: i === 0 ? 0 : -8 }} className="inline-flex">
+              <span key={p.id} className={`inline-flex ${i === 0 ? '' : '-ml-2'}`}>
                 <AvatarCircle profile={p} size={22} ring />
               </span>
             ))}
@@ -164,22 +164,16 @@ function CountdownHero({ targetDate }) {
     <div className="flex items-end gap-3 select-none" aria-label={`${countdown.days} days to departure`}>
       {weeks > 0 && (
         <div className="flex items-end gap-1.5 leading-none">
-          <span
-            className="font-heading leading-none text-text-primary"
-            style={{ fontSize: '52px', fontWeight: 300, letterSpacing: '-0.04em' }}
-          >{weeks}</span>
-          <span className="text-[10px] font-bold text-accent uppercase tracking-[0.15em] pb-2">
+          <span className="font-heading leading-none text-text-primary text-5xl font-light tracking-tight">{weeks}</span>
+          <span className="text-xs font-bold text-accent uppercase tracking-[0.15em] pb-2">
             {weeks === 1 ? 'wk' : 'wks'}
           </span>
         </div>
       )}
       {(days > 0 || weeks === 0) && (
         <div className="flex items-end gap-1.5 leading-none">
-          <span
-            className="font-heading leading-none text-text-primary"
-            style={{ fontSize: '52px', fontWeight: 300, letterSpacing: '-0.04em' }}
-          >{days}</span>
-          <span className="text-[10px] font-bold text-accent uppercase tracking-[0.15em] pb-2">
+          <span className="font-heading leading-none text-text-primary text-5xl font-light tracking-tight">{days}</span>
+          <span className="text-xs font-bold text-accent uppercase tracking-[0.15em] pb-2">
             {days === 1 ? 'day' : 'days'}
           </span>
         </div>
@@ -229,7 +223,6 @@ function InlineTripName({ value, onSave }) {
         onKeyDown={handleKeyDown}
         className="font-heading text-2xl md:text-3xl font-bold text-text-primary leading-tight
                    bg-transparent border-b border-accent outline-none w-full min-w-0"
-        style={{ fontFamily: 'var(--font-heading)' }}
         aria-label="Edit trip name"
       />
     )
@@ -497,8 +490,8 @@ export default function TripHeader() {
                 <TravelerPicker trip={trip} travelerProfiles={travelerProfiles} dispatch={dispatch} />
                 {/* Readiness ring inline — compact, no competing row */}
                 <span className="inline-flex items-center gap-1.5">
-                  <ProgressRing value={readiness} size={32} strokeWidth={3} labelClassName="text-[8px]" />
-                  <span className="text-[11px] text-text-muted uppercase tracking-widest font-semibold">
+                  <ProgressRing value={readiness} size={32} strokeWidth={3} labelClassName="text-xs" />
+                  <span className="text-xs text-text-muted uppercase tracking-widest font-semibold">
                     ready
                   </span>
                 </span>
@@ -531,7 +524,7 @@ export default function TripHeader() {
             ) : trip.startDate && tripStatus === 'upcoming' ? (
               <div className="flex flex-col items-end">
                 <CountdownHero targetDate={trip.startDate} />
-                <span className="text-[9px] text-text-muted uppercase tracking-[0.2em] font-semibold mt-0.5">
+                <span className="text-xs text-text-muted uppercase tracking-[0.2em] font-semibold mt-0.5">
                   to departure
                 </span>
               </div>
