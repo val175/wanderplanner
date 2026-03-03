@@ -44,7 +44,7 @@ export default async function handler(req) {
                     apiKey: geminiKey,
                 })
                 const result = await streamText({
-                    model: gemini('gemini-2.0-flash-lite'),
+                    model: gemini.chat('gemini-2.0-flash-lite'),
                     system: systemPrompt,
                     messages: modelMessages,
                 })
@@ -61,7 +61,7 @@ export default async function handler(req) {
                 apiKey: openrouterKey,
             })
             const result = await streamText({
-                model: openrouter('mistralai/mistral-small-3.1-24b-instruct:free'),
+                model: openrouter.chat('mistralai/mistral-small-3.1-24b-instruct:free'),
                 system: systemPrompt,
                 messages: modelMessages,
             })

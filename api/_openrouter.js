@@ -9,9 +9,12 @@ const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/openai
 const OR_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'
 
 // Ordered list — Gemini first (primary), OpenRouter second (fallback).
+// Four Gemini models spread the 429 risk across independent rate-limit buckets.
 export const PROVIDERS = [
     { model: 'gemini-2.0-flash-lite', endpoint: GEMINI_ENDPOINT, keyType: 'gemini' },
     { model: 'gemini-2.0-flash',      endpoint: GEMINI_ENDPOINT, keyType: 'gemini' },
+    { model: 'gemini-1.5-flash',      endpoint: GEMINI_ENDPOINT, keyType: 'gemini' },
+    { model: 'gemini-1.5-flash-8b',   endpoint: GEMINI_ENDPOINT, keyType: 'gemini' },
     { model: 'mistralai/mistral-small-3.1-24b-instruct:free', endpoint: OR_ENDPOINT, keyType: 'openrouter' },
     { model: 'google/gemma-3-27b-it:free',                    endpoint: OR_ENDPOINT, keyType: 'openrouter' },
     { model: 'meta-llama/llama-3.3-70b-instruct:free',        endpoint: OR_ENDPOINT, keyType: 'openrouter' },
