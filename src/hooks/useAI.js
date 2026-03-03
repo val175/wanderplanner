@@ -95,7 +95,6 @@ async function callProxy(messages, opts = {}) {
       messages,
       temperature: opts.temperature ?? 0.8,
       max_tokens: opts.max_tokens ?? 512,
-      ...(opts.jsonMode && { response_format: { type: 'json_object' } }),
     }),
   })
 
@@ -158,7 +157,7 @@ Rules:
     { role: 'user', content: prompt },
   ]
 
-  const text = await callProxy(messages, { temperature: 0.7, max_tokens: 256, jsonMode: true })
+  const text = await callProxy(messages, { temperature: 0.7, max_tokens: 256 })
   const clean = text.replace(/^```json/m, '').replace(/^```/m, '').trim()
   try {
     return JSON.parse(clean)
@@ -193,7 +192,7 @@ DO NOT wrap the output in markdown code blocks like \`\`\`json. Output raw JSON 
     { role: 'user', content: prompt },
   ]
 
-  const text = await callProxy(messages, { temperature: 0.2, max_tokens: 64, jsonMode: true })
+  const text = await callProxy(messages, { temperature: 0.2, max_tokens: 64 })
   const clean = text.replace(/^```json/m, '').replace(/^```/m, '').trim()
   try {
     return JSON.parse(clean)
