@@ -321,7 +321,7 @@ export default function TodoTab() {
       {/* Header Area */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-heading text-text-primary tracking-tight">Trip Tasks</h1>
+          <h1 className="text-2xl font-bold font-heading text-text-primary tracking-tight">✅ Trip Tasks</h1>
           <p className="text-sm text-text-secondary mt-1">Keep track of what needs to be done, and who is doing it.</p>
         </div>
 

@@ -19,11 +19,11 @@ import AvatarCircle from '../shared/AvatarCircle'
 
 // ── Category config ─────────────────────────────────────────────────────────
 const CATEGORIES = [
-  { id: 'documents', label: 'Documents', emoji: '📄', color: 'bg-blue-500/10 text-blue-600 border-blue-200' },
-  { id: 'clothing', label: 'Clothing', emoji: '👕', color: 'bg-purple-500/10 text-purple-600 border-purple-200' },
-  { id: 'tech', label: 'Tech', emoji: '📱', color: 'bg-cyan-500/10 text-cyan-600 border-cyan-200' },
-  { id: 'toiletries', label: 'Toiletries', emoji: '🧴', color: 'bg-pink-500/10 text-pink-600 border-pink-200' },
-  { id: 'misc', label: 'Misc', emoji: '📦', color: 'bg-stone-500/10 text-stone-600 border-stone-200' },
+  { id: 'documents', label: 'Documents', emoji: '📄' },
+  { id: 'clothing', label: 'Clothing', emoji: '👕' },
+  { id: 'tech', label: 'Tech', emoji: '📱' },
+  { id: 'toiletries', label: 'Toiletries', emoji: '🧴' },
+  { id: 'misc', label: 'Misc', emoji: '📦' },
 ]
 
 const STARTER_ITEMS = [
@@ -87,7 +87,7 @@ function CategoryPill({ value, onChange }) {
       <button
         ref={buttonRef}
         onClick={handleOpen}
-        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border transition-colors ${cat.color}`}
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-pill)] text-xs font-medium border border-border bg-bg-secondary text-text-secondary transition-colors hover:bg-bg-hover"
       >
         <span>{cat.emoji}</span>
         <span className="hidden sm:inline">{cat.label}</span>
@@ -96,7 +96,7 @@ function CategoryPill({ value, onChange }) {
       {open && coords && createPortal(
         <div
           ref={dropdownRef}
-          className="absolute z-[100] rounded-[var(--radius-md)] border border-border bg-bg-card shadow-lg min-w-[140px] py-1"
+          className="absolute z-[100] rounded-[var(--radius-md)] border border-border bg-bg-card min-w-[140px] py-1"
           style={{ top: coords.top, left: coords.left }}
         >
           {CATEGORIES.map(c => (
@@ -127,7 +127,7 @@ function QtyStepper({ value, onChange }) {
     <div className="flex items-center gap-2 justify-center">
       <button
         onClick={() => onChange(Math.max(1, value - 1))}
-        className="w-5 h-5 flex items-center justify-center rounded-full bg-bg-secondary text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+        className="w-5 h-5 flex items-center justify-center rounded-[var(--radius-sm)] bg-bg-secondary text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
         disabled={value <= 1}
       >
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14" /></svg>
@@ -135,7 +135,7 @@ function QtyStepper({ value, onChange }) {
       <span className="text-sm font-medium tabular-nums min-w-[1.25rem] text-center">{value}</span>
       <button
         onClick={() => onChange(value + 1)}
-        className="w-5 h-5 flex items-center justify-center rounded-full bg-bg-secondary text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+        className="w-5 h-5 flex items-center justify-center rounded-[var(--radius-sm)] bg-bg-secondary text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
       >
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" /></svg>
       </button>
@@ -263,7 +263,7 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
       {open && coords && createPortal(
         <div
           ref={dropdownRef}
-          className="absolute z-[100] rounded-[var(--radius-md)] border border-border bg-bg-card shadow-lg min-w-[170px] py-1"
+          className="absolute z-[100] rounded-[var(--radius-md)] border border-border bg-bg-card min-w-[170px] py-1"
           style={{ top: coords.top, left: coords.left }}
         >
           {allTravelers.map(tId => {

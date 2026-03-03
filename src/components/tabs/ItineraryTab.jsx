@@ -200,11 +200,11 @@ function DayGroupTable({ day, onReorderDay, trip }) {
                 placeholder="Day Title (e.g. Rio Explorations)"
               />
             </div>
-            <div className="text-xs font-medium text-text-muted mt-0.5 uppercase tracking-wider relative min-w-[150px]">
+            <div className="text-xs font-medium text-text-muted mt-0.5 relative min-w-[150px]">
               <DatePicker
                 value={day.date}
                 onChange={val => dispatch({ type: ACTIONS.UPDATE_DAY, payload: { dayId: day.id, updates: { date: val } } })}
-                placeholder="ADD DATE (e.g. WED, FEB 25)"
+                placeholder="Add date…"
                 className="bg-transparent border-transparent hover:border-border text-xs !px-1 w-auto max-w-[200px]"
               />
             </div>

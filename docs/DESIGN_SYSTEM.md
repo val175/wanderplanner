@@ -98,3 +98,25 @@ When building a top-level Tab component (e.g., `BookingsTab`, `TodoTab`, `Packin
 - **Width**: Tabs should naturally expand to fill the width provided by their parent container. **Do not** arbitrarily choke the layout with classes like `max-w-3xl` or `max-w-4xl` unless explicitly requested. Let them breathe horizontally (`w-full`), stacking cards or stretching tables as needed to provide a true data-dense app experience.
 - **Bottom Padding**: Always ensure the root wrapper of a tab has `pb-12` or `pb-24` to prevent content from being trapped under floating action bars or mobile browsers.
 - **Animation**: Use `className="space-y-6 animate-fade-in"` for the root tab container.
+
+### 7. Common UI Patterns
+
+#### Tab-Level Page Headers
+Every tab view **must** begin with a clearly branded page header that includes an emoji prefix matching the navigation tab icon.
+- **Markup**: Use `<h1>` or `<h2>` with `font-heading font-bold text-text-primary`.
+- **Size**: `text-xl` (inside card headers, e.g. Packing, Itinerary) or `text-2xl` (standalone headers, e.g. To-Do, Voting).
+- **Emoji**: Inline in the string — e.g. `✅ Trip Tasks`, `📅 Itinerary`, `🧳 Packing List`. Do **not** omit the emoji.
+
+#### Qty Steppers (+ / − micro-buttons)
+Increment/decrement icon buttons (e.g. in packing qty, seat counts) must use:
+- `w-5 h-5 rounded-[var(--radius-sm)]` — **not** `rounded-full`. Circular + and − buttons feel out of place.
+- `bg-bg-secondary hover:bg-bg-hover text-text-muted hover:text-text-primary transition-colors`.
+
+#### Category / Tag Pills
+Inline category labels (e.g. packing category, booking type) use a **single neutral style** — do not apply per-category hardcoded colors (avoid `bg-cyan-500/10 text-cyan-600` etc.).
+- **Classes**: `inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-pill)] text-xs font-medium border border-border bg-bg-secondary text-text-secondary hover:bg-bg-hover`
+- The emoji + label inside provides sufficient visual distinction without color coding.
+
+#### Portal Dropdowns
+All portal-based dropdowns (category pickers, assignee pickers, traveler pickers) must **never** use shadow classes (`shadow-sm`, `shadow-md`, `shadow-lg`). Rely on `border border-border` for separation per the No Shadows rule in section 3.
+

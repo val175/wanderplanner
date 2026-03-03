@@ -112,8 +112,8 @@ function TravelerPicker({ trip, travelerProfiles, dispatch }) {
       {open && createPortal(
         <div
           ref={dropdownRef}
-          style={{ position: 'fixed', top: coords.top, left: coords.left, zIndex: 9999 }}
-          className="bg-bg-card border border-border rounded-[var(--radius-lg)] p-2 min-w-[180px]"
+          style={{ position: 'fixed', top: coords.top, left: coords.left }}
+          className="z-[9999] bg-bg-card border border-border rounded-[var(--radius-lg)] p-2 min-w-[180px]"
         >
           {profiles.length === 0 ? (
             <p className="text-xs text-text-muted px-2 py-1.5">No profiles yet — add wanderers from the sidebar.</p>
@@ -304,7 +304,7 @@ function CityBreadcrumbs({ destinations }) {
           <div className="flex flex-col gap-1">
             <DestChain dests={destinations} />
             <button onClick={() => setExpanded(false)}
-              className="text-[10px] text-text-muted hover:text-text-secondary transition-colors self-start mt-0.5">
+              className="text-xs text-text-muted hover:text-text-secondary transition-colors self-start mt-0.5">
               ↑ collapse
             </button>
           </div>
@@ -396,7 +396,7 @@ function DateRangeEditor({ trip, dispatch }) {
       <button
         onClick={openEdit}
         title="Edit trip dates"
-        className="inline-flex items-center gap-1 text-[13px] text-text-muted hover:text-accent transition-colors group"
+        className="inline-flex items-center gap-1 text-sm text-text-muted hover:text-accent transition-colors group"
       >
         {calIcon}
         <span className="group-hover:underline underline-offset-2">
@@ -421,25 +421,25 @@ function DateRangeEditor({ trip, dispatch }) {
           }
         }}
         placeholder="Start date"
-        className="text-[12px] bg-transparent border-b border-accent/60 focus:border-accent outline-none text-text-primary px-1 hover:border-accent min-w-[90px]"
+        className="text-xs bg-transparent border-b border-accent/60 focus:border-accent outline-none text-text-primary px-1 hover:border-accent min-w-[90px]"
       />
-      <span className="text-text-muted text-[11px]">→</span>
+      <span className="text-text-muted text-xs">→</span>
       <DatePicker
         value={end}
         onChange={setEnd}
         min={start} // Prevent selecting an end date before start date
         placeholder="End date"
-        className="text-[12px] bg-transparent border-b border-accent/60 focus:border-accent outline-none text-text-primary px-1 hover:border-accent min-w-[90px]"
+        className="text-xs bg-transparent border-b border-accent/60 focus:border-accent outline-none text-text-primary px-1 hover:border-accent min-w-[90px]"
       />
       <button
         onClick={save}
-        className="text-[10px] px-2 py-0.5 bg-accent text-white rounded-[4px] font-semibold hover:bg-accent-hover transition-colors ml-1"
+        className="text-xs px-2 py-0.5 bg-accent text-white rounded-[var(--radius-sm)] font-semibold hover:bg-accent-hover transition-colors ml-1"
       >
         Save
       </button>
       <button
         onClick={() => setEditing(false)}
-        className="text-[10px] text-text-muted hover:text-text-primary transition-colors"
+        className="text-xs text-text-muted hover:text-text-primary transition-colors"
       >
         Cancel
       </button>
@@ -475,7 +475,7 @@ export default function TripHeader() {
 
           {/* LEFT — 3-row identity block; pl-12 clears the mobile hamburger on small screens */}
           <div className="flex items-start gap-3 min-w-0 flex-1 pl-12 md:pl-0">
-            <span className="text-3xl sm:text-[38px] leading-none shrink-0 mt-0.5 select-none"
+            <span className="text-3xl sm:text-4xl leading-none shrink-0 mt-0.5 select-none"
               role="img" aria-label="Trip emoji">
               {trip.emoji}
             </span>
