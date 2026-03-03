@@ -159,11 +159,14 @@ Rules:
   ]
 
   const text = await callProxy(messages, { temperature: 0.7, max_tokens: 256, jsonMode: true })
-  const clean = text.replace(/^```json/m, '').replace(/^```/m, '').trim()
+  // Strip markdown fences, then extract the first {...} block in case the model
+  // added a prose preamble like "Here is the JSON requested:" before the object.
+  const stripped = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+  const jsonStr = stripped.startsWith('{') ? stripped : (stripped.match(/\{[\s\S]*\}/) || [''])[0]
   try {
-    return JSON.parse(clean)
+    return JSON.parse(jsonStr)
   } catch (e) {
-    console.error("Failed to parse city guide JSON:", clean)
+    console.error("Failed to parse city guide JSON:", stripped)
     throw new Error("Invalid format returned from AI")
   }
 }
@@ -194,11 +197,12 @@ DO NOT wrap the output in markdown code blocks like \`\`\`json. Output raw JSON 
   ]
 
   const text = await callProxy(messages, { temperature: 0.2, max_tokens: 64, jsonMode: true })
-  const clean = text.replace(/^```json/m, '').replace(/^```/m, '').trim()
+  const stripped = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+  const jsonStr = stripped.startsWith('{') ? stripped : (stripped.match(/\{[\s\S]*\}/) || [''])[0]
   try {
-    return JSON.parse(clean)
+    return JSON.parse(jsonStr)
   } catch (e) {
-    console.error("Failed to parse pin JSON:", clean)
+    console.error("Failed to parse pin JSON:", stripped)
     throw new Error("Invalid format returned from AI")
   }
 }
