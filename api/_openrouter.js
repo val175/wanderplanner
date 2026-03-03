@@ -22,34 +22,24 @@ const OR_HEADERS = (apiKey) => ({
  *   - 429 (rate limited)
  *   - 404 (model not found)
  *   - 200 with no choices (e.g. "No endpoints found" in body)
- * @param {string} apiKey         - OPENROUTER_API_KEY
- * @param {object} body           - OpenAI-format request body (without `model`)
- * @param {string} requestedModel - (Optional) The specific model to try first
+ * @param {string} apiKey - OPENROUTER_API_KEY
+ * @param {object} body   - OpenAI-format request body (without `model`)
  * @returns {Promise<object>} Parsed response JSON with choices
  */
-export async function callOpenRouter(apiKey, body, requestedModel = null) {
-    const models = [...new Set([requestedModel, ...FALLBACK_MODELS].filter(Boolean))]
-
-    for (const model of models) {
+export async function callOpenRouter(apiKey, body) {
+    for (const model of FALLBACK_MODELS) {
         const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: OR_HEADERS(apiKey),
             body: JSON.stringify({ ...body, model }),
         })
 
-        if (!res.ok) {
-            const err = await res.json().catch(() => ({}))
-            console.error(`[openrouter] ${model} error (HTTP ${res.status}):`, err)
-
-            // If this is NOT the last model, skip to the next one regardless of error type.
-            // Some models fail on 'system' roles or specific parameters.
-            if (models.indexOf(model) < models.length - 1) {
-                console.log(`[openrouter] ${model} failed, trying next fallback...`)
-                continue
-            }
-
-            throw new Error(err?.error?.message || `OpenRouter error ${res.status}`)
+        if (res.status === 429 || res.status === 404) {
+            console.log(`[openrouter] ${model} skipped (HTTP ${res.status}), trying next...`)
+            continue
         }
+
+        if (!res.ok) throw new Error(`OpenRouter error ${res.status}`)
 
         const data = await res.json()
 
