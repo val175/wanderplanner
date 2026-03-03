@@ -37,9 +37,17 @@ function buildHeaders(provider, keys) {
  * @returns {Promise<object>} Parsed response with choices
  */
 export async function callAI(keys, body) {
+    const errors = []  // collect per-provider errors for diagnosis
+
     for (const provider of PROVIDERS) {
-        if (provider.keyType === 'gemini' && !keys.gemini) continue
-        if (provider.keyType === 'openrouter' && !keys.openrouter) continue
+        if (provider.keyType === 'gemini' && !keys.gemini) {
+            errors.push(`${provider.model}: skipped (no GEMINI_API_KEY)`)
+            continue
+        }
+        if (provider.keyType === 'openrouter' && !keys.openrouter) {
+            errors.push(`${provider.model}: skipped (no OPENROUTER_API_KEY)`)
+            continue
+        }
 
         const res = await fetch(provider.endpoint, {
             method: 'POST',
@@ -48,20 +56,27 @@ export async function callAI(keys, body) {
         })
 
         if (res.status === 429 || res.status === 404) {
-            console.log(`[ai] ${provider.model} skipped (HTTP ${res.status}), trying next...`)
+            const msg = `${provider.model}: HTTP ${res.status}`
+            console.log(`[ai] ${msg}, trying next...`)
+            errors.push(msg)
             continue
         }
 
         if (!res.ok) {
             const err = await res.json().catch(() => ({}))
-            console.error(`[ai] ${provider.model} error (HTTP ${res.status}):`, err)
+            const detail = err?.error?.message || err?.message || JSON.stringify(err)
+            const msg = `${provider.model}: HTTP ${res.status} — ${detail}`
+            console.error(`[ai] ${msg}`)
+            errors.push(msg)
             continue
         }
 
         const data = await res.json()
         if (!data.choices?.length) {
             const errMsg = data.error?.message || 'No choices in response'
-            console.log(`[ai] ${provider.model} no valid response: ${errMsg}, trying next...`)
+            const msg = `${provider.model}: 200 but no choices — ${errMsg}`
+            console.log(`[ai] ${msg}, trying next...`)
+            errors.push(msg)
             continue
         }
 
@@ -69,7 +84,7 @@ export async function callAI(keys, body) {
         return data
     }
 
-    throw new Error('All AI models unavailable. Please try again in a moment.')
+    throw new Error(`All AI models unavailable. Details: ${errors.join(' | ')}`)
 }
 
 /**
