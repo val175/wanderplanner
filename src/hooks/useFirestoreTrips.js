@@ -9,6 +9,8 @@ import {
   serverTimestamp,
   query,
   where,
+  updateDoc,
+  arrayUnion,
 } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { tripReducer, ACTIONS } from '../state/tripReducer'
@@ -98,6 +100,55 @@ export function useFirestoreTrips(userId) {
 
     return unsubscribe
   }, [userId])
+
+  // ── 1b. Share-link resolution: ?trip=<shareId> on page load ────────────────
+  useEffect(() => {
+    if (!userId || firestoreLoading) return // wait for trips to load
+
+    const params = new URLSearchParams(window.location.search)
+    const shareId = params.get('trip')
+    if (!shareId) return
+
+    // Clear the URL parameter immediately so it doesn't re-run
+    window.history.replaceState({}, '', window.location.pathname)
+
+      ; (async () => {
+        try {
+          // Check if the trip is already in local state first
+          const localMatch = Object.values(state.trips).find(t => t.shareId === shareId)
+          if (localMatch) {
+            dispatch({ type: ACTIONS.SET_ACTIVE_TRIP, payload: localMatch.id })
+            return
+          }
+
+          // Otherwise query Firestore for a trip with this shareId
+          const q = query(tripsRef, where('shareId', '==', shareId))
+          const snapshot = await getDocs(q)
+
+          if (snapshot.empty) {
+            console.warn('[Wanderplan] Share link not found:', shareId)
+            return
+          }
+
+          const tripDoc = snapshot.docs[0]
+          const tripData = tripDoc.data()
+          const memberIds = tripData.memberIds || []
+
+          // Auto-join: add current user to memberIds if not already a member
+          if (!memberIds.includes(userId)) {
+            await updateDoc(tripDoc.ref, { memberIds: arrayUnion(userId) })
+            // The onSnapshot listener will pick up the new trip automatically
+            // Slight delay to let the listener fire first
+            await new Promise(r => setTimeout(r, 600))
+          }
+
+          // Navigate to the trip
+          dispatch({ type: ACTIONS.SET_ACTIVE_TRIP, payload: tripDoc.id })
+        } catch (err) {
+          console.error('[Wanderplan] Share link resolution failed:', err)
+        }
+      })()
+  }, [userId, firestoreLoading]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── 2. Outbound sync: local state → Firestore ────────────────────────────
   useEffect(() => {

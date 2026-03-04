@@ -84,6 +84,10 @@ export const ACTIONS = {
   // Activity Log
   LOG_ACTIVITY: 'LOG_ACTIVITY',
 
+  // Share
+  GENERATE_SHARE_LINK: 'GENERATE_SHARE_LINK',
+  REVOKE_SHARE_LINK: 'REVOKE_SHARE_LINK',
+
   // Firestore sync — replaces entire trips map from remote snapshot
   SET_TRIPS_FROM_FIRESTORE: 'SET_TRIPS_FROM_FIRESTORE',
 }
@@ -603,6 +607,14 @@ export function tripReducer(state, action) {
     // ─── Notes ───
     case ACTIONS.UPDATE_NOTES:
       return updateTrip(state, activeTripId, { notes: payload })
+
+    // ─── Share ───
+    // payload: shareId string
+    case ACTIONS.GENERATE_SHARE_LINK:
+      return updateTrip(state, payload.tripId, { shareId: payload.shareId })
+
+    case ACTIONS.REVOKE_SHARE_LINK:
+      return updateTrip(state, payload, { shareId: null })
 
     // ─── Firestore sync ───
     // Replaces the entire trips map with data from a Firestore snapshot.

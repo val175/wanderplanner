@@ -10,6 +10,7 @@ import { calculateReadiness } from '../../utils/readiness'
 import { getTripStatus } from '../../utils/tripStatus'
 import { formatDateRange } from '../../utils/helpers'
 import { useCountdown } from '../../hooks/useCountdown'
+import ShareTripModal from '../modal/ShareTripModal'
 
 /* ─────────────────────────────────────────────────────────────
    TravelerPicker — portal-based dropdown (unchanged logic)
@@ -318,42 +319,6 @@ function CityBreadcrumbs({ destinations }) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   ShareTripButton — copies page URL to clipboard
-───────────────────────────────────────────────────────────── */
-function ShareTripButton({ tripName }) {
-  const [copied, setCopied] = useState(false)
-  const handleCopy = () => {
-    navigator.clipboard.writeText(window.location.href).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }
-  return (
-    <button
-      onClick={handleCopy}
-      className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5
-                 text-xs font-medium rounded-[var(--radius-md)]
-                 border border-border text-text-secondary
-                 hover:border-accent/40 hover:text-text-primary hover:bg-bg-hover
-                 transition-all duration-150"
-      title={`Share "${tripName}"`}
-    >
-      {copied ? (
-        <>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-success"><polyline points="20 6 9 17 4 12" /></svg>
-          <span className="text-success">Copied!</span>
-        </>
-      ) : (
-        <>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
-          Share Trip
-        </>
-      )}
-    </button>
-  )
-}
-
-/* ─────────────────────────────────────────────────────────────
    TripHeader — sparse typographic hero layout.
 
    Design principle: the massive countdown number is the dominant
@@ -451,6 +416,7 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
   const { activeTrip, dispatch } = useTripContext()
   const { profiles } = useProfiles()
   const readiness = useMemo(() => calculateReadiness(activeTrip), [activeTrip])
+  const [showShareModal, setShowShareModal] = useState(false)
 
   if (!activeTrip) return null
 
@@ -522,7 +488,21 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
           {/* RIGHT — global actions + status/countdown cluster */}
           <div className="shrink-0 flex items-start gap-3 pt-0.5">
             {/* Share Trip action */}
-            <ShareTripButton tripName={trip.name} />
+            <button
+              onClick={() => setShowShareModal(true)}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5
+                         text-xs font-medium rounded-[var(--radius-md)]
+                         border border-border text-text-secondary
+                         hover:border-accent/40 hover:text-text-primary hover:bg-bg-hover
+                         transition-all duration-150"
+              title={`Share "${trip.name}"`}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+              </svg>
+              Share
+            </button>
 
             {tripStatus === 'ongoing' ? (
               <div className="flex flex-col items-end">
@@ -546,6 +526,9 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
 
         </div>
       </div>
+      {showShareModal && (
+        <ShareTripModal trip={trip} onClose={() => setShowShareModal(false)} />
+      )}
     </header>
   )
 }
