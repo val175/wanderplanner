@@ -1,10 +1,7 @@
 import { useState } from 'react'
-import { doc, collection, query, where, getDocs, updateDoc, arrayUnion } from 'firebase/firestore'
-import { db } from '../../firebase/config'
+import { createPortal } from 'react-dom'
 import { useTripContext } from '../../context/TripContext'
 import { useShareTrip } from '../../hooks/useShareTrip'
-
-const tripsRef = collection(db, 'trips')
 
 export default function ShareTripModal({ trip, onClose }) {
     const { dispatch } = useTripContext()
@@ -19,28 +16,37 @@ export default function ShareTripModal({ trip, onClose }) {
         setShowRevokeConfirm(false)
     }
 
-    return (
+    const handleGenerateAndCopy = (e) => {
+        e.stopPropagation()
+        generateAndCopy()
+    }
+
+    return createPortal(
         <div
-            className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center"
-            onClick={onClose}
+            className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center"
+            onMouseDown={onClose}
         >
             {/* Backdrop */}
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
             {/* Panel */}
             <div
-                className="relative w-full sm:max-w-md bg-bg-card rounded-t-[var(--radius-xl)] sm:rounded-[var(--radius-xl)] shadow-2xl p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 animate-slide-up sm:animate-none"
-                onClick={e => e.stopPropagation()}
+                className="relative w-full sm:max-w-md bg-bg-card rounded-t-[var(--radius-xl)] sm:rounded-[var(--radius-xl)] shadow-2xl p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6"
+                onMouseDown={e => e.stopPropagation()}
+                style={{ animation: 'wanda-pop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
             >
+                <style>{`@keyframes wanda-pop { from { opacity: 0; transform: translateY(8px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }`}</style>
+
                 {/* Header */}
                 <div className="flex items-start justify-between mb-5">
                     <div>
                         <h2 className="text-base font-bold text-text-primary font-heading">Share Trip</h2>
                         <p className="text-xs text-text-muted mt-0.5 leading-relaxed">
-                            Anyone on the access list can open your trip via this link.
+                            Allowed users can open your trip via this link.
                         </p>
                     </div>
                     <button
+                        type="button"
                         onClick={onClose}
                         className="p-1.5 rounded-full text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
                     >
@@ -66,21 +72,20 @@ export default function ShareTripModal({ trip, onClose }) {
                     <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">
                         Share Link
                     </label>
-                    <div className="flex gap-2">
-                        <input
-                            type="text"
-                            readOnly
-                            value={shareUrl || 'Click "Copy link" to generate a link'}
-                            className="flex-1 text-sm bg-bg-secondary border border-border rounded-[var(--radius-md)] px-3 py-2 text-text-secondary font-mono truncate outline-none focus:border-accent/50"
-                            onClick={e => e.target.select()}
-                        />
-                    </div>
+                    <input
+                        type="text"
+                        readOnly
+                        value={shareUrl || 'Click "Generate & Copy link" to create a unique link'}
+                        className="w-full text-sm bg-bg-secondary border border-border rounded-[var(--radius-md)] px-3 py-2 text-text-secondary font-mono truncate outline-none focus:border-accent/50 cursor-default"
+                        onClick={e => e.target.select()}
+                    />
                 </div>
 
                 {/* Action buttons */}
                 <div className="flex flex-col gap-2">
                     <button
-                        onClick={generateAndCopy}
+                        type="button"
+                        onClick={handleGenerateAndCopy}
                         disabled={isGenerating}
                         className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-semibold rounded-[var(--radius-md)] transition-all duration-200
               ${copied
@@ -115,6 +120,7 @@ export default function ShareTripModal({ trip, onClose }) {
 
                     {shareUrl && !showRevokeConfirm && (
                         <button
+                            type="button"
                             onClick={() => setShowRevokeConfirm(true)}
                             className="w-full text-sm text-text-muted hover:text-danger transition-colors py-2"
                         >
@@ -125,16 +131,18 @@ export default function ShareTripModal({ trip, onClose }) {
                     {showRevokeConfirm && (
                         <div className="rounded-[var(--radius-md)] border border-danger/20 bg-danger/5 p-3 text-center">
                             <p className="text-xs text-danger font-medium mb-2">
-                                This will invalidate the current link. Anyone with the old link won't be able to use it.
+                                This will invalidate the current link permanently.
                             </p>
                             <div className="flex gap-2 justify-center">
                                 <button
+                                    type="button"
                                     onClick={() => setShowRevokeConfirm(false)}
                                     className="text-xs px-3 py-1.5 rounded-[var(--radius-sm)] border border-border text-text-muted hover:text-text-primary"
                                 >
                                     Cancel
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={handleRevoke}
                                     disabled={revoking}
                                     className="text-xs px-3 py-1.5 rounded-[var(--radius-sm)] bg-danger text-white hover:bg-danger/90 disabled:opacity-60"
@@ -146,6 +154,7 @@ export default function ShareTripModal({ trip, onClose }) {
                     )}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     )
 }
