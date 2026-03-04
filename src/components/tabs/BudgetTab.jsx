@@ -468,7 +468,16 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                 <tr key={entry.id} className="border-t border-border/20 hover:bg-bg-hover group transition-colors">
                   <td className="py-3 px-3 text-[11px] text-text-muted tabular-nums whitespace-nowrap">{dateLabel}</td>
                   <td className="py-3 px-2">
-                    <span className="text-[13px] font-medium text-text-primary">{entry.description}</span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-[13px] font-medium text-text-primary">{entry.description}</span>
+                      {/* Warn if this expense was logged when fewer travelers existed */}
+                      {showPaidBy && entry.splits && Object.keys(entry.splits).length < travelers.length && (
+                        <span
+                          title="This expense was split between fewer people than are currently on the trip. Delete and re-log to fix the balance."
+                          className="text-[10px] cursor-help"
+                        >⚠️</span>
+                      )}
+                    </span>
                   </td>
                   <td className="py-3 px-2">
                     <span className="flex items-center gap-1.5 text-[12px] text-text-secondary">
