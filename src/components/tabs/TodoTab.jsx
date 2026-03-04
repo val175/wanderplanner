@@ -220,6 +220,7 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
           tripTravelers={tripTravelers}
           resolveProfile={resolveProfile}
           currentUserProfile={currentUserProfile}
+          isReadOnly={isReadOnly}
         />
       </div>
     </div>
@@ -268,7 +269,7 @@ function AddTodoPhaseForm({ phase, onAdd }) {
 }
 
 export default function TodoTab() {
-  const { activeTrip, dispatch, showToast } = useTripContext()
+  const { activeTrip, dispatch, showToast, isReadOnly } = useTripContext()
   const { currentUserProfile, resolveProfile } = useProfiles()
   const [filter, setFilter] = useState('all') // 'all' or 'mine'
   const [celebration, setCelebration] = useState(0)
@@ -409,10 +410,12 @@ export default function TodoTab() {
                   )}
                 </div>
 
-                <AddTodoPhaseForm
-                  phase={phase}
-                  onAdd={data => dispatch({ type: ACTIONS.ADD_TODO, payload: data })}
-                />
+                {!isReadOnly && (
+                  <AddTodoPhaseForm
+                    phase={phase}
+                    onAdd={data => dispatch({ type: ACTIONS.ADD_TODO, payload: data })}
+                  />
+                )}
               </div>
             </Card>
           )

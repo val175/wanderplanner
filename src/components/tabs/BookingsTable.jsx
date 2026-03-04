@@ -399,15 +399,16 @@ export default function BookingsTable({
                     )
                 })}
 
-                <Card className="p-3 border border-border/50 border-dashed bg-bg-secondary/20 flex flex-col gap-2">
-                    <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Add New Booking</span>
-                    {/* Reuse InlineAddRow by rendering it in a small table just for the form piece, or rebuild the inputs. Here we'll wrap InlineAddRow in a mini table */}
-                    <table className="w-full">
-                        <tbody>
-                            <InlineAddRow onAdd={onAdd} />
-                        </tbody>
-                    </table>
-                </Card>
+                {onAdd && (
+                    <Card className="p-3 border border-border/50 border-dashed bg-bg-secondary/20 flex flex-col gap-2">
+                        <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Add New Booking</span>
+                        <table className="w-full">
+                            <tbody>
+                                <InlineAddRow onAdd={onAdd} />
+                            </tbody>
+                        </table>
+                    </Card>
+                )}
             </div>
         )
     }
@@ -448,7 +449,7 @@ export default function BookingsTable({
                                 ))}
                             </tr>
                         ))}
-                        <InlineAddRow onAdd={onAdd} />
+                        {onAdd && <InlineAddRow onAdd={onAdd} />}
                     </tbody>
                 </table>
             </div>

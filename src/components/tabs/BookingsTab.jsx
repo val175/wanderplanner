@@ -17,7 +17,7 @@ const TOGGLEABLE_COLUMNS = [
 ]
 
 export default function BookingsTab() {
-  const { activeTrip, dispatch, showToast } = useTripContext()
+  const { activeTrip, dispatch, showToast, isReadOnly } = useTripContext()
   const [filter, setFilter] = useState('all')
   const [viewMode, setViewMode] = useState('table') // 'table' | 'board'
 
@@ -193,8 +193,9 @@ export default function BookingsTab() {
           hiddenColumns={hiddenColumns}
           onUpdate={handleUpdate}
           onDelete={handleDelete}
-          onAdd={handleAdd}
+          onAdd={isReadOnly ? null : handleAdd}
           onRowClick={(booking) => setSelectedBookingId(booking.id)}
+          isReadOnly={isReadOnly}
         />
       ) : (
         <BookingsKanban

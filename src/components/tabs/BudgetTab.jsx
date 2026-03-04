@@ -409,15 +409,17 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
             placeholder="Search..."
             className="px-3 py-1.5 text-sm bg-bg-secondary border border-border/50 rounded-lg text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors w-36"
           />
-          <button
-            onClick={() => setShowInline(p => !p)}
-            className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest rounded-lg border transition-all ${showInline
-              ? 'bg-bg-secondary border-border text-text-muted'
-              : 'bg-accent text-white border-accent hover:bg-accent-hover'
-              }`}
-          >
-            {showInline ? 'Cancel' : '+ Log Expense'}
-          </button>
+          {onAdd && (
+            <button
+              onClick={() => setShowInline(p => !p)}
+              className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest rounded-lg border transition-all ${showInline
+                ? 'bg-bg-secondary border-border text-text-muted'
+                : 'bg-accent text-white border-accent hover:bg-accent-hover'
+                }`}
+            >
+              {showInline ? 'Cancel' : '+ Log Expense'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -516,7 +518,7 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
 
 // ── Main BudgetTab ─────────────────────────────────────────────────────────────
 export default function BudgetTab() {
-  const { activeTrip, dispatch } = useTripContext()
+  const { activeTrip, dispatch, isReadOnly } = useTripContext()
   const { currentUserProfile } = useProfiles()
   const travelers = useTripTravelers()
   const [perPerson, setPerPerson] = useState(false)
@@ -565,8 +567,8 @@ export default function BudgetTab() {
             budget={budget}
             travelers={travelers}
             currency={currency}
-            onAdd={handleAddSpending}
-            onDelete={handleDeleteSpending}
+            onAdd={isReadOnly ? null : handleAddSpending}
+            onDelete={isReadOnly ? null : handleDeleteSpending}
           />
         </div>
 

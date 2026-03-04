@@ -115,7 +115,7 @@ function TableAddRow({ onAdd }) {
 
 // ── Table View: Day Group ───────────────────────────────────────────────────
 function DayGroupTable({ day, onReorderDay, trip }) {
-  const { dispatch } = useTripContext()
+  const { dispatch, isReadOnly } = useTripContext()
   const [expanded, setExpanded] = useState(true)
   const [dragOverGroup, setDragOverGroup] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -448,9 +448,11 @@ function DayGroupTable({ day, onReorderDay, trip }) {
                   <td colSpan={4}></td>
                 </tr>
 
-                <TableAddRow
-                  onAdd={act => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: act } })}
-                />
+                {!isReadOnly && (
+                  <TableAddRow
+                    onAdd={act => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: act } })}
+                  />
+                )}
               </tbody>
             </table>
           </div>
@@ -462,7 +464,7 @@ function DayGroupTable({ day, onReorderDay, trip }) {
 
 // ── Kanban View: Day Column ──────────────────────────────────────────────────
 function KanbanColumn({ day }) {
-  const { dispatch } = useTripContext()
+  const { dispatch, isReadOnly } = useTripContext()
   const [dragOverCol, setDragOverCol] = useState(false)
 
   const handleDrop = (e) => {
@@ -576,12 +578,14 @@ function KanbanColumn({ day }) {
         )}
       </div>
 
-      <div className="mt-2 text-center text-text-muted opacity-60 hover:opacity-100 transition-opacity">
-        <KanbanAddRow
-          onAdd={act => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: act } })}
-          defaultEmoji="📌"
-        />
-      </div>
+      {!isReadOnly && (
+        <div className="mt-2 text-center text-text-muted opacity-60 hover:opacity-100 transition-opacity">
+          <KanbanAddRow
+            onAdd={act => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: act } })}
+            defaultEmoji="📌"
+          />
+        </div>
+      )}
     </div>
   )
 }
