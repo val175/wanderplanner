@@ -4,6 +4,7 @@ import { DefaultChatTransport } from 'ai';
 import { Send, X, Sparkles } from 'lucide-react';
 import { TripContext } from '../../context/TripContext';
 import { buildTripSystemPrompt } from '../../hooks/useAI';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 
 let _systemPromptRef = buildTripSystemPrompt(null);
 
@@ -48,6 +49,12 @@ export default function AIAssistant() {
     if (isOpen) setTimeout(() => inputRef.current?.focus(), 120);
   }, [isOpen]);
 
+  useEffect(() => {
+    const handleToggle = () => setIsOpen(prev => !prev);
+    window.addEventListener('toggle-wanda-mobile', handleToggle);
+    return () => window.removeEventListener('toggle-wanda-mobile', handleToggle);
+  }, []);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const text = input.trim();
@@ -63,26 +70,20 @@ export default function AIAssistant() {
   };
 
   const showPills = messages.length === 0 && !isLoading;
+  const isMobile = useMediaQuery('(max-width: 767px)');
 
   return (
     <>
       {/* Chat panel */}
       {isOpen && (
         <div
+          className={`${isMobile ? 'fixed inset-0 z-[100] rounded-none' : 'fixed bottom-[80px] right-[24px] w-[360px] max-h-[520px] rounded-[20px] border border-[var(--color-border)] shadow-[0_12px_40px_rgba(0,0,0,0.13),0_2px_8px_rgba(0,0,0,0.06)]'}`}
           style={{
-            position: 'fixed',
-            bottom: '80px',
-            right: '24px',
-            width: '360px',
-            maxHeight: '520px',
             background: 'var(--color-bg-card)',
-            border: '1px solid var(--color-border)',
-            borderRadius: '20px',
-            boxShadow: '0 12px 40px rgba(0,0,0,0.13), 0 2px 8px rgba(0,0,0,0.06)',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            zIndex: 50,
+            zIndex: 100,
             animation: 'wanda-pop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
           }}
         >
@@ -276,7 +277,7 @@ export default function AIAssistant() {
             style={{
               display: 'flex',
               gap: '8px',
-              padding: '10px 12px',
+              padding: isMobile ? '10px 12px calc(10px + env(safe-area-inset-bottom))' : '10px 12px',
               borderTop: '1px solid var(--color-border)',
               background: 'var(--color-bg-card)',
               flexShrink: 0,
@@ -325,41 +326,43 @@ export default function AIAssistant() {
         </div>
       )}
 
-      {/* Floating trigger button */}
-      <button
-        onClick={() => setIsOpen(o => !o)}
-        style={{
-          position: 'fixed',
-          bottom: '24px',
-          right: '24px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '11px 20px',
-          borderRadius: '9999px',
-          border: 'none',
-          background: 'var(--color-accent)',
-          color: '#fff',
-          fontSize: '14px',
-          fontWeight: 600,
-          cursor: 'pointer',
-          boxShadow: '0 4px 18px rgba(217, 119, 87, 0.38)',
-          zIndex: 50,
-          transition: 'transform 0.15s, box-shadow 0.15s',
-          letterSpacing: '-0.01em',
-        }}
-        onMouseEnter={e => {
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = '0 8px 24px rgba(217, 119, 87, 0.48)';
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 4px 18px rgba(217, 119, 87, 0.38)';
-        }}
-      >
-        <Sparkles size={15} />
-        Ask Wanda
-      </button>
+      {/* Floating trigger button - Hidden on mobile as it's in BottomNav */}
+      {!isMobile && (
+        <button
+          onClick={() => setIsOpen(o => !o)}
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '11px 20px',
+            borderRadius: '9999px',
+            border: 'none',
+            background: 'var(--color-accent)',
+            color: '#fff',
+            fontSize: '14px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            boxShadow: '0 4px 18px rgba(217, 119, 87, 0.38)',
+            zIndex: 50,
+            transition: 'transform 0.15s, box-shadow 0.15s',
+            letterSpacing: '-0.01em',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 8px 24px rgba(217, 119, 87, 0.48)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 18px rgba(217, 119, 87, 0.38)';
+          }}
+        >
+          <Sparkles size={15} />
+          Ask Wanda
+        </button>
+      )}
     </>
   );
 }

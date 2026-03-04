@@ -11,6 +11,10 @@ import { ACTIONS } from '../../state/tripReducer'
 import { formatDate, formatCurrency } from '../../utils/helpers'
 import { ACTIVITY_EMOJIS } from '../../constants/emojis'
 import { COUNTRY_TIMEZONE, getUTCOffsetHours, applyTimezoneOffset, FLIGHT_ACTIVITY_PATTERNS, FLIGHT_EMOJIS } from '../../utils/timezones'
+import { triggerHaptic } from '../../utils/haptics'
+import { useDrag } from '@use-gesture/react'
+import { useEffect } from 'react'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
 
 // ── Utilities ──────────────────────────────────────────────────────────────
 function getActivityAccent(emoji) {
@@ -377,7 +381,10 @@ function DayGroupTable({ day, onReorderDay, trip }) {
 
                         {/* Actions */}
                         <td className="px-2 pt-4 pb-2 align-top">
-                          <button onClick={() => dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })} className="w-full text-center text-text-muted hover:text-danger opacity-0 group-hover/row:opacity-100 transition-opacity mt-0.5" title="Delete">
+                          <button onClick={() => {
+                            triggerHaptic('medium')
+                            dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })
+                          }} className="w-full text-center text-text-muted hover:text-danger opacity-0 group-hover/row:opacity-100 transition-opacity mt-0.5" title="Delete">
                             ×
                           </button>
                         </td>
@@ -529,7 +536,10 @@ function KanbanColumn({ day }) {
                 />
               </div>
               <button
-                onClick={() => dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })}
+                onClick={() => {
+                  triggerHaptic('medium')
+                  dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })
+                }}
                 className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger text-xs p-1 rounded hover:bg-bg-hover transition-colors"
               >
                 ✕
@@ -579,10 +589,25 @@ function KanbanColumn({ day }) {
 // ── Main Itinerary Tab ─────────────────────────────────────────────────────
 export default function ItineraryTab() {
   const { activeTrip, dispatch } = useTripContext()
+  const isMobile = useMediaQuery('(max-width: 767px)')
   const [viewMode, setViewMode] = useState('table') // 'table' | 'kanban'
+  const [activeDayIndex, setActiveDayIndex] = useState(0) // For mobile swipe view context
 
   if (!activeTrip) return null
   const trip = activeTrip
+
+  // Horizontal swipe gesture for mobile
+  const bind = useDrag(({ swipe: [swipeX], active }) => {
+    if (!active && swipeX !== 0) {
+      if (swipeX === -1 && activeDayIndex < (trip.itinerary?.length || 0) - 1) {
+        setActiveDayIndex(prev => prev + 1)
+        triggerHaptic('light')
+      } else if (swipeX === 1 && activeDayIndex > 0) {
+        setActiveDayIndex(prev => prev - 1)
+        triggerHaptic('light')
+      }
+    }
+  }, { axis: 'x', filterTaps: true })
 
   const handleAddDay = () => {
     const lastDay = trip.itinerary?.[trip.itinerary.length - 1]
@@ -637,21 +662,49 @@ export default function ItineraryTab() {
       {trip.itinerary && trip.itinerary.length > 0 ? (
         <div className="flex-1 w-full relative">
           {viewMode === 'table' ? (
-            <div className="w-full pb-20">
-              {trip.itinerary.map((day, dayIndex) => (
-                <DayGroupTable
-                  key={day.id}
-                  day={day}
-                  trip={trip}
-                  onReorderDay={(from, to) => dispatch({ type: ACTIONS.REORDER_DAYS, payload: { fromIndex: from, toIndex: to } })}
-                />
-              ))}
-              <button
-                onClick={handleAddDay}
-                className="w-full py-3 rounded-lg border border-dashed border-border text-text-muted hover:text-text-secondary hover:border-border-strong transition-colors text-sm font-medium"
-              >
-                + Add another day group
-              </button>
+            <div className="w-full pb-20 overflow-hidden">
+              {isMobile ? (
+                <div
+                  {...bind()}
+                  className="touch-none select-none"
+                >
+                  {trip.itinerary[activeDayIndex] && (
+                    <DayGroupTable
+                      key={trip.itinerary[activeDayIndex].id}
+                      day={trip.itinerary[activeDayIndex]}
+                      trip={trip}
+                      onReorderDay={(from, to) => dispatch({ type: ACTIONS.REORDER_DAYS, payload: { fromIndex: from, toIndex: to } })}
+                    />
+                  )}
+
+                  {/* Progress dots indicator */}
+                  <div className="flex justify-center gap-1.5 mt-4">
+                    {trip.itinerary.map((_, i) => (
+                      <div
+                        key={i}
+                        className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i === activeDayIndex ? 'bg-accent w-4' : 'bg-border'}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {trip.itinerary.map((day, dayIndex) => (
+                    <DayGroupTable
+                      key={day.id}
+                      day={day}
+                      trip={trip}
+                      onReorderDay={(from, to) => dispatch({ type: ACTIONS.REORDER_DAYS, payload: { fromIndex: from, toIndex: to } })}
+                    />
+                  ))}
+                  <button
+                    onClick={handleAddDay}
+                    className="w-full py-3 rounded-lg border border-dashed border-border text-text-muted hover:text-text-secondary hover:border-border-strong transition-colors text-sm font-medium"
+                  >
+                    + Add another day group
+                  </button>
+                </>
+              )}
             </div>
           ) : (
             <div className="absolute inset-0 right-[-24px] pr-6 pb-6 overflow-x-auto overflow-y-hidden custom-scrollbar">

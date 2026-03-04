@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, useCallback } from 'react'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { TAB_CONFIG } from '../../constants/tabs'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
 
 /* ─────────────────────────────────────────────────────────────
    TabBar — glass morphism pill design
@@ -27,9 +28,12 @@ export default function TabBar() {
   // Derive hasConcert from activeTrip bookings
   const { activeTrip } = useTripContext()
   const hasConcert = activeTrip?.bookings?.some(b => b.category === 'concert') || false
+  const isMobile = useMediaQuery('(max-width: 767px)')
+  const coreTabs = ['overview', 'itinerary', 'budget', 'ai']
 
   const visibleTabs = TAB_CONFIG.filter(tab => {
     if (tab.conditional && tab.id === 'concert') return hasConcert
+    if (isMobile && coreTabs.includes(tab.id)) return false
     return true
   })
 

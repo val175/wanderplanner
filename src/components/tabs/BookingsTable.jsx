@@ -10,6 +10,8 @@ import DatePicker from '../shared/DatePicker'
 import { BOOKING_CATEGORIES } from '../../constants/tabs'
 import Card from '../shared/Card'
 import { formatCurrency } from '../../utils/helpers'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { triggerHaptic } from '../../utils/haptics'
 
 export const MONDAY_STATUSES = [
     { value: 'idea', label: 'Idea', colors: 'bg-text-muted/10 text-text-muted border-text-muted/20' },
@@ -35,7 +37,7 @@ function StatusPill({ value, onChange }) {
             <select
                 value={value}
                 onChange={e => onChange(e.target.value)}
-                className={`appearance-none cursor-pointer w-full text-center px-2 py-1.5 text-xs font-semibold rounded-[var(--radius-sm)]
+                className={`appearance-none cursor-pointer w-full text-center px-2 py-1.5 min-h-[44px] sm:min-h-0 text-[14px] sm:text-xs font-semibold rounded-[var(--radius-sm)]
           border transition-all hover:opacity-80 focus:ring-2 focus:ring-accent/50 ${current.colors}`}
             >
                 {MONDAY_STATUSES.map(opt => (
@@ -55,7 +57,7 @@ function TypeDropdown({ value, onChange }) {
             <select
                 value={value}
                 onChange={e => onChange(e.target.value)}
-                className="appearance-none cursor-pointer bg-transparent text-xl pl-1 pr-4 py-1 hover:bg-bg-hover rounded transition-colors"
+                className="appearance-none cursor-pointer bg-transparent text-2xl sm:text-xl pl-1 pr-4 py-2 sm:py-1 min-h-[44px] sm:min-h-0 sm:min-w-0 min-w-[44px] hover:bg-bg-hover rounded transition-colors"
                 title={current.label}
             >
                 {BOOKING_CATEGORIES.map(c => (
@@ -294,6 +296,7 @@ export default function BookingsTable({
                 <button
                     onClick={(e) => {
                         e.stopPropagation()
+                        triggerHaptic('medium')
                         onDelete(info.row.original.id)
                     }}
                     className="w-full text-center text-text-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity"
@@ -321,6 +324,93 @@ export default function BookingsTable({
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
     })
+
+    const isMobile = useMediaQuery('(max-width: 767px)')
+
+    if (isMobile) {
+        return (
+            <div className="flex flex-col gap-3 pb-6">
+                {data.map(booking => {
+                    const categoryConfig = BOOKING_CATEGORIES.find(c => c.id === booking.category) || BOOKING_CATEGORIES[0]
+                    return (
+                        <Card key={booking.id} className="p-3 border border-border/50 flex flex-col gap-3 relative cursor-pointer" onClick={() => onRowClick?.(booking)}>
+                            <div className="absolute top-3 right-3 flex items-center gap-2">
+                                <StatusPill
+                                    value={migrateStatus(booking.status)}
+                                    onChange={val => onUpdate(booking.id, { status: val })}
+                                />
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        triggerHaptic('medium')
+                                        onDelete(booking.id)
+                                    }}
+                                    className="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded-full transition-colors"
+                                >
+                                    ×
+                                </button>
+                            </div>
+
+                            <div className="flex items-start gap-2 pr-28">
+                                <span className="text-2xl leading-none">{categoryConfig.emoji}</span>
+                                <div className="flex-1 min-w-0 flex flex-col gap-1">
+                                    <EditableText
+                                        value={booking.name}
+                                        onSave={val => onUpdate(booking.id, { name: val })}
+                                        className="text-sm font-semibold text-text-primary"
+                                        inputClassName="w-full font-semibold"
+                                        onClick={e => e.stopPropagation()}
+                                        placeholder="Booking name"
+                                    />
+                                    <TypeDropdown
+                                        value={booking.category}
+                                        onChange={val => onUpdate(booking.id, { category: val })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 mt-1 pt-2 border-t border-border/30">
+                                <div>
+                                    <span className="text-[10px] uppercase tracking-wider text-text-muted font-bold block mb-0.5">Date</span>
+                                    <div onClick={e => e.stopPropagation()}>
+                                        <DatePicker
+                                            value={booking.bookByDate || booking.startDate || ''}
+                                            onChange={val => onUpdate(booking.id, { bookByDate: val })}
+                                            className="text-text-secondary text-[13px] block cursor-pointer"
+                                            placeholder="Set date..."
+                                        />
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-[10px] uppercase tracking-wider text-text-muted font-bold block mb-0.5">Cost</span>
+                                    <div onClick={e => e.stopPropagation()}>
+                                        <EditableText
+                                            value={booking.amountPaid ? String(booking.amountPaid) : ''}
+                                            displayValue={booking.amountPaid ? formatCurrency(booking.amountPaid, currency) : undefined}
+                                            onSave={newVal => onUpdate(booking.id, { amountPaid: Number(newVal) || 0 })}
+                                            className="text-text-primary text-[13px] font-medium tabular-nums text-right block w-full"
+                                            inputClassName="w-full text-right"
+                                            placeholder={formatCurrency(0, currency)}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </Card>
+                    )
+                })}
+
+                <Card className="p-3 border border-border/50 border-dashed bg-bg-secondary/20 flex flex-col gap-2">
+                    <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Add New Booking</span>
+                    {/* Reuse InlineAddRow by rendering it in a small table just for the form piece, or rebuild the inputs. Here we'll wrap InlineAddRow in a mini table */}
+                    <table className="w-full">
+                        <tbody>
+                            <InlineAddRow onAdd={onAdd} />
+                        </tbody>
+                    </table>
+                </Card>
+            </div>
+        )
+    }
 
     // Fixed table layout to allow truncation and defined widths
     return (

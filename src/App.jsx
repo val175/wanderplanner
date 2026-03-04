@@ -15,6 +15,7 @@ import AuthScreen from './components/auth/AuthScreen'
 import Sidebar from './components/sidebar/Sidebar'
 import TripHeader from './components/header/TripHeader'
 import TabBar from './components/header/TabBar'
+import BottomNav from './components/navigation/BottomNav'
 
 // Modal
 import NewTripModal from './components/modal/NewTripModal'
@@ -87,31 +88,6 @@ function EmptyState({ onNewTrip }) {
   )
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Mobile hamburger button
-───────────────────────────────────────────────────────────── */
-function HamburgerButton({ onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className="fixed top-4 left-4 z-30 p-2.5
-                 bg-bg-secondary border border-border
-                 rounded-[var(--radius-md)]
-                 text-text-secondary hover:text-text-primary
-                 transition-colors duration-150
-                 md:hidden"
-      aria-label="Open sidebar"
-    >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" strokeWidth="2"
-        strokeLinecap="round" strokeLinejoin="round">
-        <line x1="3" y1="6" x2="21" y2="6" />
-        <line x1="3" y1="12" x2="21" y2="12" />
-        <line x1="3" y1="18" x2="21" y2="18" />
-      </svg>
-    </button>
-  )
-}
 
 /* ─────────────────────────────────────────────────────────────
    Loading screen — shown while auth or Firestore is initialising
@@ -165,8 +141,6 @@ function AuthenticatedApp({ user, signOutUser }) {
           onNewTrip={handleNewTrip}
         />
 
-        {isMobile && <HamburgerButton onClick={handleOpenSidebar} />}
-
         <main
           className={`
             flex-1 flex flex-col overflow-hidden bg-bg-primary
@@ -176,17 +150,18 @@ function AuthenticatedApp({ user, signOutUser }) {
         >
           {activeTrip ? (
             <>
-              <TripHeader />
+              <TripHeader onOpenSidebar={handleOpenSidebar} isMobile={isMobile} />
               <TabBar />
               <div
                 id={`panel-${state.activeTab}`}
                 role="tabpanel"
-                className="flex-1 overflow-y-auto"
+                className="flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)] md:pb-0 mb-14 md:mb-0"
               >
                 <div className="px-4 sm:px-8 py-5 sm:py-7 max-w-[1400px] mx-auto">
                   <TabPanel activeTab={state.activeTab} onTabSwitch={handleTabSwitch} />
                 </div>
               </div>
+              <BottomNav />
             </>
           ) : (
             <EmptyState onNewTrip={handleNewTrip} />

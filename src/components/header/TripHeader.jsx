@@ -447,7 +447,7 @@ function DateRangeEditor({ trip, dispatch }) {
   )
 }
 
-export default function TripHeader() {
+export default function TripHeader({ onOpenSidebar, isMobile }) {
   const { activeTrip, dispatch } = useTripContext()
   const { profiles } = useProfiles()
   const readiness = useMemo(() => calculateReadiness(activeTrip), [activeTrip])
@@ -473,8 +473,21 @@ export default function TripHeader() {
       <div className="max-w-[1400px] mx-auto px-4 sm:px-8 py-5">
         <div className="flex items-start justify-between gap-6">
 
-          {/* LEFT — 3-row identity block; pl-12 clears the mobile hamburger on small screens */}
-          <div className="flex items-start gap-3 min-w-0 flex-1 pl-12 md:pl-0">
+          {/* LEFT — 3-row identity block */}
+          <div className="flex items-start gap-3 min-w-0 flex-1 pl-2 md:pl-0">
+            {isMobile && (
+              <button
+                onClick={onOpenSidebar}
+                className="p-2 -ml-2 -mt-1 mr-1 text-text-secondary hover:bg-bg-hover rounded-[var(--radius-sm)] transition-colors"
+                aria-label="Open sidebar menu"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+              </button>
+            )}
             <span className="text-3xl sm:text-4xl leading-none shrink-0 mt-0.5 select-none"
               role="img" aria-label="Trip emoji">
               {trip.emoji}
