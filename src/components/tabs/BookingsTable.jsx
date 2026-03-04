@@ -126,7 +126,8 @@ export default function BookingsTable({
     onUpdate,
     onDelete,
     onAdd,
-    onRowClick
+    onRowClick,
+    isReadOnly
 }) {
     const data = useMemo(() => bookings, [bookings])
 

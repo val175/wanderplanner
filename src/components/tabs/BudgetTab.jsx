@@ -588,6 +588,7 @@ export default function BudgetTab() {
             divisor={divisor}
             perPerson={perPerson}
             travelers={travelers}
+            isReadOnly={isReadOnly}
           />
         </div>
 

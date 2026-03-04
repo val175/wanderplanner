@@ -400,21 +400,24 @@ function DayGroupTable({ day, onReorderDay, trip }) {
                           <td></td>
                           <td className="relative px-0 w-[30px] group/timeline">
                             <div className="absolute left-1/2 top-0 bottom-0 -ml-[1px] w-[2px] border-l-[2px] border-dashed border-border z-0"></div>
-                            <button
-                              onClick={() => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: {}, index: index + 1 } })}
-                              className="absolute top-1/2 left-1/2 -mt-3 -ml-3 w-6 h-6 rounded-full bg-bg-card border border-border text-lg font-light text-text-muted flex items-center justify-center opacity-0 group-hover/timeline:opacity-100 hover:bg-bg-hover hover:text-accent z-20 transition-all shadow-md pb-0.5"
-                              title="Insert activity here"
-                            >+</button>
+                            {!isReadOnly && (
+                              <button
+                                onClick={() => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: {}, index: index + 1 } })}
+                                className="absolute top-1/2 left-1/2 -mt-3 -ml-3 w-6 h-6 rounded-full bg-bg-card border border-border text-lg font-light text-text-muted flex items-center justify-center opacity-0 group-hover/timeline:opacity-100 hover:bg-bg-hover hover:text-accent z-20 transition-all shadow-md pb-0.5"
+                                title="Insert activity here"
+                              >+</button>
+                            )}
                           </td>
                           <td colSpan={4} className="py-2 pl-2">
                             <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-text-muted bg-bg-secondary/30 border border-border/50 rounded-full px-2.5 py-0.5 hover:border-text-primary transition-colors hover:shadow-sm relative z-10 cursor-pointer">
                               <span className="opacity-70 relative">
                                 {activity.transitEmoji || '🚕'}
                                 <select
-                                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                  className={`absolute inset-0 opacity-0 w-full h-full ${isReadOnly ? 'cursor-default' : 'cursor-pointer'}`}
                                   value={activity.transitEmoji || '🚕'}
                                   onChange={e => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { transitEmoji: e.target.value } } })}
                                   title="Change transit type"
+                                  disabled={isReadOnly}
                                 >
                                   <option value="🚕">🚕 Taxi / Rideshare</option>
                                   <option value="🚶">🚶 Walking</option>
@@ -433,6 +436,7 @@ function DayGroupTable({ day, onReorderDay, trip }) {
                                 className="min-w-[50px] inline-flex items-center"
                                 inputClassName="px-0 py-0 text-[11px] font-medium w-[100px] bg-transparent"
                                 placeholder="Add transit..."
+                                readOnly={isReadOnly}
                               />
                             </div>
                           </td>

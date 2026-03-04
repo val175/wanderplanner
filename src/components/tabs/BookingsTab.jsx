@@ -105,6 +105,7 @@ export default function BookingsTab() {
         currency={trip.currency}
         onUpdate={handleUpdate}
         onClose={() => setSelectedBookingId(null)}
+        isReadOnly={isReadOnly}
       />
 
       {/* Summary bar */}
@@ -203,6 +204,7 @@ export default function BookingsTab() {
           currency={trip.currency}
           onUpdate={handleUpdate}
           onRowClick={(booking) => setSelectedBookingId(booking.id)}
+          isReadOnly={isReadOnly}
         />
       )}
 
