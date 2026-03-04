@@ -88,6 +88,11 @@ export const ACTIONS = {
   GENERATE_SHARE_LINK: 'GENERATE_SHARE_LINK',
   REVOKE_SHARE_LINK: 'REVOKE_SHARE_LINK',
 
+  // Post-Trip
+  ARCHIVE_TRIP: 'ARCHIVE_TRIP',
+  UNARCHIVE_TRIP: 'UNARCHIVE_TRIP',
+  DUPLICATE_AS_TEMPLATE: 'DUPLICATE_AS_TEMPLATE',
+
   // Firestore sync — replaces entire trips map from remote snapshot
   SET_TRIPS_FROM_FIRESTORE: 'SET_TRIPS_FROM_FIRESTORE',
 }
@@ -615,6 +620,48 @@ export function tripReducer(state, action) {
 
     case ACTIONS.REVOKE_SHARE_LINK:
       return updateTrip(state, payload, { shareId: null })
+
+    // ─── Post-Trip ───
+    case ACTIONS.ARCHIVE_TRIP:
+      return updateTrip(state, payload, { archivedAt: new Date().toISOString() })
+
+    case ACTIONS.UNARCHIVE_TRIP:
+      return updateTrip(state, payload, { archivedAt: null })
+
+    case ACTIONS.DUPLICATE_AS_TEMPLATE: {
+      const original = state.trips[payload]
+      if (!original) return state
+      const newId = generateId()
+      const clone = cloneDeep(original)
+      // Strip personal / trip-specific data
+      clone.id = newId
+      clone.name = original.name + ' (Template)'
+      clone.createdAt = new Date().toISOString()
+      clone.startDate = ''
+      clone.endDate = ''
+      clone.shareId = null
+      clone.archivedAt = null
+      clone.spendingLog = []
+      // Strip booking confirmation numbers, paid amounts, and reset status
+      clone.bookings = (clone.bookings || []).map(b => ({
+        ...b,
+        confirmationNumber: '',
+        amountPaid: 0,
+        status: 'not_started',
+      }))
+      // Strip activity dates from itinerary days (keep dayNumber, location, activities)
+      clone.itinerary = (clone.itinerary || []).map(d => ({
+        ...d,
+        id: generateId(),
+        date: '',
+      }))
+      // Reset packing
+      clone.packingList = (clone.packingList || []).map(p => ({ ...p, packed: false, packedBy: null }))
+      // Clear member-specific data
+      clone.memberIds = []
+      clone.travelerIds = []
+      return { ...state, trips: { ...state.trips, [newId]: clone }, activeTripId: newId }
+    }
 
     // ─── Firestore sync ───
     // Replaces the entire trips map with data from a Firestore snapshot.

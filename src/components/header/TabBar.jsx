@@ -13,7 +13,7 @@ import { useMediaQuery } from '../../hooks/useMediaQuery'
    - "More ▾" dropdown updated to match pill aesthetic
 ───────────────────────────────────────────────────────────── */
 export default function TabBar() {
-  const { state, dispatch } = useTripContext()
+  const { state, dispatch, activeTrip, isReadOnly } = useTripContext()
   const activeTab = state.activeTab
   const scrollRef = useRef(null)
   const activeTabRef = useRef(null)
@@ -26,16 +26,20 @@ export default function TabBar() {
   const [showMore, setShowMore] = useState(false)
 
   // Derive hasConcert from activeTrip bookings
-  const { activeTrip } = useTripContext()
   const hasConcert = activeTrip?.bookings?.some(b => b.category === 'concert') || false
   const isMobile = useMediaQuery('(max-width: 767px)')
   const coreTabs = ['overview', 'itinerary', 'budget', 'ai']
 
-  const visibleTabs = TAB_CONFIG.filter(tab => {
-    if (tab.conditional && tab.id === 'concert') return hasConcert
-    if (isMobile && coreTabs.includes(tab.id)) return false
-    return true
-  })
+  // Build visible tabs — swap voting → wrap-up for completed/archived trips
+  const WRAPUP_TAB = { id: 'wrap-up', emoji: '🎉', label: 'Wrap-Up' }
+  const visibleTabs = TAB_CONFIG
+    .filter(tab => {
+      if (tab.conditional && tab.id === 'concert') return hasConcert
+      if (isMobile && coreTabs.includes(tab.id)) return false
+      if (isReadOnly && tab.id === 'voting') return false // replaced by wrap-up
+      return true
+    })
+    .concat(isReadOnly ? [WRAPUP_TAB] : [])
 
   const handleTabClick = (tabId) => {
     dispatch({ type: ACTIONS.SET_TAB, payload: tabId })

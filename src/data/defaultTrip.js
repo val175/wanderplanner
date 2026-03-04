@@ -375,6 +375,7 @@ export function createEmptyTrip(overrides = {}) {
     currency: overrides.currency || 'PHP',
     createdAt: new Date().toISOString(),
     shareId: null, // generated lazily when user first clicks "Share trip"
+    archivedAt: null, // set when user manually archives the trip
     itinerary: [],
     bookings: [],
     todos: [],

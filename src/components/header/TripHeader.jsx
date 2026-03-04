@@ -413,7 +413,7 @@ function DateRangeEditor({ trip, dispatch }) {
 }
 
 export default function TripHeader({ onOpenSidebar, isMobile }) {
-  const { activeTrip, dispatch } = useTripContext()
+  const { activeTrip, dispatch, isReadOnly, effectiveStatus } = useTripContext()
   const { profiles } = useProfiles()
   const readiness = useMemo(() => calculateReadiness(activeTrip), [activeTrip])
   const [showShareModal, setShowShareModal] = useState(false)
@@ -460,8 +460,11 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
             </span>
 
             <div className="min-w-0 flex-1">
-              {/* Row 1 — editable title */}
-              <InlineTripName value={trip.name} onSave={handleRename} />
+              {/* Row 1 — editable title (locked in read-only mode) */}
+              {isReadOnly
+                ? <h1 className="font-heading text-2xl md:text-3xl font-bold text-text-primary leading-tight truncate">{trip.name}</h1>
+                : <InlineTripName value={trip.name} onSave={handleRename} />
+              }
 
               {/* Row 2 — date · travelers · readiness ring, all inline */}
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
@@ -504,7 +507,14 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
               Share
             </button>
 
-            {tripStatus === 'ongoing' ? (
+            {isReadOnly ? (
+              <div className="flex flex-col items-end">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold
+                  bg-text-muted/10 text-text-muted border border-border">
+                  {effectiveStatus === 'archived' ? '📁 Archived' : '📖 Memory'}
+                </span>
+              </div>
+            ) : tripStatus === 'ongoing' ? (
               <div className="flex flex-col items-end">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5
                   rounded-full text-xs font-semibold

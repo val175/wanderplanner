@@ -7,6 +7,7 @@ import { useAuth } from './hooks/useAuth'
 import { useFirestoreTrips } from './hooks/useFirestoreTrips'
 import { useMediaQuery } from './hooks/useMediaQuery'
 import { ACTIONS } from './state/tripReducer'
+import { getEffectiveStatus } from './utils/tripStatus'
 
 // Auth
 import AuthScreen from './components/auth/AuthScreen'
@@ -34,6 +35,7 @@ import VotingTab from './components/tabs/VotingTab'
 import CitiesTab from './components/tabs/CitiesTab'
 import PackingTab from './components/tabs/PackingTab'
 import ConcertTab from './components/tabs/ConcertTab'
+import WrapUpTab from './components/tabs/WrapUpTab'
 
 /* ─────────────────────────────────────────────────────────────
    Tab panel renderer
@@ -49,6 +51,7 @@ function TabPanel({ activeTab, onTabSwitch }) {
     case 'cities': return <CitiesTab />
     case 'packing': return <PackingTab />
     case 'concert': return <ConcertTab />
+    case 'wrap-up': return <WrapUpTab />
     default: return <OverviewTab onTabSwitch={onTabSwitch} />
   }
 }
@@ -113,6 +116,10 @@ function AuthenticatedApp({ user, signOutUser }) {
   const isMobile = useMediaQuery('(max-width: 767px)')
   const [showNewTripModal, setShowNewTripModal] = useState(false)
 
+  // Read-only mode: active when the trip is completed or manually archived
+  const effectiveStatus = getEffectiveStatus(activeTrip)
+  const isReadOnly = effectiveStatus === 'completed' || effectiveStatus === 'archived'
+
   const handleNewTrip = useCallback(() => {
     setShowNewTripModal(true)
     if (isMobile) dispatch({ type: ACTIONS.SET_SIDEBAR, payload: false })
@@ -132,7 +139,7 @@ function AuthenticatedApp({ user, signOutUser }) {
   }
 
   return (
-    <TripContext.Provider value={{ state, dispatch, activeTrip, sortedTrips, showToast, signOutUser }}>
+    <TripContext.Provider value={{ state, dispatch, activeTrip, sortedTrips, showToast, signOutUser, isReadOnly, effectiveStatus }}>
       <div className="flex h-screen overflow-hidden bg-bg-primary text-text-secondary">
 
         <Sidebar

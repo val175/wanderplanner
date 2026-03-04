@@ -29,4 +29,16 @@ export const STATUS_CONFIG = {
     label: 'Completed',
     className: 'bg-text-muted/10 text-text-muted',
   },
+  archived: {
+    label: 'Archived',
+    className: 'bg-text-muted/10 text-text-muted',
+  },
+}
+
+/**
+ * Returns the effective display status, including manual archival.
+ */
+export function getEffectiveStatus(trip) {
+  if (trip?.archivedAt) return 'archived'
+  return getTripStatus(trip?.startDate, trip?.endDate)
 }

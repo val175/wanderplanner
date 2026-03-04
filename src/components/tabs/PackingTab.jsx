@@ -388,7 +388,7 @@ function InlineAddRow({ onAdd, defaultAssignee }) {
 
 // ── Main Packing Tab ────────────────────────────────────────────────────────
 export default function PackingTab() {
-  const { activeTrip, dispatch, showToast } = useTripContext()
+  const { activeTrip, dispatch, showToast, isReadOnly } = useTripContext()
   const { currentUserProfile, resolveProfile } = useProfiles()
   const [celebration, setCelebration] = useState(0)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
@@ -742,7 +742,9 @@ export default function PackingTab() {
                   ))}
                 </tr>
               ))}
-              <InlineAddRow onAdd={onAdd} defaultAssignee={viewMode === 'me' && currentUserProfile?.id ? [currentUserProfile.id] : []} />
+              {!isReadOnly && (
+                <InlineAddRow onAdd={onAdd} defaultAssignee={viewMode === 'me' && currentUserProfile?.id ? [currentUserProfile.id] : []} />
+              )}
             </tbody>
           </table>
         </div>

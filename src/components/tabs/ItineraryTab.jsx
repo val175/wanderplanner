@@ -588,7 +588,7 @@ function KanbanColumn({ day }) {
 
 // ── Main Itinerary Tab ─────────────────────────────────────────────────────
 export default function ItineraryTab() {
-  const { activeTrip, dispatch } = useTripContext()
+  const { activeTrip, dispatch, isReadOnly } = useTripContext()
   const isMobile = useMediaQuery('(max-width: 767px)')
   const [viewMode, setViewMode] = useState('table') // 'table' | 'kanban'
   const [activeDayIndex, setActiveDayIndex] = useState(0) // For mobile swipe view context
@@ -652,9 +652,11 @@ export default function ItineraryTab() {
             </button>
           </div>
 
-          <Button size="sm" onClick={handleAddDay} className="shrink-0">
-            + New Day
-          </Button>
+          {!isReadOnly && (
+            <Button size="sm" onClick={handleAddDay} className="shrink-0">
+              + New Day
+            </Button>
+          )}
         </div>
       </div>
 
