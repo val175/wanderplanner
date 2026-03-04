@@ -167,10 +167,14 @@ export async function generateCityGuide(city, trip) {
             }
           }
           if (toCurrency && toCurrency !== baseCurrency) {
-            const erRes = await fetch(`https://open.er-api.com/v6/latest/${baseCurrency}`)
+            // Fetch FROM the city currency so we show e.g. "1 USD = 58 PHP"
+            // (city currency → trip currency = what the traveler needs to know)
+            const erRes = await fetch(`https://open.er-api.com/v6/latest/${toCurrency}`)
             const erData = await erRes.json()
-            if (erData.rates && erData.rates[toCurrency]) {
-              return `💱 CURRENCY\n1 ${baseCurrency} = ${erData.rates[toCurrency]} ${toCurrency}`
+            if (erData.rates && erData.rates[baseCurrency]) {
+              const rate = erData.rates[baseCurrency]
+              const formatted = rate >= 1 ? Math.round(rate) : rate.toFixed(4)
+              return `💱 CURRENCY\n1 ${toCurrency} = ${formatted} ${baseCurrency}`
             }
           } else if (toCurrency === baseCurrency) {
             return `💱 CURRENCY\nUses ${baseCurrency}`
@@ -207,50 +211,45 @@ export async function generatePinFromUrl(urlOrContext) {
     const urlMatch = urlOrContext.match(/http[s]?:\/\/[^\s]+/);
     const url = urlMatch ? urlMatch[0] : urlOrContext;
 
-    let titleFromContext = "";
-    const titleMatch = urlOrContext.match(/Page Title: (.*)/);
-    if (titleMatch) titleFromContext = titleMatch[1];
-
-    let extractedName = titleFromContext;
+    let extractedName = null;
     let imageUrl = null;
 
     if (url) {
       try {
-        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
-        const res = await fetch(proxyUrl, { signal: controller.signal }).catch(() => null);
-        clearTimeout(timeoutId);
-
-        if (res && res.ok) {
-          const htmlText = await res.text();
-
-          if (!extractedName) {
-            const ogMatch = htmlText.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["'][^>]*>/i)
-              || htmlText.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:title["'][^>]*>/i);
-            if (ogMatch && ogMatch[1]) {
-              extractedName = ogMatch[1].trim();
-            } else {
-              const titleTagMatch = htmlText.match(/<title>([^<]+)<\/title>/i);
-              if (titleTagMatch && titleTagMatch[1]) {
-                extractedName = titleTagMatch[1].trim();
-              }
-            }
-          }
-
-          const imgMatch = htmlText.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["'][^>]*>/i)
-            || htmlText.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["'][^>]*>/i);
-          if (imgMatch && imgMatch[1]) {
-            imageUrl = imgMatch[1].trim();
-          }
+        // Use the Vercel backend to scrape (server-side, no CORS issues)
+        const backendRes = await fetch('https://wanderplan-rust.vercel.app/api/extract-pin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+        if (backendRes.ok) {
+          const data = await backendRes.json();
+          if (data.name) extractedName = data.name;
+          if (data.imageUrl) imageUrl = data.imageUrl;
         }
       } catch (e) {
-        console.warn("Fast scrape failed for pin", e);
+        console.warn("Backend pin scrape failed", e);
+      }
+    }
+
+    // Smart fallback: use hostname instead of generic "Saved Link"
+    if (!extractedName && url) {
+      try {
+        const hostname = new URL(url).hostname.replace(/^www\./, '');
+        // Google Maps special case
+        if (hostname.includes('google.com') || hostname.includes('maps.app.goo.gl')) {
+          extractedName = '📍 Google Maps Pin';
+        } else {
+          // Capitalise hostname nicely e.g. "tripadvisor.com" → "Tripadvisor.com"
+          extractedName = hostname.charAt(0).toUpperCase() + hostname.slice(1);
+        }
+      } catch (_) {
+        extractedName = 'Saved Link';
       }
     }
 
     // Clean up title
-    let finalName = extractedName || "Saved Link";
+    let finalName = extractedName || 'Saved Link';
     finalName = finalName.replace(/ - Google Maps/i, '').replace(/[\r\n]+/g, ' ').trim();
     if (finalName.length > 50) finalName = finalName.substring(0, 50) + '...';
 

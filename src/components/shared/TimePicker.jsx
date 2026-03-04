@@ -15,7 +15,19 @@ const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
 
 function parse24h(time) {
   if (!time) return { h: 12, m: 0, period: 'AM' }
+
+  // Handle already-formatted 12h strings like "9:00 AM" or "09:00 AM"
+  const match12h = time.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i)
+  if (match12h) {
+    const h = parseInt(match12h[1], 10) || 12
+    const m = parseInt(match12h[2], 10)
+    const period = match12h[3].toUpperCase()
+    return { h, m, period }
+  }
+
+  // Standard 24h "HH:MM" format
   const [hRaw, mRaw] = time.split(':').map(Number)
+  if (isNaN(hRaw) || isNaN(mRaw)) return { h: 12, m: 0, period: 'AM' }
   const period = hRaw < 12 ? 'AM' : 'PM'
   const h = hRaw % 12 || 12
   return { h, m: mRaw, period }
