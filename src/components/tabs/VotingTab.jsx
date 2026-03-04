@@ -51,9 +51,8 @@ function TokenInventory({ poll, activeUserId }) {
 }
 
 // ── Poll Option Card ──
-function PollOptionCard({ option, poll, activeUserId, onVote, isLeader }) {
+function PollOptionCard({ option, poll, activeUserId, onVote, isLeader, globalTokensRemaining, globalVetoesRemaining }) {
     const userVotes = poll.votes?.[activeUserId] || { tokens: {}, veto: null }
-    const tokensUsed = Object.values(userVotes.tokens).reduce((sum, count) => sum + count, 0)
 
     const myTokens = userVotes.tokens[option.id] || 0
     const isMyVeto = userVotes.veto === option.id
@@ -141,7 +140,7 @@ function PollOptionCard({ option, poll, activeUserId, onVote, isLeader }) {
                             <button
                                 onClick={() => onVote(poll.id, option.id, 'token', 'add')}
                                 className="w-10 h-10 flex items-center justify-center text-amber-500 hover:bg-amber-500/10 disabled:opacity-30 transition-colors"
-                                disabled={tokensUsed >= 3 || isVetoedByAnyone}
+                                disabled={globalTokensRemaining <= 0 || isVetoedByAnyone}
                             >
                                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 5v14M5 12h14" /></svg>
                             </button>
@@ -150,7 +149,7 @@ function PollOptionCard({ option, poll, activeUserId, onVote, isLeader }) {
                         <button
                             onClick={() => onVote(poll.id, option.id, 'token', 'add')}
                             className="w-full border border-border bg-bg-secondary hover:bg-bg-hover text-text-secondary hover:text-text-primary transition-colors py-2.5 rounded-[var(--radius-md)] text-[11px] font-bold uppercase tracking-widest flex items-center justify-center gap-2"
-                            disabled={tokensUsed >= 3 || isVetoedByAnyone}
+                            disabled={globalTokensRemaining <= 0 || isVetoedByAnyone}
                         >
                             <span className="text-base leading-none text-text-muted">+ 🟡</span> Add Token
                         </button>
@@ -159,7 +158,7 @@ function PollOptionCard({ option, poll, activeUserId, onVote, isLeader }) {
                     {/* Simplified Veto Text Link below */}
                     <button
                         onClick={() => onVote(poll.id, option.id, 'veto')}
-                        disabled={userVotes.veto && !isMyVeto}
+                        disabled={(globalVetoesRemaining === 0 && !isMyVeto)}
                         className={`text-[10px] font-bold text-center mt-1 uppercase tracking-widest transition-colors ${isMyVeto ? 'text-danger' : 'text-text-muted hover:text-danger'}`}
                     >
                         {isMyVeto ? '🧨 VETOED' : 'VETO'}
@@ -171,7 +170,7 @@ function PollOptionCard({ option, poll, activeUserId, onVote, isLeader }) {
 }
 
 // ── Poll Container Card ──
-function PollCard({ poll, activeUserId, onVote, onResolve, onDelete, resolveProfile }) {
+function PollCard({ poll, activeUserId, onVote, onResolve, onDelete, resolveProfile, globalTokensRemaining, globalVetoesRemaining }) {
     // Determine Current Leader
     let leaderId = null
     if (poll.status === 'active') {
@@ -275,7 +274,7 @@ function PollCard({ poll, activeUserId, onVote, onResolve, onDelete, resolveProf
                 <div className="flex overflow-x-auto gap-5 pb-4 snap-x pl-1 pt-3 items-stretch">
                     {poll.options.map(opt => (
                         <div key={opt.id} className="min-w-[240px] w-[240px] max-w-[240px] snap-start shrink-0 flex">
-                            <PollOptionCard option={opt} poll={poll} activeUserId={activeUserId} onVote={onVote} isLeader={leaderId === opt.id} />
+                            <PollOptionCard option={opt} poll={poll} activeUserId={activeUserId} onVote={onVote} isLeader={leaderId === opt.id} globalTokensRemaining={globalTokensRemaining} globalVetoesRemaining={globalVetoesRemaining} />
                         </div>
                     ))}
                 </div>
@@ -397,6 +396,23 @@ export default function VotingTab() {
 
     const ideas = activeTrip?.ideas || []
     const polls = activeTrip?.polls || []
+
+    // Global Bank Logic
+    const activePolls = polls.filter(p => p.status === 'active')
+    let totalTokensUsedByMe = 0
+    let totalVetoesUsedByMe = 0
+
+    if (currentUserProfile) {
+        activePolls.forEach(poll => {
+            const myVotes = poll.votes?.[currentUserProfile.id] || { tokens: {}, veto: null }
+            const myPollTokens = Object.values(myVotes.tokens).reduce((sum, count) => sum + count, 0)
+            totalTokensUsedByMe += myPollTokens
+            if (myVotes.veto) totalVetoesUsedByMe += 1
+        })
+    }
+
+    const globalTokensRemaining = Math.max(0, 3 - totalTokensUsedByMe)
+    const globalVetoesRemaining = Math.max(0, 1 - totalVetoesUsedByMe)
 
     const visibleIdeas = useMemo(() => {
         let arr = [...ideas].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -544,20 +560,19 @@ export default function VotingTab() {
                         Allocate your tokens, track group consensus, and build the trip.
                     </p>
                 </div>
-                {/* Global Bank Indicator in Top Header as per Mockup */}
+                {/* Global Bank Indicator in Top Header */}
                 <Card className="px-5 py-2.5 rounded-full flex items-center gap-4 shadow-sm border border-border">
                     <div className="flex gap-1.5 items-center">
                         <span className="text-xs font-bold text-text-secondary mr-1">Your Bank:</span>
-                        {/* We could calculate total tokens left across all active polls, or just show 3 dots. For simplicity, show 3 standard dots. */}
                         <div className="flex gap-1">
-                            <div className="w-3.5 h-3.5 rounded-full bg-amber-400"></div>
-                            <div className="w-3.5 h-3.5 rounded-full bg-amber-400"></div>
-                            <div className="w-3.5 h-3.5 rounded-full bg-border"></div>
+                            {Array.from({ length: 3 }).map((_, i) => (
+                                <div key={i} className={`w-3.5 h-3.5 rounded-full ${i < globalTokensRemaining ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.4)]' : 'bg-border'}`} />
+                            ))}
                         </div>
                     </div>
                     <div className="w-px h-4 bg-border"></div>
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-danger">
-                        <span>🧨</span> 1 Veto
+                    <div className={`flex items-center gap-1.5 text-xs font-bold ${globalVetoesRemaining === 0 ? 'text-text-muted opacity-50 grayscale' : 'text-danger'}`}>
+                        <span>🧨</span> {globalVetoesRemaining} Veto
                     </div>
                 </Card>
             </div>
@@ -575,6 +590,8 @@ export default function VotingTab() {
                                 onResolve={handleResolvePoll}
                                 onDelete={handleDeletePoll}
                                 resolveProfile={resolveProfile}
+                                globalTokensRemaining={globalTokensRemaining}
+                                globalVetoesRemaining={globalVetoesRemaining}
                             />
                         ))}
                     </div>
@@ -643,44 +660,43 @@ export default function VotingTab() {
                 )}
 
                 {/* View Filters & URL Extractor */}
-                <div className={`transition-all duration-300 flex items-center justify-between gap-4 mb-4 ${isCreatingPoll ? '-mt-4' : ''}`}>
+                <div className={`transition-all duration-300 flex items-center justify-between gap-4 mb-4 relative ${isCreatingPoll ? '-mt-4' : ''}`}>
                     <div className="flex items-center gap-2 overflow-x-auto pb-1 mb-[-4px]">
                         {['all', 'lodging', 'activity'].map(f => (
                             <button
                                 key={f}
                                 onClick={() => setFilter(f)}
-                                className={`px-4 py-2 text-xs font-bold rounded-full transition-all border shadow-sm whitespace-nowrap flex items-center gap-1.5 ${filter === f ? 'bg-[#1D2B3D] border-[#1D2B3D] text-white' : 'bg-bg-card border-border text-text-secondary hover:bg-bg-hover'}`}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-pill)] text-xs font-medium border transition-colors whitespace-nowrap ${filter === f ? 'bg-accent text-white border-transparent' : 'bg-bg-secondary border-border text-text-muted hover:text-text-secondary'}`}
                             >
-                                {f === 'all' ? 'All Ideas' : f === 'lodging' ? <><span>🏠</span> Lodging</> : <><span>🎯</span> Activities</>}
+                                {f === 'all' ? 'All Categories' : f === 'lodging' ? <><span>🏠</span> Lodging</> : <><span>🎯</span> Activities</>}
                             </button>
                         ))}
                     </div>
 
                     {!showExtractInput ? (
-                        <Button onClick={() => setShowExtractInput(true)} className="bg-[#1D2B3D] hover:bg-[#1D2B3D]/90 text-white border-transparent shadow flex items-center gap-1.5 px-5 py-2 rounded-full text-xs shrink-0 font-bold min-h-[38px]">
-                            <span className="text-sm font-light leading-none">+</span> Extract Idea
+                        <Button onClick={() => setShowExtractInput(true)} className="bg-bg-card border-border hover:bg-bg-hover text-text-primary px-5 py-2 rounded-full text-[13px] shrink-0 font-bold min-h-[38px] transition-colors border shadow-sm">
+                            Extract Idea
                         </Button>
                     ) : (
-                        <Card className="p-1 px-2 pr-1 h-[38px] bg-bg-body shadow-sm absolute right-0 z-40 w-full sm:w-auto animate-fade-in backdrop-blur-md rounded-full flex items-center border-[#1D2B3D] border-2">
-                            <form onSubmit={handleExtract} className="flex gap-2 min-w-[280px] h-full items-center">
-                                <div className="flex-1 relative flex items-center h-full bg-transparent overflow-hidden">
-                                    <span className="absolute left-2 text-xs opacity-70">✨</span>
-                                    <input
-                                        type="url"
-                                        value={urlInput}
-                                        onChange={e => setUrlInput(e.target.value)}
-                                        placeholder="Paste a link..."
-                                        className="w-full pl-7 pr-2 py-0 h-full bg-transparent outline-none focus:ring-0 shadow-none border-none text-xs font-medium text-text-primary placeholder:text-text-muted"
-                                        disabled={isExtracting}
-                                        autoFocus
-                                    />
-                                </div>
-                                <Button type="submit" disabled={isExtracting || !urlInput.trim()} className="shrink-0 px-4 py-1 text-[10px] font-bold h-[26px] bg-[#1D2B3D] hover:bg-black rounded-full" size="sm">
+                        <div className="p-1 pr-1.5 h-[42px] bg-[#fcf9f5] absolute right-0 z-40 w-full sm:w-[320px] animate-fade-in rounded-full flex items-center border-[#EAE3DE] shadow-sm border-[2px]">
+                            <form onSubmit={handleExtract} className="flex gap-2 w-full h-full items-center">
+                                <input
+                                    type="url"
+                                    value={urlInput}
+                                    onChange={e => setUrlInput(e.target.value)}
+                                    placeholder="Paste a link..."
+                                    className="flex-1 pl-4 pr-2 py-0 h-full bg-transparent outline-none focus:ring-0 shadow-none border-none text-[14px] font-medium text-text-primary placeholder:text-[#A7A3A0]"
+                                    disabled={isExtracting}
+                                    autoFocus
+                                />
+                                <button type="submit" disabled={isExtracting || !urlInput.trim()} className="shrink-0 px-5 py-1.5 text-[13px] font-bold bg-[#EFBCA6] hover:bg-[#E3A387] text-white rounded-full transition-colors disabled:opacity-50 h-[30px] flex items-center justify-center">
                                     {isExtracting ? '...' : 'Add'}
-                                </Button>
-                                <button type="button" onClick={() => setShowExtractInput(false)} className="px-1 text-text-muted hover:text-text-primary flex items-center justify-center mr-1">✕</button>
+                                </button>
+                                <button type="button" onClick={() => setShowExtractInput(false)} className="px-2 text-[#908D89] hover:text-text-primary flex items-center justify-center transition-colors">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                                </button>
                             </form>
-                        </Card>
+                        </div>
                     )}
                 </div>
 
