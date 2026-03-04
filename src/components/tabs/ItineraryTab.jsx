@@ -10,6 +10,7 @@ import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { formatDate, formatCurrency } from '../../utils/helpers'
 import { ACTIVITY_EMOJIS } from '../../constants/emojis'
+import { COUNTRY_TIMEZONE, getUTCOffsetHours, applyTimezoneOffset, FLIGHT_ACTIVITY_PATTERNS, FLIGHT_EMOJIS } from '../../utils/timezones'
 
 // ── Utilities ──────────────────────────────────────────────────────────────
 function getActivityAccent(emoji) {
@@ -114,6 +115,33 @@ function DayGroupTable({ day, onReorderDay, trip }) {
   const [expanded, setExpanded] = useState(true)
   const [dragOverGroup, setDragOverGroup] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+
+  // ── Body Clock: compute offset delta for this day ──
+  // homeCountry = first city in trip, destinationCountry = city matching day.location
+  const bodyClockOffsetHours = useMemo(() => {
+    if (!trip?.cities?.length) return null
+    const homeCountry = trip.cities[0]?.country
+    if (!homeCountry) return null
+    const homeTz = COUNTRY_TIMEZONE[homeCountry]
+    if (!homeTz) return null
+
+    // Find the destination city — match day.location against city names
+    const destCity = trip.cities.find(c =>
+      day.location && c.city && day.location.toLowerCase().includes(c.city.toLowerCase())
+    ) || (trip.cities.length > 1 ? trip.cities[trip.cities.length - 1] : null)
+
+    const destCountry = destCity?.country
+    if (!destCountry || destCountry === homeCountry) return null
+    const destTz = COUNTRY_TIMEZONE[destCountry]
+    if (!destTz) return null
+
+    const homeOffset = getUTCOffsetHours(homeTz)
+    const destOffset = getUTCOffsetHours(destTz)
+    if (homeOffset === null || destOffset === null) return null
+
+    const delta = homeOffset - destOffset // positive = home is ahead
+    return Math.abs(delta) >= 2 ? delta : null
+  }, [trip, day.location])
 
   const handleDropActivity = (e, targetIndex) => {
     e.preventDefault()
@@ -307,6 +335,17 @@ function DayGroupTable({ day, onReorderDay, trip }) {
                                 inputClassName="w-full font-semibold px-0 py-0 h-auto min-h-0"
                                 placeholder="Activity name"
                               />
+                              {/* Body Clock ghost-text */}
+                              {bodyClockOffsetHours !== null && activity.time && (
+                                FLIGHT_EMOJIS.has(activity.emoji) || FLIGHT_ACTIVITY_PATTERNS.test(activity.name || '')
+                              ) && (() => {
+                                const bodyTime = applyTimezoneOffset(activity.time, bodyClockOffsetHours)
+                                return bodyTime ? (
+                                  <span className="inline-flex items-center gap-1 mt-0.5 text-[10px] text-text-muted/60 italic select-none">
+                                    (that's {bodyTime} your body time 🧟)
+                                  </span>
+                                ) : null
+                              })()}
                               {(activity.notes !== undefined) && (
                                 <EditableText
                                   value={activity.notes || ''}

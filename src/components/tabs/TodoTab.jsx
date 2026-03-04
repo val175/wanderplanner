@@ -8,6 +8,7 @@ import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { TODO_PHASES } from '../../constants/tabs'
 import AvatarCircle from '../shared/AvatarCircle'
+import { useTripTravelers } from '../../hooks/useTripTravelers'
 
 // Helper for Assignee Pill
 function AssigneePill({ value, onChange, tripTravelers, resolveProfile, currentUserProfile }) {
@@ -271,7 +272,8 @@ export default function TodoTab() {
   if (!activeTrip) return null
   const trip = activeTrip
   const todos = trip.todos || []
-  const tripTravelers = trip.travelerIds || []
+  const travelers = useTripTravelers()
+  const tripTravelers = travelers.map(t => t.id)
 
   // Ensure tasks without matching phase fall into Planning
   const safeTodos = todos.map(t => {

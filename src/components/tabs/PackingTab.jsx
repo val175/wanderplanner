@@ -16,6 +16,51 @@ import EditableText from '../shared/EditableText'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import AvatarCircle from '../shared/AvatarCircle'
+import { useTripTravelers } from '../../hooks/useTripTravelers'
+
+// ── Packing Badge Engine ──────────────────────────────────────────────────────
+// Maps itinerary activity keywords → matching packing item keywords → badge emoji
+const BADGE_RULES = [
+  { activityPattern: /hik|trek|mountain|trail|climb/i, itemPattern: /shoe|sneaker|boot|footwear/i, badge: '🥾' },
+  { activityPattern: /beach|swim|snorkel|dive|surf|pool/i, itemPattern: /swimsuit|swim|sunscreen|spf|towel|bikini/i, badge: '🩱' },
+  { activityPattern: /ski|snowboard|snow|winter sport/i, itemPattern: /jacket|thermal|glove|beanie|snow|ski/i, badge: '❄️' },
+  { activityPattern: /museum|gallery|theatre|theater|opera|formal|dinner|gala/i, itemPattern: /dress|blazer|suit|formal|heels|shirt/i, badge: '🎩' },
+  { activityPattern: /camping|camp|overnight hike|bivouac/i, itemPattern: /sleeping bag|tent|torch|flashlight|camp/i, badge: '⛺' },
+  { activityPattern: /rain|wet season|monsoon/i, itemPattern: /umbrella|raincoat|rain jacket|poncho/i, badge: '🌧️' },
+  { activityPattern: /yoga|meditation|wellness|spa|fitness/i, itemPattern: /yoga|mat|activewear|gym/i, badge: '🧘' },
+]
+
+/**
+ * Returns a Map<itemId, string[]> — badges for each packing item based on
+ * what's in the itinerary.
+ */
+function usePackingBadges(items, itinerary) {
+  return useMemo(() => {
+    const badgeMap = new Map()
+    if (!itinerary?.length || !items?.length) return badgeMap
+
+    // Collect all activity text from the entire itinerary
+    const allActivityText = itinerary
+      .flatMap(day => day.activities || [])
+      .map(a => `${a.name || ''} ${a.notes || ''} ${a.location || ''}`)
+      .join(' ')
+
+    // Find which rules are triggered
+    const triggeredBadges = BADGE_RULES.filter(rule => rule.activityPattern.test(allActivityText))
+    if (!triggeredBadges.length) return badgeMap
+
+    // For each item, check if any triggered badge applies
+    items.forEach(item => {
+      const itemText = `${item.name || ''} ${item.notes || ''}`
+      const badges = triggeredBadges
+        .filter(rule => rule.itemPattern.test(itemText))
+        .map(rule => rule.badge)
+      if (badges.length) badgeMap.set(item.id, badges)
+    })
+
+    return badgeMap
+  }, [items, itinerary])
+}
 
 // ── Category config ─────────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -352,18 +397,21 @@ export default function PackingTab() {
   if (!activeTrip) return null
 
   const items = activeTrip.packingList || []
+  const travelers = useTripTravelers()
+  const travelerIds = travelers.map(t => t.id)
+  const packingBadges = usePackingBadges(items, activeTrip.itinerary)
 
   // Create a filtered list of all items matching 'My List' rules if needed, to calculate progress accurately for the view
   const visibleItems = useMemo(() => {
     if (viewMode === 'group') return items
     const myId = currentUserProfile?.id
     if (!myId) return []
-    const travelers = activeTrip.travelerIds || []
+    const travs = travelerIds
 
     return items.filter(p => {
       const assignees = Array.isArray(p.assignee)
         ? p.assignee
-        : (p.assignee === 'shared' ? travelers : (p.assignee ? [p.assignee] : []))
+        : (p.assignee === 'shared' ? travs : (p.assignee ? [p.assignee] : []))
 
       if (!assignees.includes(myId)) return false
 
@@ -403,7 +451,6 @@ export default function PackingTab() {
   }, [dispatch])
 
   const handleStarterList = () => {
-    const travelers = activeTrip.travelerIds || []
     // Deduplicate: skip items whose name already exists (case-insensitive)
     const existingNames = new Set(items.map(i => i.name.toLowerCase()))
     const newItems = STARTER_ITEMS.filter(item => !existingNames.has(item.name.toLowerCase()))
@@ -412,7 +459,7 @@ export default function PackingTab() {
       return
     }
     newItems.forEach(item =>
-      dispatch({ type: ACTIONS.ADD_PACKING_ITEM, payload: { ...item, assignee: travelers } })
+      dispatch({ type: ACTIONS.ADD_PACKING_ITEM, payload: { ...item, assignee: travelerIds } })
     )
     const skipped = STARTER_ITEMS.length - newItems.length
     const msg = skipped > 0
@@ -455,15 +502,33 @@ export default function PackingTab() {
       accessorKey: 'name',
       header: 'Item',
       size: 999, // fluid
-      cell: info => (
-        <EditableText
-          value={info.getValue()}
-          onSave={val => onUpdate(info.row.original.id, { name: val })}
-          inputClassName="w-full"
-          className={`text-[13px] font-medium block w-full ${info.row.original.packed ? 'line-through text-text-muted' : 'text-text-primary'
-            }`}
-        />
-      ),
+      cell: info => {
+        const badges = packingBadges.get(info.row.original.id)
+        return (
+          <div className="flex items-center gap-1.5 w-full min-w-0">
+            <EditableText
+              value={info.getValue()}
+              onSave={val => onUpdate(info.row.original.id, { name: val })}
+              inputClassName="w-full"
+              className={`text-[13px] font-medium block ${info.row.original.packed ? 'line-through text-text-muted' : 'text-text-primary'}`}
+            />
+            {badges && !info.row.original.packed && (
+              <span className="flex items-center gap-0.5 shrink-0">
+                {badges.map((badge, i) => (
+                  <span
+                    key={i}
+                    title="Relevant to your itinerary!"
+                    className="text-[13px] animate-pulse"
+                    style={{ animationDuration: '2.5s' }}
+                  >
+                    {badge}
+                  </span>
+                ))}
+              </span>
+            )}
+          </div>
+        )
+      },
     },
     {
       id: 'category',
@@ -515,7 +580,7 @@ export default function PackingTab() {
             packedBy={info.row.original.packedBy}
             isPacked={info.row.original.packed}
             onChange={val => onUpdate(info.row.original.id, { assignee: val })}
-            tripTravelers={activeTrip.travelerIds || []}
+            tripTravelers={travelerIds}
             resolveProfile={resolveProfile}
             currentUserProfile={currentUserProfile}
           />

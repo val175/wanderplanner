@@ -7,6 +7,7 @@ import { ACTIONS } from '../../state/tripReducer'
 import { formatCurrency } from '../../utils/helpers'
 import Button from '../shared/Button'
 import { calculateBalances, simplifyDebts, buildSplits } from '../../utils/splitwise'
+import { useTripTravelers } from '../../hooks/useTripTravelers'
 
 // ── Shared Colors ─────────────────────────────────────────────────────────────
 const CHART_COLORS = [
@@ -162,18 +163,45 @@ function GroupBalancesCard({ spendingLog, travelers, currency }) {
       {showSettle && transactions.length > 0 && (
         <div className="mt-3 space-y-1.5 border-t border-border/40 pt-3">
           <p className="text-[10px] text-text-muted uppercase tracking-widest font-medium mb-2">How to settle</p>
-          {transactions.map((tx, i) => {
-            const from = travelers.find(t => t.id === tx.from)
-            const to = travelers.find(t => t.id === tx.to)
-            return (
-              <div key={i} className="flex items-center gap-2 py-1.5 px-2.5 bg-bg-secondary rounded-lg text-[12px]">
-                <span className="font-medium text-text-primary">{from?.name?.split(' ')[0]}</span>
-                <span className="text-text-muted">→</span>
-                <span className="font-medium text-text-primary">{to?.name?.split(' ')[0]}</span>
-                <span className="ml-auto font-mono font-semibold">{formatCurrency(Math.round(tx.amount), currency)}</span>
-              </div>
-            )
-          })}
+          {(() => {
+            const COFFEE_THRESHOLD = 300
+            const MICRO_PHRASES = [
+              (from, to) => `${from}, just buy ${to} a coffee next time ☕`,
+              (from, to) => `${from} owes ${to} a round of drinks 🍻`,
+              (from, to) => `${from}, grab ${to} some dessert next time 🍦`,
+              (from, to) => `${from}, get ${to} a snack 🧇`,
+              (from, to) => `${from} owes ${to} boba tea 🧋`,
+            ]
+            return transactions.map((tx, i) => {
+              const from = travelers.find(t => t.id === tx.from)
+              const to = travelers.find(t => t.id === tx.to)
+              const fromName = from?.name?.split(' ')[0] || '?'
+              const toName = to?.name?.split(' ')[0] || '?'
+              const rounded = Math.round(tx.amount)
+              const isTrivial = rounded < COFFEE_THRESHOLD
+
+              if (isTrivial) {
+                // Pick a stable phrase based on the debtor+creditor combo
+                const phraseIdx = ((tx.from || '').charCodeAt(0) + (tx.to || '').charCodeAt(0)) % MICRO_PHRASES.length
+                const phrase = MICRO_PHRASES[phraseIdx](fromName, toName)
+                return (
+                  <div key={i} className="flex items-center gap-2 py-2 px-3 bg-[#FFF8EC] dark:bg-amber-900/20 border border-amber-200/60 dark:border-amber-700/30 rounded-xl text-[12px]">
+                    <span className="text-[15px]">☕</span>
+                    <span className="italic text-amber-800 dark:text-amber-300 font-medium">{phrase}</span>
+                  </div>
+                )
+              }
+
+              return (
+                <div key={i} className="flex items-center gap-2 py-1.5 px-2.5 bg-bg-secondary rounded-lg text-[12px]">
+                  <span className="font-medium text-text-primary">{fromName}</span>
+                  <span className="text-text-muted">→</span>
+                  <span className="font-medium text-text-primary">{toName}</span>
+                  <span className="ml-auto font-mono font-semibold">{formatCurrency(rounded, currency)}</span>
+                </div>
+              )
+            })
+          })()}
         </div>
       )}
     </Card>
@@ -482,6 +510,7 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
 export default function BudgetTab() {
   const { activeTrip, dispatch } = useTripContext()
   const { currentUserProfile } = useProfiles()
+  const travelers = useTripTravelers()
   const [perPerson, setPerPerson] = useState(false)
 
   if (!activeTrip) return null
@@ -489,19 +518,6 @@ export default function BudgetTab() {
   const budget = trip.budget || []
   const currency = trip.currency || 'PHP'
 
-  const travelers = useMemo(() => {
-    const snapshot = trip.travelersSnapshot || []
-    if (!snapshot.length) {
-      return currentUserProfile
-        ? [{ id: currentUserProfile.uid || 'me', name: currentUserProfile.name || 'You', avatar: currentUserProfile.customPhoto || currentUserProfile.photo || null }]
-        : []
-    }
-    return snapshot.map(s => ({
-      id: s.id,
-      name: s.name || s.displayName || 'Traveler',
-      avatar: s.avatar || s.photoURL || null,
-    }))
-  }, [trip.travelersSnapshot, currentUserProfile])
 
   const totals = useMemo(() => ({
     min: budget.reduce((s, b) => s + (b.min || 0), 0),
