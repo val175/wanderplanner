@@ -67,6 +67,12 @@ export const ACTIONS = {
   UPDATE_IDEA_STATUS: 'UPDATE_IDEA_STATUS',
   DELETE_IDEA: 'DELETE_IDEA',
 
+  // Polls
+  CREATE_POLL: 'CREATE_POLL',
+  VOTE_POLL: 'VOTE_POLL',
+  RESOLVE_POLL: 'RESOLVE_POLL',
+  DELETE_POLL: 'DELETE_POLL',
+
   // Cities
   UPDATE_CITY: 'UPDATE_CITY',
   ADD_CITY: 'ADD_CITY',
@@ -468,6 +474,64 @@ export function tripReducer(state, action) {
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
         ideas: (trip.ideas || []).filter(idea => idea.id !== payload),
+      }))
+
+    // ─── Polls (Voting Room Pipeline) ───
+    case ACTIONS.CREATE_POLL:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        polls: [{
+          id: generateId(),
+          title: payload.title || 'New Poll',
+          status: 'active',
+          createdAt: new Date().toISOString(),
+          deadline: payload.deadline || null,
+          proposerId: payload.proposerId,
+          options: payload.options || [],
+          votes: {} // { userId: { tokens: { optionId: count }, veto: optionId | null } }
+        }, ...(trip.polls || [])],
+        // Optionally remove the ideas that were converted from the board
+        ideas: payload.removeIdeas ? (trip.ideas || []).filter(i => !payload.options.some(o => o.id === i.id)) : trip.ideas
+      }))
+
+    case ACTIONS.VOTE_POLL:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        polls: (trip.polls || []).map(poll => {
+          if (poll.id !== payload.pollId) return poll
+
+          const userVotes = poll.votes[payload.userId] || { tokens: {}, veto: null }
+          const newUserVotes = { ...userVotes, tokens: { ...userVotes.tokens } }
+
+          if (payload.type === 'token') {
+            const currentObj = newUserVotes.tokens[payload.optionId] || 0
+            if (payload.action === 'add') {
+              newUserVotes.tokens[payload.optionId] = currentObj + 1
+            } else if (payload.action === 'remove' && currentObj > 0) {
+              newUserVotes.tokens[payload.optionId] = currentObj - 1
+            }
+          } else if (payload.type === 'veto') {
+            if (newUserVotes.veto === payload.optionId) {
+              newUserVotes.veto = null // toggle off
+            } else {
+              newUserVotes.veto = payload.optionId // toggle on
+            }
+          }
+
+          return { ...poll, votes: { ...poll.votes, [payload.userId]: newUserVotes } }
+        }),
+      }))
+
+    case ACTIONS.RESOLVE_POLL:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        polls: (trip.polls || []).map(poll => poll.id === payload.pollId ? { ...poll, status: 'resolved' } : poll),
+      }))
+
+    case ACTIONS.DELETE_POLL:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        polls: (trip.polls || []).filter(poll => poll.id !== payload),
       }))
 
     // ─── Cities ───
