@@ -148,6 +148,7 @@ function DayGroupTable({ day, onReorderDay, trip }) {
   }, [trip, day.location])
 
   const handleDropActivity = (e, targetIndex) => {
+    if (isReadOnly) return
     e.preventDefault()
     e.stopPropagation()
     setDragOverGroup(false)
@@ -168,21 +169,23 @@ function DayGroupTable({ day, onReorderDay, trip }) {
 
   return (
     <div
-      className={`mb-8 transition-all ${dragOverGroup ? 'ring-2 ring-accent rounded-[var(--radius-md)]' : ''}`}
-      draggable
+      className={`mb-8 transition-all ${dragOverGroup && !isReadOnly ? 'ring-2 ring-accent rounded-[var(--radius-md)]' : ''}`}
+      draggable={!isReadOnly}
       onDragStart={e => {
-        if (!e.target.closest('.group-drag-handle')) {
+        if (isReadOnly || !e.target.closest('.group-drag-handle')) {
           e.preventDefault()
           return
         }
         e.dataTransfer.setData('application/json', JSON.stringify({ type: 'day', dayId: day.id }))
       }}
       onDragOver={e => {
+        if (isReadOnly) return
         e.preventDefault()
         setDragOverGroup(true)
       }}
       onDragLeave={() => setDragOverGroup(false)}
       onDrop={e => {
+        if (isReadOnly) return
         e.preventDefault()
         setDragOverGroup(false)
         const sourceDataStr = e.dataTransfer.getData('application/json')
@@ -480,8 +483,12 @@ function KanbanColumn({ day }) {
 
   return (
     <div
-      className={`flex flex-col flex-shrink-0 w-72 bg-bg-secondary/20 border rounded-[var(--radius-lg)] p-2 transition-colors ${dragOverCol ? 'border-accent/50 bg-accent/5' : 'border-border/50'}`}
-      onDragOver={e => { e.preventDefault(); setDragOverCol(true) }}
+      className={`flex flex-col flex-shrink-0 w-72 bg-bg-secondary/20 border rounded-[var(--radius-lg)] p-2 transition-colors ${dragOverCol && !isReadOnly ? 'border-accent/50 bg-accent/5' : 'border-border/50'}`}
+      onDragOver={e => {
+        if (isReadOnly) return
+        e.preventDefault()
+        setDragOverCol(true)
+      }}
       onDragLeave={() => setDragOverCol(false)}
       onDrop={handleDrop}
     >
@@ -521,12 +528,13 @@ function KanbanColumn({ day }) {
         {day.activities?.map((activity, i) => (
           <div
             key={activity.id}
-            draggable
+            draggable={!isReadOnly}
             onDragStart={(e) => {
+              if (isReadOnly) return
               e.stopPropagation()
               e.dataTransfer.setData('application/json', JSON.stringify({ type: 'activity', sourceDayId: day.id, activityId: activity.id, sourceIndex: i }))
             }}
-            className="group bg-bg-card border shadow-sm rounded-[var(--radius-md)] p-3 transition-colors block text-left cursor-grab active:cursor-grabbing border-border/50 hover:border-accent/40 active:border-accent relative"
+            className={`group bg-bg-card border shadow-sm rounded-[var(--radius-md)] p-3 transition-colors block text-left ${isReadOnly ? 'border-border/50' : 'cursor-grab active:cursor-grabbing border-border/50 hover:border-accent/40 active:border-accent'} relative`}
           >
             <div className="flex items-start gap-2 mb-2 w-full">
               <div className="flex-1 min-w-0 pr-6">
@@ -535,17 +543,20 @@ function KanbanColumn({ day }) {
                   onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { name: val } } })}
                   className="font-semibold text-sm text-text-primary leading-tight truncate w-full"
                   inputClassName="w-full text-sm font-semibold p-0 h-auto"
+                  readOnly={isReadOnly}
                 />
               </div>
-              <button
-                onClick={() => {
-                  triggerHaptic('medium')
-                  dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })
-                }}
-                className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger text-xs p-1 rounded hover:bg-bg-hover transition-colors"
-              >
-                ✕
-              </button>
+              {!isReadOnly && (
+                <button
+                  onClick={() => {
+                    triggerHaptic('medium')
+                    dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })
+                  }}
+                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger text-xs p-1 rounded hover:bg-bg-hover transition-colors"
+                >
+                  ✕
+                </button>
+              )}
             </div>
 
             {/* Bottom Row */}
@@ -555,6 +566,7 @@ function KanbanColumn({ day }) {
                 onChange={time => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { time } } })}
                 className="text-xs font-mono font-medium text-text-secondary bg-bg-hover rounded-full px-2 py-0.5 w-full border-none"
                 placeholder="Time"
+                disabled={isReadOnly}
               />
             </div>
             {(activity.notes || activity.notes === '') && (
@@ -565,6 +577,7 @@ function KanbanColumn({ day }) {
                   className="text-xs text-text-muted italic block w-full"
                   placeholder="Notes..."
                   multiline
+                  readOnly={isReadOnly}
                 />
               </div>
             )}

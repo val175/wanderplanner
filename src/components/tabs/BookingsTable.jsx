@@ -29,7 +29,7 @@ export function migrateStatus(status) {
     return status || 'idea'
 }
 
-function StatusPill({ value, onChange }) {
+function StatusPill({ value, onChange, disabled }) {
     const current = MONDAY_STATUSES.find(s => s.value === value) || MONDAY_STATUSES[0]
 
     return (
@@ -37,19 +37,20 @@ function StatusPill({ value, onChange }) {
             <select
                 value={value}
                 onChange={e => onChange(e.target.value)}
-                className={`appearance-none cursor-pointer w-full text-center px-2 py-1.5 min-h-[44px] sm:min-h-0 text-[14px] sm:text-xs font-semibold rounded-[var(--radius-sm)]
-          border transition-all hover:opacity-80 focus:ring-2 focus:ring-accent/50 ${current.colors}`}
+                disabled={disabled}
+                className={`appearance-none w-full text-center px-2 py-1.5 min-h-[44px] sm:min-h-0 text-[14px] sm:text-xs font-semibold rounded-[var(--radius-sm)]
+          border transition-all focus:ring-2 focus:ring-accent/50 ${current.colors} ${disabled ? 'cursor-default opacity-90' : 'cursor-pointer hover:opacity-80'}`}
             >
                 {MONDAY_STATUSES.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
             </select>
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] opacity-60">▾</span>
+            {!disabled && <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] opacity-60">▾</span>}
         </div>
     )
 }
 
-function TypeDropdown({ value, onChange }) {
+function TypeDropdown({ value, onChange, disabled }) {
     const current = BOOKING_CATEGORIES.find(c => c.id === value) || BOOKING_CATEGORIES[0]
 
     return (
@@ -57,14 +58,15 @@ function TypeDropdown({ value, onChange }) {
             <select
                 value={value}
                 onChange={e => onChange(e.target.value)}
-                className="appearance-none cursor-pointer bg-transparent text-2xl sm:text-xl pl-1 pr-4 py-2 sm:py-1 min-h-[44px] sm:min-h-0 sm:min-w-0 min-w-[44px] hover:bg-bg-hover rounded transition-colors"
+                disabled={disabled}
+                className={`appearance-none bg-transparent text-2xl sm:text-xl pl-1 pr-4 py-2 sm:py-1 min-h-[44px] sm:min-h-0 sm:min-w-0 min-w-[44px] rounded transition-colors ${disabled ? 'cursor-default' : 'cursor-pointer hover:bg-bg-hover'}`}
                 title={current.label}
             >
                 {BOOKING_CATEGORIES.map(c => (
                     <option key={c.id} value={c.id}>{c.emoji}</option>
                 ))}
             </select>
-            <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-[10px] opacity-40">▾</span>
+            {!disabled && <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-[10px] opacity-40">▾</span>}
         </div>
     )
 }
@@ -138,6 +140,7 @@ export default function BookingsTable({
                 <TypeDropdown
                     value={info.getValue()}
                     onChange={val => onUpdate(info.row.original.id, { category: val })}
+                    disabled={isReadOnly}
                 />
             ),
         },
@@ -147,17 +150,19 @@ export default function BookingsTable({
             header: 'Booking Name',
             size: 250,
             cell: info => (
-                <div className="flex items-center gap-2 group cursor-pointer" onClick={() => onRowClick?.(info.row.original)}>
+                <div className={`flex items-center gap-2 group ${isReadOnly ? '' : 'cursor-pointer'}`} onClick={() => !isReadOnly && onRowClick?.(info.row.original)}>
                     <EditableText
                         value={info.getValue()}
                         onSave={val => onUpdate(info.row.original.id, { name: val })}
                         className="text-[13px] font-medium text-text-primary flex-1 truncate"
                         inputClassName="w-full"
                         onClick={e => e.stopPropagation()}
+                        readOnly={isReadOnly}
                     />
                     <button
                         className="opacity-0 group-hover:opacity-100 p-1 text-text-muted hover:text-accent transition-opacity rounded hover:bg-bg-hover"
                         title="Open Details"
+                        onClick={(e) => { e.stopPropagation(); onRowClick?.(info.row.original) }}
                     >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
                     </button>
@@ -173,6 +178,7 @@ export default function BookingsTable({
                 <StatusPill
                     value={migrateStatus(info.getValue())}
                     onChange={val => onUpdate(info.row.original.id, { status: val })}
+                    disabled={isReadOnly}
                 />
             )
         },
@@ -183,15 +189,15 @@ export default function BookingsTable({
             accessorFn: row => row.bookByDate || row.startDate || '',
             cell: info => {
                 const row = info.row.original
-                // Minimal date display for now. Will be enhanced when we normalize start/end dates.
                 const dateVal = row.bookByDate || row.startDate || ''
                 return (
                     <div className="w-full">
                         <DatePicker
                             value={dateVal}
                             onChange={val => onUpdate(row.id, { bookByDate: val })}
-                            className="text-text-secondary text-sm block cursor-pointer"
+                            className={`text-text-secondary text-sm block ${isReadOnly ? 'cursor-default' : 'cursor-pointer'}`}
                             placeholder="Set date..."
+                            disabled={isReadOnly}
                         />
                     </div>
                 )
@@ -212,6 +218,7 @@ export default function BookingsTable({
                             className="font-mono text-text-primary text-xs flex-1 truncate"
                             inputClassName="w-full"
                             placeholder="—"
+                            readOnly={isReadOnly}
                         />
                         {val && (
                             <button
@@ -231,60 +238,35 @@ export default function BookingsTable({
         },
         {
             id: 'cost',
+            header: 'Amount',
             accessorKey: 'amountPaid',
-            header: 'Cost',
             size: 100,
-            cell: info => {
-                const val = info.getValue()
-                return (
+            cell: info => (
+                <div className="text-right tabular-nums font-mono text-xs">
                     <EditableText
-                        value={val ? String(val) : ''}
-                        displayValue={val ? formatCurrency(val, currency) : undefined}
+                        value={info.getValue() ? String(info.getValue()) : ''}
+                        displayValue={info.getValue() ? formatCurrency(info.getValue(), currency) : undefined}
                         onSave={newVal => onUpdate(info.row.original.id, { amountPaid: Number(newVal) || 0 })}
-                        className="text-text-primary text-sm font-medium tabular-nums text-right block w-full"
+                        className="text-text-primary text-xs font-medium tabular-nums text-right block w-full"
                         inputClassName="w-full text-right"
                         placeholder={formatCurrency(0, currency)}
+                        readOnly={isReadOnly}
                     />
-                )
-            },
-        },
-        {
-            id: 'providerLink',
-            accessorKey: 'providerLink',
-            header: 'Link',
-            size: 140,
-            cell: info => {
-                const val = info.getValue()
-                return (
-                    <div className="flex items-center gap-1">
-                        <EditableText
-                            value={val}
-                            onSave={newVal => onUpdate(info.row.original.id, { providerLink: newVal })}
-                            className="text-accent text-sm truncate flex-1 hover:underline"
-                            inputClassName="w-full"
-                            placeholder="Add link..."
-                        />
-                        {val && (
-                            <a href={val.startsWith('http') ? val : `https://${val}`} target="_blank" rel="noopener noreferrer" className="p-1 text-text-muted hover:text-accent" onClick={e => e.stopPropagation()}>
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                            </a>
-                        )}
-                    </div>
-                )
-            }
+                </div>
+            )
         },
         {
             id: 'location',
-            accessorKey: 'location',
             header: 'Location',
-            size: 200,
+            accessorKey: 'location',
+            size: 140,
             cell: info => (
                 <EditableText
-                    value={info.getValue()}
-                    onSave={newVal => onUpdate(info.row.original.id, { location: newVal })}
-                    className="text-text-secondary text-sm truncate block w-full"
-                    inputClassName="w-full"
-                    placeholder="Add location..."
+                    value={info.getValue() || ''}
+                    onSave={val => onUpdate(info.row.original.id, { location: val })}
+                    className="text-xs text-text-muted truncate block w-full"
+                    placeholder="Add location"
+                    readOnly={isReadOnly}
                 />
             )
         },
@@ -292,21 +274,18 @@ export default function BookingsTable({
             id: 'actions',
             header: '',
             size: 40,
-            cell: info => (
+            cell: info => !isReadOnly && (
                 <button
                     onClick={(e) => {
                         e.stopPropagation()
                         triggerHaptic('medium')
                         onDelete(info.row.original.id)
                     }}
-                    className="w-full text-center text-text-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity"
-                    title="Delete"
-                >
-                    ×
-                </button>
+                    className="text-text-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity p-2"
+                >✕</button>
             )
         }
-    ], [currency, onUpdate, onDelete, onRowClick])
+    ], [currency, onUpdate, onDelete, isReadOnly, onRowClick])
 
     // Map hidden array strings to an object { [columnId]: false }
     const columnVisibility = useMemo(() => {

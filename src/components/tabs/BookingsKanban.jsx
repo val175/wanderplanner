@@ -40,7 +40,7 @@ const snapCursorToTopLeft = ({ activatorEvent, draggingNodeRect, transform }) =>
 }
 
 // ── Kanban Column (Droppable) ──────────────────────────────────────────────
-function KanbanColumn({ id, title, bookings, currency, onRowClick, isMobile, isExpanded, onToggleExpand }) {
+function KanbanColumn({ id, title, bookings, currency, onRowClick, isMobile, isExpanded, onToggleExpand, isReadOnly }) {
     const { setNodeRef, isOver } = useDroppable({ id })
     const itemIds = useMemo(() => bookings.map(b => b.id), [bookings])
 
@@ -77,6 +77,7 @@ function KanbanColumn({ id, title, bookings, currency, onRowClick, isMobile, isE
                                     booking={booking}
                                     currency={currency}
                                     onRowClick={onRowClick}
+                                    isReadOnly={isReadOnly}
                                 />
                             ))}
                         </SortableContext>
@@ -125,7 +126,7 @@ function KanbanColumn({ id, title, bookings, currency, onRowClick, isMobile, isE
 }
 
 // ── Sortable Ticket (Draggable) ────────────────────────────────────────────
-function SortableCard({ booking, currency, onRowClick }) {
+function SortableCard({ booking, currency, onRowClick, isReadOnly }) {
     const {
         attributes,
         listeners,
@@ -133,7 +134,7 @@ function SortableCard({ booking, currency, onRowClick }) {
         transform,
         transition,
         isDragging,
-    } = useSortable({ id: booking.id, data: booking })
+    } = useSortable({ id: booking.id, data: booking, disabled: isReadOnly })
 
     const style = {
         transform: CSS.Translate.toString(transform),
@@ -145,9 +146,9 @@ function SortableCard({ booking, currency, onRowClick }) {
         <div
             ref={setNodeRef}
             style={style}
-            {...attributes}
-            {...listeners}
-            className={`relative cursor-grab active:cursor-grabbing ${isDragging ? 'z-50' : ''}`}
+            {...(isReadOnly ? {} : attributes)}
+            {...(isReadOnly ? {} : listeners)}
+            className={`relative ${isReadOnly ? '' : 'cursor-grab active:cursor-grabbing'} ${isDragging ? 'z-50' : ''}`}
         >
             <BookingCardContent booking={booking} currency={currency} onRowClick={onRowClick} isOverlay={false} />
         </div>
@@ -161,11 +162,9 @@ function BookingCardContent({ booking, currency, onRowClick, isOverlay }) {
     return (
         <div
             onClick={(e) => {
-                // Prevent drag click from triggering click, handled loosely by dnd-kit usually,
-                // but can safely invoke row click.
                 onRowClick?.(booking)
             }}
-            className={`bg-bg-card border shadow-sm rounded-[var(--radius-md)] p-3 transition-colors block text-left ${isOverlay ? 'border-accent shadow-xl rotate-2 cursor-grabbing' : 'border-border/50 hover:border-accent/40 active:border-accent'
+            className={`bg-bg-card border shadow-sm rounded-[var(--radius-md)] p-3 transition-colors block text-left ${isOverlay ? 'border-accent shadow-xl rotate-2 cursor-grabbing' : `border-border/50 ${isReadOnly ? '' : 'hover:border-accent/40 active:border-accent'}`
                 }`}
         >
             <div className="flex items-start gap-2 mb-2">
@@ -198,7 +197,7 @@ function BookingCardContent({ booking, currency, onRowClick, isOverlay }) {
 }
 
 // ── Main Kanban Board ──────────────────────────────────────────────────────
-export default function BookingsKanban({ bookings, currency, onUpdate, onRowClick }) {
+export default function BookingsKanban({ bookings, currency, onUpdate, onRowClick, isReadOnly }) {
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
@@ -265,8 +264,8 @@ export default function BookingsKanban({ bookings, currency, onUpdate, onRowClic
         <DndContext
             sensors={sensors}
             collisionDetection={closestCorners}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
+            onDragStart={isReadOnly ? null : handleDragStart}
+            onDragEnd={isReadOnly ? null : handleDragEnd}
             modifiers={[snapCursorToTopLeft]}
         >
             <div className={`flex gap-4 pb-4 scrollbar-thin items-start ${isMobile ? 'flex-col overflow-y-auto h-auto' : 'overflow-x-auto h-[calc(100vh-280px)] min-h-[400px]'}`}>
@@ -281,6 +280,7 @@ export default function BookingsKanban({ bookings, currency, onUpdate, onRowClic
                         isMobile={isMobile}
                         isExpanded={expandedAccordion === statusObj.value}
                         onToggleExpand={(id) => setExpandedAccordion(prev => prev === id ? null : id)}
+                        isReadOnly={isReadOnly}
                     />
                 ))}
             </div>

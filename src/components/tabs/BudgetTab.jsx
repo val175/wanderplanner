@@ -208,7 +208,7 @@ function GroupBalancesCard({ spendingLog, travelers, currency }) {
 }
 
 // ── Compact Category Budgets Card ─────────────────────────────────────────────
-function CategoryBudgetsCard({ budget, currency, divisor, perPerson, travelers }) {
+function CategoryBudgetsCard({ budget, currency, divisor, perPerson, travelers, isReadOnly }) {
   const { dispatch } = useTripContext()
   const [addingCategory, setAddingCategory] = useState(false)
   const [newName, setNewName] = useState('')
@@ -262,6 +262,7 @@ function CategoryBudgetsCard({ budget, currency, divisor, perPerson, travelers }
                     value={cat.name}
                     onSave={val => dispatch({ type: ACTIONS.UPDATE_BUDGET_CATEGORY, payload: { id: cat.id, updates: { name: val } } })}
                     className="text-[13px] font-medium text-text-primary px-0.5"
+                    readOnly={isReadOnly}
                   />
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -500,11 +501,13 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                     </span>
                   </td>
                   <td className="py-3 px-3">
-                    <button
-                      onClick={() => onDelete(entry.id)}
-                      className="w-5 h-5 rounded-full flex items-center justify-center text-text-muted hover:text-danger hover:bg-danger/10 opacity-0 group-hover:opacity-100 transition-all text-[10px]"
-                      title="Delete"
-                    >✕</button>
+                    {onDelete && (
+                      <button
+                        onClick={() => onDelete(entry.id)}
+                        className="w-5 h-5 rounded-full flex items-center justify-center text-text-muted hover:text-danger hover:bg-danger/10 opacity-0 group-hover:opacity-100 transition-all text-[10px]"
+                        title="Delete"
+                      >✕</button>
+                    )}
                   </td>
                 </tr>
               )

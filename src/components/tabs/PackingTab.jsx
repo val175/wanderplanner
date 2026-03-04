@@ -190,15 +190,14 @@ function QtyStepper({ value, onChange }) {
 }
 
 // ── Checkbox cell ───────────────────────────────────────────────────────────
-function PackedCheckbox({ packed, onToggle }) {
+function PackedCheckbox({ packed, onToggle, disabled }) {
   return (
     <button
-      onClick={onToggle}
-      className={`flex-shrink-0 flex items-center justify-center rounded-md sm:rounded border-2 transition-all duration-150
-        w-11 h-11 sm:w-[18px] sm:h-[18px]
-        ${packed
-          ? 'bg-success border-success text-white'
-          : 'border-border-strong hover:border-accent'}`}
+      onClick={() => !disabled && onToggle()}
+      className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${packed
+          ? 'bg-success border-success text-white animate-check-pop'
+          : 'border-border-strong hover:border-accent'
+        } ${disabled ? 'cursor-default opacity-80' : ''}`}
       aria-label={packed ? 'Mark unpacked' : 'Mark packed'}
     >
       {packed && (
@@ -496,6 +495,7 @@ export default function PackingTab() {
           <PackedCheckbox
             packed={info.row.original.packed}
             onToggle={() => onToggle(info.row.original.id)}
+            disabled={isReadOnly}
           />
         </div>
       ),
@@ -512,10 +512,10 @@ export default function PackingTab() {
             <EditableText
               value={info.getValue()}
               onSave={val => onUpdate(info.row.original.id, { name: val })}
+              className={`font-medium transition-colors ${info.row.original.packed ? 'text-text-muted line-through' : 'text-text-primary'}`}
               inputClassName="w-full"
-              className={`text-[13px] font-medium block ${info.row.original.packed ? 'line-through text-text-muted' : 'text-text-primary'}`}
-            />
-            {badges && !info.row.original.packed && (
+              readOnly={isReadOnly}
+            />  {badges && !info.row.original.packed && (
               <span className="flex items-center gap-0.5 shrink-0">
                 {badges.map((badge, i) => (
                   <span
@@ -594,20 +594,18 @@ export default function PackingTab() {
       id: 'actions',
       header: '',
       size: 40,
-      cell: info => (
+      cell: info => !isReadOnly && (
         <button
-          onClick={() => onDelete(info.row.original.id)}
-          className="opacity-0 group-hover:opacity-100 p-1 text-text-muted hover:text-danger transition-all rounded hover:bg-bg-hover"
-          aria-label="Delete item"
+          onClick={(e) => {
+            e.stopPropagation()
+            onDelete(info.row.original.id)
+          }}
+          className="p-1 text-text-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity"
+          title="Delete"
         >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="3 6 5 6 21 6" />
-            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-            <path d="M10 11v6M14 11v6" />
-            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-          </svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
         </button>
-      ),
+      )
     },
   ], [onToggle, onUpdate, onDelete])
 

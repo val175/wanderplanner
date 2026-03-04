@@ -9,7 +9,7 @@ import { formatCurrency } from '../../utils/helpers'
 
 // ── Cost Input ─────────────────────────────────────────────────────────────────
 // A number input that shows formatted currency when blurred and raw number when focused
-function CostInput({ value, currency, onChange }) {
+function CostInput({ value, currency, onChange, disabled }) {
     const [focused, setFocused] = useState(false)
     const [draft, setDraft] = useState(value ? String(value) : '')
 
@@ -22,16 +22,17 @@ function CostInput({ value, currency, onChange }) {
         <input
             type={focused ? 'number' : 'text'}
             value={focused ? draft : (value ? formatCurrency(value, currency) : formatCurrency(0, currency))}
-            onFocus={() => { setDraft(value ? String(value) : ''); setFocused(true) }}
+            onFocus={() => { if (!disabled) { setDraft(value ? String(value) : ''); setFocused(true) } }}
             onChange={e => setDraft(e.target.value)}
             onBlur={() => { setFocused(false); onChange(Number(draft) || 0) }}
-            className="w-full px-2 py-1.5 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary focus:border-accent focus:outline-none transition-colors tabular-nums"
+            disabled={disabled}
+            className={`w-full px-2 py-1.5 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary focus:border-accent focus:outline-none transition-colors tabular-nums ${disabled ? 'opacity-80 cursor-default' : ''}`}
             placeholder={formatCurrency(0, currency)}
         />
     )
 }
 
-export default function BookingDrawer({ booking, currency, onUpdate, onClose }) {
+export default function BookingDrawer({ booking, currency, onUpdate, onClose, isReadOnly }) {
     const [mounted, setMounted] = useState(false)
 
 
@@ -72,6 +73,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose }) 
                                 value={booking.name}
                                 onSave={val => onUpdate(booking.id, { name: val })}
                                 className="font-heading text-lg font-bold text-text-primary block"
+                                readOnly={isReadOnly}
                             />
                             <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold border ${statusConfig.colors}`}>
                                 {statusConfig.label}
@@ -97,8 +99,9 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose }) 
                                 <DatePicker
                                     value={booking.bookByDate || booking.startDate || ''}
                                     onChange={val => onUpdate(booking.id, { bookByDate: val })}
-                                    className="text-text-primary text-sm block cursor-pointer hover:underline"
+                                    className={`text-text-primary text-sm block ${isReadOnly ? 'cursor-default' : 'cursor-pointer hover:underline'}`}
                                     placeholder="Add date..."
+                                    disabled={isReadOnly}
                                 />
                             </div>
                         </div>
@@ -108,6 +111,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose }) 
                                 value={booking.amountPaid}
                                 currency={currency}
                                 onChange={val => onUpdate(booking.id, { amountPaid: val })}
+                                disabled={isReadOnly}
                             />
                         </div>
                         <div className="space-y-1">
@@ -117,6 +121,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose }) 
                                 onSave={val => onUpdate(booking.id, { confirmationNumber: val })}
                                 className="text-accent font-mono text-sm block"
                                 placeholder="Add confirmation..."
+                                readOnly={isReadOnly}
                             />
                         </div>
                         <div className="space-y-1">
@@ -126,6 +131,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose }) 
                                 onSave={val => onUpdate(booking.id, { providerLink: val })}
                                 className="text-accent text-sm block hover:underline"
                                 placeholder="Add URL..."
+                                readOnly={isReadOnly}
                             />
                         </div>
                     </div>
@@ -137,6 +143,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose }) 
                             onSave={val => onUpdate(booking.id, { location: val })}
                             className="text-text-primary text-sm block"
                             placeholder="e.g. 1-2-3 Shinjuku, Tokyo"
+                            readOnly={isReadOnly}
                         />
                     </div>
 
@@ -152,6 +159,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose }) 
                             className="text-text-secondary text-sm block w-full bg-transparent"
                             inputClassName="min-h-[120px]"
                             placeholder="Add confirmation emails, cancellation policies, or lockbox codes here..."
+                            readOnly={isReadOnly}
                         />
                     </div>
 

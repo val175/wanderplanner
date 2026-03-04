@@ -139,7 +139,7 @@ function getDeepLinkTarget(text) {
   return null
 }
 
-function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfile, tripTravelers, currentUserProfile }) {
+function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfile, tripTravelers, currentUserProfile, isReadOnly }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(todo.text)
 
@@ -155,12 +155,12 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
   return (
     <div className={`flex items-center gap-3 py-3 group transition-opacity ${todo.done ? 'opacity-60' : ''}`}>
       <button
-        onClick={onToggle}
+        onClick={() => !isReadOnly && onToggle()}
         className={`flex-shrink-0 w-[18px] h-[18px] rounded-[var(--radius-sm)] border-2 transition-all flex items-center justify-center
           ${todo.done
             ? 'bg-success border-success text-white animate-check-pop'
             : 'border-border-strong hover:border-accent'
-          }`}
+          } ${isReadOnly ? 'cursor-default opacity-80' : ''}`}
       >
         {todo.done && (
           <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
@@ -181,8 +181,9 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
           />
         ) : (
           <span
-            onClick={() => { setDraft(todo.text); setEditing(true) }}
-            className={`text-sm font-medium cursor-pointer hover:border-b hover:border-accent/30 transition-colors
+            onClick={() => { if (!isReadOnly) { setDraft(todo.text); setEditing(true) } }}
+            className={`text-sm font-medium transition-colors
+              ${isReadOnly ? 'cursor-default' : 'cursor-pointer hover:border-b hover:border-accent/30'}
               ${todo.done ? 'line-through text-text-muted' : 'text-text-primary'}`}
           >
             {todo.text}
@@ -201,16 +202,18 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
       </div>
 
       <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button
-          onClick={() => {
-            triggerHaptic('medium')
-            onDelete()
-          }}
-          className="text-text-muted hover:text-danger text-xs flex-shrink-0"
-          title="Delete task"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-        </button>
+        {!isReadOnly && (
+          <button
+            onClick={() => {
+              triggerHaptic('medium')
+              onDelete()
+            }}
+            className="text-text-muted hover:text-danger text-xs flex-shrink-0"
+            title="Delete task"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          </button>
+        )}
       </div>
 
       <div className="flex items-center">
@@ -220,7 +223,7 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
           tripTravelers={tripTravelers}
           resolveProfile={resolveProfile}
           currentUserProfile={currentUserProfile}
-          isReadOnly={isReadOnly}
+          disabled={isReadOnly}
         />
       </div>
     </div>
@@ -405,6 +408,7 @@ export default function TodoTab() {
                         resolveProfile={resolveProfile}
                         tripTravelers={tripTravelers}
                         currentUserProfile={currentUserProfile}
+                        isReadOnly={isReadOnly}
                       />
                     ))
                   )}
