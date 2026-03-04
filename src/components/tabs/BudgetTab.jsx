@@ -185,9 +185,8 @@ function GroupBalancesCard({ spendingLog, travelers, currency }) {
                 const phraseIdx = ((tx.from || '').charCodeAt(0) + (tx.to || '').charCodeAt(0)) % MICRO_PHRASES.length
                 const phrase = MICRO_PHRASES[phraseIdx](fromName, toName)
                 return (
-                  <div key={i} className="flex items-center gap-2 py-2 px-3 bg-[#FFF8EC] dark:bg-amber-900/20 border border-amber-200/60 dark:border-amber-700/30 rounded-xl text-[12px]">
-                    <span className="text-[15px]">☕</span>
-                    <span className="italic text-amber-800 dark:text-amber-300 font-medium">{phrase}</span>
+                  <div key={i} className="flex items-center justify-center gap-2 py-2 px-3 bg-accent/10 border border-accent/20 rounded-[var(--radius-md)] text-[12px]">
+                    <span className="italic text-accent-hover font-medium">{phrase}</span>
                   </div>
                 )
               }
