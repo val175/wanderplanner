@@ -39,11 +39,11 @@ function KanbanAddRow({ onAdd }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex items-center gap-3 w-full group">
-      <div className="w-[80px] shrink-0">
+      <div className="w-[100px] shrink-0">
         <TimePicker
           value={time}
           onChange={setTime}
-          className="text-sm border-transparent hover:border-border focus:border-accent bg-transparent"
+          className="text-sm border-transparent hover:border-border focus:border-accent bg-transparent w-full"
           placeholder="+time"
         />
       </div>
@@ -86,7 +86,7 @@ function TableAddRow({ onAdd }) {
         <TimePicker
           value={time}
           onChange={setTime}
-          className="text-sm border-transparent hover:border-border focus:border-accent bg-transparent text-text-secondary font-mono w-[80px]"
+          className="text-sm border-transparent hover:border-border focus:border-accent bg-transparent text-text-secondary font-mono w-[100px]"
           placeholder="+time"
         />
       </td>
@@ -246,7 +246,7 @@ function DayGroupTable({ day, onReorderDay, trip }) {
               <thead>
                 <tr className="border-b border-border/50 bg-bg-secondary/10">
                   <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[30px] overflow-hidden"></th>
-                  <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[80px] overflow-hidden">TIME</th>
+                  <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[100px] overflow-hidden">TIME</th>
                   <th className="px-0 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[30px] text-center overflow-hidden"></th>
                   <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-auto text-left overflow-hidden">ACTIVITY</th>
                   <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[25%] text-left overflow-hidden">LOCATION</th>
@@ -280,7 +280,7 @@ function DayGroupTable({ day, onReorderDay, trip }) {
                           <TimePicker
                             value={activity.time}
                             onChange={time => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { time } } })}
-                            className="border-transparent hover:border-border text-inherit w-full !px-1 bg-transparent text-left max-w-[70px]"
+                            className="border-transparent hover:border-border text-inherit w-full !px-1 bg-transparent text-left"
                             placeholder="-:-"
                           />
                         </td>
@@ -502,7 +502,7 @@ function KanbanColumn({ day }) {
               <TimePicker
                 value={activity.time}
                 onChange={time => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { time } } })}
-                className="text-xs font-mono font-medium text-text-secondary bg-bg-hover rounded-full px-2 py-0.5 max-w-[70px] border-none"
+                className="text-xs font-mono font-medium text-text-secondary bg-bg-hover rounded-full px-2 py-0.5 w-full border-none"
                 placeholder="Time"
               />
             </div>
