@@ -9,6 +9,7 @@ import { ACTIONS } from '../../state/tripReducer'
 import { TODO_PHASES } from '../../constants/tabs'
 import AvatarCircle from '../shared/AvatarCircle'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
+import { triggerHaptic } from '../../utils/haptics'
 
 // Helper for Assignee Pill
 function AssigneePill({ value, onChange, tripTravelers, resolveProfile, currentUserProfile }) {
@@ -201,7 +202,10 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
 
       <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
-          onClick={onDelete}
+          onClick={() => {
+            triggerHaptic('medium')
+            onDelete()
+          }}
           className="text-text-muted hover:text-danger text-xs flex-shrink-0"
           title="Delete task"
         >
@@ -302,6 +306,7 @@ export default function TodoTab() {
   const totalCount = safeTodos.length
 
   const handleToggle = useCallback((todoId) => {
+    triggerHaptic('light')
     dispatch({ type: ACTIONS.TOGGLE_TODO, payload: todoId })
     const todo = todos.find(t => t.id === todoId)
     if (todo && !todo.done) {

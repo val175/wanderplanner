@@ -6,6 +6,7 @@ import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { extractIdeaDetails } from '../../hooks/useAI'
 import AvatarCircle from '../shared/AvatarCircle'
+import { triggerHaptic } from '../../utils/haptics'
 
 // ── Skeleton Loading ──
 function SkeletonCard() {
@@ -539,7 +540,10 @@ export default function VotingTab() {
             }
         })
 
-        dispatch({ type: ACTIONS.RESOLVE_POLL, payload: { pollId: poll.id } })
+        const handleArchive = () => {
+            triggerHaptic('heavy')
+            dispatch({ type: ACTIONS.RESOLVE_POLL, payload: { pollId: poll.id } })
+        }
         showToast(`🎉 Resolving! "${winningOption.title}" won with ${highestTokens} tokens. Redirecting to Bookings...`)
 
         // Slight delay to let user see toast and status change before redirect
