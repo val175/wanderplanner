@@ -674,9 +674,9 @@ export default function VotingTab() {
                     </div>
 
                     {!showExtractInput ? (
-                        <button onClick={() => setShowExtractInput(true)} className="bg-bg-card border-border hover:bg-bg-hover text-text-primary px-5 py-2 rounded-full text-[13px] shrink-0 font-bold min-h-[38px] transition-colors border shadow-sm flex items-center justify-center">
-                            Extract Idea
-                        </button>
+                        <Button size="sm" onClick={() => setShowExtractInput(true)} className="shrink-0">
+                            + Extract Idea
+                        </Button>
                     ) : (
                         <div className="p-1 pr-1.5 h-[42px] bg-[#fcf9f5] absolute right-0 z-40 w-full sm:w-[320px] animate-fade-in rounded-full flex items-center border-[#EAE3DE] shadow-sm border-[2px]">
                             <form onSubmit={handleExtract} className="flex gap-2 w-full h-full items-center">
