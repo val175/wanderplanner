@@ -51,6 +51,7 @@ export default function TimePicker({
   className = '',
   placeholder = '+ time',
   variant = 'inline',   // 'inline' | 'input'
+  disabled = false,
 }) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
@@ -115,7 +116,13 @@ export default function TimePicker({
 
   return (
     <>
-      <button ref={btnRef} type="button" onClick={handleOpen} className={triggerClass}>
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={() => !disabled && handleOpen()}
+        className={`${triggerClass} ${disabled ? 'opacity-80 cursor-default' : 'cursor-pointer'}`}
+        disabled={disabled}
+      >
         <span className={display ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-muted)]'}>
           {display || placeholder}
         </span>

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { doc, deleteDoc } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { useTripContext } from '../../context/TripContext'
+import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { getEffectiveStatus } from '../../utils/tripStatus'
 import ConfirmDialog from '../shared/ConfirmDialog'
@@ -10,6 +11,7 @@ import SettleUpModal from '../modal/SettleUpModal'
 
 export default function TripContextMenu({ tripId, tripName, onClose }) {
   const { dispatch, showToast, state } = useTripContext()
+  const { currentUserProfile } = useProfiles()
   const menuRef = useRef(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
@@ -75,7 +77,14 @@ export default function TripContextMenu({ tripId, tripName, onClose }) {
 
   const handleUseAsTemplate = (e) => {
     e.stopPropagation()
-    dispatch({ type: ACTIONS.DUPLICATE_AS_TEMPLATE, payload: tripId })
+    dispatch({
+      type: ACTIONS.DUPLICATE_AS_TEMPLATE,
+      payload: {
+        tripId,
+        profileId: currentUserProfile?.id,
+        uid: currentUserProfile?.uid
+      }
+    })
     showToast('✈️ Template created — dates & expenses stripped')
     onClose()
   }

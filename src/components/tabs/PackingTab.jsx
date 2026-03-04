@@ -95,7 +95,7 @@ const STARTER_ITEMS = [
 ]
 
 // ── Category pill + dropdown ────────────────────────────────────────────────
-function CategoryPill({ value, onChange }) {
+function CategoryPill({ value, onChange, disabled }) {
   const [open, setOpen] = useState(false)
   const [coords, setCoords] = useState(null)
   const buttonRef = useRef(null)
@@ -132,14 +132,15 @@ function CategoryPill({ value, onChange }) {
     <>
       <button
         ref={buttonRef}
-        onClick={handleOpen}
-        className="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 px-3 sm:px-2 py-1 sm:py-0.5 rounded-[var(--radius-pill)] text-xs font-medium border border-border bg-bg-secondary text-text-secondary transition-colors hover:bg-bg-hover"
+        onClick={disabled ? undefined : handleOpen}
+        disabled={disabled}
+        className={`inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 px-3 sm:px-2 py-1 sm:py-0.5 rounded-[var(--radius-pill)] text-xs font-medium border border-border bg-bg-secondary text-text-secondary transition-colors ${disabled ? 'cursor-default' : 'hover:bg-bg-hover'}`}
       >
         <span className="text-lg sm:text-base">{cat.emoji}</span>
         <span className="hidden sm:inline">{cat.label}</span>
       </button>
 
-      {open && coords && createPortal(
+      {open && coords && !disabled && createPortal(
         <div
           ref={dropdownRef}
           className="absolute z-[100] rounded-[var(--radius-md)] border border-border bg-bg-card min-w-[140px] py-1"
@@ -211,7 +212,7 @@ function PackedCheckbox({ packed, onToggle, disabled }) {
 }
 
 // ── Assignee Pill ───────────────────────────────────────────────────────────
-function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, resolveProfile, currentUserProfile }) {
+function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, resolveProfile, currentUserProfile, disabled }) {
   const [open, setOpen] = useState(false)
   const [coords, setCoords] = useState(null)
   const buttonRef = useRef(null)
@@ -280,7 +281,7 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
       displayName = p.name
     } else {
       displayNode = (
-        <div className="w-[22px] h-[22px] flex items-center justify-center rounded-full border border-dashed border-border text-text-muted shrink-0 bg-transparent hover:bg-bg-hover transition-colors">
+        <div className={`w-[22px] h-[22px] flex items-center justify-center rounded-full border border-dashed border-border text-text-muted shrink-0 bg-transparent transition-colors ${disabled ? '' : 'hover:bg-bg-hover'}`}>
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
         </div>
       )
@@ -288,7 +289,7 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
     }
   } else {
     displayNode = (
-      <div className="w-[22px] h-[22px] flex items-center justify-center rounded-full border border-dashed border-border text-text-muted shrink-0 bg-transparent hover:bg-bg-hover transition-colors">
+      <div className={`w-[22px] h-[22px] flex items-center justify-center rounded-full border border-dashed border-border text-text-muted shrink-0 bg-transparent transition-colors ${disabled ? '' : 'hover:bg-bg-hover'}`}>
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
       </div>
     )
@@ -299,14 +300,15 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
     <>
       <button
         ref={buttonRef}
-        onClick={handleOpen}
-        className="inline-flex items-center rounded-full border border-transparent hover:ring-[2px] transition-all ring-accent/30 focus:outline-none"
+        onClick={disabled ? undefined : handleOpen}
+        disabled={disabled}
+        className={`inline-flex items-center rounded-full border border-transparent transition-all focus:outline-none ${disabled ? 'cursor-default' : 'hover:ring-[2px] ring-accent/30'}`}
         title={displayName}
       >
         {displayNode}
       </button>
 
-      {open && coords && createPortal(
+      {open && coords && !disabled && createPortal(
         <div
           ref={dropdownRef}
           className="absolute z-[100] rounded-[var(--radius-md)] border border-border bg-bg-card min-w-[170px] py-1"
@@ -543,6 +545,7 @@ export default function PackingTab() {
         <CategoryPill
           value={info.getValue() || 'misc'}
           onChange={val => onUpdate(info.row.original.id, { category: val })}
+          disabled={isReadOnly}
         />
       ),
     },

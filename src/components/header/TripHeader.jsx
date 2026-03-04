@@ -15,7 +15,7 @@ import ShareTripModal from '../modal/ShareTripModal'
 /* ─────────────────────────────────────────────────────────────
    TravelerPicker — portal-based dropdown (unchanged logic)
 ───────────────────────────────────────────────────────────── */
-function TravelerPicker({ trip, travelerProfiles, dispatch }) {
+function TravelerPicker({ trip, travelerProfiles, dispatch, isReadOnly }) {
   const { profiles, resolveProfile } = useProfiles()
   const [open, setOpen] = useState(false)
   const [coords, setCoords] = useState({ top: 0, left: 0 })
@@ -72,10 +72,11 @@ function TravelerPicker({ trip, travelerProfiles, dispatch }) {
     <>
       <button
         ref={btnRef}
-        onClick={handleOpen}
-        className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)]
-                   hover:bg-bg-hover px-1.5 py-0.5 -mx-1.5 transition-colors group"
-        title="Edit wanderers"
+        onClick={isReadOnly ? undefined : handleOpen}
+        className={`inline-flex items-center gap-1.5 rounded-[var(--radius-sm)]
+                   px-1.5 py-0.5 -mx-1.5 transition-colors group
+                   ${isReadOnly ? 'cursor-default' : 'hover:bg-bg-hover'}`}
+        title={isReadOnly ? "Wanderers" : "Edit wanderers"}
       >
         {travelerProfiles.length > 0 ? (
           <>
@@ -103,11 +104,13 @@ function TravelerPicker({ trip, travelerProfiles, dispatch }) {
             </span>
           </>
         )}
-        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-          strokeLinecap="round" strokeLinejoin="round"
-          className="text-text-muted opacity-0 group-hover:opacity-60 transition-opacity shrink-0">
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
+        {!isReadOnly && (
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+            strokeLinecap="round" strokeLinejoin="round"
+            className="text-text-muted opacity-0 group-hover:opacity-60 transition-opacity shrink-0">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        )}
       </button>
 
       {open && createPortal(
@@ -333,7 +336,7 @@ function CityBreadcrumbs({ destinations }) {
 /* ─────────────────────────────────────────────────────────────
    DateRangeEditor — click the date to edit start/end inline
 ───────────────────────────────────────────────────────────── */
-function DateRangeEditor({ trip, dispatch }) {
+function DateRangeEditor({ trip, dispatch, isReadOnly }) {
   const [editing, setEditing] = useState(false)
   const [start, setStart] = useState(trip.startDate || '')
   const [end, setEnd] = useState(trip.endDate || '')
@@ -357,6 +360,15 @@ function DateRangeEditor({ trip, dispatch }) {
   )
 
   if (!editing) {
+    if (isReadOnly) {
+      return (
+        <span className="inline-flex items-center gap-1 text-sm text-text-muted">
+          {calIcon}
+          <span>{dateRange || 'Dates TBA'}</span>
+        </span>
+      )
+    }
+
     return (
       <button
         onClick={openEdit}
@@ -468,8 +480,8 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
 
               {/* Row 2 — date · travelers · readiness ring, all inline */}
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
-                <DateRangeEditor trip={trip} dispatch={dispatch} />
-                <TravelerPicker trip={trip} travelerProfiles={travelerProfiles} dispatch={dispatch} />
+                <DateRangeEditor trip={trip} dispatch={dispatch} isReadOnly={isReadOnly} />
+                <TravelerPicker trip={trip} travelerProfiles={travelerProfiles} dispatch={dispatch} isReadOnly={isReadOnly} />
                 {/* Readiness ring inline — compact, no competing row */}
                 <span className="inline-flex items-center gap-1.5">
                   <ProgressRing value={readiness} size={32} strokeWidth={3} labelClassName="text-xs" />

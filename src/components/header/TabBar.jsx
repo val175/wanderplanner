@@ -33,13 +33,18 @@ export default function TabBar() {
   // Build visible tabs — swap voting → wrap-up for completed/archived trips
   const WRAPUP_TAB = { id: 'wrap-up', emoji: '🎉', label: 'Wrap-Up' }
   const visibleTabs = TAB_CONFIG
+    .map(tab => {
+      if (isReadOnly && tab.id === 'overview') return WRAPUP_TAB
+      return tab
+    })
     .filter(tab => {
       if (tab.conditional && tab.id === 'concert') return hasConcert
       if (isMobile && coreTabs.includes(tab.id)) return false
       if (isReadOnly && tab.id === 'voting') return false // replaced by wrap-up
       return true
     })
-    .concat(isReadOnly ? [WRAPUP_TAB] : [])
+
+  const effectiveActiveTab = isReadOnly && activeTab === 'overview' ? 'wrap-up' : activeTab
 
   const handleTabClick = (tabId) => {
     dispatch({ type: ACTIONS.SET_TAB, payload: tabId })
@@ -118,7 +123,7 @@ export default function TabBar() {
   }, [showMore])
 
   const hasOverflow = overflowTabs.length > 0
-  const activeIsOverflow = overflowTabs.some(t => t.id === activeTab)
+  const activeIsOverflow = overflowTabs.some(t => t.id === effectiveActiveTab)
 
   return (
     /* ── Glass nav bar ── */
@@ -155,7 +160,7 @@ export default function TabBar() {
           {/* Pill row */}
           <div className="flex items-center gap-0.5 py-2">
             {visibleTabs.map((tab) => {
-              const isActive = activeTab === tab.id
+              const isActive = effectiveActiveTab === tab.id
               return (
                 <button
                   key={tab.id}
@@ -242,7 +247,7 @@ export default function TabBar() {
                 }}
               >
                 {overflowTabs.map(tab => {
-                  const isActive = activeTab === tab.id
+                  const isActive = effectiveActiveTab === tab.id
                   return (
                     <button
                       key={tab.id}

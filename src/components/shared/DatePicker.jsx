@@ -43,6 +43,7 @@ export default function DatePicker({
   min,            // ISO string — dates before this are disabled
   placeholder = 'Set date',
   className = '', // applied to the trigger button
+  disabled = false,
 }) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
@@ -136,8 +137,9 @@ export default function DatePicker({
       <button
         ref={btnRef}
         type="button"
-        onClick={handleOpen}
-        className={`flex items-center justify-between gap-2 text-left transition-colors ${className}`}
+        onClick={() => !disabled && handleOpen()}
+        className={`flex items-center justify-between gap-2 text-left transition-colors ${className} ${disabled ? 'opacity-80 cursor-default' : 'cursor-pointer'}`}
+        disabled={disabled}
       >
         <span className={value ? 'text-[var(--color-text-primary)] text-sm' : 'text-[var(--color-text-muted)] text-sm'}>
           {fmtDisplay(value) || placeholder}

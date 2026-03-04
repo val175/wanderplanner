@@ -629,7 +629,8 @@ export function tripReducer(state, action) {
       return updateTrip(state, payload, { archivedAt: null })
 
     case ACTIONS.DUPLICATE_AS_TEMPLATE: {
-      const original = state.trips[payload]
+      const { tripId, profileId, uid } = payload
+      const original = state.trips[tripId]
       if (!original) return state
       const newId = generateId()
       const clone = cloneDeep(original)
@@ -658,8 +659,8 @@ export function tripReducer(state, action) {
       // Reset packing
       clone.packingList = (clone.packingList || []).map(p => ({ ...p, packed: false, packedBy: null }))
       // Clear member-specific data
-      clone.memberIds = []
-      clone.travelerIds = []
+      clone.memberIds = uid ? [uid] : []
+      clone.travelerIds = profileId ? [profileId] : []
       return { ...state, trips: { ...state.trips, [newId]: clone }, activeTripId: newId }
     }
 

@@ -8,7 +8,7 @@ import { ACTIONS } from '../../state/tripReducer'
 import { generateCityGuide, generatePinFromUrl } from '../../hooks/useAI'
 
 function CityCard({ city }) {
-  const { activeTrip, dispatch } = useTripContext()
+  const { activeTrip, dispatch, isReadOnly } = useTripContext()
   const [loading, setLoading] = useState(false)
 
   const updateCity = (updates) => {
@@ -39,6 +39,7 @@ function CityCard({ city }) {
             onSave={val => updateCity({ city: val })}
             className="font-heading text-xl text-text-primary font-bold"
             placeholder="City name"
+            readOnly={isReadOnly}
           />
           <EditableText
             value={city.country}
@@ -46,13 +47,16 @@ function CityCard({ city }) {
             tag="div"
             className="text-sm text-text-muted mt-1"
             placeholder="Country"
+            readOnly={isReadOnly}
           />
         </div>
-        <button
-          onClick={() => dispatch({ type: ACTIONS.DELETE_CITY, payload: city.id })}
-          className="text-xs text-text-muted hover:text-danger transition-colors flex-shrink-0"
-          title="Remove city"
-        >✕</button>
+        {!isReadOnly && (
+          <button
+            onClick={() => dispatch({ type: ACTIONS.DELETE_CITY, payload: city.id })}
+            className="text-xs text-text-muted hover:text-danger transition-colors flex-shrink-0"
+            title="Remove city"
+          >✕</button>
+        )}
       </div>
 
       {/* Insights Dashboard Content */}
@@ -85,6 +89,7 @@ function CityCard({ city }) {
                 className="text-sm font-medium text-text-primary leading-snug whitespace-pre-wrap"
                 placeholder="e.g. 🌸 MARCH AVG\n14°C / 5°C"
                 multiline
+                readOnly={isReadOnly}
               />
             </div>
             <div className="pl-2">
@@ -95,6 +100,7 @@ function CityCard({ city }) {
                 className="text-sm font-medium text-text-primary leading-snug whitespace-pre-wrap"
                 placeholder="e.g. ¥ CURRENCY\n1 USD = 150 JPY"
                 multiline
+                readOnly={isReadOnly}
               />
             </div>
           </div>
@@ -110,6 +116,7 @@ function CityCard({ city }) {
               className="text-sm text-text-secondary leading-relaxed"
               placeholder="Neon lights, ancient temples..."
               multiline
+              readOnly={isReadOnly}
             />
           </div>
 
@@ -137,6 +144,7 @@ function CityCard({ city }) {
                       }}
                       className="text-sm font-semibold text-text-primary block truncate"
                       placeholder="Location name..."
+                      readOnly={isReadOnly}
                     />
                     <EditableText
                       value={pin.notes}
@@ -147,6 +155,7 @@ function CityCard({ city }) {
                       className="text-xs text-text-muted block mt-0.5"
                       placeholder="Why save this?"
                       multiline
+                      readOnly={isReadOnly}
                     />
                     {pin.url && (
                       <a
@@ -159,70 +168,74 @@ function CityCard({ city }) {
                       </a>
                     )}
                   </div>
-                  <button
-                    onClick={() => {
-                      const updatedPins = city.savedPins.filter(p => p.id !== pin.id)
-                      updateCity({ savedPins: updatedPins })
-                    }}
-                    className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger text-lg px-2 shrink-0 transition-opacity"
-                  >
-                    ✕
-                  </button>
+                  {!isReadOnly && (
+                    <button
+                      onClick={() => {
+                        const updatedPins = city.savedPins.filter(p => p.id !== pin.id)
+                        updateCity({ savedPins: updatedPins })
+                      }}
+                      className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger text-lg px-2 shrink-0 transition-opacity"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
-            <EditableText
-              value=""
-              onSave={val => {
-                const text = val.trim();
-                if (!text) return;
+            {!isReadOnly && (
+              <EditableText
+                value=""
+                onSave={val => {
+                  const text = val.trim();
+                  if (!text) return;
 
-                import('../../utils/helpers').then(async ({ generateId }) => {
-                  const pinId = generateId();
-                  let name = text;
-                  let url = '';
-                  let emoji = '📌';
+                  import('../../utils/helpers').then(async ({ generateId }) => {
+                    const pinId = generateId();
+                    let name = text;
+                    let url = '';
+                    let emoji = '📌';
 
-                  // Basic detection for Google Maps (or any http) link
-                  const isUrl = text.startsWith('http://') || text.startsWith('https://');
-                  if (isUrl) {
-                    url = text;
-                    name = '⏳ Resolving link...';
-                    emoji = '⏳';
-                  }
-
-                  // Immediate optimistic UI update
-                  const tempPin = { id: pinId, name, notes: '', emoji, url };
-                  updateCity({ savedPins: [...(city.savedPins || []), tempPin] });
-
-                  // If it's a URL, fire the background fetch
-                  if (isUrl) {
-                    try {
-                      // Call Wanda to extract name, emoji, and image
-                      const aiResult = await generatePinFromUrl(url);
-
-                      updateCity({
-                        savedPins: [...(city.savedPins || []), tempPin].map(p =>
-                          p.id === pinId ? { ...p, name: aiResult.name || '📍 Pinned Location', emoji: aiResult.emoji || '🌍', imageUrl: aiResult.imageUrl } : p
-                        )
-                      })
-
-                    } catch (err) {
-                      console.error("Link generation failed:", err);
-                      // Fallback name
-                      updateCity({
-                        savedPins: [...(city.savedPins || []), tempPin].map(p =>
-                          p.id === pinId ? { ...p, name: '🔗 Saved Link', emoji: '🌍' } : p
-                        )
-                      })
+                    // Basic detection for Google Maps (or any http) link
+                    const isUrl = text.startsWith('http://') || text.startsWith('https://');
+                    if (isUrl) {
+                      url = text;
+                      name = '⏳ Resolving link...';
+                      emoji = '⏳';
                     }
-                  }
-                })
-              }}
-              className="text-sm text-text-muted hover:text-text-secondary transition-colors italic block w-full outline-none"
-              placeholder="+ Drop a map link or add place"
-              clearOnSave
-            />
+
+                    // Immediate optimistic UI update
+                    const tempPin = { id: pinId, name, notes: '', emoji, url };
+                    updateCity({ savedPins: [...(city.savedPins || []), tempPin] });
+
+                    // If it's a URL, fire the background fetch
+                    if (isUrl) {
+                      try {
+                        // Call Wanda to extract name, emoji, and image
+                        const aiResult = await generatePinFromUrl(url);
+
+                        updateCity({
+                          savedPins: [...(city.savedPins || []), tempPin].map(p =>
+                            p.id === pinId ? { ...p, name: aiResult.name || '📍 Pinned Location', emoji: aiResult.emoji || '🌍', imageUrl: aiResult.imageUrl } : p
+                          )
+                        })
+
+                      } catch (err) {
+                        console.error("Link generation failed:", err);
+                        // Fallback name
+                        updateCity({
+                          savedPins: [...(city.savedPins || []), tempPin].map(p =>
+                            p.id === pinId ? { ...p, name: '🔗 Saved Link', emoji: '🌍' } : p
+                          )
+                        })
+                      }
+                    }
+                  })
+                }}
+                className="text-sm text-text-muted hover:text-text-secondary transition-colors italic block w-full outline-none"
+                placeholder="+ Drop a map link or add place"
+                clearOnSave
+              />
+            )}
           </div>
         </div>
       )}
@@ -289,7 +302,7 @@ function AddCityForm({ onAdd, onCancel }) {
 }
 
 export default function CitiesTab() {
-  const { activeTrip, dispatch } = useTripContext()
+  const { activeTrip, dispatch, isReadOnly } = useTripContext()
   const [adding, setAdding] = useState(false)
   if (!activeTrip) return null
 
@@ -299,9 +312,11 @@ export default function CitiesTab() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <h2 className="font-heading text-lg text-text-primary">🏙️ Cities · {cities.length} destinations</h2>
-        <Button size="sm" onClick={() => setAdding(true)}>
-          + Add City
-        </Button>
+        {!isReadOnly && (
+          <Button size="sm" onClick={() => setAdding(true)}>
+            + Add City
+          </Button>
+        )}
       </div>
 
       {adding && (

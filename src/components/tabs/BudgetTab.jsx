@@ -226,12 +226,14 @@ function CategoryBudgetsCard({ budget, currency, divisor, perPerson, travelers, 
     <Card className="border border-border/50">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-heading text-base text-text-primary">Category Budgets</h3>
-        <button
-          onClick={() => setAddingCategory(p => !p)}
-          className="text-[10px] font-bold uppercase tracking-widest text-accent hover:text-accent-hover transition-colors"
-        >
-          {addingCategory ? 'Cancel' : '+ Add'}
-        </button>
+        {!isReadOnly && (
+          <button
+            onClick={() => setAddingCategory(p => !p)}
+            className="text-[10px] font-bold uppercase tracking-widest text-accent hover:text-accent-hover transition-colors"
+          >
+            {addingCategory ? 'Cancel' : '+ Add'}
+          </button>
+        )}
       </div>
 
       {addingCategory && (

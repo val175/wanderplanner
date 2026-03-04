@@ -52,11 +52,15 @@ function useRouteDistance(destinations) {
     return km
 }
 
+import { useProfiles } from '../../context/ProfileContext'
+
 /* ─────────────────────────────────────────────────────────────
    Main WrapUpTab
 ───────────────────────────────────────────────────────────── */
 export default function WrapUpTab() {
     const { activeTrip, dispatch, showToast, effectiveStatus } = useTripContext()
+    const { currentUserProfile } = useProfiles()
+
     if (!activeTrip) return null
     const trip = activeTrip
 
@@ -117,7 +121,14 @@ export default function WrapUpTab() {
     }, [trip])
 
     const handleUseAsTemplate = () => {
-        dispatch({ type: ACTIONS.DUPLICATE_AS_TEMPLATE, payload: trip.id })
+        dispatch({
+            type: ACTIONS.DUPLICATE_AS_TEMPLATE,
+            payload: {
+                tripId: trip.id,
+                profileId: currentUserProfile?.id,
+                uid: currentUserProfile?.uid
+            }
+        })
         showToast('✈️ Template created — dates & expenses stripped', 'success')
     }
 

@@ -9,6 +9,7 @@ export default function EditableText({
   inputClassName = '',
   placeholder = 'Click to edit...',
   multiline = false,
+  readOnly = false,
 }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(value)
@@ -68,10 +69,14 @@ export default function EditableText({
 
   return (
     <Tag
-      onClick={() => { setDraft(value); setEditing(true) }}
+      onClick={() => {
+        if (!readOnly) {
+          setDraft(value); setEditing(true)
+        }
+      }}
       className={`
-        cursor-pointer rounded-[var(--radius-md)] px-1 -mx-1 border border-transparent
-        hover:border-border/50 hover:bg-bg-hover transition-colors duration-150
+        rounded-[var(--radius-md)] px-1 -mx-1 border border-transparent
+        ${readOnly ? 'cursor-default' : 'cursor-pointer hover:border-border/50 hover:bg-bg-hover'} transition-colors duration-150
         ${!value ? 'text-text-muted italic' : ''}
         ${className}
       `}

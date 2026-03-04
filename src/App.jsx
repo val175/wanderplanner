@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from './firebase/config'
-import { TripContext } from './context/TripContext'
+import { TripContext, useTripContext } from './context/TripContext'
 import { ProfileProvider } from './context/ProfileContext'
 import { useAuth } from './hooks/useAuth'
 import { useFirestoreTrips } from './hooks/useFirestoreTrips'
@@ -41,7 +41,9 @@ import WrapUpTab from './components/tabs/WrapUpTab'
    Tab panel renderer
 ───────────────────────────────────────────────────────────── */
 function TabPanel({ activeTab, onTabSwitch }) {
-  switch (activeTab) {
+  const { isReadOnly } = useTripContext()
+  const effectiveTab = isReadOnly && activeTab === 'overview' ? 'wrap-up' : activeTab
+  switch (effectiveTab) {
     case 'overview': return <OverviewTab onTabSwitch={onTabSwitch} />
     case 'itinerary': return <ItineraryTab />
     case 'bookings': return <BookingsTab />

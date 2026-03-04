@@ -233,6 +233,7 @@ function DayGroupTable({ day, onReorderDay, trip }) {
                 onSave={val => dispatch({ type: ACTIONS.UPDATE_DAY, payload: { dayId: day.id, updates: { location: val } } })}
                 className="font-heading font-semibold text-text-primary text-base hover:text-text-secondary transition-colors"
                 placeholder="Day Title (e.g. Rio Explorations)"
+                readOnly={isReadOnly}
               />
             </div>
             <div className="text-xs font-medium text-text-muted mt-0.5 relative min-w-[150px]">
@@ -241,6 +242,7 @@ function DayGroupTable({ day, onReorderDay, trip }) {
                 onChange={val => dispatch({ type: ACTIONS.UPDATE_DAY, payload: { dayId: day.id, updates: { date: val } } })}
                 placeholder="Add date…"
                 className="bg-transparent border-transparent hover:border-border text-xs !px-1 w-auto max-w-[200px]"
+                disabled={isReadOnly}
               />
             </div>
           </div>
@@ -269,7 +271,9 @@ function DayGroupTable({ day, onReorderDay, trip }) {
               </div>
             );
           })()}
-          <button onClick={() => { (day.activities?.length > 0) ? setConfirmDelete(true) : dispatch({ type: ACTIONS.REMOVE_DAY, payload: day.id }) }} className="text-text-muted hover:text-danger text-lg px-2 opacity-0 group-hover/day:opacity-100 transition-opacity">✕</button>
+          {!isReadOnly && (
+            <button onClick={() => { (day.activities?.length > 0) ? setConfirmDelete(true) : dispatch({ type: ACTIONS.REMOVE_DAY, payload: day.id }) }} className="text-text-muted hover:text-danger text-lg px-2 opacity-0 group-hover/day:opacity-100 transition-opacity">✕</button>
+          )}
         </div>
       </div>
 
@@ -317,6 +321,7 @@ function DayGroupTable({ day, onReorderDay, trip }) {
                             onChange={time => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { time } } })}
                             className="border-transparent hover:border-border text-inherit w-full !px-1 bg-transparent text-left"
                             placeholder="-:-"
+                            disabled={isReadOnly}
                           />
                         </td>
 
@@ -341,6 +346,7 @@ function DayGroupTable({ day, onReorderDay, trip }) {
                                 className="text-[14px] text-text-primary font-semibold w-full block truncate"
                                 inputClassName="w-full font-semibold px-0 py-0 h-auto min-h-0"
                                 placeholder="Activity name"
+                                readOnly={isReadOnly}
                               />
                               {/* Body Clock ghost-text */}
                               {bodyClockOffsetHours !== null && activity.time && (
@@ -361,6 +367,7 @@ function DayGroupTable({ day, onReorderDay, trip }) {
                                   inputClassName="w-full text-[12px] px-0 py-0"
                                   placeholder="+ Add note"
                                   multiline
+                                  readOnly={isReadOnly}
                                 />
                               )}
                             </div>
@@ -378,18 +385,21 @@ function DayGroupTable({ day, onReorderDay, trip }) {
                               inputClassName="w-full px-0 py-0 leading-snug"
                               placeholder="+ Location"
                               multiline
+                              readOnly={isReadOnly}
                             />
                           </div>
                         </td>
 
                         {/* Actions */}
                         <td className="px-2 pt-4 pb-2 align-top">
-                          <button onClick={() => {
-                            triggerHaptic('medium')
-                            dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })
-                          }} className="w-full text-center text-text-muted hover:text-danger opacity-0 group-hover/row:opacity-100 transition-opacity mt-0.5" title="Delete">
-                            ×
-                          </button>
+                          {!isReadOnly && (
+                            <button onClick={() => {
+                              triggerHaptic('medium')
+                              dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })
+                            }} className="w-full text-center text-text-muted hover:text-danger opacity-0 group-hover/row:opacity-100 transition-opacity mt-0.5" title="Delete">
+                              ×
+                            </button>
+                          )}
                         </td>
                       </tr>
 
@@ -720,12 +730,14 @@ export default function ItineraryTab() {
                       onReorderDay={(from, to) => dispatch({ type: ACTIONS.REORDER_DAYS, payload: { fromIndex: from, toIndex: to } })}
                     />
                   ))}
-                  <button
-                    onClick={handleAddDay}
-                    className="w-full py-3 rounded-lg border border-dashed border-border text-text-muted hover:text-text-secondary hover:border-border-strong transition-colors text-sm font-medium"
-                  >
-                    + Add another day group
-                  </button>
+                  {!isReadOnly && (
+                    <button
+                      onClick={handleAddDay}
+                      className="w-full py-3 rounded-lg border border-dashed border-border text-text-muted hover:text-text-secondary hover:border-border-strong transition-colors text-sm font-medium"
+                    >
+                      + Add another day group
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -735,13 +747,15 @@ export default function ItineraryTab() {
                 {trip.itinerary.map(day => (
                   <KanbanColumn key={day.id} day={day} />
                 ))}
-                <button
-                  onClick={handleAddDay}
-                  className="w-72 shrink-0 h-[100px] rounded-[var(--radius-lg)] border-2 border-dashed border-border/40 bg-transparent text-text-muted hover:text-text-secondary hover:bg-bg-hover transition-colors text-sm font-medium flex items-center justify-center flex-col gap-2"
-                >
-                  <span className="text-xl">➕</span>
-                  Add Day
-                </button>
+                {!isReadOnly && (
+                  <button
+                    onClick={handleAddDay}
+                    className="w-72 shrink-0 h-[100px] rounded-[var(--radius-lg)] border-2 border-dashed border-border/40 bg-transparent text-text-muted hover:text-text-secondary hover:bg-bg-hover transition-colors text-sm font-medium flex items-center justify-center flex-col gap-2"
+                  >
+                    <span className="text-xl">➕</span>
+                    Add Day
+                  </button>
+                )}
               </div>
             </div>
           )}
