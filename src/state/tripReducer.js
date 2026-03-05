@@ -72,6 +72,7 @@ export const ACTIONS = {
   VOTE_POLL: 'VOTE_POLL',
   RESOLVE_POLL: 'RESOLVE_POLL',
   DELETE_POLL: 'DELETE_POLL',
+  CANCEL_POLL: 'CANCEL_POLL',
 
   // Cities
   UPDATE_CITY: 'UPDATE_CITY',
@@ -542,6 +543,18 @@ export function tripReducer(state, action) {
         ...trip,
         polls: (trip.polls || []).filter(poll => poll.id !== payload),
       }))
+
+    case ACTIONS.CANCEL_POLL:
+      return updateTrip(state, activeTripId, trip => {
+        const pollToCancel = (trip.polls || []).find(p => p.id === payload)
+        if (!pollToCancel) return trip
+        return {
+          ...trip,
+          polls: trip.polls.filter(p => p.id !== payload),
+          // Put the poll's ideas back onto the board
+          ideas: [...(trip.ideas || []), ...pollToCancel.options]
+        }
+      })
 
     // ─── Cities ───
     case ACTIONS.UPDATE_CITY: {

@@ -117,6 +117,12 @@ Inline category labels (e.g. packing category, booking type) use a **single neut
 - **Classes**: `inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-pill)] text-xs font-medium border border-border bg-bg-secondary text-text-secondary hover:bg-bg-hover`
 - The emoji + label inside provides sufficient visual distinction without color coding.
 
+#### View Toggles
+When a tab offers multiple layouts (e.g. Table vs Board, Grid vs Table), the standard toggle control must look like this:
+- **Container**: `flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0`
+- **Inactive Button**: `px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 text-text-muted hover:text-text-secondary`
+- **Active Button**: `px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 bg-bg-card text-accent shadow-sm`
+
 #### Portal Dropdowns
 All portal-based dropdowns (category pickers, assignee pickers, traveler pickers) must **never** use shadow classes (`shadow-sm`, `shadow-md`, `shadow-lg`). Rely on `border border-border` for separation per the No Shadows rule in section 3.
 

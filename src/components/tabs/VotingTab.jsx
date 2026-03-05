@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import Card from '../shared/Card'
 import Button from '../shared/Button'
 import { useTripContext } from '../../context/TripContext'
@@ -7,6 +8,279 @@ import { ACTIONS } from '../../state/tripReducer'
 import { extractIdeaDetails } from '../../hooks/useAI'
 import AvatarCircle from '../shared/AvatarCircle'
 import { triggerHaptic } from '../../utils/haptics'
+
+// ── Category helpers ──
+const CATEGORY_META = {
+    lodging: { label: 'Lodging', emoji: '🏠' },
+    activity: { label: 'Activity', emoji: '🎯' },
+    food: { label: 'Food', emoji: '🍔' },
+    other: { label: 'Other', emoji: '✨' },
+}
+function CategoryPill({ type }) {
+    const meta = CATEGORY_META[type] || CATEGORY_META.other
+    return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-pill)] text-xs font-medium border border-border bg-bg-secondary text-text-secondary hover:bg-bg-hover">
+            {meta.emoji} {meta.label}
+        </span>
+    )
+}
+
+// ── Source favicon helper ──
+function SourceIcon({ sourceName }) {
+    if (!sourceName) return null
+    const emoji =
+        sourceName.includes('Airbnb') ? '🏠' :
+            sourceName.includes('TikTok') ? '🎵' :
+                sourceName.includes('TripAdvisor') ? '🦉' :
+                    sourceName.includes('Google') ? '📍' : '🔗'
+    return <span className="mr-0.5">{emoji}</span>
+}
+
+// ── Idea Table Row ──
+function IdeaTableRow({ idea, resolveProfile, onDelete, isSelectable, isSelected, onSelect }) {
+    const [menuOpen, setMenuOpen] = useState(false)
+    const isBooked = idea.status === 'booked'
+    const proposer = resolveProfile(idea.proposerId)
+    const date = idea.createdAt ? new Date(idea.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'
+    const priceNum = parseFloat((idea.priceDetails || '').replace(/[^0-9.]/g, '')) || 0
+
+    return (
+        <tr
+            className={`group border-b border-border transition-colors ${isBooked ? 'opacity-40 grayscale' : 'hover:bg-bg-hover'
+                } ${isSelected ? 'bg-accent/5' : ''}`}
+        >
+            {/* Checkbox */}
+            <td className="pl-4 pr-2 py-3 w-10">
+                {isSelectable && !isBooked ? (
+                    <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => onSelect(idea)}
+                        className="w-4 h-4 accent-[var(--color-accent)] cursor-pointer rounded"
+                    />
+                ) : (
+                    <div className="w-4 h-4" />
+                )}
+            </td>
+
+            {/* Thumbnail */}
+            <td className="pr-3 py-3 w-12">
+                <div className="w-10 h-10 rounded-lg overflow-hidden bg-bg-secondary flex items-center justify-center shrink-0">
+                    {idea.imageUrl
+                        ? <img src={idea.imageUrl} alt="" className="w-full h-full object-cover" loading="lazy" onError={e => { e.currentTarget.style.display = 'none' }} />
+                        : <span className="text-xl">{idea.emoji || '✨'}</span>
+                    }
+                </div>
+            </td>
+
+            {/* Name & source */}
+            <td className="py-3 pr-4 min-w-0">
+                <a
+                    href={idea.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-[14px] text-text-primary hover:text-accent transition-colors line-clamp-1 leading-tight block"
+                    onClick={e => isSelectable && e.preventDefault()}
+                >
+                    {idea.title}
+                </a>
+                {idea.sourceName && (
+                    <span className="text-[11px] text-text-muted flex items-center gap-0.5 mt-0.5">
+                        <SourceIcon sourceName={idea.sourceName} />{idea.sourceName}
+                        {idea.description && <span className="ml-1 opacity-60">· {idea.description.slice(0, 40)}{idea.description.length > 40 ? '…' : ''}</span>}
+                    </span>
+                )}
+            </td>
+
+            {/* Category */}
+            <td className="py-3 pr-4 whitespace-nowrap">
+                <CategoryPill type={idea.type || 'other'} />
+            </td>
+
+            {/* Est. Cost */}
+            <td className="py-3 pr-4 whitespace-nowrap">
+                {idea.priceDetails ? (
+                    <span className="text-[13px] font-bold text-text-primary">
+                        {idea.priceDetails.split('/')[0]}
+                        <span className="text-[10px] font-bold text-text-muted ml-0.5 uppercase">
+                            /{idea.priceDetails.split('/')[1] || 'total'}
+                        </span>
+                    </span>
+                ) : <span className="text-text-muted text-xs">—</span>}
+            </td>
+
+            {/* Proposed by */}
+            <td className="py-3 pr-4 whitespace-nowrap">
+                {proposer ? (
+                    <div className="flex items-center gap-1.5">
+                        <AvatarCircle profile={proposer} size={22} />
+                        <span className="text-[12px] text-text-secondary">{proposer.name?.split(' ')[0]}</span>
+                    </div>
+                ) : <span className="text-text-muted text-xs">—</span>}
+            </td>
+
+            {/* Date */}
+            <td className="py-3 pr-4 text-[12px] text-text-muted whitespace-nowrap">{date}</td>
+
+            {/* Actions */}
+            <td className="py-3 pr-3 w-10 relative">
+                {onDelete && (
+                    <div className="relative">
+                        <button
+                            onClick={() => setMenuOpen(v => !v)}
+                            className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-bg-secondary transition-colors opacity-0 group-hover:opacity-100"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></svg>
+                        </button>
+                        {menuOpen && (
+                            <div className="absolute right-0 top-8 z-50 bg-bg-card border border-border rounded-[var(--radius-md)] shadow-lg py-1 min-w-[120px] animate-fade-in">
+                                <button
+                                    onClick={() => { setMenuOpen(false); onDelete(idea.id) }}
+                                    className="w-full text-left px-3 py-2 text-[13px] text-danger hover:bg-bg-hover transition-colors flex items-center gap-2"
+                                >
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /></svg>
+                                    Delete
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </td>
+        </tr>
+    )
+}
+
+// ── Idea Table View ──
+function IdeaTableView({ ideas, resolveProfile, onDelete, isSelectable, selectedIdeaIds, onSelect, isExtracting, onSelectAll }) {
+    const [sortCol, setSortCol] = useState('date')
+    const [sortDir, setSortDir] = useState('desc')
+    const allSelected = ideas.length > 0 && ideas.every(i => selectedIdeaIds.has(i.id))
+
+    const sorted = useMemo(() => {
+        return [...ideas].sort((a, b) => {
+            let va, vb
+            if (sortCol === 'name') {
+                va = (a.title || '').toLowerCase(); vb = (b.title || '').toLowerCase()
+                return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
+            }
+            if (sortCol === 'category') {
+                va = a.type || ''; vb = b.type || ''
+                return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
+            }
+            if (sortCol === 'cost') {
+                va = parseFloat((a.priceDetails || '').replace(/[^0-9.]/g, '')) || 0
+                vb = parseFloat((b.priceDetails || '').replace(/[^0-9.]/g, '')) || 0
+                return sortDir === 'asc' ? va - vb : vb - va
+            }
+            // date (default)
+            va = new Date(a.createdAt || 0); vb = new Date(b.createdAt || 0)
+            return sortDir === 'asc' ? va - vb : vb - va
+        })
+    }, [ideas, sortCol, sortDir])
+
+    function toggleSort(col) {
+        if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+        else { setSortCol(col); setSortDir('asc') }
+    }
+
+    const SortIcon = ({ col }) => {
+        if (sortCol !== col) return <svg className="w-3 h-3 opacity-25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12l7-7 7 7" /></svg>
+        return sortDir === 'asc'
+            ? <svg className="w-3 h-3 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+            : <svg className="w-3 h-3 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12l7 7 7-7" /></svg>
+    }
+
+    const thClass = "px-0 pb-3 text-[10px] font-bold text-text-muted uppercase tracking-[0.12em] text-left select-none"
+    const sortable = "cursor-pointer hover:text-text-primary transition-colors"
+
+    return (
+        <div className="border border-border rounded-[var(--radius-lg)] bg-bg-card overflow-hidden animate-fade-in">
+            <table className="w-full border-collapse">
+                <thead>
+                    <tr className="border-b border-border">
+                        <th className="pl-4 pr-2 pb-3 pt-3 w-10">
+                            {isSelectable && (
+                                <input
+                                    type="checkbox"
+                                    checked={allSelected}
+                                    onChange={() => onSelectAll(ideas, allSelected)}
+                                    className="w-4 h-4 accent-[var(--color-accent)] cursor-pointer"
+                                />
+                            )}
+                        </th>
+                        <th className="pr-3 pb-3 pt-3 w-12" />
+                        <th className={`${thClass} ${sortable} pt-3`} onClick={() => toggleSort('name')}>
+                            <div className="flex items-center gap-1">NAME <SortIcon col="name" /></div>
+                        </th>
+                        <th className={`${thClass} ${sortable} pt-3`} onClick={() => toggleSort('category')}>
+                            <div className="flex items-center gap-1">CATEGORY <SortIcon col="category" /></div>
+                        </th>
+                        <th className={`${thClass} ${sortable} pt-3`} onClick={() => toggleSort('cost')}>
+                            <div className="flex items-center gap-1">EST. COST <SortIcon col="cost" /></div>
+                        </th>
+                        <th className={`${thClass} pt-3`}>ADDED BY</th>
+                        <th className={`${thClass} ${sortable} pt-3`} onClick={() => toggleSort('date')}>
+                            <div className="flex items-center gap-1">DATE <SortIcon col="date" /></div>
+                        </th>
+                        <th className="w-10 pb-3 pt-3 pr-3" />
+                    </tr>
+                </thead>
+                <tbody>
+                    {isExtracting && (
+                        <tr className="border-b border-border animate-pulse">
+                            <td colSpan={8} className="py-3 px-4">
+                                <div className="h-4 bg-bg-secondary rounded w-2/3" />
+                            </td>
+                        </tr>
+                    )}
+                    {sorted.map(idea => (
+                        <IdeaTableRow
+                            key={idea.id}
+                            idea={idea}
+                            resolveProfile={resolveProfile}
+                            onDelete={onDelete}
+                            isSelectable={isSelectable}
+                            isSelected={selectedIdeaIds.has(idea.id)}
+                            onSelect={onSelect}
+                        />
+                    ))}
+                    {sorted.length === 0 && !isExtracting && (
+                        <tr><td colSpan={8} className="py-12 text-center text-text-muted text-sm">No ideas match this filter.</td></tr>
+                    )}
+                </tbody>
+            </table>
+        </div>
+    )
+}
+
+// ── Floating Action Bar ──
+function FloatingActionBar({ count, isCreatingPoll, onStartDraft, onSubmit, disabled, onCancel }) {
+    if (count < 2) return null
+    return createPortal(
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-bounce-in">
+            <div className="flex items-center gap-3 bg-[#1A1918] text-white rounded-full px-5 py-3 shadow-2xl border border-white/10">
+                <div>
+                    <div className="text-[13px] font-bold">{count} {count === 1 ? 'Idea' : 'Ideas'} Selected</div>
+                    <div className="text-[10px] text-white/50 uppercase tracking-widest font-bold">Ready to vote?</div>
+                </div>
+                <div className="w-px h-8 bg-white/10" />
+                <button
+                    onClick={onCancel}
+                    className="text-[12px] font-bold text-white/60 hover:text-white transition-colors px-2"
+                >Cancel</button>
+                <button
+                    onClick={isCreatingPoll ? onSubmit : onStartDraft}
+                    disabled={disabled}
+                    className={`flex items-center gap-2 text-[13px] font-bold px-5 py-2 rounded-full transition-colors ${disabled ? 'bg-white/10 text-white/40 cursor-not-allowed' : 'bg-accent hover:bg-accent-hover text-white'}`}
+                >
+                    {isCreatingPoll ? 'Start Poll' : 'Create Proposal'}
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+                </button>
+            </div>
+        </div>,
+        document.body
+    )
+}
 
 // ── Skeleton Loading ──
 function SkeletonCard() {
@@ -51,8 +325,7 @@ function TokenInventory({ poll, activeUserId }) {
     )
 }
 
-// ── Poll Option Card ──
-function PollOptionCard({ option, poll, activeUserId, onVote, isLeader, globalTokensRemaining, globalVetoesRemaining }) {
+function PollOptionCard({ option, poll, activeUserId, onVote, isLeader, globalTokensRemaining, globalVetoesRemaining, resolveProfile }) {
     const userVotes = poll.votes?.[activeUserId] || { tokens: {}, veto: null }
 
     const myTokens = userVotes.tokens[option.id] || 0
@@ -113,7 +386,9 @@ function PollOptionCard({ option, poll, activeUserId, onVote, isLeader, globalTo
                         {totalTokens > 0 ? (
                             <div className="flex items-center -space-x-1.5">
                                 {Object.entries(poll.votes || {}).filter(([k, v]) => v.tokens[option.id] > 0).slice(0, 3).map(([k, v], i) => (
-                                    <div key={k} className="w-6 h-6 rounded-full bg-bg-secondary border-2 border-bg-card flex items-center justify-center text-[8px]" style={{ zIndex: 10 - i }}>👤</div>
+                                    <div key={k} style={{ zIndex: 10 - i }}>
+                                        <AvatarCircle profile={resolveProfile(k)} size={24} />
+                                    </div>
                                 ))}
                             </div>
                         ) : (
@@ -171,7 +446,7 @@ function PollOptionCard({ option, poll, activeUserId, onVote, isLeader, globalTo
 }
 
 // ── Poll Container Card ──
-function PollCard({ poll, activeUserId, onVote, onResolve, onDelete, resolveProfile, globalTokensRemaining, globalVetoesRemaining }) {
+function PollCard({ poll, activeUserId, onVote, onResolve, onDelete, onCancel, resolveProfile, globalTokensRemaining, globalVetoesRemaining }) {
     // Determine Current Leader
     let leaderId = null
     if (poll.status === 'active') {
@@ -275,13 +550,16 @@ function PollCard({ poll, activeUserId, onVote, onResolve, onDelete, resolveProf
                 <div className="flex overflow-x-auto gap-5 pb-4 snap-x pl-1 pt-3 items-stretch">
                     {poll.options.map(opt => (
                         <div key={opt.id} className="min-w-[240px] w-[240px] max-w-[240px] snap-start shrink-0 flex">
-                            <PollOptionCard option={opt} poll={poll} activeUserId={activeUserId} onVote={onVote} isLeader={leaderId === opt.id} globalTokensRemaining={globalTokensRemaining} globalVetoesRemaining={globalVetoesRemaining} />
+                            <PollOptionCard option={opt} poll={poll} activeUserId={activeUserId} onVote={onVote} isLeader={leaderId === opt.id} globalTokensRemaining={globalTokensRemaining} globalVetoesRemaining={globalVetoesRemaining} resolveProfile={resolveProfile} />
                         </div>
                     ))}
                 </div>
 
-                <div className="mt-3 flex gap-4 text-[10px] font-bold uppercase tracking-wider text-text-muted">
-                    <button onClick={() => onDelete(poll.id)} className="hover:text-danger hover:underline">Delete/Archive Poll</button>
+                <div className="mt-4 flex items-center justify-between">
+                    <div className="flex gap-4 text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                        <button onClick={() => onDelete(poll.id)} className="hover:text-danger hover:underline transition-colors">Delete/Archive</button>
+                        {onCancel && <button onClick={() => onCancel(poll.id)} className="hover:text-accent hover:underline transition-colors">Cancel Poll & Refund</button>}
+                    </div>
                 </div>
             </div>
         </div>
@@ -389,11 +667,27 @@ export default function VotingTab() {
     const [isExtracting, setIsExtracting] = useState(false)
     const [filter, setFilter] = useState('all')
 
+    // View toggle: 'grid' | 'table'
+    const [ideaView, setIdeaView] = useState(() => localStorage.getItem('votingTab_view') || 'table')
+    function switchView(v) { setIdeaView(v); localStorage.setItem('votingTab_view', v) }
+
     // Proposal Creation State
     const [isCreatingPoll, setIsCreatingPoll] = useState(false)
     const [selectedIdeaIds, setSelectedIdeaIds] = useState(new Set())
     const [pollTitle, setPollTitle] = useState('')
+    const pollTitleRef = useRef(null)
     const [showExtractInput, setShowExtractInput] = useState(false)
+
+    // Scroll to input when we start creating a poll
+    useEffect(() => {
+        if (isCreatingPoll && pollTitleRef.current) {
+            // Slight delay ensures the DOM has painted the element before scrolling
+            setTimeout(() => {
+                pollTitleRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                pollTitleRef.current.focus()
+            }, 50)
+        }
+    }, [isCreatingPoll])
 
     const ideas = activeTrip?.ideas || []
     const polls = activeTrip?.polls || []
@@ -472,6 +766,16 @@ export default function VotingTab() {
         setSelectedIdeaIds(newSet)
     }
 
+    const handleSelectAll = (ideas, allSelected) => {
+        if (allSelected) {
+            setSelectedIdeaIds(new Set())
+        } else {
+            setSelectedIdeaIds(new Set(ideas.filter(i => i.status !== 'booked').map(i => i.id)))
+        }
+    }
+
+    const startCreatingPoll = () => setIsCreatingPoll(true)
+
     const handleCreatePoll = () => {
         if (selectedIdeaIds.size < 2 || !pollTitle.trim()) return
 
@@ -504,6 +808,13 @@ export default function VotingTab() {
     const handleDeletePoll = (pollId) => {
         if (window.confirm("Are you sure you want to delete this poll? The ideas will be permanently removed.")) {
             dispatch({ type: ACTIONS.DELETE_POLL, payload: pollId })
+        }
+    }
+
+    const handleCancelPoll = (pollId) => {
+        if (window.confirm("Are you sure you want to cancel this poll? All tokens will be refunded and ideas will return to the pool.")) {
+            dispatch({ type: ACTIONS.CANCEL_POLL, payload: pollId })
+            showToast("Poll cancelled and contents returned to idea pool.")
         }
     }
 
@@ -593,6 +904,7 @@ export default function VotingTab() {
                                 onVote={handlePollVote}
                                 onResolve={handleResolvePoll}
                                 onDelete={handleDeletePoll}
+                                onCancel={handleCancelPoll}
                                 resolveProfile={resolveProfile}
                                 globalTokensRemaining={globalTokensRemaining}
                                 globalVetoesRemaining={globalVetoesRemaining}
@@ -600,70 +912,46 @@ export default function VotingTab() {
                         ))}
                     </div>
                 ) : (
-                    <div className="flex border border-border rounded-[var(--radius-xl)] bg-bg-card overflow-hidden relative">
-                        {/* Left side: Activity Log */}
-                        <div className="w-[30%] border-r border-border p-6 bg-bg-primary flex flex-col shrink-0">
-                            <h3 className="text-[11px] font-bold text-text-muted uppercase tracking-[0.15em] mb-6">Activity Log</h3>
-                            <div className="flex-1">
-                                <p className="text-xs text-text-muted mt-6 font-medium">Start a poll to see voting activity here.</p>
-                            </div>
-                        </div>
-
-                        {/* Right side: Empty Poll */}
-                        <div className="w-[70%] py-24 flex flex-col items-center justify-center text-center">
-                            <div className="w-14 h-14 bg-bg-card rounded-2xl flex items-center justify-center text-3xl border border-border mb-5 drop-shadow-sm filter saturate-0">🗳️</div>
+                    <div className="flex border-2 border-dashed border-border/60 rounded-[var(--radius-xl)] bg-transparent relative">
+                        {/* Empty Poll - Full width */}
+                        <div className="w-full py-24 flex flex-col items-center justify-center text-center px-4">
+                            <div className="w-14 h-14 bg-bg-secondary rounded-2xl flex items-center justify-center text-3xl border border-border mb-5 drop-shadow-sm filter saturate-0">🗳️</div>
                             <h3 className="text-xl font-bold font-heading text-text-primary">No active polls yet</h3>
                             <p className="text-sm text-text-secondary mt-2 max-w-[340px] mb-8 leading-relaxed">Select 2 or more conflicting ideas from the pool below to pit them against each other in a formal vote.</p>
                             {!isCreatingPoll && (
-                                <Button variant="secondary" onClick={() => setIsCreatingPoll(true)} className="mb-8 px-6 py-2 shadow-none font-bold text-text-primary hover:bg-bg-hover border-border transition-colors">
+                                <Button variant="primary" onClick={() => setIsCreatingPoll(true)}>
                                     Create Proposal
                                 </Button>
                             )}
-                            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2">Select Below</span>
-                            <span className="text-text-muted opacity-50">&darr;</span>
                         </div>
                     </div>
                 )}
             </div>
 
             {/* ── Idea Board Section (Divergent Phase) ── */}
-            <div className="space-y-5 relative">
-                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pt-2">
-                    {!isCreatingPoll && (
-                        <div>
-                        </div>
-                    )}
-                    {isCreatingPoll && (
-                        <div className="flex items-center gap-3 bg-accent/10 border border-accent/30 p-1.5 rounded-xl pl-4">
-                            <span className="text-xs font-bold text-accent px-1">{selectedIdeaIds.size} Selected</span>
-                            <button onClick={() => { setIsCreatingPoll(false); setSelectedIdeaIds(new Set()) }} className="text-xs font-bold text-text-secondary hover:text-text-primary px-2 transition-colors">Cancel</button>
-                            <Button onClick={handleCreatePoll} disabled={selectedIdeaIds.size < 2 || !pollTitle.trim()} className="text-xs py-2 px-5 shadow-md font-bold text-white bg-accent hover:bg-accent/90">
-                                Start Poll
-                            </Button>
-                        </div>
-                    )}
-                </div>
+            <div className="space-y-4 relative">
 
                 {/* Poll Creation Title Input Box */}
                 {isCreatingPoll && (
-                    <div className="animate-fade-in fade-in flex flex-col sm:flex-row gap-4 items-start sm:items-center p-5 bg-accent/5 border-2 border-accent border-dashed rounded-[var(--radius-lg)] shadow-sm">
-                        <div className="text-3xl filter drop-shadow">📝</div>
-                        <div className="flex-1 w-full">
-                            <label className="text-[11px] font-bold text-accent uppercase tracking-wider mb-1.5 block">Name Your Proposal</label>
+                    <div className="animate-fade-in fade-in flex flex-col sm:flex-row gap-4 items-start sm:items-center p-4 mb-6 bg-bg-card border border-border rounded-[var(--radius-lg)] shadow-sm">
+                        <div className="w-10 h-10 rounded-full bg-accent/10 text-accent flex items-center justify-center text-xl shrink-0">📝</div>
+                        <div className="flex-1 w-full relative">
+                            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1 block">Name Your Proposal</label>
                             <input
+                                ref={pollTitleRef}
                                 type="text"
                                 value={pollTitle}
                                 onChange={e => setPollTitle(e.target.value)}
-                                placeholder="e.g., Where are we staying in Paris? 🇫🇷"
-                                className="w-full bg-bg-card border-none shadow-sm rounded-[var(--radius-md)] px-4 py-3 text-base font-medium focus:ring-2 focus:ring-accent outline-none placeholder:text-text-muted"
+                                placeholder="e.g., Where are we staying in Paris?"
+                                className="w-full bg-transparent border-0 border-b-2 border-transparent focus:border-accent px-0 py-1 text-base font-semibold text-text-primary focus:ring-0 transition-colors outline-none placeholder:text-text-muted placeholder:font-normal"
                                 autoFocus
                             />
                         </div>
-                        <p className="text-xs font-medium text-text-secondary sm:w-56 leading-relaxed hidden sm:block">Select at least <strong className="text-text-primary">2 ideas</strong> below to bundle them into a unified vote.</p>
+                        <p className="text-[11px] font-medium text-text-secondary sm:w-48 leading-relaxed hidden sm:block">Select at least <strong>2 ideas</strong> below to bundle them into a unified vote.</p>
                     </div>
                 )}
 
-                {/* View Filters & URL Extractor */}
+                {/* View Filters, Toggle & URL Extractor */}
                 <div className={`transition-all duration-300 flex items-center justify-between gap-4 mb-4 relative ${isCreatingPoll ? '-mt-4' : ''}`}>
                     <div className="flex items-center gap-2 overflow-x-auto pb-1 mb-[-4px]">
                         {['all', 'lodging', 'activity'].map(f => (
@@ -677,34 +965,55 @@ export default function VotingTab() {
                         ))}
                     </div>
 
-                    {!showExtractInput ? (
-                        <Button size="sm" onClick={() => setShowExtractInput(true)} className="shrink-0">
-                            + Extract Idea
-                        </Button>
-                    ) : (
-                        <div className="p-1 pr-1.5 h-[42px] bg-[#fcf9f5] absolute right-0 z-40 w-full sm:w-[320px] animate-fade-in rounded-full flex items-center border-[#EAE3DE] shadow-sm border-[2px]">
-                            <form onSubmit={handleExtract} className="flex gap-2 w-full h-full items-center">
-                                <input
-                                    type="url"
-                                    value={urlInput}
-                                    onChange={e => setUrlInput(e.target.value)}
-                                    placeholder="Paste a link..."
-                                    className="flex-1 pl-4 pr-2 py-0 h-full bg-transparent outline-none focus:ring-0 shadow-none border-none text-[14px] font-medium text-text-primary placeholder:text-[#A7A3A0]"
-                                    disabled={isExtracting}
-                                    autoFocus
-                                />
-                                <button type="submit" disabled={isExtracting || !urlInput.trim()} className="shrink-0 px-5 py-1.5 text-[13px] font-bold bg-[#EFBCA6] hover:bg-[#E3A387] text-white rounded-full transition-colors disabled:opacity-50 h-[30px] flex items-center justify-center">
-                                    {isExtracting ? '...' : 'Add'}
-                                </button>
-                                <button type="button" onClick={() => setShowExtractInput(false)} className="px-2 text-[#908D89] hover:text-text-primary flex items-center justify-center transition-colors">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                                </button>
-                            </form>
+                    <div className="flex items-center gap-2 shrink-0">
+                        {/* View toggle */}
+                        {/* View toggle */}
+                        <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
+                            <button
+                                id="idea-view-table"
+                                onClick={() => switchView('table')}
+                                className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${ideaView === 'table' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+                            >
+                                ≡ Table
+                            </button>
+                            <button
+                                id="idea-view-grid"
+                                onClick={() => switchView('grid')}
+                                className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${ideaView === 'grid' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+                            >
+                                ◫ Grid
+                            </button>
                         </div>
-                    )}
+
+                        {!showExtractInput ? (
+                            <Button size="sm" onClick={() => setShowExtractInput(true)} className="shrink-0">
+                                + Extract Idea
+                            </Button>
+                        ) : (
+                            <div className="p-1 pr-1.5 h-[42px] bg-[#fcf9f5] absolute right-0 z-40 w-full sm:w-[320px] animate-fade-in rounded-full flex items-center border-[#EAE3DE] shadow-sm border-[2px]">
+                                <form onSubmit={handleExtract} className="flex gap-2 w-full h-full items-center">
+                                    <input
+                                        type="url"
+                                        value={urlInput}
+                                        onChange={e => setUrlInput(e.target.value)}
+                                        placeholder="Paste a link..."
+                                        className="flex-1 pl-4 pr-2 py-0 h-full bg-transparent outline-none focus:ring-0 shadow-none border-none text-[14px] font-medium text-text-primary placeholder:text-[#A7A3A0]"
+                                        disabled={isExtracting}
+                                        autoFocus
+                                    />
+                                    <button type="submit" disabled={isExtracting || !urlInput.trim()} className="shrink-0 px-5 py-1.5 text-[13px] font-bold bg-[#EFBCA6] hover:bg-[#E3A387] text-white rounded-full transition-colors disabled:opacity-50 h-[30px] flex items-center justify-center">
+                                        {isExtracting ? '...' : 'Add'}
+                                    </button>
+                                    <button type="button" onClick={() => setShowExtractInput(false)} className="px-2 text-[#908D89] hover:text-text-primary flex items-center justify-center transition-colors">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                                    </button>
+                                </form>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-                {/* Masonry / Grid */}
+                {/* Idea Pool: Grid or Table */}
                 {ideas.length === 0 && !isExtracting ? (
                     <div className="py-24 mt-8 text-center flex flex-col items-center justify-center border-2 border-dashed border-border rounded-[var(--radius-xl)] bg-bg-secondary/30">
                         <span className="text-5xl opacity-50 mb-4 saturate-0 filter drop-shadow-sm">📦</span>
@@ -715,6 +1024,19 @@ export default function VotingTab() {
                             <li className="flex items-center gap-2">✅ Works with most travel websites</li>
                             <li className="flex items-center gap-2">✅ Group ideas into Proposals for voting</li>
                         </ul>
+                    </div>
+                ) : ideaView === 'table' ? (
+                    <div className="mt-4">
+                        <IdeaTableView
+                            ideas={visibleIdeas}
+                            resolveProfile={resolveProfile}
+                            onDelete={handleDeleteIdea}
+                            isSelectable={isCreatingPoll}
+                            selectedIdeaIds={selectedIdeaIds}
+                            onSelect={toggleIdeaSelection}
+                            onSelectAll={handleSelectAll}
+                            isExtracting={isExtracting}
+                        />
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 mt-6 relative pb-4">
@@ -733,6 +1055,16 @@ export default function VotingTab() {
                     </div>
                 )}
             </div>
+
+            {/* Floating action bar — shown whenever 2+ ideas are selected */}
+            <FloatingActionBar
+                count={selectedIdeaIds.size}
+                isCreatingPoll={isCreatingPoll}
+                onStartDraft={() => setIsCreatingPoll(true)}
+                onSubmit={handleCreatePoll}
+                disabled={isCreatingPoll && !pollTitle.trim()}
+                onCancel={() => { setSelectedIdeaIds(new Set()); setIsCreatingPoll(false) }}
+            />
         </div>
     )
 }
