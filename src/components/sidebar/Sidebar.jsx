@@ -22,7 +22,7 @@ function TripGroup({ title, trips, activeTripId, onSelect }) {
           onClick={() => onSelect(trip.id)}
           className={`w-full text-left px-3 py-1.5 text-sm transition-colors flex items-center justify-between rounded-[var(--radius-sm)] ${trip.id === activeTripId ? 'bg-accent/10 text-accent font-medium' : 'text-text-primary hover:bg-bg-hover'}`}
         >
-          <span className="truncate">{trip.name || 'Untitled Trip'}</span>
+          <span className="truncate">{trip.emoji} {trip.name || 'Untitled Trip'}</span>
           {trip.id === activeTripId && (
             <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
           )}
@@ -64,7 +64,7 @@ function TripSwitcher({ trips, activeTrip, activeTripId, onSelect, onNewTrip }) 
         <div className="flex flex-col overflow-hidden">
           <span className="text-[10px] text-text-muted font-bold uppercase tracking-widest mb-0.5">Trip</span>
           <span className="text-sm font-semibold text-text-primary truncate">
-            {activeTrip ? activeTrip.name || 'Untitled Trip' : 'Select a Trip'}
+            {activeTrip ? `${activeTrip.emoji} ${activeTrip.name || 'Untitled Trip'}` : 'Select a Trip'}
           </span>
         </div>
         <svg className={`shrink-0 w-4 h-4 text-text-muted transition-transform ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>

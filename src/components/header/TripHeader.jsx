@@ -427,8 +427,8 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
   }
 
   return (
-    <header className="animate-fade-in bg-bg-primary md:px-6 md:pt-6 md:pb-2 p-4">
-      <div className="max-w-[1400px] mx-auto bg-bg-card border border-border rounded-[var(--radius-lg)] p-3 md:p-4">
+    <header className="animate-fade-in border-b border-border bg-bg-primary/95 backdrop-blur-sm relative z-20">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-5">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
 
           {/* LEFT — Typography and Sub-Details */}
@@ -449,11 +449,18 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
                 </button>
               )}
               {isReadOnly
-                ? <h1 className="font-heading text-xl md:text-2xl font-bold text-text-primary leading-tight truncate shrink">{trip.name}</h1>
-                : <InlineTripName value={trip.name} onSave={handleRename} />
+                ? <h1 className="font-heading text-xl md:text-2xl font-bold text-text-primary leading-tight truncate shrink">{trip.emoji} {trip.name}</h1>
+                : (
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-xl md:text-2xl leading-none shrink-0" role="img" aria-label="Trip emoji">{trip.emoji}</span>
+                    <InlineTripName value={trip.name} onSave={handleRename} />
+                  </div>
+                )
               }
-              <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full bg-bg-secondary border border-border text-[9px] font-bold uppercase tracking-widest text-text-muted whitespace-nowrap">
-                {effectiveStatus === 'archived' ? 'Archived' : effectiveStatus === 'completed' ? 'Memory' : (readiness < 100 ? 'Draft' : 'Ready')}
+              <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full bg-bg-secondary border border-border text-[9px] font-bold uppercase tracking-widest text-text-muted whitespace-nowrap">
+                {effectiveStatus === 'archived' ? 'Archived' :
+                  effectiveStatus === 'completed' ? 'Memory' :
+                    effectiveStatus === 'ongoing' ? 'Ongoing' : 'Upcoming'}
               </span>
             </div>
 
