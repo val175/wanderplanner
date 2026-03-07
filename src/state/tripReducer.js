@@ -688,19 +688,18 @@ export function tripReducer(state, action) {
     // Replaces the entire trips map with data from a Firestore snapshot.
     // Preserves activeTripId if the active trip still exists in the new map.
     case ACTIONS.SET_TRIPS_FROM_FIRESTORE: {
-      const newTrips = payload
-      // MERGE strategy: Firestore is authoritative for trips it knows about.
-      // Preserve any locally-created trips that Firestore hasn't confirmed yet
-      // (i.e. they exist in local state but not in the snapshot).
-      // This prevents the race condition where a new trip disappears because the
-      // snapshot arrives before the setDoc write is confirmed.
+      // payload can be `{ trips: {...}, deletedIds: [...] }` or just `{...}` for backward compatibility
+      const { trips: newTrips, deletedIds = [] } = payload.trips ? payload : { trips: payload, deletedIds: [] }
+
       const mergedTrips = { ...state.trips }
       // Apply all trips from Firestore (these are authoritative)
       Object.assign(mergedTrips, newTrips)
-      // Remove local trips that Firestore has explicitly deleted
-      // (i.e. they were in local state before but are no longer in any snapshot)
-      // We can't do this here safely without knowing the "previous" Firestore state,
-      // so we defer deletion to explicit DELETE_TRIP actions only.
+
+      // Remove trips that were deleted remotely to avoid resurrection
+      deletedIds.forEach(id => {
+        delete mergedTrips[id]
+      })
+
       const ids = Object.keys(mergedTrips)
       const currentActiveId = state.activeTripId
       const newActiveId =

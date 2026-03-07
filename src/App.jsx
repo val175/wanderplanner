@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from './firebase/config'
 import { TripContext, useTripContext } from './context/TripContext'
-import { ProfileProvider } from './context/ProfileContext'
+import { ProfileProvider, useProfiles } from './context/ProfileContext'
 import { useAuth } from './hooks/useAuth'
 import { useFirestoreTrips } from './hooks/useFirestoreTrips'
 import { useMediaQuery } from './hooks/useMediaQuery'
@@ -19,6 +19,7 @@ import BottomNav from './components/navigation/BottomNav'
 
 // Modal
 import NewTripModal from './components/modal/NewTripModal'
+import JoinTripModal from './components/modal/JoinTripModal'
 
 // Shared
 import Toast from './components/shared/Toast'
@@ -113,7 +114,11 @@ function LoadingScreen({ message = 'Loading…' }) {
    we have a valid auth session (Firestore rules require auth).
 ───────────────────────────────────────────────────────────── */
 function AuthenticatedApp({ user, signOutUser }) {
-  const { state, dispatch, activeTrip, sortedTrips, showToast, firestoreLoading } = useFirestoreTrips(user.uid)
+  const {
+    state, dispatch, activeTrip, sortedTrips,
+    showToast, firestoreLoading,
+    pendingInvite, acceptInvite, declineInvite
+  } = useFirestoreTrips(user.uid)
   const isMobile = useMediaQuery('(max-width: 767px)')
   const [showNewTripModal, setShowNewTripModal] = useState(false)
 
@@ -133,7 +138,46 @@ function AuthenticatedApp({ user, signOutUser }) {
     dispatch({ type: ACTIONS.SET_TAB, payload: tabId })
   }, [dispatch])
 
+  const { addProfile, profiles } = useProfiles()
+
+  const handleAcceptInvite = useCallback(async () => {
+    if (!pendingInvite) return
+    await acceptInvite()
+
+    // Auto-populate the new user's traveler DB using the snapshot in the shared trip
+    if (pendingInvite.travelersSnapshot) {
+      pendingInvite.travelersSnapshot.forEach(profile => {
+        if (profile.id !== user.uid) { // Don't add self to travelers
+          addProfile(profile)
+        }
+      })
+    }
+  }, [pendingInvite, acceptInvite, addProfile, user.uid])
+
   const isConcertTab = state.activeTab === 'concert'
+
+  // Auto-heal missing profiles from active trip
+  const fetchAttempted = useRef(new Set())
+  useEffect(() => {
+    if (!activeTrip?.travelerIds || !user?.uid) return
+
+    const missingIds = activeTrip.travelerIds.filter(
+      id => id !== user.uid && !profiles.some(p => p.id === id) && !fetchAttempted.current.has(id)
+    )
+
+    missingIds.forEach(async (id) => {
+      fetchAttempted.current.add(id)
+      try {
+        const snap = await getDoc(doc(db, 'users', id, 'profile', 'data'))
+        if (snap.exists()) {
+          const fetchedProfile = { ...snap.data(), id: id, uid: id }
+          addProfile(fetchedProfile)
+        }
+      } catch (err) {
+        console.warn(`[Wanderplan] Failed to fetch profile for ${id}:`, err)
+      }
+    })
+  }, [activeTrip?.travelerIds, profiles, user?.uid, addProfile])
 
   if (firestoreLoading) {
     return <LoadingScreen message="Loading your trips…" />
@@ -176,6 +220,12 @@ function AuthenticatedApp({ user, signOutUser }) {
         </main>
 
         <NewTripModal isOpen={showNewTripModal} onClose={handleCloseModal} />
+
+        <JoinTripModal
+          pendingInvite={pendingInvite}
+          onAccept={handleAcceptInvite}
+          onDecline={declineInvite}
+        />
 
         <AIAssistant />
 

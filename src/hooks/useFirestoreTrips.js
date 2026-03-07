@@ -3,6 +3,7 @@ import {
   collection,
   doc,
   getDocs,
+  getDoc,
   onSnapshot,
   setDoc,
   deleteDoc,
@@ -15,6 +16,7 @@ import {
 import { db } from '../firebase/config'
 import { tripReducer, ACTIONS } from '../state/tripReducer'
 import { DEFAULT_TRIP } from '../data/defaultTrip'
+import { generateId } from '../utils/helpers'
 
 const STORAGE_KEY = 'wanderplan_data'
 const REVERSE_MIGRATION_FLAG = 'wanderplan_root_migrated'
@@ -52,6 +54,7 @@ async function migrateToSharedRoot(userId) {
 export function useFirestoreTrips(userId) {
   const [state, dispatch] = useReducer(tripReducer, null, getInitialState)
   const [firestoreLoading, setFirestoreLoading] = useState(true)
+  const [pendingInvite, setPendingInvite] = useState(null)
   const prevTripsRef = useRef({})
   const isRemoteUpdateRef = useRef(false)
 
@@ -79,17 +82,33 @@ export function useFirestoreTrips(userId) {
           if (migrated) return // onSnapshot will fire again
 
           // No data anywhere — seed with default trip
-          await setDoc(doc(tripsRef, DEFAULT_TRIP.id), {
+          const newId = generateId()
+          await setDoc(doc(tripsRef, newId), {
             ...DEFAULT_TRIP,
+            id: newId,
             memberIds: [userId],
+            travelerIds: [userId],
             _updatedAt: serverTimestamp(),
           })
           return
         }
 
+        // Calculate trips deleted since last snapshot
+        const deletedIds = []
+        if (!isFirstLoad) {
+          Object.keys(prevTripsRef.current).forEach(id => {
+            if (!tripsFromFirestore[id]) {
+              deletedIds.push(id)
+            }
+          })
+        }
+
         isRemoteUpdateRef.current = true
         prevTripsRef.current = tripsFromFirestore
-        dispatch({ type: ACTIONS.SET_TRIPS_FROM_FIRESTORE, payload: tripsFromFirestore })
+        dispatch({
+          type: ACTIONS.SET_TRIPS_FROM_FIRESTORE,
+          payload: { trips: tripsFromFirestore, deletedIds }
+        })
         setFirestoreLoading(false)
       },
       (error) => {
@@ -131,24 +150,78 @@ export function useFirestoreTrips(userId) {
           }
 
           const tripDoc = snapshot.docs[0]
-          const tripData = tripDoc.data()
-          const memberIds = tripData.memberIds || []
-
-          // Auto-join: add current user to memberIds if not already a member
-          if (!memberIds.includes(userId)) {
-            await updateDoc(tripDoc.ref, { memberIds: arrayUnion(userId) })
-            // The onSnapshot listener will pick up the new trip automatically
-            // Slight delay to let the listener fire first
-            await new Promise(r => setTimeout(r, 600))
-          }
-
-          // Navigate to the trip
-          dispatch({ type: ACTIONS.SET_ACTIVE_TRIP, payload: tripDoc.id })
+          setPendingInvite({ id: tripDoc.id, ref: tripDoc.ref, ...tripDoc.data() })
         } catch (err) {
           console.error('[Wanderplan] Share link resolution failed:', err)
         }
       })()
-  }, [userId, firestoreLoading]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [userId, firestoreLoading])
+
+  const acceptInvite = useCallback(async () => {
+    if (!pendingInvite || !userId) return
+    try {
+      const memberIds = pendingInvite.memberIds || []
+      const travelerIds = pendingInvite.travelerIds || []
+
+      const newMemberIds = Array.from(new Set([...memberIds, userId]))
+      const newTravelerIds = Array.from(new Set([...travelerIds, userId]))
+      const travelersCount = Math.max(newTravelerIds.length, 1)
+
+      // Fetch this user's profile so we can inject them into travelersSnapshot immediately
+      let activeUserProfile = null
+      try {
+        const docRef = doc(db, 'users', userId, 'profile', 'data')
+        const snap = await getDoc(docRef)
+        if (snap.exists()) {
+          activeUserProfile = snap.data()
+        }
+      } catch (err) {
+        console.warn('[Wanderplan] Failed to prefetch joining user profile:', err)
+      }
+
+      let newSnapshot = pendingInvite.travelersSnapshot || []
+      if (activeUserProfile && !newSnapshot.some(s => s.id === userId)) {
+        newSnapshot = [...newSnapshot, {
+          id: userId,
+          name: activeUserProfile.name || 'Traveler',
+          avatar: activeUserProfile.customPhoto || activeUserProfile.photo || null
+        }]
+      }
+
+      // Add user explicitly to both lists AND snapshot to guarantee access & visibility
+      await updateDoc(pendingInvite.ref, {
+        memberIds: newMemberIds,
+        travelerIds: newTravelerIds,
+        travelers: travelersCount,
+        travelersSnapshot: newSnapshot
+      })
+
+      const updatedTrip = {
+        ...pendingInvite,
+        memberIds: newMemberIds,
+        travelerIds: newTravelerIds,
+        travelers: travelersCount,
+        travelersSnapshot: newSnapshot
+      }
+
+      // Prevent our optimistic UI injection from triggering a recursive setDoc
+      isRemoteUpdateRef.current = true
+
+      // Inject into local state immediately so UI doesn't blink while waiting for snapshot
+      dispatch({ type: ACTIONS.ADD_TRIP, payload: updatedTrip })
+      dispatch({ type: ACTIONS.SET_ACTIVE_TRIP, payload: pendingInvite.id })
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: { message: 'You joined the trip!', type: 'success' } })
+      setPendingInvite(null)
+    } catch (err) {
+      console.error('[Wanderplan] Accept invite failed:', err)
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: { message: 'Failed to join trip', type: 'error' } })
+      setPendingInvite(null)
+    }
+  }, [pendingInvite, userId])
+
+  const declineInvite = useCallback(() => {
+    setPendingInvite(null)
+  }, [])
 
   // ── 2. Outbound sync: local state → Firestore ────────────────────────────
   useEffect(() => {
@@ -164,8 +237,12 @@ export function useFirestoreTrips(userId) {
     Object.keys(currentTrips).forEach((id) => {
       if (currentTrips[id] !== previousTrips[id]) {
         const tripData = currentTrips[id]
-        // Ensure current user is always in memberIds on write
-        const memberIds = Array.from(new Set([...(tripData.memberIds || []), userId]))
+        // Ensure current user and all travelerIds are in memberIds on write
+        const memberIds = Array.from(new Set([
+          ...(tripData.memberIds || []),
+          ...(tripData.travelerIds || []),
+          userId
+        ]))
 
         setDoc(
           doc(tripsRef, id),
@@ -215,6 +292,10 @@ export function useFirestoreTrips(userId) {
     dispatch({ type: ACTIONS.SHOW_TOAST, payload: { message, type } })
   }, [])
 
-  return { state, dispatch, activeTrip, sortedTrips, showToast, firestoreLoading }
+  return {
+    state, dispatch, activeTrip, sortedTrips,
+    showToast, firestoreLoading,
+    pendingInvite, acceptInvite, declineInvite
+  }
 }
 // Cache Buster: 1771945353

@@ -10,6 +10,7 @@ import { calculateReadiness } from '../../utils/readiness'
 import { getTripStatus } from '../../utils/tripStatus'
 import { formatDateRange } from '../../utils/helpers'
 import { useCountdown } from '../../hooks/useCountdown'
+import { useTripTravelers } from '../../hooks/useTripTravelers'
 import ShareTripModal from '../modal/ShareTripModal'
 
 /* ─────────────────────────────────────────────────────────────
@@ -406,7 +407,7 @@ function DateRangeEditor({ trip, dispatch, isReadOnly }) {
 
 export default function TripHeader({ onOpenSidebar, isMobile }) {
   const { activeTrip, dispatch, isReadOnly, effectiveStatus } = useTripContext()
-  const { profiles } = useProfiles()
+  const travelerProfiles = useTripTravelers()
   const readiness = useMemo(() => calculateReadiness(activeTrip), [activeTrip])
   const [showShareModal, setShowShareModal] = useState(false)
 
@@ -416,11 +417,6 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
   const dateRange = formatDateRange(trip.startDate, trip.endDate)
   const tripStatus = getTripStatus(trip.startDate, trip.endDate)
   const destinations = trip.destinations || []
-
-  // Prefer resolving from the live profiles list; fall back to the embedded snapshot in the trip doc
-  const travelerProfiles = (trip.travelerIds || [])
-    .map(id => profiles.find(p => p.id === id) || (trip.travelersSnapshot || []).find(p => p.id === id))
-    .filter(Boolean)
 
   const handleRename = (newName) => {
     if (newName) dispatch({ type: ACTIONS.RENAME_TRIP, payload: { id: trip.id, name: newName } })

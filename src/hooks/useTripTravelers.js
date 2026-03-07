@@ -34,10 +34,10 @@ export function useTripTravelers() {
         }
 
         if (ids.length > 0) {
-            return ids.map(id => {
+            const results = ids.map(id => {
                 // 1. Try snapshot cache first (no async lookup needed)
                 if (snapshotMap[id]?.name) {
-                    return { id, ...snapshotMap[id] }
+                    return { id, name: snapshotMap[id].name, photo: snapshotMap[id].avatar || snapshotMap[id].photo }
                 }
                 // 2. Try live profile resolution
                 const p = resolveProfile(id)
@@ -45,7 +45,7 @@ export function useTripTravelers() {
                     return {
                         id,
                         name: p.name || p.displayName || 'Traveler',
-                        avatar: p.customPhoto || p.photo || p.photoURL || null,
+                        photo: p.customPhoto || p.photo || p.photoURL || null,
                     }
                 }
                 // 3. If it's the current user, use their profile
@@ -53,20 +53,30 @@ export function useTripTravelers() {
                     return {
                         id,
                         name: currentUserProfile.name || 'You',
-                        avatar: currentUserProfile.customPhoto || currentUserProfile.photo || null,
+                        photo: currentUserProfile.customPhoto || currentUserProfile.photo || null,
                     }
                 }
                 // 4. Profile not yet loaded — placeholder keeps count correct
-                return { id, name: 'Traveler', avatar: null }
+                return { id, name: 'Traveler', photo: null }
             })
+
+            // Deduplicate by ID only, in case multiple distinct users have the same name
+            const unique = []
+            const seenIds = new Set()
+            for (const r of results) {
+                if (!seenIds.has(r.id)) {
+                    seenIds.add(r.id)
+                    unique.push(r)
+                }
+            }
+            return unique
         }
 
-        // Solo fallback — no travelerIds at all
         if (currentUserProfile) {
             return [{
                 id: currentUserProfile.uid || currentUserProfile.id || 'me',
                 name: currentUserProfile.name || 'You',
-                avatar: currentUserProfile.customPhoto || currentUserProfile.photo || null,
+                photo: currentUserProfile.customPhoto || currentUserProfile.photo || null,
             }]
         }
 
