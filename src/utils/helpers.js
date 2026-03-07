@@ -105,31 +105,43 @@ const _geocodeCache = {}
 /**
  * Fetch latitude/longitude for a given city using Open-Meteo Geocoding.
  * @param {string} cityStr   City name (e.g. "Santander")
- * @param {string} [countryHint]  Country name to disambiguate (e.g. "Philippines")
- *   Without a hint, "Santander" → Santander, Spain.
- *   With hint "Philippines" → searches "Santander Philippines" first.
+ * @param {string} [countryHint]  Country name (or "Country, Region") to disambiguate (e.g. "Philippines, Cebu")
  */
 export async function geocodeCity(cityStr, countryHint = null) {
   const cacheKey = countryHint ? `${cityStr}|${countryHint}` : cityStr
   if (_geocodeCache[cacheKey]) return _geocodeCache[cacheKey]
 
   try {
-    // First attempt: city + country for accurate disambiguation
-    if (countryHint) {
-      const q = encodeURIComponent(`${cityStr} ${countryHint}`)
-      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${q}&count=3&language=en&format=json`)
-      const data = await res.json()
-      if (data.results?.length > 0) {
-        const result = [data.results[0].longitude, data.results[0].latitude]
-        _geocodeCache[cacheKey] = result
-        return result
-      }
-    }
-    // Fallback: city name only
-    const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityStr)}&count=1&language=en&format=json`)
+    // 1) Fetch top 15 results for the city string
+    const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityStr)}&count=15&language=en&format=json`)
     const data = await res.json()
+
     if (data.results?.length > 0) {
-      const result = [data.results[0].longitude, data.results[0].latitude]
+      let matchedResult = data.results[0] // fallback to first result
+
+      if (countryHint) {
+        // Our components use format: "Country, Region" (e.g. "Philippines, Ilocos")
+        const hintParts = countryHint.split(',').map(s => s.trim().toLowerCase())
+        const targetCountry = hintParts[0]
+        const targetRegion = hintParts[1] // might be undefined
+
+        // First, try to find an exact match for both country + region
+        const perfectMatch = data.results.find(r =>
+          (r.country || '').toLowerCase() === targetCountry &&
+          (r.admin1 || '').toLowerCase() === targetRegion
+        )
+
+        // Next, try to find a match for just the country
+        const countryMatch = data.results.find(r =>
+          (r.country || '').toLowerCase() === targetCountry
+        )
+
+        // Prioritize perfect match > country match > default top result
+        if (perfectMatch) matchedResult = perfectMatch
+        else if (countryMatch) matchedResult = countryMatch
+      }
+
+      const result = [matchedResult.longitude, matchedResult.latitude]
       _geocodeCache[cacheKey] = result
       return result
     }
