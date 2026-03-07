@@ -88,15 +88,17 @@ function TableAddRow({ onAdd }) {
     <tr className="border-t border-border/40 bg-accent/[0.02]">
       <td className="px-2 py-2 align-middle"></td>
       <td className="px-2 py-2 align-middle">
-        <TimePicker
-          value={time}
-          onChange={setTime}
-          className="text-sm border-transparent hover:border-border focus:border-accent bg-transparent text-text-secondary font-mono w-[100px]"
-          placeholder="+time"
-        />
+        <div className="flex justify-end pr-2">
+          <TimePicker
+            value={time}
+            onChange={setTime}
+            className="text-sm border-transparent hover:border-border focus:border-accent bg-transparent text-text-secondary font-mono w-[100px] text-right"
+            placeholder="+time"
+          />
+        </div>
       </td>
-      <td className="px-2 py-2 align-middle" colSpan={2}>
-        <form onSubmit={handleSubmit} className="flex h-full">
+      <td className="px-2 py-2 align-middle" colSpan={3}>
+        <form onSubmit={handleSubmit} className="flex h-full w-full">
           <input
             ref={inputRef}
             type="text"
@@ -108,7 +110,7 @@ function TableAddRow({ onAdd }) {
           />
         </form>
       </td>
-      <td className="px-2 py-2 align-middle text-xs text-text-muted italic opacity-60"></td>
+      <td className="px-2 py-2 align-middle"></td>
     </tr>
   )
 }
@@ -395,13 +397,13 @@ function DayGroupTable({ day, onReorderDay, trip }) {
                         </td>
 
                         {/* Actions */}
-                        <td className="px-2 pt-4 pb-2 align-top">
+                        <td className="px-2 pt-4 pb-2 align-top text-right pr-4">
                           {!isReadOnly && (
                             <button onClick={() => {
                               triggerHaptic('medium')
                               dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })
-                            }} className="w-full text-center text-text-muted hover:text-danger opacity-0 group-hover/row:opacity-100 transition-opacity mt-0.5" title="Delete">
-                              ×
+                            }} className="text-text-muted hover:text-danger opacity-0 group-hover/row:opacity-100 transition-opacity mt-0.5 p-2 inline-flex" title="Delete">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                             </button>
                           )}
                         </td>
@@ -422,7 +424,7 @@ function DayGroupTable({ day, onReorderDay, trip }) {
                               >+</button>
                             )}
                           </td>
-                          <td colSpan={4} className="py-2 pl-2">
+                          <td colSpan={3} className="py-2 pl-2">
                             <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-text-muted bg-bg-secondary/30 border border-border/50 rounded-full px-2.5 py-0.5 hover:border-text-primary transition-colors hover:shadow-sm relative z-10 cursor-pointer">
                               <span className="opacity-70 relative">
                                 {activity.transitEmoji || '🚕'}
@@ -455,7 +457,8 @@ function DayGroupTable({ day, onReorderDay, trip }) {
                             </div>
                           </td>
                         </tr>
-                      )}
+                      )
+                      }
                     </Fragment>
                   )
                 })}
@@ -466,7 +469,7 @@ function DayGroupTable({ day, onReorderDay, trip }) {
                   <td className="relative px-0 w-[30px]">
                     {day.activities?.length > 0 && <div className="absolute left-1/2 top-0 h-4 -ml-[1px] w-[2px] bg-border z-0"></div>}
                   </td>
-                  <td colSpan={4}></td>
+                  <td colSpan={3}></td>
                 </tr>
 
                 {!isReadOnly && (
@@ -478,8 +481,9 @@ function DayGroupTable({ day, onReorderDay, trip }) {
             </table>
           </div>
         </Card>
-      )}
-    </div>
+      )
+      }
+    </div >
   )
 }
 
@@ -570,9 +574,10 @@ function KanbanColumn({ day }) {
                     triggerHaptic('medium')
                     dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })
                   }}
-                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger text-xs p-1 rounded hover:bg-bg-hover transition-colors"
+                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger p-1 rounded hover:bg-bg-hover transition-colors"
+                  title="Delete"
                 >
-                  ✕
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                 </button>
               )}
             </div>
