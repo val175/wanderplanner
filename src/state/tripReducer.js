@@ -52,6 +52,7 @@ export const ACTIONS = {
   TOGGLE_TODO: 'TOGGLE_TODO',
   UPDATE_TODO: 'UPDATE_TODO',
   DELETE_TODO: 'DELETE_TODO',
+  SET_TODOS: 'SET_TODOS',
 
   // Packing
   ADD_PACKING_ITEM: 'ADD_PACKING_ITEM',
@@ -405,6 +406,12 @@ export function tripReducer(state, action) {
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
         todos: trip.todos.filter(t => t.id !== payload),
+      }))
+
+    case ACTIONS.SET_TODOS:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        todos: payload,
       }))
 
     // ─── Packing ───

@@ -1,5 +1,8 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
+import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import Card from '../shared/Card'
 import CelebrationEffect from '../shared/CelebrationEffect'
 import Button from '../shared/Button'
@@ -8,8 +11,19 @@ import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { TODO_PHASES } from '../../constants/tabs'
 import AvatarCircle from '../shared/AvatarCircle'
+import DatePicker from '../shared/DatePicker'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
 import { triggerHaptic } from '../../utils/haptics'
+import { auth } from '../../firebase/config'
+
+function isPastDue(isoDateStr) {
+  if (!isoDateStr) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const [y, m, d] = isoDateStr.split('-').map(Number);
+  const due = new Date(y, m - 1, d);
+  return due < today;
+}
 
 // Helper for Assignee Pill
 function AssigneePill({ value, onChange, tripTravelers, resolveProfile, currentUserProfile }) {
@@ -139,9 +153,43 @@ function getDeepLinkTarget(text) {
   return null
 }
 
-function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfile, tripTravelers, currentUserProfile, isReadOnly }) {
+function SortableTodoItem(props) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: props.todo.id,
+    data: {
+      type: 'Todo',
+      todo: props.todo
+    },
+    disabled: props.isReadOnly || !props.canDrag
+  });
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : undefined,
+    zIndex: isDragging ? 10 : undefined,
+    position: 'relative',
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <TodoItem {...props} dragAttributes={attributes} dragListeners={listeners} />
+    </div>
+  )
+}
+
+function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfile, tripTravelers, currentUserProfile, isReadOnly, dragAttributes, dragListeners, canDrag }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(todo.text)
+  const [expanded, setExpanded] = useState(false)
+  const [draftNote, setDraftNote] = useState(todo.note || '')
 
   const handleSave = () => {
     setEditing(false)
@@ -150,82 +198,141 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
     }
   }
 
+  const handleSaveNote = () => {
+    if (draftNote.trim() !== (todo.note || '')) {
+      onUpdate({ note: draftNote.trim() })
+    }
+  }
+
   const deepLink = getDeepLinkTarget(todo.text)
+  const pastDue = !todo.done && isPastDue(todo.dueDate);
 
   return (
-    <div className={`flex items-center gap-3 py-3 group transition-opacity ${todo.done ? 'opacity-60' : ''}`}>
-      <button
-        onClick={() => !isReadOnly && onToggle()}
-        className={`flex-shrink-0 w-[18px] h-[18px] rounded-[var(--radius-sm)] border-2 transition-all flex items-center justify-center
-          ${todo.done
-            ? 'bg-success border-success text-white animate-check-pop'
-            : 'border-border-strong hover:border-accent'
-          } ${isReadOnly ? 'cursor-default opacity-80' : ''}`}
-      >
-        {todo.done && (
-          <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-            <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+    <div className={`flex flex-col py-3 group transition-opacity ${todo.done ? 'opacity-60' : ''}`}>
+      <div className="flex items-center gap-3">
+        {canDrag && !isReadOnly && !editing && (
+          <div
+            {...dragAttributes}
+            {...dragListeners}
+            className="cursor-grab hover:text-accent text-border transition-colors flex shrink-0"
+            title="Drag to reorder"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="9" cy="12" r="1.5"></circle><circle cx="9" cy="5" r="1.5"></circle><circle cx="9" cy="19" r="1.5"></circle>
+              <circle cx="15" cy="12" r="1.5"></circle><circle cx="15" cy="5" r="1.5"></circle><circle cx="15" cy="19" r="1.5"></circle>
+            </svg>
+          </div>
         )}
-      </button>
 
-      <div className="flex-1 min-w-0 flex items-center gap-2">
-        {editing ? (
-          <input
-            value={draft}
-            onChange={e => setDraft(e.target.value)}
-            onBlur={handleSave}
-            onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') { setDraft(todo.text); setEditing(false) } }}
-            className="w-full px-2 py-0.5 text-sm font-medium bg-bg-input border border-accent/30 rounded-[var(--radius-sm)] text-text-primary outline-none focus:border-accent"
-            autoFocus
+        <button
+          onClick={() => !isReadOnly && onToggle()}
+          className={`flex-shrink-0 w-[18px] h-[18px] rounded-[var(--radius-sm)] border-2 transition-all flex items-center justify-center
+            ${todo.done
+              ? 'bg-success border-success text-white animate-check-pop'
+              : 'border-border-strong hover:border-accent'
+            } ${isReadOnly ? 'cursor-default opacity-80' : ''}`}
+        >
+          {todo.done && (
+            <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+              <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </button>
+
+        <div className="flex-1 min-w-0 flex items-center gap-2">
+          {editing ? (
+            <input
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onBlur={handleSave}
+              onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') { setDraft(todo.text); setEditing(false) } }}
+              className="w-full px-2 py-0.5 text-sm font-medium bg-bg-input border border-accent/30 rounded-[var(--radius-sm)] text-text-primary outline-none focus:border-accent"
+              autoFocus
+            />
+          ) : (
+            <span
+              onClick={() => { if (!isReadOnly) { setDraft(todo.text); setEditing(true) } }}
+              className={`text-sm font-medium transition-colors
+                ${isReadOnly ? 'cursor-default' : 'cursor-pointer hover:border-b hover:border-accent/30'}
+                ${todo.done ? 'line-through text-text-muted' : 'text-text-primary'}`}
+            >
+              {todo.text}
+            </span>
+          )}
+
+          {!editing && deepLink && !todo.done && (
+            <button
+              onClick={() => onDeepLink(deepLink)}
+              className="hidden sm:flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-accent/10 text-accent hover:bg-accent hover:text-white transition-colors group/link"
+              title={`Go to ${deepLink} tab`}
+            >
+              <svg className="w-3 h-3 transform -rotate-45" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <div className="w-[100px] shrink-0 flex justify-end">
+            <DatePicker
+              value={todo.dueDate}
+              onChange={v => onUpdate({ dueDate: v })}
+              disabled={isReadOnly}
+              placeholder="Set date"
+              className={`scale-90 origin-right transition-colors ${pastDue ? '!text-danger font-medium' : ''}`}
+            />
+          </div>
+
+          <AssigneePill
+            value={todo.assigneeId}
+            onChange={(v) => onUpdate({ assigneeId: v })}
+            tripTravelers={tripTravelers}
+            resolveProfile={resolveProfile}
+            currentUserProfile={currentUserProfile}
+            disabled={isReadOnly}
           />
-        ) : (
-          <span
-            onClick={() => { if (!isReadOnly) { setDraft(todo.text); setEditing(true) } }}
-            className={`text-sm font-medium transition-colors
-              ${isReadOnly ? 'cursor-default' : 'cursor-pointer hover:border-b hover:border-accent/30'}
-              ${todo.done ? 'line-through text-text-muted' : 'text-text-primary'}`}
-          >
-            {todo.text}
-          </span>
-        )}
 
-        {!editing && deepLink && !todo.done && (
           <button
-            onClick={() => onDeepLink(deepLink)}
-            className="hidden sm:flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-accent/10 text-accent hover:bg-accent hover:text-white transition-colors group/link"
-            title={`Go to ${deepLink} tab`}
+            onClick={() => setExpanded(!expanded)}
+            className={`p-1 -ml-1 text-text-muted hover:text-text-primary transition-colors rounded-[var(--radius-sm)] ${expanded ? 'bg-bg-hover' : ''}`}
+            title="Toggle notes"
           >
-            <svg className="w-3 h-3 transform -rotate-45" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${expanded ? 'rotate-180' : ''}`}>
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
           </button>
-        )}
+
+          {!isReadOnly && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                triggerHaptic('medium')
+                onDelete()
+              }}
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 -ml-1 text-text-muted hover:text-danger rounded-[var(--radius-sm)] shrink-0"
+              title="Delete task"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-        {!isReadOnly && (
-          <button
-            onClick={() => {
-              triggerHaptic('medium')
-              onDelete()
-            }}
-            className="text-text-muted hover:text-danger text-xs flex-shrink-0"
-            title="Delete task"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-          </button>
-        )}
-      </div>
-
-      <div className="flex items-center">
-        <AssigneePill
-          value={todo.assigneeId}
-          onChange={(v) => onUpdate({ assigneeId: v })}
-          tripTravelers={tripTravelers}
-          resolveProfile={resolveProfile}
-          currentUserProfile={currentUserProfile}
-          disabled={isReadOnly}
-        />
-      </div>
+      {expanded && (
+        <div className="pl-8 pr-2 mt-2" onClick={e => e.stopPropagation()}>
+          {isReadOnly ? (
+            <p className="text-xs text-text-secondary whitespace-pre-wrap">{todo.note || 'No notes added.'}</p>
+          ) : (
+            <textarea
+              value={draftNote}
+              onChange={e => setDraftNote(e.target.value)}
+              onBlur={handleSaveNote}
+              placeholder="Add context, links, or booking details..."
+              className="w-full text-xs bg-bg-secondary p-2.5 rounded-[var(--radius-sm)] border border-transparent focus:border-accent/30 outline-none text-text-primary placeholder:text-text-muted min-h-[60px] resize-y transition-colors"
+              onClick={e => e.stopPropagation()}
+            />
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -271,11 +378,21 @@ function AddTodoPhaseForm({ phase, onAdd }) {
   )
 }
 
+function DropPhaseBoard({ phase, children }) {
+  const { setNodeRef } = useDroppable({
+    id: phase.id,
+    data: { type: 'Phase', phase }
+  })
+  return <div ref={setNodeRef} className="flex-1 w-full">{children}</div>
+}
+
 export default function TodoTab() {
   const { activeTrip, dispatch, showToast, isReadOnly } = useTripContext()
   const { currentUserProfile, resolveProfile } = useProfiles()
   const [filter, setFilter] = useState('all') // 'all' or 'mine'
+  const [hideCompleted, setHideCompleted] = useState(false)
   const [celebration, setCelebration] = useState(0)
+  const [isGenerating, setIsGenerating] = useState(false)
 
   if (!activeTrip) return null
   const trip = activeTrip
@@ -291,11 +408,15 @@ export default function TodoTab() {
   })
 
   const filteredTodos = useMemo(() => {
+    let result = safeTodos;
     if (filter === 'mine') {
-      return safeTodos.filter(t => t.assigneeId === currentUserProfile?.id)
+      result = result.filter(t => t.assigneeId === currentUserProfile?.id)
     }
-    return safeTodos
-  }, [safeTodos, filter, currentUserProfile])
+    if (hideCompleted) {
+      result = result.filter(t => !t.done)
+    }
+    return result
+  }, [safeTodos, filter, hideCompleted, currentUserProfile])
 
   const grouped = useMemo(() => {
     const groups = {}
@@ -325,6 +446,90 @@ export default function TodoTab() {
     dispatch({ type: ACTIONS.SET_TAB, payload: targetTab })
   }
 
+  const handleGenerateChecklist = async () => {
+    if (isGenerating) return;
+    setIsGenerating(true)
+    try {
+      const token = await auth.currentUser?.getIdToken()
+      if (!token) throw new Error("No auth token")
+
+      const res = await fetch('/api/generate-checklist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          tripName: trip.name,
+          destinations: trip.destinations,
+          startDate: trip.startDate,
+          endDate: trip.endDate
+        })
+      })
+      if (!res.ok) throw new Error('API failed')
+
+      const data = await res.json()
+      if (data.todos) {
+        data.todos.forEach(t => {
+          dispatch({ type: ACTIONS.ADD_TODO, payload: { text: t.text, phase: t.category || 'planning', note: t.note } })
+        })
+        showToast('Checklist generated successfully! ✨')
+      }
+    } catch (err) {
+      console.error(err)
+      showToast('Wanda failed to generate checklist.')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const canDrag = filter === 'all' && !hideCompleted;
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeId = active.id;
+    const overId = over.id;
+    if (activeId === overId) return;
+
+    const overIsTask = over.data.current?.type === 'Todo';
+    const overIsPhase = over.data.current?.type === 'Phase';
+
+    let newPhase = null;
+    if (overIsPhase) {
+      newPhase = over.data.current.phase.id;
+    } else if (overIsTask) {
+      newPhase = over.data.current.todo.phase;
+    }
+    if (!newPhase) return;
+
+    let newTodos = [...todos];
+    const oldIndex = newTodos.findIndex(t => t.id === activeId);
+    if (oldIndex < 0) return;
+
+    let targetIndex = -1;
+    if (overIsTask) {
+      targetIndex = newTodos.findIndex(t => t.id === overId);
+    }
+
+    const [moved] = newTodos.splice(oldIndex, 1);
+    moved.phase = newPhase;
+
+    if (targetIndex >= 0) {
+      newTodos.splice(targetIndex, 0, moved);
+    } else {
+      newTodos.push(moved);
+    }
+
+    dispatch({ type: ACTIONS.SET_TODOS, payload: newTodos });
+  }
+
   return (
     <div className="space-y-6 animate-fade-in pb-12 w-full">
       <CelebrationEffect trigger={celebration} />
@@ -337,94 +542,124 @@ export default function TodoTab() {
         </div>
 
         {/* View Toggle */}
-        <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => setFilter('all')}
-            className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${filter === 'all' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}
+            onClick={() => setHideCompleted(prev => !prev)}
+            className={`text-xs font-medium px-2 py-1 rounded-[var(--radius-sm)] border transition-colors flex items-center gap-1.5 ${hideCompleted ? 'bg-bg-card border-border shadow-sm text-text-primary' : 'bg-transparent border-transparent text-text-muted hover:text-text-secondary hover:bg-bg-secondary'}`}
           >
-            All Tasks
+            <div className={`w-3 h-3 rounded-sm border flex items-center justify-center shrink-0 transition-colors ${hideCompleted ? 'bg-accent border-accent text-white' : 'border-text-muted'}`}>
+              {hideCompleted && <svg viewBox="0 0 14 14" fill="none" className="w-2.5 h-2.5"><path d="M3 7.5L5.5 10L11 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+            </div>
+            Hide Completed
           </button>
-          <button
-            onClick={() => setFilter('mine')}
-            className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all flex items-center justify-center gap-1.5 ${filter === 'mine' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}
-          >
-            {currentUserProfile && (
-              <AvatarCircle profile={currentUserProfile} size={14} />
-            )}
-            My Tasks
-          </button>
+
+          <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${filter === 'all' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}
+            >
+              All Tasks
+            </button>
+            <button
+              onClick={() => setFilter('mine')}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all flex items-center justify-center gap-1.5 ${filter === 'mine' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}
+            >
+              {currentUserProfile && (
+                <AvatarCircle profile={currentUserProfile} size={14} />
+              )}
+              My Tasks
+            </button>
+          </div>
         </div>
       </div>
 
+      {safeTodos.length === 0 && !isReadOnly && filter === 'all' && (
+        <div className="bg-bg-card border border-border rounded-[var(--radius-lg)] p-8 text-center flex flex-col items-center shadow-sm">
+          <div className="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center text-xl mb-3 border border-accent/20">✨</div>
+          <h3 className="font-heading text-lg font-bold text-text-primary mb-2">Start Your Checklist</h3>
+          <p className="text-sm text-text-secondary mb-5 max-w-sm mx-auto leading-relaxed">Not sure where to begin? Ask Wanda to generate a smart, personalized checklist for your trip.</p>
+          <Button onClick={handleGenerateChecklist} disabled={isGenerating}>
+            {isGenerating ? 'Wanda is thinking...' : 'Ask Wanda for a checklist'}
+          </Button>
+        </div>
+      )}
+
       {/* Phase Boards */}
-      <div className="space-y-6">
-        {TODO_PHASES.map((phase, index) => {
-          const phaseTodos = grouped[phase.id]
-          const phaseDone = phaseTodos.filter(t => t.done).length
-          const phaseTotal = phaseTodos.length
-          const progressPercent = phaseTotal > 0 ? (phaseDone / phaseTotal) * 100 : 0
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <div className="space-y-6">
+          {TODO_PHASES.map((phase, index) => {
+            const phaseTodos = grouped[phase.id]
+            const phaseDone = phaseTodos.filter(t => t.done).length
+            const phaseTotal = phaseTodos.length
+            const progressPercent = phaseTotal > 0 ? (phaseDone / phaseTotal) * 100 : 0
 
-          return (
-            <Card key={phase.id} className="p-0 overflow-hidden border border-border">
-              <div className="p-5 sm:p-6">
-                {/* Board Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
-                  <div>
-                    <h3 className={`font-heading text-lg font-bold leading-tight flex items-center gap-2 ${phase.textClass}`}>
-                      <span>{index + 1}.</span> {phase.label}
-                    </h3>
-                    <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-text-muted mt-1">{phase.subtitle}</p>
-                  </div>
+            return (
+              <Card key={phase.id} className="p-0 overflow-hidden border border-border">
+                <div className="p-5 sm:p-6 flex flex-col min-h-[140px]">
+                  {/* Board Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                    <div>
+                      <h3 className={`font-heading text-lg font-bold leading-tight flex items-center gap-2 ${phase.textClass}`}>
+                        <span>{index + 1}.</span> {phase.label}
+                      </h3>
+                      <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-text-muted mt-1">{phase.subtitle}</p>
+                    </div>
 
-                  {/* Progress Indicator */}
-                  <div className="flex flex-col items-start sm:items-end w-full sm:w-auto min-w-[140px]">
-                    <span className="text-[10px] font-bold text-text-muted tracking-wider mb-1.5 uppercase">
-                      {phaseDone}/{phaseTotal} Completed
-                    </span>
-                    <div className="h-1.5 w-full bg-bg-secondary rounded-full overflow-hidden">
-                      <div
-                        className={`h-full ${phase.color} transition-all duration-500 ease-out`}
-                        style={{ width: `${progressPercent}%` }}
-                      />
+                    {/* Progress Indicator */}
+                    <div className="flex flex-col items-start sm:items-end w-full sm:w-auto min-w-[140px]">
+                      <span className="text-[10px] font-bold text-text-muted tracking-wider mb-1.5 uppercase">
+                        {phaseDone}/{phaseTotal} Completed
+                      </span>
+                      <div className="h-1.5 w-full bg-bg-secondary rounded-full overflow-hidden">
+                        <div
+                          className={`h-full ${phase.color} transition-all duration-500 ease-out`}
+                          style={{ width: `${progressPercent}%` }}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Task List */}
-                <div className="divide-y divide-border/30 mb-2">
-                  {phaseTodos.length === 0 ? (
-                    <div className="py-6 text-center text-sm font-medium text-text-muted bg-bg-secondary/30 rounded-lg">
-                      No tasks in this phase yet.
-                    </div>
-                  ) : (
-                    phaseTodos.map(todo => (
-                      <TodoItem
-                        key={todo.id}
-                        todo={todo}
-                        onToggle={() => handleToggle(todo.id)}
-                        onUpdate={(updates) => dispatch({ type: ACTIONS.UPDATE_TODO, payload: { id: todo.id, updates } })}
-                        onDelete={() => dispatch({ type: ACTIONS.DELETE_TODO, payload: todo.id })}
-                        onDeepLink={handleDeepLink}
-                        resolveProfile={resolveProfile}
-                        tripTravelers={tripTravelers}
-                        currentUserProfile={currentUserProfile}
-                        isReadOnly={isReadOnly}
-                      />
-                    ))
+                  {/* Task List (Droppable area) */}
+                  <DropPhaseBoard phase={phase}>
+                    <SortableContext items={phaseTodos.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                      <div className="divide-y divide-border/30 mb-2 h-full flex flex-col">
+                        {phaseTodos.length === 0 ? (
+                          <div className="py-6 text-center text-sm font-medium text-text-muted bg-bg-secondary/30 rounded-lg border border-dashed border-border/50 flex-1">
+                            No tasks in this phase yet.
+                          </div>
+                        ) : (
+                          phaseTodos.map(todo => (
+                            <SortableTodoItem
+                              key={todo.id}
+                              todo={todo}
+                              onToggle={() => handleToggle(todo.id)}
+                              onUpdate={(updates) => dispatch({ type: ACTIONS.UPDATE_TODO, payload: { id: todo.id, updates } })}
+                              onDelete={() => dispatch({ type: ACTIONS.DELETE_TODO, payload: todo.id })}
+                              onDeepLink={handleDeepLink}
+                              resolveProfile={resolveProfile}
+                              tripTravelers={tripTravelers}
+                              currentUserProfile={currentUserProfile}
+                              isReadOnly={isReadOnly}
+                              canDrag={canDrag}
+                            />
+                          ))
+                        )}
+                      </div>
+                    </SortableContext>
+                  </DropPhaseBoard>
+
+                  {!isReadOnly && (
+                    <AddTodoPhaseForm
+                      phase={phase}
+                      onAdd={data => dispatch({ type: ACTIONS.ADD_TODO, payload: data })}
+                    />
                   )}
                 </div>
-
-                {!isReadOnly && (
-                  <AddTodoPhaseForm
-                    phase={phase}
-                    onAdd={data => dispatch({ type: ACTIONS.ADD_TODO, payload: data })}
-                  />
-                )}
-              </div>
-            </Card>
-          )
-        })}
-      </div>
+              </Card>
+            )
+          })}
+        </div>
+      </DndContext>
     </div>
   )
 }

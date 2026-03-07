@@ -276,8 +276,11 @@ function CategoryBudgetsCard({ budget, currency, divisor, perPerson, travelers, 
                   </span>
                   <button
                     onClick={() => dispatch({ type: ACTIONS.DELETE_BUDGET_CATEGORY, payload: cat.id })}
-                    className="opacity-0 group-hover:opacity-100 w-4 h-4 rounded-full flex items-center justify-center text-text-muted hover:text-danger transition-all text-[9px]"
-                  >✕</button>
+                    className="opacity-0 group-hover:opacity-100 p-2 text-text-muted hover:text-danger"
+                    title="Delete Category"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>
                 </div>
               </div>
               <div className="h-[5px] bg-bg-secondary rounded-full overflow-hidden">
