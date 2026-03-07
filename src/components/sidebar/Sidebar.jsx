@@ -4,9 +4,33 @@ import { ACTIONS } from '../../state/tripReducer'
 import { TAB_CONFIG } from '../../constants/tabs'
 import ProfileManager from '../shared/ProfileManager'
 import { useAuth } from '../../hooks/useAuth'
+import { getEffectiveStatus } from '../../utils/tripStatus'
 
 const THE_PLAN_IDS = ['overview', 'itinerary', 'cities', 'bookings']
 const TOOLS_IDS = ['voting', 'budget', 'todo', 'packing', 'concert']
+
+function TripGroup({ title, trips, activeTripId, onSelect }) {
+  if (!trips || trips.length === 0) return null
+  return (
+    <div className="mb-2 last:mb-0">
+      <div className="px-3 py-1 mb-0.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">
+        {title}
+      </div>
+      {trips.map(trip => (
+        <button
+          key={trip.id}
+          onClick={() => onSelect(trip.id)}
+          className={`w-full text-left px-3 py-1.5 text-sm transition-colors flex items-center justify-between rounded-[var(--radius-sm)] ${trip.id === activeTripId ? 'bg-accent/10 text-accent font-medium' : 'text-text-primary hover:bg-bg-hover'}`}
+        >
+          <span className="truncate">{trip.name || 'Untitled Trip'}</span>
+          {trip.id === activeTripId && (
+            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          )}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 function TripSwitcher({ trips, activeTrip, activeTripId, onSelect, onNewTrip }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -24,6 +48,13 @@ function TripSwitcher({ trips, activeTrip, activeTripId, onSelect, onNewTrip }) 
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isOpen])
 
+  const upcomingTrips = trips.filter(t => getEffectiveStatus(t) === 'upcoming')
+  const ongoingTrips = trips.filter(t => getEffectiveStatus(t) === 'ongoing')
+  const completedTrips = trips.filter(t => {
+    const s = getEffectiveStatus(t)
+    return s === 'completed' || s === 'archived'
+  })
+
   return (
     <div className="relative px-3 pt-4 pb-2" ref={dropdownRef}>
       <button
@@ -31,7 +62,7 @@ function TripSwitcher({ trips, activeTrip, activeTripId, onSelect, onNewTrip }) 
         className="w-full flex items-center justify-between p-2 rounded-[var(--radius-md)] hover:bg-bg-hover transition-colors text-left"
       >
         <div className="flex flex-col overflow-hidden">
-          <span className="text-[10px] text-text-muted font-bold uppercase tracking-widest mb-0.5">Workspace</span>
+          <span className="text-[10px] text-text-muted font-bold uppercase tracking-widest mb-0.5">Trip</span>
           <span className="text-sm font-semibold text-text-primary truncate">
             {activeTrip ? activeTrip.name || 'Untitled Trip' : 'Select a Trip'}
           </span>
@@ -40,20 +71,13 @@ function TripSwitcher({ trips, activeTrip, activeTripId, onSelect, onNewTrip }) 
       </button>
 
       {isOpen && (
-        <div className="absolute top-[85%] left-3 right-3 mt-1 bg-bg-card border border-border rounded-[var(--radius-md)] z-50 py-1.5 max-h-[60vh] overflow-y-auto">
+        <div className="absolute top-[85%] left-3 right-3 mt-1 bg-bg-card border border-border rounded-[var(--radius-md)] z-50 py-1.5 max-h-[60vh] overflow-y-auto shadow-sm">
           {trips.length > 0 ? (
-            trips.map(trip => (
-              <button
-                key={trip.id}
-                onClick={() => { onSelect(trip.id); setIsOpen(false) }}
-                className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between ${trip.id === activeTripId ? 'bg-accent/10 text-accent font-medium' : 'text-text-primary hover:bg-bg-hover'}`}
-              >
-                <span className="truncate">{trip.name || 'Untitled Trip'}</span>
-                {trip.id === activeTripId && (
-                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                )}
-              </button>
-            ))
+            <>
+              <TripGroup title="Ongoing" trips={ongoingTrips} activeTripId={activeTripId} onSelect={(id) => { onSelect(id); setIsOpen(false) }} />
+              <TripGroup title="Upcoming" trips={upcomingTrips} activeTripId={activeTripId} onSelect={(id) => { onSelect(id); setIsOpen(false) }} />
+              <TripGroup title="Completed" trips={completedTrips} activeTripId={activeTripId} onSelect={(id) => { onSelect(id); setIsOpen(false) }} />
+            </>
           ) : (
             <div className="px-3 py-2 text-xs text-text-muted text-center">No trips available</div>
           )}
@@ -94,7 +118,7 @@ function NavLink({ tabId, label, emoji, isActive, onClick, hasNotification }) {
 
 export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
   const { state, dispatch, activeTrip, sortedTrips } = useTripContext()
-  const { signOutUser } = useAuth()
+  const { user, signOutUser } = useAuth()
   const [showProfiles, setShowProfiles] = useState(false)
 
   const handleToggleDarkMode = () => {
@@ -220,8 +244,15 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
         </div>
         <button
           onClick={signOutUser}
-          className="w-full text-left px-2 py-1.5 text-xs font-medium text-text-muted hover:text-text-danger hover:bg-bg-hover rounded-[var(--radius-sm)] transition-colors"
+          className="w-full flex items-center gap-2.5 text-left px-2 py-1.5 text-xs font-medium text-text-muted hover:text-text-danger hover:bg-bg-hover rounded-[var(--radius-sm)] transition-colors group"
         >
+          {user?.photoURL ? (
+            <img src={user.photoURL} alt={user.displayName || 'User'} className="w-5 h-5 rounded-full object-cover grayscale group-hover:grayscale-0 transition-all" />
+          ) : (
+            <div className="w-5 h-5 rounded-full bg-bg-hover flex items-center justify-center text-[10px]">
+              {user?.displayName ? user.displayName.charAt(0).toUpperCase() : '?'}
+            </div>
+          )}
           Sign out
         </button>
       </div>
