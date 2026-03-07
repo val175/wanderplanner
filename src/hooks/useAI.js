@@ -183,13 +183,13 @@ export async function generateCityGuide(city, trip) {
             if (erData.rates && erData.rates[baseCurrency]) {
               const rate = erData.rates[baseCurrency]
               const formatted = rate >= 1 ? Math.round(rate) : rate.toFixed(4)
-              return `💱 CURRENCY\n1 ${toCurrency} = ${formatted} ${baseCurrency}`
+              return `💱 1 ${toCurrency} = ${formatted} ${baseCurrency}`
             }
           } else if (toCurrency === baseCurrency) {
-            return `💱 CURRENCY\nUses ${baseCurrency}`
+            return `💱 Uses ${baseCurrency}`
           }
         } catch (e) { console.warn("Currency fetch failed", e) }
-        return "¥ CURRENCY\nExchange rate unavailable"
+        return "¥ Exchange rate unavailable"
       })(),
 
       // 3. Must Do via Wikipedia Summary

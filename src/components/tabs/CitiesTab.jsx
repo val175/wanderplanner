@@ -8,7 +8,7 @@ import { ACTIONS } from '../../state/tripReducer'
 import { generateCityGuide } from '../../hooks/useAI'
 import { triggerHaptic } from '../../utils/haptics'
 
-function InlineAddRow({ onAdd }) {
+function TopAddCityForm({ onAdd, onCancel }) {
   const [cityData, setCityData] = useState({ city: '', country: '', flag: '' })
 
   const handleSubmit = (e) => {
@@ -20,35 +20,35 @@ function InlineAddRow({ onAdd }) {
   }
 
   return (
-    <tr className="border-t border-border/40 bg-accent/[0.02]">
-      <td className="p-2 align-middle w-12 text-center text-2xl">
+    <div className="w-full sm:w-[70%] max-w-[600px] animate-fade-in bg-bg-card rounded-[var(--radius-lg)] border border-border shadow-sm p-1.5 flex items-center gap-2">
+      <div className="flex items-center justify-center w-8 h-8 text-xl shrink-0">
         {cityData.flag || <span className="text-text-muted text-base">📍</span>}
-      </td>
-      <td className="p-2 align-middle min-w-[200px]">
+      </div>
+      <div className="flex-1 min-w-[140px]">
         <CityCombobox
           value={cityData.city}
           country={cityData.country}
           flag={cityData.flag}
           onChange={updates => setCityData(prev => ({ ...prev, ...updates }))}
           placeholder="+ Search city..."
+          autoFocus
         />
-      </td>
-      <td className="p-2 align-middle max-w-[150px]">
+      </div>
+      <div className="w-[100px] sm:w-[130px] shrink-0">
         <input
           value={cityData.country}
           onChange={e => setCityData(prev => ({ ...prev, country: e.target.value }))}
           placeholder="Country"
-          className="w-full px-2 py-1.5 text-[13px] bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors"
+          className="w-full px-2 py-1.5 text-[13px] bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
         />
-      </td>
-      <td colSpan={100} className="p-2 align-middle text-xs text-text-muted">
-        <div className="flex justify-end pr-2">
-          <Button type="button" size="sm" onClick={handleSubmit} disabled={!cityData.city.trim()} className="py-1 px-3 min-h-0 text-xs">
-            Add City
-          </Button>
-        </div>
-      </td>
-    </tr>
+      </div>
+      <Button type="button" size="sm" onClick={handleSubmit} disabled={!cityData.city.trim()} className="px-4 shrink-0">
+        Add
+      </Button>
+      <button type="button" onClick={onCancel} className="px-2 text-text-muted hover:text-text-primary transition-colors shrink-0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+      </button>
+    </div>
   )
 }
 
@@ -78,11 +78,11 @@ function CityRow({ city }) {
 
   return (
     <tr className="group hover:bg-bg-hover transition-colors border-t border-border/20">
-      <td className="px-2 py-3 align-middle w-12 text-center text-2xl">
+      <td className="px-2 py-3 align-middle text-center text-2xl" style={{ width: '48px' }}>
         {city.flag || '📍'}
       </td>
-      <td className="px-2 py-3 align-middle w-[250px]">
-        <div className="flex flex-col">
+      <td className="px-2 py-3 align-middle" style={{ width: '22%' }}>
+        <div className="flex flex-col pr-2">
           <EditableText
             value={city.city}
             onSave={val => updateCity({ city: val })}
@@ -101,53 +101,53 @@ function CityRow({ city }) {
           />
         </div>
       </td>
-      <td className="px-2 py-3 align-middle w-[160px]">
+      <td className="px-2 py-3 align-middle" style={{ width: '18%' }}>
         <EditableText
           value={city.weather}
           onSave={val => updateCity({ weather: val })}
-          className="text-[13px] text-text-secondary leading-snug whitespace-pre-wrap min-h-[40px] flex items-center"
+          className="text-[13px] text-text-secondary leading-snug whitespace-pre-wrap min-h-[40px] flex items-center pr-2"
           inputClassName="w-full text-[13px]"
-          placeholder="e.g. 🌸 MARCH AVG\n14°C / 5°C"
+          placeholder="e.g. 14°C / 5°C"
           multiline
           readOnly={isReadOnly}
         />
       </td>
-      <td className="px-2 py-3 align-middle w-[160px]">
+      <td className="px-2 py-3 align-middle" style={{ width: '18%' }}>
         <EditableText
           value={city.currencyTip}
           onSave={val => updateCity({ currencyTip: val })}
-          className="text-[13px] text-text-secondary leading-snug whitespace-pre-wrap min-h-[40px] flex items-center"
+          className="text-[13px] text-text-secondary leading-snug whitespace-pre-wrap min-h-[40px] flex items-center pr-2"
           inputClassName="w-full text-[13px]"
-          placeholder="e.g. ¥ CURRENCY\n1 USD = 150 JPY"
+          placeholder="e.g. 1 USD = 150 JPY"
           multiline
           readOnly={isReadOnly}
         />
       </td>
-      <td className="px-2 py-3 align-middle min-w-[250px]">
-        <div className="flex gap-2 items-start justify-between min-h-[40px] group/mustdo">
-          <EditableText
-            value={city.mustDo}
-            onSave={val => updateCity({ mustDo: val })}
-            className="text-[13px] text-text-secondary leading-relaxed w-full min-h-[40px]"
-            inputClassName="w-full text-[13px]"
-            placeholder="Neon lights, ancient temples..."
-            multiline
-            readOnly={isReadOnly}
-          />
-          {(!isReadOnly && (!city.mustDo || needsInspiration)) && (
-            <button
-              onClick={handleWandaFill}
-              disabled={loading}
-              className="shrink-0 flex items-center gap-1.5 px-2 py-1 rounded bg-accent/10 text-accent hover:bg-accent/20 transition-colors text-[10px] font-semibold uppercase tracking-wider"
-              title="Generate city guide with Wanda"
-            >
-              {loading ? '...' : '✨ Auto-fill'}
-            </button>
-          )}
-        </div>
+      <td className="px-2 py-3 align-middle" style={{ width: '28%' }}>
+        <EditableText
+          value={city.mustDo}
+          onSave={val => updateCity({ mustDo: val })}
+          className="text-[13px] text-text-secondary leading-relaxed w-full min-h-[40px] pr-2"
+          inputClassName="w-full text-[13px]"
+          placeholder="Neon lights, ancient temples..."
+          multiline
+          readOnly={isReadOnly}
+        />
+      </td>
+      <td className="px-2 py-3 align-middle text-right" style={{ width: '110px' }}>
+        {!isReadOnly && (!city.mustDo || needsInspiration) && (
+          <button
+            onClick={handleWandaFill}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-1 px-1.5 py-1.5 rounded bg-accent/10 text-accent font-bold hover:bg-accent/20 transition-colors text-[10px] uppercase tracking-widest disabled:opacity-50"
+            title="Generate city guide with Wanda"
+          >
+            {loading ? '...' : '✨ Auto-fill'}
+          </button>
+        )}
       </td>
       {!isReadOnly && (
-        <td className="px-2 py-3 align-middle w-10 text-center">
+        <td className="px-2 py-3 align-middle text-center w-10 shrink-0">
           <button
             onClick={() => {
               triggerHaptic('medium')
@@ -164,28 +164,48 @@ function CityRow({ city }) {
 
 export default function CitiesTab() {
   const { activeTrip, dispatch, isReadOnly } = useTripContext()
+  const [adding, setAdding] = useState(false)
   if (!activeTrip) return null
 
   const cities = activeTrip.cities || []
 
   return (
     <div className="space-y-6 pb-24 animate-fade-in w-full">
-      <div className="flex items-center justify-between">
-        <h2 className="font-heading text-2xl font-bold text-text-primary">🏙️ Cities</h2>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-2">
+        <h2 className="font-heading text-2xl font-bold text-text-primary shrink-0">🏙️ Cities</h2>
+
+        {!isReadOnly && (
+          <div className="flex justify-end flex-1 w-full relative">
+            {!adding ? (
+              <Button size="sm" onClick={() => setAdding(true)}>
+                + Add City
+              </Button>
+            ) : (
+              <TopAddCityForm
+                onAdd={data => {
+                  dispatch({ type: ACTIONS.ADD_CITY, payload: data })
+                  setAdding(false)
+                }}
+                onCancel={() => setAdding(false)}
+              />
+            )}
+          </div>
+        )}
       </div>
 
-      <Card className="border border-border/50 p-0 overflow-hidden w-full">
+      <Card className="border border-border/50 p-0 overflow-hidden w-full max-w-full">
         <div className="w-full overflow-x-auto overflow-y-visible scrollbar-thin">
-          <table className="w-full text-left border-collapse table-fixed min-w-[800px] text-sm">
+          <table className="w-full text-left border-collapse table-fixed min-w-[850px] text-sm">
             <thead>
               <tr className="border-b border-border/50">
-                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-12"></th>
-                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[250px]">City</th>
-                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[160px]">Weather</th>
-                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[160px]">Currency</th>
-                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted">Vibe & Must Do</th>
+                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted" style={{ width: '48px' }}></th>
+                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted" style={{ width: '22%' }}>City</th>
+                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted" style={{ width: '18%' }}>Weather</th>
+                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted" style={{ width: '18%' }}>Currency</th>
+                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted" style={{ width: '28%' }}>Vibe & Must Do</th>
+                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted text-center" style={{ width: '110px' }}>Action</th>
                 {!isReadOnly && (
-                  <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-10"></th>
+                  <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-10 shrink-0"></th>
                 )}
               </tr>
             </thead>
@@ -193,9 +213,6 @@ export default function CitiesTab() {
               {cities.map(city => (
                 <CityRow key={city.id} city={city} />
               ))}
-              {!isReadOnly && (
-                <InlineAddRow onAdd={data => dispatch({ type: ACTIONS.ADD_CITY, payload: data })} />
-              )}
             </tbody>
           </table>
         </div>
@@ -205,7 +222,7 @@ export default function CitiesTab() {
         <div className="text-center py-12">
           <p className="text-4xl mb-3">🏙️</p>
           <p className="text-text-muted">No cities added yet.</p>
-          <p className="text-text-muted text-sm mt-1">Search and add a destination above.</p>
+          <p className="text-text-muted text-sm mt-1">Click "+ Add City" to add a destination.</p>
         </div>
       )}
     </div>
