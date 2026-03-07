@@ -195,12 +195,23 @@ export async function generateCityGuide(city, trip) {
       // 3. Must Do via Wikipedia Summary
       (async () => {
         try {
-          const wikiRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(city.city)}`)
-          if (wikiRes.ok) {
-            const wikiData = await wikiRes.json()
-            if (wikiData.extract) {
-              const sentences = wikiData.extract.match(/[^.!?]+[.!?]+/g) || [wikiData.extract]
-              return sentences.slice(0, 2).join(' ').trim()
+          // Instead of naively pulling `city.city` which might hit a disambiguation page (e.g. San Juan),
+          // we do a proper search combining the city name and its country/region
+          const searchQ = `${city.city} ${city.country || ''}`.trim()
+          const searchRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchQ)}&utf8=&format=json&origin=*`)
+
+          if (searchRes.ok) {
+            const searchData = await searchRes.json()
+            if (searchData.query?.search?.length > 0) {
+              const bestTitle = searchData.query.search[0].title
+              const wikiRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(bestTitle)}`)
+              if (wikiRes.ok) {
+                const wikiData = await wikiRes.json()
+                if (wikiData.extract && !wikiData.extract.includes("may refer to:")) {
+                  const sentences = wikiData.extract.match(/[^.!?]+[.!?]+/g) || [wikiData.extract]
+                  return sentences.slice(0, 2).join(' ').trim()
+                }
+              }
             }
           }
         } catch (e) { console.warn("Wikipedia fetch failed", e) }
