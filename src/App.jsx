@@ -15,7 +15,6 @@ import AuthScreen from './components/auth/AuthScreen'
 // Layout components
 import Sidebar from './components/sidebar/Sidebar'
 import TripHeader from './components/header/TripHeader'
-import TabBar from './components/header/TabBar'
 import BottomNav from './components/navigation/BottomNav'
 
 // Modal
@@ -160,7 +159,6 @@ function AuthenticatedApp({ user, signOutUser }) {
           {activeTrip ? (
             <>
               <TripHeader onOpenSidebar={handleOpenSidebar} isMobile={isMobile} />
-              <TabBar />
               <div
                 id={`panel-${state.activeTab}`}
                 role="tabpanel"
