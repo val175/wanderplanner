@@ -153,36 +153,16 @@ function TravelerPicker({ trip, travelerProfiles, dispatch, isReadOnly }) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   CountdownHero — Jony Ive typographic principle:
-   The number is the hero. Ultra-light (weight 200) at ~56px,
-   contrasted against a tiny bold accent-colored unit label.
-   This communicates urgency through scale, not decoration.
+   CountdownPill — compact days to departure for new layout
 ───────────────────────────────────────────────────────────── */
-function CountdownHero({ targetDate }) {
+function CountdownPill({ targetDate }) {
   const countdown = useCountdown(targetDate)
   if (!targetDate || countdown.expired) return null
-  const weeks = Math.floor(countdown.days / 7)
-  const days = countdown.days % 7
 
   return (
-    <div className="flex items-end gap-3 select-none" aria-label={`${countdown.days} days to departure`}>
-      {weeks > 0 && (
-        <div className="flex items-end gap-1.5 leading-none">
-          <span className="font-heading leading-none text-text-primary text-5xl font-light tracking-tight">{weeks}</span>
-          <span className="text-xs font-bold text-accent uppercase tracking-[0.15em] pb-2">
-            {weeks === 1 ? 'wk' : 'wks'}
-          </span>
-        </div>
-      )}
-      {(days > 0 || weeks === 0) && (
-        <div className="flex items-end gap-1.5 leading-none">
-          <span className="font-heading leading-none text-text-primary text-5xl font-light tracking-tight">{days}</span>
-          <span className="text-xs font-bold text-accent uppercase tracking-[0.15em] pb-2">
-            {days === 1 ? 'day' : 'days'}
-          </span>
-        </div>
-      )}
-    </div>
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-bg-secondary border border-border text-[9px] font-bold uppercase tracking-wider text-text-muted whitespace-nowrap ml-1">
+      <span className="text-accent font-bold mr-1">{countdown.days}</span> days away
+    </span>
   )
 }
 
@@ -225,7 +205,7 @@ function InlineTripName({ value, onSave }) {
         onChange={e => setDraft(e.target.value)}
         onBlur={save}
         onKeyDown={handleKeyDown}
-        className="font-heading text-2xl md:text-3xl font-bold text-text-primary leading-tight
+        className="font-heading text-xl md:text-2xl font-bold text-text-primary leading-tight
                    bg-transparent border-b border-accent outline-none w-full min-w-0"
         aria-label="Edit trip name"
       />
@@ -237,10 +217,10 @@ function InlineTripName({ value, onSave }) {
       onClick={startEdit}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="group flex items-center gap-2 min-w-0 max-w-full text-left"
+      className="group flex items-center gap-1 min-w-0 text-left shrink"
       aria-label={`Trip name: ${value}. Click to edit.`}
     >
-      <h1 className={`font-heading text-2xl md:text-3xl font-bold text-text-primary
+      <h1 className={`font-heading text-xl md:text-2xl font-bold text-text-primary
                        leading-tight truncate transition-all duration-150
                        ${hovered ? 'underline decoration-border-strong underline-offset-4' : ''}`}>
         {value}
@@ -279,8 +259,8 @@ function CityBreadcrumbs({ destinations }) {
     <div className="flex items-center flex-wrap gap-x-0.5 gap-y-1">
       {dests.map((dest, i) => (
         <span key={i} className="flex items-center">
-          {i > 0 && <ChevronRight />}
-          <span className="inline-flex items-center gap-0.5 text-xs text-text-muted whitespace-nowrap">
+          {i > 0 && <span className="text-text-muted mx-1">&middot;</span>}
+          <span className="inline-flex items-center gap-1 text-sm text-text-secondary whitespace-nowrap font-medium">
             <span>{dest.flag}</span>
             <span>{dest.city}</span>
           </span>
@@ -447,103 +427,81 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
   }
 
   return (
-    <header className="animate-fade-in border-b border-border bg-bg-primary/95 backdrop-blur-sm">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-8 py-5">
-        <div className="flex items-start justify-between gap-6">
+    <header className="animate-fade-in bg-bg-primary md:px-6 md:pt-6 md:pb-2 p-4">
+      <div className="max-w-[1400px] mx-auto bg-bg-card border border-border rounded-[var(--radius-lg)] p-3 md:p-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
 
-          {/* LEFT — 3-row identity block */}
-          <div className="flex items-start gap-3 min-w-0 flex-1 pl-2 md:pl-0">
-            {isMobile && (
-              <button
-                onClick={onOpenSidebar}
-                className="p-2 -ml-2 -mt-1 mr-1 text-text-secondary hover:bg-bg-hover rounded-[var(--radius-sm)] transition-colors"
-                aria-label="Open sidebar menu"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="3" y1="6" x2="21" y2="6" />
-                  <line x1="3" y1="12" x2="21" y2="12" />
-                  <line x1="3" y1="18" x2="21" y2="18" />
-                </svg>
-              </button>
-            )}
-            <span className="text-3xl sm:text-4xl leading-none shrink-0 mt-0.5 select-none"
-              role="img" aria-label="Trip emoji">
-              {trip.emoji}
-            </span>
-
-            <div className="min-w-0 flex-1">
-              {/* Row 1 — editable title (locked in read-only mode) */}
+          {/* LEFT — Typography and Sub-Details */}
+          <div className="flex flex-col min-w-0 flex-1">
+            {/* Top Row: Name + Draft Pill */}
+            <div className="flex items-center gap-2 mb-1.5 min-w-0">
+              {isMobile && (
+                <button
+                  onClick={onOpenSidebar}
+                  className="p-1.5 -ml-1 text-text-secondary hover:bg-bg-hover rounded-[var(--radius-sm)] transition-colors"
+                  aria-label="Open sidebar menu"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <line x1="3" y1="12" x2="21" y2="12" />
+                    <line x1="3" y1="18" x2="21" y2="18" />
+                  </svg>
+                </button>
+              )}
               {isReadOnly
-                ? <h1 className="font-heading text-2xl md:text-3xl font-bold text-text-primary leading-tight truncate">{trip.name}</h1>
+                ? <h1 className="font-heading text-xl md:text-2xl font-bold text-text-primary leading-tight truncate shrink">{trip.name}</h1>
                 : <InlineTripName value={trip.name} onSave={handleRename} />
               }
+              <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full bg-bg-secondary border border-border text-[9px] font-bold uppercase tracking-widest text-text-muted whitespace-nowrap">
+                {effectiveStatus === 'archived' ? 'Archived' : effectiveStatus === 'completed' ? 'Memory' : (readiness < 100 ? 'Draft' : 'Ready')}
+              </span>
+            </div>
 
-              {/* Row 2 — date · travelers · readiness ring, all inline */}
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
-                <DateRangeEditor trip={trip} dispatch={dispatch} isReadOnly={isReadOnly} />
-                <TravelerPicker trip={trip} travelerProfiles={travelerProfiles} dispatch={dispatch} isReadOnly={isReadOnly} />
-                {/* Readiness ring inline — compact, no competing row */}
-                <span className="inline-flex items-center gap-1.5">
-                  <ProgressRing value={readiness} size={32} strokeWidth={3} labelClassName="text-xs" />
-                  <span className="text-xs text-text-muted uppercase tracking-widest font-semibold">
-                    ready
-                  </span>
-                </span>
-              </div>
-
-              {/* Row 3 — city breadcrumbs */}
+            {/* Bottom Row: Cities · Dates · Countdown */}
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-text-muted min-w-0">
               {destinations.length > 0 && (
-                <div className="mt-1.5">
+                <>
                   <CityBreadcrumbs destinations={destinations} />
-                </div>
+                  <span className="opacity-50 text-xs">&middot;</span>
+                </>
+              )}
+
+              <DateRangeEditor trip={trip} dispatch={dispatch} isReadOnly={isReadOnly} />
+
+              {!isReadOnly && trip.startDate && tripStatus === 'upcoming' && (
+                <CountdownPill targetDate={trip.startDate} />
               )}
             </div>
           </div>
 
-          {/* RIGHT — global actions + status/countdown cluster */}
-          <div className="shrink-0 flex items-start gap-3 pt-0.5">
-            {/* Share Trip action */}
+          {/* RIGHT — Global Actions + Status */}
+          <div className="shrink-0 flex items-center justify-between lg:justify-end gap-4 border-t border-border pt-4 lg:pt-0 lg:border-t-0 mt-2 lg:mt-0">
+            {/* Readiness */}
+            <div className="flex items-center gap-2">
+              <ProgressRing value={readiness} size={36} strokeWidth={3.5} labelClassName="text-[10px] font-bold" />
+              <div className="flex flex-col justify-center hidden sm:flex">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-text-muted leading-tight">Readiness</span>
+                <span className={`text-xs font-semibold leading-tight ${readiness >= 100 ? 'text-success' : 'text-text-primary/70'}`}>
+                  {readiness >= 100 ? 'Ready To Go!' : 'On Track'}
+                </span>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="hidden lg:block w-px h-8 bg-border"></div>
+
+            {/* Avatars */}
+            <div className="flex items-center">
+              <TravelerPicker trip={trip} travelerProfiles={travelerProfiles} dispatch={dispatch} isReadOnly={isReadOnly} />
+            </div>
+
+            {/* Share */}
             <button
               onClick={() => setShowShareModal(true)}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5
-                         text-xs font-medium rounded-[var(--radius-md)]
-                         border border-border text-text-secondary
-                         hover:border-accent/40 hover:text-text-primary hover:bg-bg-hover
-                         transition-all duration-150"
-              title={`Share "${trip.name}"`}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 font-medium text-sm rounded-[var(--radius-md)] bg-bg-secondary hover:bg-bg-hover text-text-primary border border-border transition-colors disabled:opacity-50"
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-              </svg>
-              Share
+              Share Trip
             </button>
-
-            {isReadOnly ? (
-              <div className="flex flex-col items-end">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold
-                  bg-text-muted/10 text-text-muted border border-border">
-                  {effectiveStatus === 'archived' ? '📁 Archived' : '📖 Memory'}
-                </span>
-              </div>
-            ) : tripStatus === 'ongoing' ? (
-              <div className="flex flex-col items-end">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5
-                  rounded-full text-xs font-semibold
-                  bg-success/12 text-success border border-success/25
-                  animate-pulse-warm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-success inline-block" />
-                  Ongoing
-                </span>
-              </div>
-            ) : trip.startDate && tripStatus === 'upcoming' ? (
-              <div className="flex flex-col items-end">
-                <CountdownHero targetDate={trip.startDate} />
-                <span className="text-xs text-text-muted uppercase tracking-[0.2em] font-semibold mt-0.5">
-                  to departure
-                </span>
-              </div>
-            ) : null}
           </div>
 
         </div>
