@@ -1,6 +1,7 @@
 import * as cheerio from 'cheerio'
 import 'dotenv/config'
 import { callOpenRouter } from './_openrouter.js'
+import { verifyFirebaseToken } from './_auth.js'
 
 // We don't initialize `ai` at the top level anymore because Vercel Serverless Functions
 // sometimes load the file BEFORE injecting the environment variables on cold start.
@@ -211,6 +212,13 @@ export default async function handler(req, res) {
     }
 
     try {
+        const authHeader = req.headers.authorization || req.headers.Authorization;
+        try {
+            await verifyFirebaseToken(authHeader);
+        } catch (authError) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
         const { url } = req.body
 
         if (!url) {

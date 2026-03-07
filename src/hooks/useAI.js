@@ -4,6 +4,7 @@
  * Builds a trip-aware system prompt from the active trip's state,
  * so every response is grounded in the user's actual trip data.
  */
+import { auth } from '../firebase/config'
 
 // All requests go through our Vercel proxy to keep the API key server-side
 const PROXY_URL = 'https://wanderplan-rust.vercel.app/api/gemini'
@@ -87,9 +88,17 @@ Your role:
  * Low-level helper: POST to the proxy in OpenAI format, return response text.
  */
 async function callProxy(messages, opts = {}) {
+  let token = '';
+  try {
+    if (auth.currentUser) token = await auth.currentUser.getIdToken();
+  } catch (e) { console.warn("Failed to get auth token", e); }
+
   const res = await fetch(PROXY_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` })
+    },
     body: JSON.stringify({
       model: opts.model || DEFAULT_MODEL,
       messages,
@@ -216,10 +225,16 @@ export async function generatePinFromUrl(urlOrContext) {
 
     if (url) {
       try {
+        let token = '';
+        if (auth.currentUser) token = await auth.currentUser.getIdToken();
+
         // Use the Vercel backend to scrape (server-side, no CORS issues)
         const backendRes = await fetch('https://wanderplan-rust.vercel.app/api/extract-pin', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
+          },
           body: JSON.stringify({ url }),
         });
         if (backendRes.ok) {
@@ -290,9 +305,15 @@ export async function generatePinFromUrl(urlOrContext) {
 
 export async function extractIdeaDetails(url, tripCurrency) {
   try {
+    let token = '';
+    if (auth.currentUser) token = await auth.currentUser.getIdToken();
+
     const res = await fetch('https://wanderplan-rust.vercel.app/api/extract-idea', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      },
       body: JSON.stringify({ url, currency: tripCurrency }),
     });
     if (!res.ok) {

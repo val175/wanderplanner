@@ -11,6 +11,7 @@ import { createEmptyTrip } from '../../data/defaultTrip'
 import { formatDate } from '../../utils/helpers'
 import AvatarCircle from '../shared/AvatarCircle'
 import Button from '../shared/Button'
+import { auth } from '../../firebase/config'
 
 const TOTAL_STEPS = 4
 
@@ -88,9 +89,15 @@ function StepBasics({ form, setForm }) {
     setIsImporting(true)
     setImportError('')
     try {
+      let token = '';
+      if (auth.currentUser) token = await auth.currentUser.getIdToken();
+
       const res = await fetch('https://wanderplan-rust.vercel.app/api/extract-trip', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
         body: JSON.stringify({ url: importUrl })
       })
 

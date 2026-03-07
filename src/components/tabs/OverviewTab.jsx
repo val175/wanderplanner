@@ -213,6 +213,12 @@ function RouteMapCell({ trip }) {
 
   // Handle escape key to close full screen map
   useEffect(() => {
+    if (!mapRef.current) return
+    // Force Mapbox to recalculate its canvas size when container dimensions change suddenly
+    setTimeout(() => mapRef.current.resize(), 10)
+    setTimeout(() => mapRef.current.resize(), 150)
+    setTimeout(() => mapRef.current.resize(), 300)
+
     if (!isExpanded) return
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') setIsExpanded(false)
@@ -319,7 +325,9 @@ function RouteMapCell({ trip }) {
               fitBoundsOptions: { padding: { top: 90, bottom: 90, left: 260, right: 90 }, maxZoom: 12 }
             }}
             mapStyle="mapbox://styles/mapbox/light-v11"
-            interactive={isExpanded} // Lock pan/zoom until expanded to prevent stealing scroll
+            scrollZoom={isExpanded} // Prevent stealing vertical page scroll when inline
+            doubleClickZoom={isExpanded}
+            dragPan={true}
             style={{ width: '100%', height: '100%' }}
           >
             <Source id="route" type="geojson" data={routeGeoJSON}>

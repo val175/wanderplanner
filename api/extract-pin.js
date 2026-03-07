@@ -2,6 +2,7 @@
 // Lightweight server-side scraper for saved pins in Cities tab.
 // Extracts og:title and og:image from a URL using cheerio (no CORS issues).
 import * as cheerio from 'cheerio'
+import { verifyFirebaseToken } from './_auth.js'
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*')
@@ -10,6 +11,13 @@ export default async function handler(req, res) {
 
     if (req.method === 'OPTIONS') return res.status(200).end()
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' })
+
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    try {
+        await verifyFirebaseToken(authHeader);
+    } catch (authError) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
 
     const { url } = req.body || {}
     if (!url) return res.status(400).json({ error: 'URL is required' })

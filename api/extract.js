@@ -1,6 +1,7 @@
 // api/extract.js
 import * as cheerio from 'cheerio'
 import { callOpenRouter } from './_openrouter.js'
+import { verifyFirebaseToken } from './_auth.js'
 
 async function scrapeMetadata(url) {
     const response = await fetch(url, {
@@ -30,6 +31,12 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
     try {
+        const authHeader = req.headers.authorization || req.headers.Authorization;
+        try {
+            await verifyFirebaseToken(authHeader);
+        } catch (authError) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
         const { url, activeTrip } = req.body;
         if (!url) return res.status(400).json({ error: 'URL is required' });
 

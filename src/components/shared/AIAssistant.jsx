@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useContext } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { Send, X, Sparkles } from 'lucide-react';
+import { auth } from '../../firebase/config';
 import { TripContext } from '../../context/TripContext';
 import { buildTripSystemPrompt } from '../../hooks/useAI';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
@@ -11,6 +12,16 @@ let _systemPromptRef = buildTripSystemPrompt(null);
 const chatTransport = new DefaultChatTransport({
   api: 'https://wanderplan-rust.vercel.app/api/chat',
   body: () => ({ systemPrompt: _systemPromptRef }),
+  fetch: async (url, options) => {
+    let token = '';
+    if (auth.currentUser) {
+      try { token = await auth.currentUser.getIdToken(); } catch (e) { console.warn(e); }
+    }
+    const headers = new Headers(options.headers);
+    headers.set('Content-Type', 'application/json');
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+    return fetch(url, { ...options, headers });
+  }
 });
 
 const PILLS = [

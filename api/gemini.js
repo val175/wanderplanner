@@ -2,6 +2,7 @@
 // Keeps its own inline provider loop — never delegates to callAI — so req.body
 // handling is explicit and safe. (Delegating caused the Antigravity 500 bug.)
 import { PROVIDERS } from './_openrouter.js'
+import { verifyFirebaseToken } from './_auth.js'
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*')
@@ -12,6 +13,12 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' })
 
     try {
+        const authHeader = req.headers.authorization || req.headers.Authorization;
+        try {
+            await verifyFirebaseToken(authHeader);
+        } catch (authError) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
         const geminiKey = process.env.GEMINI_API_KEY
         const openrouterKey = process.env.OPENROUTER_API_KEY
 

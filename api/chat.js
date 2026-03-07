@@ -1,6 +1,7 @@
 // api/chat.js
 import { streamText } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
+import { verifyFirebaseToken } from './_auth.js'
 
 // THIS IS THE MAGIC LINE: Bypasses the 10s timeout on Vercel Hobby tier
 export const config = {
@@ -23,6 +24,12 @@ export default async function handler(req) {
     }
 
     try {
+        // Authenticate the request
+        const authHeader = req.headers.get('Authorization') || req.headers.get('authorization')
+        const userPayload = await verifyFirebaseToken(authHeader)
+        if (!userPayload) {
+            return new Response('Unauthorized', { status: 401, headers: CORS_HEADERS })
+        }
         const { messages, systemPrompt: clientPrompt } = await req.json()
         const systemPrompt = clientPrompt || "You are Wanda, a friendly travel planning assistant."
 

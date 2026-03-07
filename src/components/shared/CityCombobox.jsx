@@ -300,6 +300,7 @@ export default function CityCombobox({
   // We only sync FROM parent when the parent resets (value becomes '').
   const [query, setQuery] = useState(value || '')
   const [open, setOpen] = useState(false)
+  const [remoteSuggestions, setRemoteSuggestions] = useState([])
   // Position of the dropdown in viewport coords — avoids overflow-clip from ancestors
   const [dropPos, setDropPos] = useState({ top: 0, left: 0 })
   const inputRef = useRef(null)
@@ -328,6 +329,44 @@ export default function CityCombobox({
     }
   }, [open])
 
+  // Add debounced fetch for remote cities
+  useEffect(() => {
+    if (!query.trim()) {
+      setRemoteSuggestions([])
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=15&language=en&format=json`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data.results) {
+            const mapped = data.results.map(r => {
+              const baseC = r.country || ''
+              // Append region/province (admin1) to disambiguate (e.g. San Juan, Metro Manila vs San Juan, La Union)
+              const region = r.admin1 && r.admin1 !== r.name && r.admin1 !== baseC ? `, ${r.admin1}` : ''
+              return {
+                city: r.name,
+                country: `${baseC}${region}`,
+                iso: r.country_code || ''
+              }
+            })
+            // Filter duplicates by city+country key (which now includes region)
+            const unique = Array.from(new Map(mapped.map(item => [`${item.city}-${item.country}`, item])).values())
+            setRemoteSuggestions(unique)
+          } else {
+            setRemoteSuggestions([])
+          }
+        }
+      } catch (e) {
+        console.warn("City API search failed:", e)
+      }
+    }, 250)
+
+    return () => clearTimeout(timer)
+  }, [query])
+
   const suggestions = useMemo(() => {
     if (!query.trim()) return []
     const q = query.toLowerCase()
@@ -338,11 +377,25 @@ export default function CityCombobox({
         c.country.toLowerCase().startsWith(q)
       )
     )
-    return [...prefix, ...substr].slice(0, 8)
-  }, [query])
+
+    // Merge local matches with remote maps, filtering identical elements
+    const combined = [...prefix, ...substr]
+    const seen = new Set(combined.map(c => `${c.city.toLowerCase()}-${c.country.toLowerCase()}`))
+
+    for (const remote of remoteSuggestions) {
+      const key = `${remote.city.toLowerCase()}-${remote.country.toLowerCase()}`
+      if (!seen.has(key)) {
+        combined.push(remote)
+        seen.add(key)
+      }
+    }
+
+    return combined.slice(0, 8)
+  }, [query, remoteSuggestions])
 
   const commitSelection = (entry) => {
-    const derivedFlag = flagFromCity(entry)
+    // Derive flag either from original entry (iso) or fallback to mapping
+    const derivedFlag = entry.iso ? isoToFlag(entry.iso) : flagFromCity(entry)
     setQuery(entry.city)
     setOpen(false)
     onChange({ city: entry.city, country: entry.country, flag: derivedFlag })
