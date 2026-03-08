@@ -2,6 +2,39 @@ import * as cheerio from 'cheerio'
 import { callOpenRouter } from './_openrouter.js'
 import { verifyFirebaseToken } from './_auth.js'
 
+// Social media domains whose HTML is login-walled / bot-blocked
+const SOCIAL_PLATFORMS = {
+    'facebook.com': 'Facebook',
+    'fb.com': 'Facebook',
+    'instagram.com': 'Instagram',
+    'twitter.com': 'Twitter/X',
+    'x.com': 'Twitter/X',
+    'tiktok.com': 'TikTok',
+    'youtube.com': 'YouTube',
+    'youtu.be': 'YouTube',
+    'pinterest.com': 'Pinterest',
+    'threads.net': 'Threads',
+    'linkedin.com': 'LinkedIn',
+}
+
+function detectSocialPlatform(url) {
+    try {
+        const hostname = new URL(url).hostname.replace(/^www\./, '')
+        for (const [domain, name] of Object.entries(SOCIAL_PLATFORMS)) {
+            if (hostname === domain || hostname.endsWith('.' + domain)) return name
+        }
+    } catch (_) {}
+    return null
+}
+
+function extractSocialHandle(url) {
+    try {
+        const parts = new URL(url).pathname.split('/').filter(Boolean)
+        return parts[0] || ''
+    } catch (_) {}
+    return ''
+}
+
 async function scrapeMetadata(url) {
     const response = await fetch(url, {
         headers: {
@@ -58,6 +91,53 @@ export default async function handler(req, res) {
         }
         const { url, currency = 'PHP' } = req.body;
         if (!url) return res.status(400).json({ error: 'URL is required' });
+
+        // ── Social media fast-path ─────────────────────────────────────────
+        // Facebook/Instagram/etc. block static scrapers entirely (login walls).
+        // Skip cheerio, go straight to Microlink for headless og: data, then AI.
+        const socialPlatform = detectSocialPlatform(url)
+        if (socialPlatform) {
+            const handle = extractSocialHandle(url)
+            let socialTitle = '', socialDesc = '', socialImage = ''
+            try {
+                const ml = await fetch(`https://api.microlink.io?url=${encodeURIComponent(url)}`)
+                if (ml.ok) {
+                    const mlJson = await ml.json()
+                    socialTitle = mlJson?.data?.title || mlJson?.data?.name || ''
+                    socialDesc = mlJson?.data?.description || ''
+                    socialImage = mlJson?.data?.image?.url || mlJson?.data?.logo?.url || ''
+                }
+            } catch (_) { /* non-fatal, AI will infer from URL */ }
+
+            const nameHint = socialTitle
+                ? `Page/Account name from ${socialPlatform}: "${socialTitle}"`
+                : `Handle: @${handle}`
+            const descHint = socialDesc ? `\nProfile description: "${socialDesc}"` : ''
+
+            const socialPrompt = `You are Wanda, a travel planner. A user shared a ${socialPlatform} link: ${url}
+${nameHint}${descHint}
+
+Based on the ${socialPlatform} account, infer what kind of travel-relevant place or business this is and return ONLY valid JSON:
+{
+  "title": "Clean readable name of the place/business (not the raw handle)",
+  "type": "food",
+  "priceDetails": "Reasonable market-rate estimate in ${currency} — add '(est.)' suffix",
+  "description": "1-2 sentence description of what this place likely is.",
+  "emoji": "📸",
+  "sourceName": "${socialPlatform}"
+}
+Rules:
+- type must be exactly one of: lodging, activity, food, transport, other
+- Never leave priceDetails blank — always estimate with (est.)
+Do not wrap in markdown blocks.`
+
+            const aiData = await callOpenRouter(process.env.OPENROUTER_API_KEY, {
+                messages: [{ role: 'user', content: socialPrompt }],
+                temperature: 0.2,
+            })
+            const result = JSON.parse(aiData.choices[0].message.content)
+            return res.status(200).json({ ...result, imageUrl: socialImage })
+        }
 
         // Best-effort scrape — if the site blocks us (403, 429, etc.) we fall back
         // to URL-only inference so the user still gets a useful result
