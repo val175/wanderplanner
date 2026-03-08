@@ -111,23 +111,31 @@ export async function geocodeCity(cityStr, countryHint = null) {
   const cacheKey = countryHint ? `${cityStr}|${countryHint}` : cityStr
   if (_geocodeCache[cacheKey]) return _geocodeCache[cacheKey]
 
+  // Parse the country hint BEFORE building the API query so we can bake the
+  // region into the search term itself. Searching "San Juan La Union" returns
+  // the right municipality directly, whereas "San Juan" returns the Metro Manila
+  // one first — the La Union result may never appear in the top 15 hits at all.
+  let targetCountry = null
+  let targetRegion = null
+  if (countryHint) {
+    const hintParts = countryHint.split(',').map(s => s.trim())
+    targetCountry = hintParts[0].toLowerCase()
+    targetRegion = hintParts.length > 1 ? hintParts.slice(1).join(', ').trim().toLowerCase() : null
+  }
+
+  // Use "City Region" as the search name when a region hint is available.
+  const searchName = targetRegion ? `${cityStr} ${targetRegion}` : cityStr
+
   try {
-    // 1) Fetch top 15 results for the city string
-    const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityStr)}&count=15&language=en&format=json`)
+    const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchName)}&count=15&language=en&format=json`)
     const data = await res.json()
 
     if (data.results?.length > 0) {
       let matchedResult = data.results[0] // fallback to first result
 
-      if (countryHint) {
-        // Our components use format: "Country, Region" (e.g. "Philippines, Ilocos")
-        const hintParts = countryHint.split(',').map(s => s.trim().toLowerCase())
-        const targetCountry = hintParts[0]
-        const targetRegion = hintParts[1] // might be undefined
-
-        // First, try to find a match for country + region across ALL admin levels.
+      if (targetCountry) {
+        // Confirm country + region across ALL admin levels as a sanity check.
         // admin1 = state/region, admin2 = province/county, admin3/4 = finer divisions.
-        // e.g. "San Juan, La Union" → admin2="La Union", not admin1="Ilocos Region".
         const perfectMatch = targetRegion
           ? data.results.find(r => {
               if ((r.country || '').toLowerCase() !== targetCountry) return false
@@ -138,12 +146,11 @@ export async function geocodeCity(cityStr, countryHint = null) {
             })
           : null
 
-        // Next, try to find a match for just the country
+        // Country-only match as second-best fallback
         const countryMatch = data.results.find(r =>
           (r.country || '').toLowerCase() === targetCountry
         )
 
-        // Prioritize perfect match > country match > default top result
         if (perfectMatch) matchedResult = perfectMatch
         else if (countryMatch) matchedResult = countryMatch
       }
