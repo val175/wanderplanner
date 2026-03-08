@@ -344,25 +344,46 @@ export default function CityCombobox({
         const cityToken = parts[0].trim()
         const regionFilter = parts.length > 1 ? parts.slice(1).join(',').trim().toLowerCase() : null
 
-        const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityToken)}&count=15&language=en&format=json`)
+        // Fetch 20 results — slightly more headroom for multi-province countries like PH
+        const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityToken)}&count=20&language=en&format=json`)
         if (res.ok) {
           const data = await res.json()
           if (data.results) {
             const mapped = data.results.map(r => {
               const baseC = r.country || ''
-              // Append region/province (admin1) to disambiguate (e.g. San Juan, Metro Manila vs San Juan, La Union)
-              const region = r.admin1 && r.admin1 !== r.name && r.admin1 !== baseC ? `, ${r.admin1}` : ''
+              const admin1 = r.admin1 || ''
+              const admin2 = r.admin2 || ''
+
+              // Prefer admin2 (province/county) over admin1 (state/region) for display.
+              // People say "San Juan, La Union" (admin2), not "San Juan, Ilocos Region" (admin1).
+              const displaySub = (
+                admin2 && admin2 !== r.name && admin2 !== baseC ? admin2
+                : admin1 && admin1 !== r.name && admin1 !== baseC ? admin1
+                : ''
+              )
+
+              // Pool ALL admin levels for filter-matching so "la union" matches even
+              // when displaySub shows a different level (admin1 / admin3 / etc.)
+              const regionPool = [admin1, admin2, r.admin3, r.admin4]
+                .filter(a => a && a !== r.name && a !== baseC)
+                .join(' ')
+                .toLowerCase()
+
               return {
                 city: r.name,
-                country: `${baseC}${region}`,
-                iso: r.country_code || ''
+                country: displaySub ? `${baseC}, ${displaySub}` : baseC,
+                iso: r.country_code || '',
+                _regionPool: regionPool, // extra metadata — never sent to onChange
               }
             })
-            // Post-filter by region token if user typed a comma (e.g. "San Juan, La Union")
+            // Post-filter by region token: check both display string AND the full admin pool
             const filtered = regionFilter
-              ? mapped.filter(r => r.country.toLowerCase().includes(regionFilter))
+              ? mapped.filter(r =>
+                  r.country.toLowerCase().includes(regionFilter) ||
+                  r._regionPool.includes(regionFilter)
+                )
               : mapped
-            // Filter duplicates by city+country key (which now includes region)
+            // Deduplicate by city+country key
             const unique = Array.from(new Map(filtered.map(item => [`${item.city}-${item.country}`, item])).values())
             setRemoteSuggestions(unique)
           } else {
