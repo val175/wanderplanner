@@ -1,8 +1,11 @@
 import { useMemo, useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { doc, deleteDoc } from 'firebase/firestore'
+import { db } from '../../firebase/config'
 import ProgressRing from '../shared/ProgressRing'
 import AvatarCircle from '../shared/AvatarCircle'
 import DatePicker from '../shared/DatePicker'
+import ConfirmDialog from '../shared/ConfirmDialog'
 import { useTripContext } from '../../context/TripContext'
 import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
@@ -405,11 +408,184 @@ function DateRangeEditor({ trip, dispatch, isReadOnly }) {
   )
 }
 
+/* ─────────────────────────────────────────────────────────────
+   HeaderOptionsDropdown — dropdown for share, rename, duplicate, delete
+───────────────────────────────────────────────────────────── */
+function HeaderOptionsDropdown({ trip, dispatch, isReadOnly, onRenameRequest }) {
+  const { showToast } = useTripContext()
+  const [open, setOpen] = useState(false)
+  const [coords, setCoords] = useState({ top: 0, left: 0 })
+  const btnRef = useRef(null)
+  const dropdownRef = useRef(null)
+
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+  const handleOpen = () => {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect()
+      setCoords({ top: r.bottom + 6, left: r.right - 180 })
+    }
+    setOpen(o => !o)
+  }
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e) => {
+      if (showDeleteConfirm || showShareModal) return
+      if (
+        btnRef.current && !btnRef.current.contains(e.target) &&
+        dropdownRef.current && !dropdownRef.current.contains(e.target)
+      ) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open, showDeleteConfirm, showShareModal])
+
+  useEffect(() => {
+    if (!open) return
+    const close = () => {
+      if (!showDeleteConfirm && !showShareModal) setOpen(false)
+    }
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => { window.removeEventListener('scroll', close, true); window.removeEventListener('resize', close) }
+  }, [open, showDeleteConfirm, showShareModal])
+
+  const handleShare = () => {
+    setShowShareModal(true)
+  }
+
+  const handleRename = () => {
+    setOpen(false)
+    onRenameRequest()
+  }
+
+  const handleDuplicate = () => {
+    dispatch({ type: ACTIONS.DUPLICATE_TRIP, payload: trip.id })
+    showToast('Trip duplicated')
+    setOpen(false)
+  }
+
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    try {
+      await deleteDoc(doc(db, 'trips', trip.id))
+      dispatch({ type: ACTIONS.DELETE_TRIP, payload: trip.id })
+      showToast('Trip deleted', 'info')
+    } catch (err) {
+      console.error('Failed to delete trip:', err)
+      showToast('Failed to delete trip', 'error')
+    }
+    setShowDeleteConfirm(false)
+    setOpen(false)
+  }
+
+  const ShareIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" /></svg>
+  )
+  const EditIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+  )
+  const CopyIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+  )
+  const TrashIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+  )
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        onClick={handleOpen}
+        className="flex items-center justify-center p-2 rounded-[var(--radius-md)] bg-bg-primary hover:bg-bg-hover text-text-primary border border-border transition-colors shadow-sm ml-2"
+        aria-label="Trip actions"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="1.5" />
+          <circle cx="12" cy="5" r="1.5" />
+          <circle cx="12" cy="19" r="1.5" />
+        </svg>
+      </button>
+
+      {open && createPortal(
+        <div
+          ref={dropdownRef}
+          style={{ position: 'fixed', top: coords.top, left: coords.left }}
+          className="z-50 min-w-[180px] bg-bg-card border border-border shadow-md rounded-[var(--radius-lg)]"
+        >
+          <div className="py-1">
+            <button
+              onClick={handleShare}
+              className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-text-primary font-medium hover:bg-bg-hover transition-colors text-left"
+            >
+              <ShareIcon />
+              Share trip
+            </button>
+          </div>
+          {!isReadOnly && (
+            <>
+              <div className="h-px bg-border mx-2"></div>
+              <div className="py-1">
+                <button
+                  onClick={handleRename}
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors text-left font-medium"
+                >
+                  <EditIcon />
+                  Rename trip
+                </button>
+                <button
+                  onClick={handleDuplicate}
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors text-left font-medium"
+                >
+                  <CopyIcon />
+                  Duplicate
+                </button>
+              </div>
+            </>
+          )}
+          <div className="h-px bg-border mx-2"></div>
+          <div className="py-1">
+            <button
+              onClick={handleDeleteClick}
+              className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-danger hover:bg-danger/10 transition-colors text-left font-medium"
+            >
+              <TrashIcon />
+              Delete trip
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {showShareModal && trip && (
+        <ShareTripModal
+          trip={trip}
+          onClose={() => { setShowShareModal(false); setOpen(false); }}
+        />
+      )}
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete trip?"
+        message={`Are you sure you want to delete "${trip.name}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        danger={true}
+      />
+    </>
+  )
+}
+
 export default function TripHeader({ onOpenSidebar, isMobile }) {
-  const { activeTrip, dispatch, isReadOnly, effectiveStatus } = useTripContext()
+  const { activeTrip, dispatch, isReadOnly, effectiveStatus, showToast } = useTripContext()
   const travelerProfiles = useTripTravelers()
   const readiness = useMemo(() => calculateReadiness(activeTrip), [activeTrip])
-  const [showShareModal, setShowShareModal] = useState(false)
 
   if (!activeTrip) return null
 
@@ -420,6 +596,14 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
 
   const handleRename = (newName) => {
     if (newName) dispatch({ type: ACTIONS.RENAME_TRIP, payload: { id: trip.id, name: newName } })
+  }
+
+  const handleRenameClick = () => {
+    const newName = window.prompt('Rename trip:', trip.name)
+    if (newName && newName.trim() && newName.trim() !== trip.name) {
+      dispatch({ type: ACTIONS.RENAME_TRIP, payload: { id: trip.id, name: newName.trim() } })
+      showToast('Trip renamed')
+    }
   }
 
   return (
@@ -498,20 +682,12 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
               <TravelerPicker trip={trip} travelerProfiles={travelerProfiles} dispatch={dispatch} isReadOnly={isReadOnly} />
             </div>
 
-            {/* Share */}
-            <button
-              onClick={() => setShowShareModal(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 font-medium text-sm rounded-[var(--radius-md)] bg-bg-secondary hover:bg-bg-hover text-text-primary border border-border transition-colors disabled:opacity-50"
-            >
-              Share Trip
-            </button>
+            {/* Ellipsis Menu */}
+            <HeaderOptionsDropdown trip={trip} dispatch={dispatch} isReadOnly={isReadOnly} onRenameRequest={handleRenameClick} />
           </div>
 
         </div>
       </div>
-      {showShareModal && (
-        <ShareTripModal trip={trip} onClose={() => setShowShareModal(false)} />
-      )}
     </header>
   )
 }
