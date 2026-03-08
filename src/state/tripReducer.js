@@ -348,7 +348,7 @@ export function tripReducer(state, action) {
     case ACTIONS.ADD_BUDGET_CATEGORY:
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
-        budget: [...trip.budget, { id: generateId(), name: payload.name || 'New Category', emoji: payload.emoji || '📌', min: 0, max: 0, actual: 0 }],
+        budget: [...trip.budget, { id: generateId(), name: payload.name || 'New Category', emoji: payload.emoji || '📌', min: 0, max: payload.max || 0, actual: 0 }],
       }))
 
     case ACTIONS.DELETE_BUDGET_CATEGORY:

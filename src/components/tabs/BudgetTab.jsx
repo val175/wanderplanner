@@ -213,13 +213,14 @@ function CategoryBudgetsCard({ budget, currency, divisor, perPerson, travelers, 
   const [addingCategory, setAddingCategory] = useState(false)
   const [newName, setNewName] = useState('')
   const [newEmoji, setNewEmoji] = useState('📌')
+  const [newMax, setNewMax] = useState('')
   const commonEmojis = ['🍽️', '🚕', '🏨', '🎟️', '🛍️', '🎁', '🍸', '✈️', '💆', '📸', '💊', '📌']
 
   const handleAddCategory = (e) => {
     e.preventDefault()
     if (!newName.trim()) return
-    dispatch({ type: ACTIONS.ADD_BUDGET_CATEGORY, payload: { name: newName.trim(), emoji: newEmoji } })
-    setNewName(''); setNewEmoji('📌'); setAddingCategory(false)
+    dispatch({ type: ACTIONS.ADD_BUDGET_CATEGORY, payload: { name: newName.trim(), emoji: newEmoji, max: newMax ? Number(newMax) : 0 } })
+    setNewName(''); setNewEmoji('📌'); setNewMax(''); setAddingCategory(false)
   }
 
   return (
@@ -245,6 +246,9 @@ function CategoryBudgetsCard({ budget, currency, divisor, perPerson, travelers, 
           <input value={newName} onChange={e => setNewName(e.target.value)}
             placeholder="Category name..." autoFocus
             className="flex-1 px-2 py-1.5 text-sm bg-bg-input border border-border rounded-md text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none" />
+          <input value={newMax} onChange={e => setNewMax(e.target.value)}
+            type="number" min="0" placeholder="Max budget"
+            className="w-28 px-2 py-1.5 text-sm bg-bg-input border border-border rounded-md text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none" />
           <Button type="submit" size="sm" disabled={!newName.trim()}>Add</Button>
         </form>
       )}
@@ -271,9 +275,18 @@ function CategoryBudgetsCard({ budget, currency, divisor, perPerson, travelers, 
                   <span className={`text-[12px] font-mono font-semibold ${isOver ? 'text-danger' : 'text-text-primary'}`}>
                     {formatCurrency(Math.round((cat.actual || 0) / divisor), currency)}
                   </span>
-                  <span className="text-[10px] text-text-muted/60 font-medium">
-                    /{cat.max > 0 ? formatCurrency(Math.round(cat.max / divisor), currency, true) : 'No max'}
-                  </span>
+                  <EditableText
+                    value={cat.max > 0 ? String(cat.max) : ''}
+                    onSave={val => {
+                      const n = Number(val.replace(/[^0-9.]/g, ''))
+                      dispatch({ type: ACTIONS.UPDATE_BUDGET_CATEGORY, payload: { id: cat.id, updates: { max: isNaN(n) ? 0 : n } } })
+                    }}
+                    placeholder="0"
+                    className="text-[10px] text-text-muted/60 font-medium"
+                    inputClassName="w-20 py-0 px-1 text-xs"
+                    readOnly={isReadOnly}
+                    displayValue={cat.max > 0 ? `/${formatCurrency(Math.round(cat.max / divisor), currency, true)}` : '/Set max'}
+                  />
                   <button
                     onClick={() => dispatch({ type: ACTIONS.DELETE_BUDGET_CATEGORY, payload: cat.id })}
                     className="opacity-0 group-hover:opacity-100 p-2 text-text-muted hover:text-danger"
