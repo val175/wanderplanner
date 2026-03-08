@@ -112,6 +112,7 @@ function KanbanColumn({ id, title, bookings, currency, onRowClick, isMobile, isE
                             booking={booking}
                             currency={currency}
                             onRowClick={onRowClick}
+                            isReadOnly={isReadOnly}
                         />
                     ))}
                 </SortableContext>
@@ -150,13 +151,13 @@ function SortableCard({ booking, currency, onRowClick, isReadOnly }) {
             {...(isReadOnly ? {} : listeners)}
             className={`relative ${isReadOnly ? '' : 'cursor-grab active:cursor-grabbing'} ${isDragging ? 'z-50' : ''}`}
         >
-            <BookingCardContent booking={booking} currency={currency} onRowClick={onRowClick} isOverlay={false} />
+            <BookingCardContent booking={booking} currency={currency} onRowClick={onRowClick} isOverlay={false} isReadOnly={isReadOnly} />
         </div>
     )
 }
 
 // ── Shared Card Content (used by Sortable and Overlay) ───────────────────
-function BookingCardContent({ booking, currency, onRowClick, isOverlay }) {
+function BookingCardContent({ booking, currency, onRowClick, isOverlay, isReadOnly }) {
     const categoryConfig = BOOKING_CATEGORIES.find(c => c.id === booking.category) || BOOKING_CATEGORIES[0]
 
     return (
@@ -287,7 +288,7 @@ export default function BookingsKanban({ bookings, currency, onUpdate, onRowClic
             <DragOverlay>
                 {activeId && activeBooking ? (
                     <div className="w-72">
-                        <BookingCardContent booking={activeBooking} currency={currency} isOverlay={true} />
+                        <BookingCardContent booking={activeBooking} currency={currency} isOverlay={true} isReadOnly={isReadOnly} />
                     </div>
                 ) : null}
             </DragOverlay>
