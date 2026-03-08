@@ -1,13 +1,14 @@
 // api/extract-pin.js
-// Lightweight server-side scraper for saved pins in Cities tab.
-// Extracts og:title and og:image from a URL using cheerio (no CORS issues).
+// Server-side scraper for saved pins in Cities tab.
+// Extracts og:title and og:image from a URL, then uses AI to classify
+// the pin with a type, emoji, and short description.
 import * as cheerio from 'cheerio'
 import { verifyFirebaseToken } from './_auth.js'
+import { setCorsHeaders } from './_cors.js'
+import { callOpenRouter } from './_openrouter.js'
 
 export default async function handler(req, res) {
-    res.setHeader('Access-Control-Allow-Origin', '*')
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST')
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+    setCorsHeaders(res)
 
     if (req.method === 'OPTIONS') return res.status(200).end()
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' })
@@ -21,6 +22,10 @@ export default async function handler(req, res) {
 
     const { url } = req.body || {}
     if (!url) return res.status(400).json({ error: 'URL is required' })
+
+    // ── 1. Scrape og:title + og:image ─────────────────────────────────────────
+    let title = null
+    let imageUrl = null
 
     try {
         const controller = new AbortController()
@@ -37,30 +42,61 @@ export default async function handler(req, res) {
 
         clearTimeout(timeout)
 
-        if (!response || !response.ok) {
-            return res.status(200).json({ name: null, imageUrl: null })
+        if (response && response.ok) {
+            const html = await response.text()
+            const $ = cheerio.load(html)
+
+            title =
+                $('meta[property="og:title"]').attr('content') ||
+                $('meta[name="twitter:title"]').attr('content') ||
+                $('title').text().trim() ||
+                null
+
+            imageUrl =
+                $('meta[property="og:image"]').attr('content') ||
+                $('meta[name="twitter:image"]').attr('content') ||
+                null
         }
-
-        const html = await response.text()
-        const $ = cheerio.load(html)
-
-        const title =
-            $('meta[property="og:title"]').attr('content') ||
-            $('meta[name="twitter:title"]').attr('content') ||
-            $('title').text().trim() ||
-            null
-
-        const imageUrl =
-            $('meta[property="og:image"]').attr('content') ||
-            $('meta[name="twitter:image"]').attr('content') ||
-            null
-
-        return res.status(200).json({
-            name: title ? title.substring(0, 100) : null,
-            imageUrl: imageUrl || null,
-        })
     } catch (error) {
-        console.error('[extract-pin] Error:', error.message)
-        return res.status(200).json({ name: null, imageUrl: null })
+        console.error('[extract-pin] Scrape error:', error.message)
     }
+
+    // ── 2. AI Classification ───────────────────────────────────────────────────
+    let aiDetails = { type: 'other', emoji: '📍', description: '' }
+
+    try {
+        const aiPrompt = `A user saved this URL as a travel pin: ${url}
+Title: "${title || 'Unknown'}"
+
+Based on the URL and title, classify this travel pin and return ONLY valid JSON:
+{
+  "type": "activity",
+  "emoji": "🎯",
+  "description": "One concise sentence describing what this place or thing is (max 15 words)."
+}
+
+Rules:
+- type must be exactly one of: lodging, activity, food, transport, other
+- emoji must be a single relevant emoji that best represents the category
+- description: 1 concise sentence, max 15 words
+Do not wrap in markdown blocks.`
+
+        const aiData = await callOpenRouter(process.env.OPENROUTER_API_KEY, {
+            messages: [{ role: 'user', content: aiPrompt }],
+            temperature: 0.1,
+        })
+        const raw = aiData.choices[0].message.content
+        const clean = raw.replace(/```json/g, '').replace(/```/g, '').trim()
+        aiDetails = JSON.parse(clean)
+    } catch (e) {
+        console.warn('[extract-pin] AI classification failed:', e.message)
+    }
+
+    return res.status(200).json({
+        name: title ? title.substring(0, 100) : null,
+        imageUrl: imageUrl || null,
+        type: aiDetails.type || 'other',
+        emoji: aiDetails.emoji || '📍',
+        description: aiDetails.description || '',
+    })
 }

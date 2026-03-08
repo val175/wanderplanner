@@ -64,7 +64,7 @@ async function scrapeMetadata(url) {
         || $('meta[name="twitter:image"]').attr('content')
         || $('meta[name="twitter:image:src"]').attr('content')
         || '';
-    const rawBody = $('body').text().replace(/\s+/g, ' ').substring(0, 1000);
+    const rawBody = $('body').text().replace(/\s+/g, ' ').substring(0, 4000);
     return { title, description, siteName, imageUrl, rawBody, url };
 }
 
@@ -157,13 +157,6 @@ Do not wrap in markdown blocks.`
 
         const hasScrapedContent = scrapedData.title || scrapedData.description || scrapedData.rawBody;
 
-        let pricingContext = "";
-        if (scrapedData.rawBody) {
-            const priceRegex = /[\₱\$\€\£\¥]|AUD|CAD|SGD|THB|IDR|KRW|VND|INR|PHP|USD|EUR|GBP|JPY/i;
-            const sentences = scrapedData.rawBody.match(/[^.!?]+[.!?]+/g) || [scrapedData.rawBody];
-            pricingContext = sentences.filter(s => priceRegex.test(s)).slice(0, 3).join(' ');
-        }
-
         const fallbackTitle = scrapedData.title ? scrapedData.title.replace(/"/g, "'") : "Short, clean title";
         const fallbackDesc = scrapedData.description ? scrapedData.description.replace(/"/g, "'") : "A short 1-2 sentence catchy description.";
         const fallbackSite = scrapedData.siteName ? scrapedData.siteName.replace(/"/g, "'") : "Source Name (e.g. Airbnb)";
@@ -179,7 +172,7 @@ Do not wrap in markdown blocks.`
           "emoji": "🏡",
           "sourceName": "${fallbackSite}"
         }
-        Pricing text clues: ${pricingContext || 'None found.'}
+        Page content: ${scrapedData.rawBody || 'None available.'}
         Rules:
         - If title/description/sourceName are already present in the schema above, just use them directly or slightly clean them up.
         - priceDetails format: "₱2500/night" or "₱1200/person" or "₱8000 (est.)" — always include a slash + period unit or '(est.)' suffix.

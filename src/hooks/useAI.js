@@ -192,30 +192,26 @@ export async function generateCityGuide(city, trip) {
         return "¥ Exchange rate unavailable"
       })(),
 
-      // 3. Must Do via Wikipedia Summary
+      // 3. Must Do via AI — punchy vibe + curated must-dos
       (async () => {
         try {
-          // Instead of naively pulling `city.city` which might hit a disambiguation page (e.g. San Juan),
-          // we do a proper search combining the city name and its country/region
-          const searchQ = `${city.city} ${city.country || ''}`.trim()
-          const searchRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchQ)}&utf8=&format=json&origin=*`)
+          const destination = `${city.city}${city.country ? `, ${city.country}` : ''}`
+          const text = await callProxy([
+            {
+              role: 'user',
+              content: `You are a punchy travel guide writer. Write a city guide for ${destination}.
 
-          if (searchRes.ok) {
-            const searchData = await searchRes.json()
-            if (searchData.query?.search?.length > 0) {
-              const bestTitle = searchData.query.search[0].title
-              const wikiRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(bestTitle)}`)
-              if (wikiRes.ok) {
-                const wikiData = await wikiRes.json()
-                if (wikiData.extract && !wikiData.extract.includes("may refer to:")) {
-                  const sentences = wikiData.extract.match(/[^.!?]+[.!?]+/g) || [wikiData.extract]
-                  return sentences.slice(0, 2).join(' ').trim()
-                }
-              }
+Reply with EXACTLY this format (4 lines, no headers, no intro):
+Line 1: One vivid sentence capturing the city's personality and vibe (max 20 words).
+Line 2: (blank)
+Lines 3–5: Three must-do highlights. Each on its own line, starting with a relevant emoji, format: "emoji Name — short reason" (max 10 words after the dash).
+
+Be specific, exciting, and opinionated. No generic filler.`
             }
-          }
-        } catch (e) { console.warn("Wikipedia fetch failed", e) }
-        return "Highlight not found. Add your own must-do activities!"
+          ], { temperature: 0.75, max_tokens: 160 })
+          return text.trim()
+        } catch (e) { console.warn("AI mustDo failed", e) }
+        return "Explore this amazing destination — add your own highlights!"
       })()
     ])
 
