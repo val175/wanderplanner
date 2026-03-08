@@ -123,21 +123,34 @@ export async function geocodeCity(cityStr, countryHint = null) {
     targetRegion = hintParts.length > 1 ? hintParts.slice(1).join(', ').trim().toLowerCase() : null
   }
 
-  // Use "City Region" as the search name when a region hint is available.
-  const searchName = targetRegion ? `${cityStr} ${targetRegion}` : cityStr
-
   try {
-    const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchName)}&count=15&language=en&format=json`)
-    const data = await res.json()
+    // Stage 1: try city+region query for best precision (e.g. "San Juan la union").
+    // Stage 2: fall back to city-only with a higher count if stage 1 returns nothing.
+    // The combined query can return zero hits for small municipalities, so we must
+    // always have a fallback — otherwise geocodeCity returns null and the map breaks.
+    let results = []
 
-    if (data.results?.length > 0) {
-      let matchedResult = data.results[0] // fallback to first result
+    if (targetRegion) {
+      const r1 = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(`${cityStr} ${targetRegion}`)}&count=10&language=en&format=json`)
+      const d1 = await r1.json()
+      results = d1.results || []
+    }
+
+    if (results.length === 0) {
+      // Broader fallback — more results give the filter logic a better chance
+      const r2 = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityStr)}&count=20&language=en&format=json`)
+      const d2 = await r2.json()
+      results = d2.results || []
+    }
+
+    if (results.length > 0) {
+      let matchedResult = results[0] // default to top hit
 
       if (targetCountry) {
-        // Confirm country + region across ALL admin levels as a sanity check.
+        // Confirm country + region across ALL admin levels.
         // admin1 = state/region, admin2 = province/county, admin3/4 = finer divisions.
         const perfectMatch = targetRegion
-          ? data.results.find(r => {
+          ? results.find(r => {
               if ((r.country || '').toLowerCase() !== targetCountry) return false
               const regionPool = [r.admin1, r.admin2, r.admin3, r.admin4]
                 .filter(Boolean)
@@ -147,7 +160,7 @@ export async function geocodeCity(cityStr, countryHint = null) {
           : null
 
         // Country-only match as second-best fallback
-        const countryMatch = data.results.find(r =>
+        const countryMatch = results.find(r =>
           (r.country || '').toLowerCase() === targetCountry
         )
 
