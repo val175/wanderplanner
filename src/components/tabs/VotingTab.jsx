@@ -840,7 +840,9 @@ export default function VotingTab() {
             return
         }
 
-        // Add the winning option to bookings (or itinerary if activity)
+        triggerHaptic('heavy')
+
+        // Add the winning option to bookings
         dispatch({
             type: ACTIONS.ADD_BOOKING,
             payload: {
@@ -851,13 +853,12 @@ export default function VotingTab() {
             }
         })
 
-        const handleArchive = () => {
-            triggerHaptic('heavy')
-            dispatch({ type: ACTIONS.RESOLVE_POLL, payload: { pollId: poll.id } })
-        }
-        showToast(`🎉 Resolving! "${winningOption.title}" won with ${highestTokens} tokens. Redirecting to Bookings...`)
+        // Remove the poll — winner is now in Bookings, poll has served its purpose
+        dispatch({ type: ACTIONS.DELETE_POLL, payload: poll.id })
 
-        // Slight delay to let user see toast and status change before redirect
+        showToast(`🎉 "${winningOption.title}" won with ${highestTokens} tokens — added to Bookings!`)
+
+        // Short delay so the toast is readable before switching tabs
         setTimeout(() => {
             dispatch({ type: ACTIONS.SET_TAB, payload: 'bookings' })
         }, 1500)
