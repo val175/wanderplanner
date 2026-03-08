@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
+import { DndContext, DragOverlay, closestCorners, KeyboardSensor, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import Card from '../shared/Card'
@@ -492,7 +492,7 @@ function BoardPhaseColumn({ phase, index, phaseTodos, canDrag, isReadOnly, dispa
   const phaseTotal = phaseTodos.length
 
   return (
-    <div className={`flex flex-col flex-shrink-0 w-72 bg-bg-secondary/20 border rounded-[var(--radius-lg)] p-2 transition-colors ${isOver ? 'border-accent/50 bg-accent/5' : 'border-border/50'}`}>
+    <div ref={setNodeRef} className={`flex flex-col flex-shrink-0 w-72 bg-bg-secondary/20 border rounded-[var(--radius-lg)] p-2 transition-colors ${isOver ? 'border-accent/50 bg-accent/5' : 'border-border/50'}`}>
       {/* Column header — identical structure to BookingsKanban KanbanColumn */}
       <div className="px-3 py-2 mb-2 flex items-center justify-between border-b border-border/30">
         <h3 className="font-semibold text-sm text-text-primary">
@@ -504,31 +504,30 @@ function BoardPhaseColumn({ phase, index, phaseTodos, canDrag, isReadOnly, dispa
       </div>
 
       {/* Scrollable card area */}
-      <div ref={setNodeRef} className="flex-1 overflow-y-auto space-y-2 min-h-[150px] scrollbar-hide">
-        <SortableContext items={phaseTodos.map(t => t.id)} strategy={verticalListSortingStrategy}>
-          {phaseTodos.length === 0 ? (
-            <div className="h-full min-h-[100px] flex items-center justify-center border-2 border-dashed border-border/40 rounded-[var(--radius-md)] text-xs text-text-muted/60 italic">
-              Drop here
-            </div>
-          ) : (
-            phaseTodos.map(todo => (
-              <SortableTodoItem
-                key={todo.id}
-                todo={todo}
-                isBoard={true}
-                onToggle={() => handleToggle(todo.id)}
-                onUpdate={(updates) => dispatch({ type: ACTIONS.UPDATE_TODO, payload: { id: todo.id, updates } })}
-                onDelete={() => dispatch({ type: ACTIONS.DELETE_TODO, payload: todo.id })}
-                onDeepLink={handleDeepLink}
-                resolveProfile={resolveProfile}
-                tripTravelers={tripTravelers}
-                currentUserProfile={currentUserProfile}
-                isReadOnly={isReadOnly}
-                canDrag={canDrag}
-              />
-            ))
-          )}
+      <div className="flex-1 overflow-y-auto space-y-2 min-h-[150px] scrollbar-hide">
+        <SortableContext id={phase.id} items={phaseTodos.map(t => t.id)} strategy={verticalListSortingStrategy}>
+          {phaseTodos.map(todo => (
+            <SortableTodoItem
+              key={todo.id}
+              todo={todo}
+              isBoard={true}
+              onToggle={() => handleToggle(todo.id)}
+              onUpdate={(updates) => dispatch({ type: ACTIONS.UPDATE_TODO, payload: { id: todo.id, updates } })}
+              onDelete={() => dispatch({ type: ACTIONS.DELETE_TODO, payload: todo.id })}
+              onDeepLink={handleDeepLink}
+              resolveProfile={resolveProfile}
+              tripTravelers={tripTravelers}
+              currentUserProfile={currentUserProfile}
+              isReadOnly={isReadOnly}
+              canDrag={canDrag}
+            />
+          ))}
         </SortableContext>
+        {phaseTodos.length === 0 && (
+          <div className="h-full min-h-[100px] flex items-center justify-center border-2 border-dashed border-border/40 rounded-[var(--radius-md)] text-xs text-text-muted/60 italic">
+            Drop here
+          </div>
+        )}
       </div>
     </div>
   )
@@ -712,6 +711,8 @@ export default function TodoTab() {
   const [isGenerating, setIsGenerating] = useState(false)
   // Task 1: view mode state
   const [viewMode, setViewMode] = useState('list') // 'list' | 'board'
+  // Active drag item for DragOverlay — must be declared before early return
+  const [activeTodo, setActiveTodo] = useState(null)
 
   if (!activeTrip) return null
   const trip = activeTrip
@@ -809,44 +810,56 @@ export default function TodoTab() {
 
   const canDrag = filter === 'all' && !hideCompleted;
 
+  const handleDragStart = (event) => {
+    const todo = todos.find(t => t.id === event.active.id)
+    setActiveTodo(todo || null)
+  }
+
   const handleDragEnd = (event) => {
+    setActiveTodo(null)
     const { active, over } = event;
-    if (!over) return;
+    if (!over || active.id === over.id) return;
 
-    const activeId = active.id;
-    const overId = over.id;
-    if (activeId === overId) return;
+    const todoId = active.id;
+    const activeTodoData = active.data.current?.todo;
+    if (!activeTodoData) return;
 
-    const overIsTask = over.data.current?.type === 'Todo';
-    const overIsPhase = over.data.current?.type === 'Phase';
+    const currentPhase = activeTodoData.phase;
 
-    let newPhase = null;
-    if (overIsPhase) {
-      newPhase = over.data.current.phase.id;
-    } else if (overIsTask) {
-      newPhase = over.data.current.todo.phase;
-    }
-    if (!newPhase) return;
+    // Use sortable.containerId when dropping on a card (item inside SortableContext),
+    // fall back to over.id when dropping directly on the column droppable.
+    // This mirrors BookingsKanban's exact pattern.
+    const targetPhaseId = over.data?.current?.sortable?.containerId || over.id;
+
+    // Guard: target must be a valid phase
+    if (!TODO_PHASES.find(p => p.id === targetPhaseId)) return;
 
     let newTodos = [...todos];
-    const oldIndex = newTodos.findIndex(t => t.id === activeId);
-    if (oldIndex < 0) return;
+    const activeIndex = newTodos.findIndex(t => t.id === todoId);
+    if (activeIndex < 0) return;
 
-    let targetIndex = -1;
-    if (overIsTask) {
-      targetIndex = newTodos.findIndex(t => t.id === overId);
-    }
-
-    const [moved] = newTodos.splice(oldIndex, 1);
-    moved.phase = newPhase;
-
-    if (targetIndex >= 0) {
-      newTodos.splice(targetIndex, 0, moved);
+    if (currentPhase === targetPhaseId) {
+      // Same column — reorder within phase
+      const overIndex = newTodos.findIndex(t => t.id === over.id);
+      if (overIndex < 0) return;
+      const [moved] = newTodos.splice(activeIndex, 1);
+      // Adjust for the splice shifting indices
+      const insertAt = activeIndex < overIndex ? overIndex - 1 : overIndex;
+      newTodos.splice(insertAt, 0, moved);
     } else {
-      newTodos.push(moved);
+      // Cross-column — change phase, insert before target item or append
+      const [moved] = newTodos.splice(activeIndex, 1);
+      moved.phase = targetPhaseId;
+      if (over.data?.current?.sortable) {
+        const overIndex = newTodos.findIndex(t => t.id === over.id);
+        newTodos.splice(overIndex >= 0 ? overIndex : newTodos.length, 0, moved);
+      } else {
+        newTodos.push(moved);
+      }
     }
 
     dispatch({ type: ACTIONS.SET_TODOS, payload: newTodos });
+    triggerHaptic('light');
   }
 
   return (
@@ -937,7 +950,12 @@ export default function TodoTab() {
       )}
 
       {/* Phase Groups — Task 2: horizontal scroll container in board mode */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={canDrag && !isReadOnly ? handleDragStart : undefined}
+        onDragEnd={handleDragEnd}
+      >
         <div className={viewMode === 'board'
           ? 'flex gap-4 overflow-x-auto pb-4 scrollbar-thin items-start h-[calc(100vh-320px)] min-h-[400px]'
           : 'space-y-4'
@@ -960,6 +978,27 @@ export default function TodoTab() {
             />
           ))}
         </div>
+
+        {/* Drag overlay — floating preview card that follows the cursor */}
+        <DragOverlay>
+          {activeTodo ? (
+            <div className="w-72 rotate-1 opacity-95">
+              <TodoItem
+                todo={activeTodo}
+                isBoard={true}
+                onToggle={() => {}}
+                onUpdate={() => {}}
+                onDelete={() => {}}
+                onDeepLink={() => {}}
+                resolveProfile={resolveProfile}
+                tripTravelers={tripTravelers}
+                currentUserProfile={currentUserProfile}
+                isReadOnly={true}
+                canDrag={false}
+              />
+            </div>
+          ) : null}
+        </DragOverlay>
       </DndContext>
     </div>
   )
