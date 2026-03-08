@@ -6,18 +6,17 @@ import { calculateReadiness, getReadinessBreakdown } from '../../utils/readiness
 import { formatCurrency, daysUntil, formatDate } from '../../utils/helpers'
 
 /* ─────────────────────────────────────────────────────────────
-   Shared bento card shell — white surface, uniform radius/shadow,
-   fills its grid cell completely.
+   Shared bento card shell — fills its grid cell completely.
 ───────────────────────────────────────────────────────────── */
 function BentoCard({ children, className = '', onClick }) {
   return (
     <div
       onClick={onClick}
       className={`
-        bg-[var(--color-bg-card)] rounded-[var(--radius-lg)]
-        border border-[var(--color-border)]
+        bg-bg-card rounded-[var(--radius-lg)]
+        border border-border
         flex flex-col h-full overflow-hidden
-        ${onClick ? 'cursor-pointer hover:border-[var(--color-border-strong)] transition-colors duration-150' : ''}
+        ${onClick ? 'cursor-pointer hover:border-border-strong transition-colors duration-150' : ''}
         ${className}
       `}
     >
@@ -29,7 +28,7 @@ function BentoCard({ children, className = '', onClick }) {
 /* Consistent label style used across all cells */
 function Label({ children }) {
   return (
-    <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-[0.14em]">
+    <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.14em]">
       {children}
     </span>
   )
@@ -86,10 +85,10 @@ function WeatherCell({ destinations }) {
         <Label>Right Now</Label>
         {status === 'loading' && (
           <div className="flex-1 flex items-center gap-3 animate-pulse mt-3">
-            <div className="w-10 h-10 rounded-full bg-[var(--color-bg-hover)] shrink-0" />
+            <div className="w-10 h-10 rounded-full bg-bg-hover shrink-0" />
             <div className="space-y-1.5 flex-1">
-              <div className="h-3 bg-[var(--color-bg-hover)] rounded w-16" />
-              <div className="h-2 bg-[var(--color-bg-hover)] rounded w-12" />
+              <div className="h-3 bg-bg-hover rounded w-16" />
+              <div className="h-2 bg-bg-hover rounded w-12" />
             </div>
           </div>
         )}
@@ -99,17 +98,17 @@ function WeatherCell({ destinations }) {
             <div className="flex-1 flex flex-col justify-center mt-3">
               <div className="text-4xl leading-none mb-2">{emoji}</div>
               <div className="flex items-baseline gap-1.5">
-                <span className="font-heading font-bold text-2xl text-[var(--color-text-primary)]">{weather.temp}°</span>
-                <span className="text-xs text-[var(--color-text-muted)]">feels {weather.feelsLike}°</span>
+                <span className="font-heading font-bold text-2xl text-text-primary">{weather.temp}°</span>
+                <span className="text-xs text-text-muted">feels {weather.feelsLike}°</span>
               </div>
-              <div className="text-xs text-[var(--color-text-muted)] mt-0.5">{label}</div>
-              <div className="text-[10px] text-[var(--color-text-muted)] mt-2 opacity-50">{weather.flag} {weather.city} · Open-Meteo</div>
+              <div className="text-xs text-text-muted mt-0.5">{label}</div>
+              <div className="text-[10px] text-text-muted mt-2 opacity-50">{weather.flag} {weather.city} · Open-Meteo</div>
             </div>
           )
         })()}
         {status === 'error' && (
           <div className="flex-1 flex items-center justify-center mt-3">
-            <span className="text-xs text-[var(--color-text-muted)]">Unavailable</span>
+            <span className="text-xs text-text-muted">Unavailable</span>
           </div>
         )}
       </div>
@@ -234,14 +233,14 @@ function RouteMapCell({ trip }) {
   if (!mapboxToken) {
     return (
       <BentoCard>
-        <div className="p-4 flex flex-col h-full bg-[#FFFBF0] border border-[var(--color-warning)] rounded-[var(--radius-lg)]">
+        <div className="p-4 flex flex-col h-full bg-warning/5 border border-warning rounded-[var(--radius-lg)]">
           <Label>Route Map Error</Label>
           <div className="flex-1 flex flex-col items-center justify-center text-center gap-2 max-w-sm mx-auto p-4">
             <span className="text-2xl">🔑</span>
-            <span className="text-sm font-semibold text-[var(--color-warning)]">
+            <span className="text-sm font-semibold text-warning">
               Mapbox Integration Required
             </span>
-            <span className="text-xs text-[var(--color-text-secondary)]">
+            <span className="text-xs text-text-secondary">
               Please add <code>VITE_MAPBOX_PART2</code> to your <code>.env.local</code> file and restart the dev server to view interactive routes.
             </span>
           </div>
@@ -254,15 +253,15 @@ function RouteMapCell({ trip }) {
   if (coords.length < 2) {
     return (
       <BentoCard>
-        <div className="p-4 flex flex-col h-full bg-[var(--color-bg-secondary)]">
+        <div className="p-4 flex flex-col h-full bg-bg-secondary">
           <Label>Route</Label>
           <div className="flex-1 flex items-center justify-center">
             {coordsLoading ? (
-              <span className="text-sm font-medium text-[var(--color-text-muted)] animate-pulse">
+              <span className="text-sm font-medium text-text-muted animate-pulse">
                 Mapping your route…
               </span>
             ) : (
-              <span className="text-sm font-medium text-[var(--color-text-muted)]">
+              <span className="text-sm font-medium text-text-muted">
                 Add at least two destinations to see your route map
               </span>
             )}
@@ -311,11 +310,11 @@ function RouteMapCell({ trip }) {
       {/* Full screen wrapper toggle */}
       <div
         className={isExpanded
-          ? "fixed inset-0 z-[9999] bg-[var(--color-bg-primary)] p-4 md:p-8"
+          ? "fixed inset-0 z-[9999] bg-bg-primary p-4 md:p-8"
           : "absolute inset-0 w-full h-full"
         }
       >
-        <div className={`relative w-full h-full ${isExpanded ? 'rounded-[var(--radius-xl)] overflow-hidden shadow-2xl border border-[var(--color-border)]' : ''}`}>
+        <div className={`relative w-full h-full ${isExpanded ? 'rounded-[var(--radius-xl)] overflow-hidden border border-border' : ''}`}>
           <Map
             ref={mapRef}
             mapboxAccessToken={mapboxToken}
@@ -346,20 +345,20 @@ function RouteMapCell({ trip }) {
                   <div className="flex flex-col items-center pb-2">
                     {/* Pin Head */}
                     <div
-                      className={`w-9 h-9 rounded-full border-2 shadow-sm flex items-center justify-center bg-white z-10 relative
+                      className={`w-9 h-9 rounded-full border-2 flex items-center justify-center bg-bg-card z-10 relative
                         ${isStart ? 'border-[#7CA2CE]'
                           : isEnd ? 'border-[#E58F76]'
                             : 'border-[#89A88F]'}`}
                     >
-                      <div className="text-base leading-none drop-shadow-sm">{dest.flag}</div>
+                      <div className="text-base leading-none">{dest.flag}</div>
                       {/* Pin Point */}
                       <div className={`absolute -bottom-[7px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] z-[-1]
                         ${isStart ? 'border-t-[#7CA2CE]'
                           : isEnd ? 'border-t-[#E58F76]'
                             : 'border-t-[#89A88F]'}`} />
                     </div>
-                    {/* Pin Label */}
-                    <div className="mt-1.5 bg-[#0F172A] text-white text-[10px] font-bold px-2.5 py-1 rounded-[6px] shadow-md whitespace-nowrap z-20">
+                    {/* Pin Label — always-dark for map contrast */}
+                    <div className="mt-1.5 bg-[#0F172A] text-white text-[10px] font-bold px-2.5 py-1 rounded-[6px] whitespace-nowrap z-20">
                       {label}
                     </div>
                   </div>
@@ -375,24 +374,24 @@ function RouteMapCell({ trip }) {
           {/* Floating UI Overlays */}
 
           {/* Top Left: Combined Overview Card */}
-          <div className="absolute top-5 left-5 bg-white border border-[var(--color-border)] rounded-[16px] p-5 shadow-sm pointer-events-none z-10 flex flex-col min-w-[240px]">
-            <h2 className="text-[16px] font-bold text-[var(--color-text-primary)] leading-tight flex items-center gap-2">
+          <div className="absolute top-5 left-5 bg-bg-card border border-border rounded-[var(--radius-lg)] p-5 pointer-events-none z-10 flex flex-col min-w-[240px]">
+            <h2 className="text-[16px] font-bold text-text-primary leading-tight flex items-center gap-2">
               🗺️ Route Overview
             </h2>
-            <p className="text-[12px] font-medium text-[var(--color-text-muted)] mt-1 tracking-wide">
+            <p className="text-[12px] font-medium text-text-muted mt-1 tracking-wide">
               {dests.length} destinations • {totalDist.toLocaleString()} km total
             </p>
 
-            <div className="h-px bg-gray-100 w-full my-4" />
+            <div className="h-px bg-border w-full my-4" />
 
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-3.5 h-3.5 rounded-full bg-[#7CA2CE]" />
-                <span className="text-[10px] font-bold tracking-[0.08em] text-[var(--color-text-secondary)] uppercase">Start: {dests[0]?.city}</span>
+                <span className="text-[10px] font-bold tracking-[0.08em] text-text-secondary uppercase">Start: {dests[0]?.city}</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-3.5 h-3.5 rounded-full bg-[#E58F76]" />
-                <span className="text-[10px] font-bold tracking-[0.08em] text-[var(--color-text-secondary)] uppercase">End: {dests[dests.length - 1]?.city}</span>
+                <span className="text-[10px] font-bold tracking-[0.08em] text-text-secondary uppercase">End: {dests[dests.length - 1]?.city}</span>
               </div>
             </div>
           </div>
@@ -401,7 +400,7 @@ function RouteMapCell({ trip }) {
           <div className="absolute top-5 right-5 z-10">
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="pointer-events-auto bg-white border border-[var(--color-border)] w-10 h-10 rounded-full flex items-center justify-center text-[var(--color-text-secondary)] shadow-sm hover:bg-gray-50 transition-colors cursor-pointer"
+              className="pointer-events-auto bg-bg-card border border-border w-10 h-10 rounded-full flex items-center justify-center text-text-secondary hover:bg-bg-hover transition-colors cursor-pointer"
               aria-label={isExpanded ? "Close map" : "Expand map"}
             >
               {isExpanded ? (
@@ -494,21 +493,21 @@ function AttentionCell({ trip, onTabSwitch }) {
         <Label>Needs Attention</Label>
         {items.length > 0 && (
           <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full
-            ${highCount > 0 ? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'
-              : 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]'}`}>
+            ${highCount > 0 ? 'bg-danger/10 text-danger'
+              : 'bg-warning/10 text-warning'}`}>
             {highCount > 0 ? `${highCount} urgent` : `${items.length} items`}
           </span>
         )}
       </div>
 
       {/* Rows — bleed to card edges */}
-      <div className="flex-1 overflow-y-auto divide-y divide-[var(--color-border)]">
+      <div className="flex-1 overflow-y-auto divide-y divide-border">
         {items.length === 0 ? (
           <div className="px-4 py-5 flex items-center gap-3">
             <span className="text-xl">🎉</span>
             <div>
-              <p className="text-sm font-semibold text-[var(--color-text-primary)]">All clear</p>
-              <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Nothing urgent right now</p>
+              <p className="text-sm font-semibold text-text-primary">All clear</p>
+              <p className="text-xs text-text-muted mt-0.5">Nothing urgent right now</p>
             </div>
           </div>
         ) : items.map(item => (
@@ -517,18 +516,18 @@ function AttentionCell({ trip, onTabSwitch }) {
             type="button"
             onClick={() => onTabSwitch?.(item.tab)}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-left
-                       hover:bg-[var(--color-bg-hover)] transition-colors duration-100 group"
+                       hover:bg-bg-hover transition-colors duration-100 group"
           >
             <div className={`w-0.5 h-6 rounded-full shrink-0
-              ${item.urgency === URGENCY_HIGH ? 'bg-[var(--color-danger)]' : 'bg-[var(--color-warning)]'}`} />
+              ${item.urgency === URGENCY_HIGH ? 'bg-danger' : 'bg-warning'}`} />
             <span className="text-base leading-none shrink-0">{item.icon}</span>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-[var(--color-text-primary)] truncate">{item.title}</p>
-              <p className="text-[10px] text-[var(--color-text-muted)]">{item.subtitle}</p>
+              <p className="text-xs font-medium text-text-primary truncate">{item.title}</p>
+              <p className="text-[10px] text-text-muted">{item.subtitle}</p>
             </div>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
               strokeLinecap="round" strokeLinejoin="round"
-              className="text-[var(--color-text-muted)] shrink-0 opacity-0 group-hover:opacity-40 transition-opacity">
+              className="text-text-muted shrink-0 opacity-0 group-hover:opacity-40 transition-opacity">
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
@@ -560,7 +559,7 @@ function ReadinessCell({ trip }) {
           <div className="flex items-center gap-4">
             <ProgressRing value={readiness} size={72} strokeWidth={5} pulse={isZero} labelClassName="text-xs" />
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-[var(--color-text-primary)]">{msg}</p>
+              <p className="text-xs font-semibold text-text-primary">{msg}</p>
               <div className="mt-2 space-y-1.5">
                 <ProgressBar value={breakdown.bookings.done} max={breakdown.bookings.total}
                   label="Bookings" showLabel colorClass="bg-info" height="h-1" />
@@ -593,21 +592,21 @@ function BudgetCell({ trip }) {
         <Label>Budget</Label>
         {!hasBudget ? (
           <div className="flex-1 flex items-center">
-            <span className="text-xs text-[var(--color-text-muted)]">No budget set</span>
+            <span className="text-xs text-text-muted">No budget set</span>
           </div>
         ) : (
           <div className="flex-1 flex flex-col justify-between mt-3">
             <div>
-              <p className="text-[10px] text-[var(--color-text-muted)]">Estimated</p>
-              <p className="text-sm font-semibold text-[var(--color-text-primary)] mt-0.5">
+              <p className="text-[10px] text-text-muted">Estimated</p>
+              <p className="text-sm font-semibold text-text-primary mt-0.5">
                 {formatCurrency(budgetMin, trip.currency)} – {formatCurrency(budgetMax, trip.currency)}
               </p>
             </div>
             {totalSpent > 0 && (
               <div className="mt-3">
                 <div className="flex justify-between items-baseline mb-1.5">
-                  <p className="text-[10px] text-[var(--color-text-muted)]">Spent</p>
-                  <p className={`text-sm font-bold ${overBudget ? 'text-[var(--color-danger)]' : 'text-[var(--color-success)]'}`}>
+                  <p className="text-[10px] text-text-muted">Spent</p>
+                  <p className={`text-sm font-bold ${overBudget ? 'text-danger' : 'text-success'}`}>
                     {formatCurrency(totalSpent, trip.currency)}{overBudget ? ' ⚠️' : ''}
                   </p>
                 </div>
@@ -638,8 +637,8 @@ function QuickStartRow({ onTabSwitch }) {
         <BentoCard key={item.tab} onClick={() => onTabSwitch?.(item.tab)}>
           <div className="p-4 flex flex-col h-full">
             <div className="text-2xl mb-3">{item.emoji}</div>
-            <p className="text-xs font-semibold text-[var(--color-text-primary)]">{item.title}</p>
-            <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">{item.desc}</p>
+            <p className="text-xs font-semibold text-text-primary">{item.title}</p>
+            <p className="text-[10px] text-text-muted mt-0.5">{item.desc}</p>
           </div>
         </BentoCard>
       ))}

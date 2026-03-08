@@ -218,7 +218,7 @@ function DayGroupTable({ day, onReorderDay, trip }) {
       <div className="group/day relative flex items-center justify-between py-2 mb-2">
         <div className="flex items-center gap-2">
           <div className="group-drag-handle cursor-grab active:cursor-grabbing text-text-muted opacity-20 hover:opacity-100 transition-opacity mr-2">⠿</div>
-          <button onClick={() => setExpanded(!expanded)} className="text-text-muted hover:text-text-primary transition-colors text-lg w-5 flex justify-center shadow-sm bg-bg-card border border-border rounded">
+          <button onClick={() => setExpanded(!expanded)} className="text-text-muted hover:text-text-primary transition-colors text-lg w-5 flex justify-center bg-bg-card border border-border rounded">
             <span className={`transform transition-transform ${expanded ? 'rotate-90' : ''}`}>›</span>
           </button>
 
@@ -334,10 +334,10 @@ function DayGroupTable({ day, onReorderDay, trip }) {
                         {/* Timeline */}
                         <td className="px-0 relative w-[30px] align-top group/timeline">
                           <div className={`absolute left-1/2 top-0 bottom-0 -ml-[1px] w-[2px] bg-border z-0 ${index === 0 ? 'top-5' : ''} ${index === arr.length - 1 ? 'bottom-[20%]' : ''}`}></div>
-                          <div className={`relative z-10 w-2.5 h-2.5 rounded-full ${dotColor} mx-auto ring-4 ring-bg-card mt-5 shadow-sm`}></div>
+                          <div className={`relative z-10 w-2.5 h-2.5 rounded-full ${dotColor} mx-auto ring-4 ring-bg-card mt-5`}></div>
                           <button
                             onClick={() => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: {}, index: index } })}
-                            className="absolute -top-3 left-1/2 -ml-3 w-6 h-6 rounded-full bg-bg-card border border-border text-lg font-light text-text-muted flex items-center justify-center opacity-0 group-hover/timeline:opacity-100 hover:bg-bg-hover hover:text-accent z-20 transition-all shadow-md pb-0.5"
+                            className="absolute -top-3 left-1/2 -ml-3 w-6 h-6 rounded-full bg-bg-card border border-border text-lg font-light text-text-muted flex items-center justify-center opacity-0 group-hover/timeline:opacity-100 hover:bg-bg-hover hover:text-accent z-20 transition-all pb-0.5"
                             title="Insert before"
                           >+</button>
                         </td>
@@ -419,13 +419,13 @@ function DayGroupTable({ day, onReorderDay, trip }) {
                             {!isReadOnly && (
                               <button
                                 onClick={() => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: {}, index: index + 1 } })}
-                                className="absolute top-1/2 left-1/2 -mt-3 -ml-3 w-6 h-6 rounded-full bg-bg-card border border-border text-lg font-light text-text-muted flex items-center justify-center opacity-0 group-hover/timeline:opacity-100 hover:bg-bg-hover hover:text-accent z-20 transition-all shadow-md pb-0.5"
+                                className="absolute top-1/2 left-1/2 -mt-3 -ml-3 w-6 h-6 rounded-full bg-bg-card border border-border text-lg font-light text-text-muted flex items-center justify-center opacity-0 group-hover/timeline:opacity-100 hover:bg-bg-hover hover:text-accent z-20 transition-all pb-0.5"
                                 title="Insert activity here"
                               >+</button>
                             )}
                           </td>
                           <td colSpan={3} className="py-2 pl-2">
-                            <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-text-muted bg-bg-secondary/30 border border-border/50 rounded-full px-2.5 py-0.5 hover:border-text-primary transition-colors hover:shadow-sm relative z-10 cursor-pointer">
+                            <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-text-muted bg-bg-secondary/30 border border-border/50 rounded-full px-2.5 py-0.5 hover:border-text-primary transition-colors relative z-10 cursor-pointer">
                               <span className="opacity-70 relative">
                                 {activity.transitEmoji || '🚕'}
                                 <select
@@ -556,7 +556,7 @@ function KanbanColumn({ day }) {
               e.stopPropagation()
               e.dataTransfer.setData('application/json', JSON.stringify({ type: 'activity', sourceDayId: day.id, activityId: activity.id, sourceIndex: i }))
             }}
-            className={`group bg-bg-card border shadow-sm rounded-[var(--radius-md)] p-3 transition-colors block text-left ${isReadOnly ? 'border-border/50' : 'cursor-grab active:cursor-grabbing border-border/50 hover:border-accent/40 active:border-accent'} relative`}
+            className={`group bg-bg-card border rounded-[var(--radius-md)] p-3 transition-colors block text-left ${isReadOnly ? 'border-border/50' : 'cursor-grab active:cursor-grabbing border-border/50 hover:border-accent/40 active:border-accent'} relative`}
           >
             <div className="flex items-start gap-2 mb-2 w-full">
               <div className="flex-1 min-w-0 pr-6">

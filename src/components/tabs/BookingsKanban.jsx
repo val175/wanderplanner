@@ -165,7 +165,7 @@ function BookingCardContent({ booking, currency, onRowClick, isOverlay, isReadOn
             onClick={(e) => {
                 onRowClick?.(booking)
             }}
-            className={`bg-bg-card border shadow-sm rounded-[var(--radius-md)] p-3 transition-colors block text-left ${isOverlay ? 'border-accent shadow-xl rotate-2 cursor-grabbing' : `border-border/50 ${isReadOnly ? '' : 'hover:border-accent/40 active:border-accent'}`
+            className={`bg-bg-card border rounded-[var(--radius-md)] p-3 transition-colors block text-left ${isOverlay ? 'border-accent ring-2 ring-accent/30 rotate-2 cursor-grabbing' : `border-border/50 ${isReadOnly ? '' : 'hover:border-accent/40 active:border-accent'}`
                 }`}
         >
             <div className="flex items-start gap-2 mb-2">

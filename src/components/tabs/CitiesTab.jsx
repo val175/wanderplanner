@@ -20,7 +20,7 @@ function TopAddCityForm({ onAdd, onCancel }) {
   }
 
   return (
-    <div className="w-full sm:w-[70%] max-w-[600px] animate-fade-in bg-bg-card rounded-[var(--radius-lg)] border border-border shadow-sm p-1.5 flex items-center gap-2">
+    <div className="w-full sm:w-[70%] max-w-[600px] animate-fade-in bg-bg-card rounded-[var(--radius-lg)] border border-border p-1.5 flex items-center gap-2">
       <div className="flex items-center justify-center w-8 h-8 text-xl shrink-0">
         {cityData.flag || <span className="text-text-muted text-base">📍</span>}
       </div>

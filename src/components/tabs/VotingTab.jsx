@@ -133,7 +133,7 @@ function IdeaTableRow({ idea, resolveProfile, onDelete, isSelectable, isSelected
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></svg>
                         </button>
                         {menuOpen && (
-                            <div className="absolute right-0 top-8 z-50 bg-bg-card border border-border rounded-[var(--radius-md)] shadow-lg py-1 min-w-[120px] animate-fade-in">
+                            <div className="absolute right-0 top-8 z-50 bg-bg-card border border-border rounded-[var(--radius-md)] py-1 min-w-[120px] animate-fade-in">
                                 <button
                                     onClick={() => { setMenuOpen(false); onDelete(idea.id) }}
                                     className="w-full text-left px-3 py-2 text-[13px] text-danger hover:bg-bg-hover transition-colors flex items-center gap-2"
@@ -258,7 +258,7 @@ function FloatingActionBar({ count, isCreatingPoll, onStartDraft, onSubmit, disa
     if (count < 2) return null
     return createPortal(
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-bounce-in">
-            <div className="flex items-center gap-3 bg-[#1A1918] text-white rounded-full px-5 py-3 shadow-2xl border border-white/10">
+            <div className="flex items-center gap-3 bg-[#1A1918] text-white rounded-full px-5 py-3 border border-white/20">
                 <div>
                     <div className="text-[13px] font-bold">{count} {count === 1 ? 'Idea' : 'Ideas'} Selected</div>
                     <div className="text-[10px] text-white/50 uppercase tracking-widest font-bold">Ready to vote?</div>
@@ -310,7 +310,7 @@ function TokenInventory({ poll, activeUserId }) {
     const hasVetoed = !!userVotes.veto
 
     return (
-        <div className="flex items-center gap-3 bg-bg-secondary px-3 py-1.5 rounded-full text-xs font-bold border border-border shadow-inner">
+        <div className="flex items-center gap-3 bg-bg-secondary px-3 py-1.5 rounded-full text-xs font-bold border border-border">
             <div className="flex gap-1 items-center">
                 <span className="text-text-secondary mr-1">Tokens:</span>
                 {Array.from({ length: 3 }).map((_, i) => (
@@ -343,18 +343,18 @@ function PollOptionCard({ option, poll, activeUserId, onVote, isLeader, globalTo
 
     return (
         <div className={`relative flex flex-col h-full rounded-[var(--radius-lg)] border-[2px] transition-all bg-bg-card 
-            ${isVetoedByAnyone ? 'border-danger/30 opacity-70 grayscale' : isLeader ? 'border-accent shadow-sm' : 'border-border'}
+            ${isVetoedByAnyone ? 'border-danger/30 opacity-70 grayscale' : isLeader ? 'border-accent ring-1 ring-accent/20' : 'border-border'}
             ${myTokens > 0 && !isLeader ? 'border-amber-300' : ''}`}>
 
             {isLeader && !isVetoedByAnyone && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full z-20 flex items-center gap-1.5 shadow-sm whitespace-nowrap">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full z-20 flex items-center gap-1.5 whitespace-nowrap">
                     🏆 Current Leader
                 </div>
             )}
 
             {isVetoedByAnyone && (
                 <div className="absolute inset-0 z-30 flex items-center justify-center bg-bg-body/50 backdrop-blur-[1px] rounded-[var(--radius-lg)] pointer-events-none">
-                    <span className="rotate-[-6deg] text-danger font-bold border-2 border-danger px-4 py-1.5 rounded-lg bg-bg-card shadow-lg opacity-90 tracking-widest uppercase">Vetoed 🧨</span>
+                    <span className="rotate-[-6deg] text-danger font-bold border-2 border-danger px-4 py-1.5 rounded-lg bg-bg-card opacity-90 tracking-widest uppercase">Vetoed 🧨</span>
                 </div>
             )}
 
@@ -574,13 +574,13 @@ function IdeaCard({ idea, resolveProfile, onDelete, isSelectable, isSelected, on
         <div
             onClick={() => isSelectable && onSelect(idea)}
             className={`group relative flex flex-col rounded-[var(--radius-lg)] border bg-bg-card overflow-hidden transition-all duration-300
-            ${isSelectable ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5' : ''}
-            ${isSelected ? 'ring-2 ring-accent border-accent shadow-md' : 'border-border'}
+            ${isSelectable ? 'cursor-pointer hover:border-border-strong hover:-translate-y-0.5' : ''}
+            ${isSelected ? 'ring-2 ring-accent border-accent' : 'border-border'}
             ${isBooked ? 'opacity-60 grayscale' : ''}
         `}>
             {/* Selection Checkbox Overlay */}
             {isSelectable && (
-                <div className="absolute top-3 left-3 z-30 w-6 h-6 rounded-full border-2 border-white/80 bg-black/40 flex items-center justify-center shadow-md transition-transform duration-200 backdrop-blur-sm">
+                <div className="absolute top-3 left-3 z-30 w-6 h-6 rounded-full border-2 border-white/80 bg-black/40 flex items-center justify-center transition-transform duration-200 backdrop-blur-sm">
                     <div className={`w-3 h-3 rounded-full bg-accent transition-transform duration-200 ${isSelected ? 'scale-100' : 'scale-0'}`}></div>
                 </div>
             )}
@@ -619,7 +619,7 @@ function IdeaCard({ idea, resolveProfile, onDelete, isSelectable, isSelected, on
 
                 {/* Source Badge */}
                 {idea.sourceName && (
-                    <div className="absolute top-3 left-3 bg-bg-card/90 backdrop-blur-md border border-border/50 rounded-md shadow-sm px-2 py-1 text-[10px] font-bold flex items-center gap-1.5 text-text-secondary z-10 transition-opacity">
+                    <div className="absolute top-3 left-3 bg-bg-card/90 backdrop-blur-md border border-border/50 rounded-md px-2 py-1 text-[10px] font-bold flex items-center gap-1.5 text-text-secondary z-10 transition-opacity">
                         {idea.sourceName.includes('Airbnb') && '🏠'}
                         {idea.sourceName.includes('TikTok') && '🎵'}
                         {idea.sourceName.includes('TripAdvisor') && '🦉'}
@@ -629,7 +629,7 @@ function IdeaCard({ idea, resolveProfile, onDelete, isSelectable, isSelected, on
 
                 {/* Proposer Badge */}
                 {idea.proposerId && (
-                    <div className="absolute top-3 right-3 bg-bg-card/90 backdrop-blur-md border border-border/50 rounded-full shadow-sm py-1 pl-2.5 pr-1 text-[10px] font-bold flex items-center gap-1.5 text-text-secondary z-10">
+                    <div className="absolute top-3 right-3 bg-bg-card/90 backdrop-blur-md border border-border/50 rounded-full py-1 pl-2.5 pr-1 text-[10px] font-bold flex items-center gap-1.5 text-text-secondary z-10">
                         Proposed by
                         <AvatarCircle profile={resolveProfile(idea.proposerId)} size={18} />
                     </div>
@@ -869,14 +869,14 @@ export default function VotingTab() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
                 <div>
                     <h1 className="text-3xl font-bold font-heading text-text-primary tracking-tight flex items-center gap-3">
-                        <span className="text-[32px] drop-shadow-sm">🗳️</span> The Voting Room
+                        <span className="text-[32px]">🗳️</span> The Voting Room
                     </h1>
                     <p className="text-sm text-text-secondary mt-1 max-w-lg">
                         Allocate your tokens, track group consensus, and build the trip.
                     </p>
                 </div>
                 {/* Global Bank Indicator in Top Header */}
-                <Card className="px-5 py-2.5 rounded-full flex items-center gap-4 shadow-sm border border-border">
+                <Card className="px-5 py-2.5 rounded-full flex items-center gap-4 border border-border">
                     <div className="flex gap-1.5 items-center">
                         <span className="text-xs font-bold text-text-secondary mr-1">Your Bank:</span>
                         <div className="flex gap-1">
@@ -915,7 +915,7 @@ export default function VotingTab() {
                     <div className="flex border-2 border-dashed border-border/60 rounded-[var(--radius-xl)] bg-transparent relative">
                         {/* Empty Poll - Full width */}
                         <div className="w-full py-24 flex flex-col items-center justify-center text-center px-4">
-                            <div className="w-14 h-14 bg-bg-secondary rounded-2xl flex items-center justify-center text-3xl border border-border mb-5 drop-shadow-sm filter saturate-0">🗳️</div>
+                            <div className="w-14 h-14 bg-bg-secondary rounded-2xl flex items-center justify-center text-3xl border border-border mb-5 saturate-0">🗳️</div>
                             <h3 className="text-xl font-bold font-heading text-text-primary">No active polls yet</h3>
                             <p className="text-sm text-text-secondary mt-2 max-w-[340px] mb-8 leading-relaxed">Select 2 or more conflicting ideas from the pool below to pit them against each other in a formal vote.</p>
                             {!isCreatingPoll && (
@@ -933,7 +933,7 @@ export default function VotingTab() {
 
                 {/* Poll Creation Title Input Box */}
                 {isCreatingPoll && (
-                    <div className="animate-fade-in fade-in flex flex-col sm:flex-row gap-4 items-start sm:items-center p-4 mb-6 bg-bg-card border border-border rounded-[var(--radius-lg)] shadow-sm">
+                    <div className="animate-fade-in fade-in flex flex-col sm:flex-row gap-4 items-start sm:items-center p-4 mb-6 bg-bg-card border border-border rounded-[var(--radius-lg)]">
                         <div className="w-10 h-10 rounded-full bg-accent/10 text-accent flex items-center justify-center text-xl shrink-0">📝</div>
                         <div className="flex-1 w-full relative">
                             <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1 block">Name Your Proposal</label>
@@ -990,7 +990,7 @@ export default function VotingTab() {
                                 + Extract Idea
                             </Button>
                         ) : (
-                            <div className="p-1 pr-1.5 h-[42px] bg-[#fcf9f5] absolute right-0 z-40 w-full sm:w-[320px] animate-fade-in rounded-full flex items-center border-[#EAE3DE] shadow-sm border-[2px]">
+                            <div className="p-1 pr-1.5 h-[42px] bg-[#fcf9f5] absolute right-0 z-40 w-full sm:w-[320px] animate-fade-in rounded-full flex items-center border-[#EAE3DE] border-[2px]">
                                 <form onSubmit={handleExtract} className="flex gap-2 w-full h-full items-center">
                                     <input
                                         type="url"
@@ -1016,10 +1016,10 @@ export default function VotingTab() {
                 {/* Idea Pool: Grid or Table */}
                 {ideas.length === 0 && !isExtracting ? (
                     <div className="py-24 mt-8 text-center flex flex-col items-center justify-center border-2 border-dashed border-border rounded-[var(--radius-xl)] bg-bg-secondary/30">
-                        <span className="text-5xl opacity-50 mb-4 saturate-0 filter drop-shadow-sm">📦</span>
+                        <span className="text-5xl opacity-50 mb-4 saturate-0">📦</span>
                         <h3 className="font-heading font-bold text-lg text-text-primary">The board is empty</h3>
                         <p className="text-sm text-text-secondary max-w-sm mt-1 mb-6 leading-relaxed">Paste a link to any hotel, Airbnb, or tour, and Wanda will generate an idea card for the group to vote on.</p>
-                        <ul className="text-xs text-text-muted space-y-2 text-left bg-bg-card px-6 py-4 rounded-xl border border-border shadow-sm">
+                        <ul className="text-xs text-text-muted space-y-2 text-left bg-bg-card px-6 py-4 rounded-xl border border-border">
                             <li className="flex items-center gap-2">✅ Extracts titles, images, and prices</li>
                             <li className="flex items-center gap-2">✅ Works with most travel websites</li>
                             <li className="flex items-center gap-2">✅ Group ideas into Proposals for voting</li>

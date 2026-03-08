@@ -502,7 +502,7 @@ function HeaderOptionsDropdown({ trip, dispatch, isReadOnly, onRenameRequest }) 
       <button
         ref={btnRef}
         onClick={handleOpen}
-        className="flex items-center justify-center p-2 rounded-[var(--radius-md)] bg-bg-primary hover:bg-bg-hover text-text-primary border border-border transition-colors shadow-sm ml-2"
+        className="flex items-center justify-center p-2 rounded-[var(--radius-md)] bg-bg-primary hover:bg-bg-hover text-text-primary border border-border transition-colors ml-2"
         aria-label="Trip actions"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -516,7 +516,7 @@ function HeaderOptionsDropdown({ trip, dispatch, isReadOnly, onRenameRequest }) 
         <div
           ref={dropdownRef}
           style={{ position: 'fixed', top: coords.top, left: coords.left }}
-          className="z-50 min-w-[180px] bg-bg-card border border-border shadow-md rounded-[var(--radius-lg)]"
+          className="z-50 min-w-[180px] bg-bg-card border border-border rounded-[var(--radius-lg)]"
         >
           <div className="py-1">
             <button

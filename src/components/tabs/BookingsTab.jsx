@@ -146,7 +146,7 @@ export default function BookingsTab() {
               <Button variant="secondary" size="sm" className="hidden sm:inline-flex">
                 Columns ▾
               </Button>
-              <div className="absolute right-0 top-full mt-1 w-48 bg-bg-card border border-border rounded-[var(--radius-md)] shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20">
+              <div className="absolute right-0 top-full mt-1 w-48 bg-bg-card border border-border rounded-[var(--radius-md)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20">
                 <div className="p-2 space-y-1">
                   {TOGGLEABLE_COLUMNS.map(col => (
                     <label key={col.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-bg-hover rounded cursor-pointer text-sm">

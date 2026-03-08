@@ -61,7 +61,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
 
             {/* Drawer */}
             <div
-                className={`fixed inset-y-0 right-0 w-full max-w-md bg-bg-card border-l border-border/50 shadow-2xl transform transition-transform duration-300 ease-out flex flex-col ${mounted ? 'translate-x-0' : 'translate-x-full'
+                className={`fixed inset-y-0 right-0 w-full max-w-md bg-bg-card border-l border-border transform transition-transform duration-300 ease-out flex flex-col ${mounted ? 'translate-x-0' : 'translate-x-full'
                     }`}
             >
                 {/* Header */}

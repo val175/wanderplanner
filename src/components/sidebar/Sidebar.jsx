@@ -71,7 +71,7 @@ function TripSwitcher({ trips, activeTrip, activeTripId, onSelect, onNewTrip }) 
       </button>
 
       {isOpen && (
-        <div className="absolute top-[85%] left-3 right-3 mt-1 bg-bg-card border border-border rounded-[var(--radius-md)] z-50 py-1.5 max-h-[60vh] overflow-y-auto shadow-sm">
+        <div className="absolute top-[85%] left-3 right-3 mt-1 bg-bg-card border border-border rounded-[var(--radius-md)] z-50 py-1.5 max-h-[60vh] overflow-y-auto">
           {trips.length > 0 ? (
             <>
               <TripGroup title="Ongoing" trips={ongoingTrips} activeTripId={activeTripId} onSelect={(id) => { onSelect(id); setIsOpen(false) }} />
@@ -294,7 +294,7 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
             onClick={closeSidebar}
             className="absolute top-5 right-3 p-1.5 rounded-[var(--radius-sm)]
                        text-text-muted hover:text-text-primary hover:bg-bg-hover
-                       transition-colors z-50 bg-bg-sidebar shadow-sm border border-border"
+                       transition-colors z-50 bg-bg-sidebar border border-border"
             aria-label="Close sidebar"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

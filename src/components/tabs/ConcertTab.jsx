@@ -104,7 +104,7 @@ export default function ConcertTab() {
               {concertBooking.name}
             </h2>
             {concertDay && (
-              <p className="text-gray-400 text-sm mt-2">
+              <p className="text-text-muted text-sm mt-2">
                 {formatDate(concertDay.date, 'full')} · Day {concertDay.dayNumber}
               </p>
             )}
@@ -133,7 +133,7 @@ export default function ConcertTab() {
                 {trip.travelers} pax · {statusLabel}
               </p>
               {concertBooking.confirmationNumber && (
-                <p className="text-gray-500 text-xs font-mono mt-1">
+                <p className="text-text-muted text-xs font-mono mt-1">
                   Ref: {concertBooking.confirmationNumber}
                 </p>
               )}
@@ -154,7 +154,7 @@ export default function ConcertTab() {
           <div className="space-y-4">
             <div>
               <h3 className="text-xs uppercase tracking-wider text-red-400/70 font-semibold mb-2">🎤 Event Tips</h3>
-              <ul className="space-y-2 text-sm text-gray-300">
+              <ul className="space-y-2 text-sm text-text-secondary">
                 {tips.map((tip, i) => (
                   <li key={i} className="flex items-start gap-2">
                     <span className="text-red-500">▸</span>
@@ -177,11 +177,11 @@ export default function ConcertTab() {
               <div className="space-y-3">
                 {concertDay.activities.map(activity => (
                   <div key={activity.id} className="flex items-center gap-3">
-                    <span className="text-sm font-mono text-gray-500 w-12">{activity.time || '--:--'}</span>
+                    <span className="text-sm font-mono text-text-muted w-12">{activity.time || '--:--'}</span>
                     <span className="text-lg">{activity.emoji}</span>
                     <div>
                       <p className="text-white text-sm font-medium">{activity.name}</p>
-                      {activity.notes && <p className="text-gray-500 text-xs">{activity.notes}</p>}
+                      {activity.notes && <p className="text-text-muted text-xs">{activity.notes}</p>}
                     </div>
                   </div>
                 ))}

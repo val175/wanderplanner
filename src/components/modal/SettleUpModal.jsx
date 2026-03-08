@@ -34,7 +34,7 @@ export default function SettleUpModal({ tripId, onClose }) {
         >
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
             <div
-                className="relative w-full sm:max-w-md bg-bg-card rounded-t-[var(--radius-xl)] sm:rounded-[var(--radius-xl)] shadow-2xl p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6"
+                className="relative w-full sm:max-w-md bg-bg-card border border-border rounded-t-[var(--radius-xl)] sm:rounded-[var(--radius-xl)] p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6"
                 onMouseDown={e => e.stopPropagation()}
                 style={{ animation: 'wanda-pop 0.2s cubic-bezier(0.34,1.56,0.64,1)' }}
             >
