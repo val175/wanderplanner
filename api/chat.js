@@ -43,21 +43,23 @@ export default async function handler(req) {
         const geminiKey = process.env.GEMINI_API_KEY
         const openrouterKey = process.env.OPENROUTER_API_KEY
 
-        // Try Gemini first (gemini-2.5-flash: 5 RPM, 20 RPD on Wanderplanner free-tier project)
+        // Try Gemini — flash-lite first (500 RPD), then flash (20 RPD) as safety net
         if (geminiKey) {
-            try {
-                const gemini = createOpenAI({
-                    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai',
-                    apiKey: geminiKey,
-                })
-                const result = await streamText({
-                    model: gemini.chat('gemini-2.5-flash'),
-                    system: systemPrompt,
-                    messages: modelMessages,
-                })
-                return result.toUIMessageStreamResponse({ headers: CORS_HEADERS })
-            } catch (e) {
-                console.log('[chat] Gemini failed, falling back to OpenRouter:', e.message)
+            const gemini = createOpenAI({
+                baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai',
+                apiKey: geminiKey,
+            })
+            for (const modelId of ['gemini-3.1-flash-lite-preview', 'gemini-2.5-flash']) {
+                try {
+                    const result = await streamText({
+                        model: gemini.chat(modelId),
+                        system: systemPrompt,
+                        messages: modelMessages,
+                    })
+                    return result.toUIMessageStreamResponse({ headers: CORS_HEADERS })
+                } catch (e) {
+                    console.log(`[chat] ${modelId} failed, trying next:`, e.message)
+                }
             }
         }
 

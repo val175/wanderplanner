@@ -1,6 +1,7 @@
 // api/_openrouter.js — Unified AI caller: Gemini (primary) + OpenRouter (fallback)
 // Google AI Studio free tier (Wanderplanner project):
-//   gemini-2.5-flash: 5 RPM, 20 RPD — the only 2.x model with quota in this project.
+//   gemini-3.1-flash-lite-preview: 500 RPD — PRIMARY, covers nearly all traffic.
+//   gemini-2.5-flash:              20 RPD  — fallback when lite quota is exhausted.
 //   gemini-2.0-flash-lite / gemini-2.0-flash both show 0/0 quota — do NOT use.
 // OpenRouter free tier: used only when all Gemini providers are exhausted.
 //
@@ -8,14 +9,15 @@
 // files don't need to change. It auto-injects GEMINI_API_KEY from process.env.
 //
 // NOTE: gemini-1.5-flash and gemini-1.5-flash-8b return HTTP 404 via the OpenAI-compat
-// endpoint (/v1beta/openai/chat/completions) — only 2.x models are exposed there.
+// endpoint (/v1beta/openai/chat/completions) — only 2.x+ models are exposed there.
 
 const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
 const OR_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'
 
 // Ordered list — Gemini first (primary), OpenRouter second (fallback).
 export const PROVIDERS = [
-    { model: 'gemini-2.5-flash', endpoint: GEMINI_ENDPOINT, keyType: 'gemini' },
+    { model: 'gemini-3.1-flash-lite-preview', endpoint: GEMINI_ENDPOINT, keyType: 'gemini' },
+    { model: 'gemini-2.5-flash',              endpoint: GEMINI_ENDPOINT, keyType: 'gemini' },
     { model: 'mistralai/mistral-small-3.1-24b-instruct:free', endpoint: OR_ENDPOINT, keyType: 'openrouter' },
     { model: 'google/gemma-3-27b-it:free',                    endpoint: OR_ENDPOINT, keyType: 'openrouter' },
     { model: 'meta-llama/llama-3.3-70b-instruct:free',        endpoint: OR_ENDPOINT, keyType: 'openrouter' },
