@@ -1,5 +1,6 @@
 // api/chat.js
-import { streamText } from 'ai'
+import { streamText, tool } from 'ai'
+import { z } from 'zod'
 import { createOpenAI } from '@ai-sdk/openai'
 import { verifyFirebaseToken } from './_auth.js'
 import { CORS_HEADERS } from './_cors.js'
@@ -7,6 +8,17 @@ import { CORS_HEADERS } from './_cors.js'
 // THIS IS THE MAGIC LINE: Bypasses the 10s timeout on Vercel Hobby tier
 export const config = {
     runtime: 'edge',
+}
+
+const WANDA_TOOLS = {
+    add_to_packing_list: tool({
+        description: 'Add an item to the trip packing list when contextually relevant (weather, destination-specific necessities, activity requirements).',
+        parameters: z.object({
+            item:    z.string().describe('Item name, e.g. "Compact umbrella" or "Reef-safe sunscreen"'),
+            section: z.enum(['Documents', 'Clothing', 'Toiletries', 'Electronics', 'Health', 'Misc']).describe('Which packing section this belongs to'),
+            emoji:   z.string().describe('A single relevant emoji for the item'),
+        }),
+    }),
 }
 
 export default async function handler(req) {
@@ -49,6 +61,7 @@ export default async function handler(req) {
                         model: gemini.chat(modelId),
                         system: systemPrompt,
                         messages: modelMessages,
+                        tools: WANDA_TOOLS,
                     })
                     return result.toUIMessageStreamResponse({ headers: CORS_HEADERS })
                 } catch (e) {
@@ -67,6 +80,7 @@ export default async function handler(req) {
                 model: openrouter.chat('mistralai/mistral-small-3.1-24b-instruct:free'),
                 system: systemPrompt,
                 messages: modelMessages,
+                tools: WANDA_TOOLS,
             })
             return result.toUIMessageStreamResponse({ headers: CORS_HEADERS })
         }
