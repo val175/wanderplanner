@@ -125,11 +125,18 @@ export async function geocodeCity(cityStr, countryHint = null) {
         const targetCountry = hintParts[0]
         const targetRegion = hintParts[1] // might be undefined
 
-        // First, try to find an exact match for both country + region
-        const perfectMatch = data.results.find(r =>
-          (r.country || '').toLowerCase() === targetCountry &&
-          (r.admin1 || '').toLowerCase() === targetRegion
-        )
+        // First, try to find a match for country + region across ALL admin levels.
+        // admin1 = state/region, admin2 = province/county, admin3/4 = finer divisions.
+        // e.g. "San Juan, La Union" → admin2="La Union", not admin1="Ilocos Region".
+        const perfectMatch = targetRegion
+          ? data.results.find(r => {
+              if ((r.country || '').toLowerCase() !== targetCountry) return false
+              const regionPool = [r.admin1, r.admin2, r.admin3, r.admin4]
+                .filter(Boolean)
+                .map(a => a.toLowerCase())
+              return regionPool.some(a => a.includes(targetRegion) || targetRegion.includes(a))
+            })
+          : null
 
         // Next, try to find a match for just the country
         const countryMatch = data.results.find(r =>
