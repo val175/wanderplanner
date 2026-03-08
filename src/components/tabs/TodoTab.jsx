@@ -185,6 +185,7 @@ function SortableTodoItem(props) {
   )
 }
 
+// Task 4: Progressive disclosure — date/notes/deeplink hide until hover when no value
 function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfile, tripTravelers, currentUserProfile, isReadOnly, dragAttributes, dragListeners, canDrag }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(todo.text)
@@ -208,7 +209,8 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
   const pastDue = !todo.done && isPastDue(todo.dueDate);
 
   return (
-    <div className={`flex flex-col group transition-opacity ${todo.done ? 'opacity-60' : ''}`}>
+    // Task 6: duration-200 for smoother fade on completion
+    <div className={`flex flex-col group transition-opacity duration-200 ${todo.done ? 'opacity-60' : ''}`}>
       <div className="flex items-center gap-2 py-3">
         {/* Drag Handle */}
         <div className="w-[30px] flex justify-center shrink-0">
@@ -257,9 +259,10 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
               autoFocus
             />
           ) : (
+            // Task 6: transition-all for smoother line-through + color change
             <span
               onClick={() => { if (!isReadOnly) { setDraft(todo.text); setEditing(true) } }}
-              className={`text-[14px] font-medium transition-colors
+              className={`text-[14px] font-medium transition-all duration-200
                 ${isReadOnly ? 'cursor-default' : 'cursor-pointer hover:border-b hover:border-accent/30'}
                 ${todo.done ? 'line-through text-text-muted' : 'text-text-primary'}`}
             >
@@ -267,10 +270,11 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
             </span>
           )}
 
+          {/* Task 4: deep-link always hover-only (auto-inferred, so never "explicitly set") */}
           {!editing && deepLink && !todo.done && (
             <button
               onClick={() => onDeepLink(deepLink)}
-              className="hidden sm:flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-accent/10 text-accent hover:bg-accent hover:text-white transition-colors group/link"
+              className="hidden sm:flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-accent/10 text-accent hover:bg-accent hover:text-white transition-all opacity-0 group-hover:opacity-100"
               title={`Go to ${deepLink} tab`}
             >
               <svg className="w-3 h-3 transform -rotate-45" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
@@ -278,8 +282,9 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
           )}
         </div>
 
-        {/* Date */}
-        <div className="w-[140px] shrink-0 flex justify-end px-2">
+        {/* Task 4: Date — hide when no value, show on hover */}
+        <div className={`w-[140px] shrink-0 flex justify-end px-2 transition-opacity duration-150
+          ${!todo.dueDate ? 'opacity-0 group-hover:opacity-100' : ''}`}>
           <DatePicker
             value={todo.dueDate}
             onChange={v => onUpdate({ dueDate: v })}
@@ -301,8 +306,9 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
           />
         </div>
 
-        {/* Notes Toggle */}
-        <div className="w-[30px] shrink-0 flex justify-center">
+        {/* Task 4: Notes chevron — hide when no note and not expanded */}
+        <div className={`w-[30px] shrink-0 flex justify-center transition-opacity duration-150
+          ${!todo.note && !expanded ? 'opacity-0 group-hover:opacity-100' : ''}`}>
           <button
             onClick={() => setExpanded(!expanded)}
             className={`p-1 text-text-muted hover:text-text-primary transition-colors rounded-[var(--radius-sm)] ${expanded ? 'bg-bg-hover' : ''}`}
@@ -403,8 +409,48 @@ function DropPhaseBoard({ phase, children }) {
   return <div ref={setNodeRef} className="flex-1 w-full">{children}</div>
 }
 
+// Task 3: Global Quick Add bar — persistent, always above phase groups
+function QuickAddBar({ dispatch, isReadOnly }) {
+  const [text, setText] = useState('')
+  const [phase, setPhase] = useState('planning')
+
+  const handleAdd = () => {
+    if (!text.trim()) return
+    dispatch({ type: ACTIONS.ADD_TODO, payload: { text: text.trim(), phase } })
+    setText('')
+    triggerHaptic('light')
+  }
+
+  if (isReadOnly) return null
+
+  return (
+    <div className="flex items-center gap-3 bg-bg-card border border-border rounded-[var(--radius-md)] px-4 py-2.5">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted shrink-0">
+        <path d="M12 4.5v15m7.5-7.5h-15" />
+      </svg>
+      <input
+        value={text}
+        onChange={e => setText(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && handleAdd()}
+        placeholder="Quick add a task... (e.g. 'Book flights to Rio')"
+        className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted outline-none min-w-0"
+      />
+      <select
+        value={phase}
+        onChange={e => setPhase(e.target.value)}
+        className="text-xs bg-bg-secondary border border-border rounded-[var(--radius-sm)] px-2 py-1 text-text-secondary outline-none focus:border-accent shrink-0 cursor-pointer"
+      >
+        {TODO_PHASES.map((p, i) => (
+          <option key={p.id} value={p.id}>{i + 1}. {p.label.split(' ')[0]}</option>
+        ))}
+      </select>
+      <Button size="sm" onClick={handleAdd} disabled={!text.trim()}>Add</Button>
+    </div>
+  )
+}
+
 /* ─────────────────────────────────────────────────────────────
-   TodoPhaseGroup — Outside header with accordion behavior
+   TodoPhaseGroup — Task 2: accepts viewMode for board layout
 ───────────────────────────────────────────────────────────── */
 function TodoPhaseGroup({
   phase,
@@ -417,40 +463,46 @@ function TodoPhaseGroup({
   handleDeepLink,
   resolveProfile,
   tripTravelers,
-  currentUserProfile
+  currentUserProfile,
+  viewMode,
 }) {
   const [expanded, setExpanded] = useState(true)
   const phaseDone = phaseTodos.filter(t => t.done).length
   const phaseTotal = phaseTodos.length
   const progressPercent = phaseTotal > 0 ? (phaseDone / phaseTotal) * 100 : 0
+  const isBoard = viewMode === 'board'
 
   return (
-    <div className="mb-8 animate-fade-in">
-      {/* Group Header (matching Itinerary style) */}
+    // Task 2: board mode → narrow column; list mode → full-width block
+    <div className={`animate-fade-in ${isBoard ? 'min-w-[270px] flex-shrink-0 flex flex-col' : 'mb-8'}`}>
+      {/* Group Header */}
       <div className="group/phase relative flex items-center justify-between py-2 mb-2">
         <div className="flex items-center gap-2">
-          {/* Drag handle placeholder (if we ever want to reorder phases) */}
           <div className="text-text-muted opacity-0 hover:opacity-100 transition-opacity mr-2 select-none">⠿</div>
-
           <button
             onClick={() => setExpanded(!expanded)}
-            className="text-text-muted hover:text-text-primary transition-colors text-lg w-5 flex justify-center shadow-sm bg-bg-card border border-border rounded"
+            className="text-text-muted hover:text-text-primary transition-colors text-lg w-5 flex justify-center bg-bg-card border border-border rounded"
           >
             <span className={`transform transition-transform ${expanded ? 'rotate-90' : ''}`}>›</span>
           </button>
-
           <div className="flex flex-col ml-2">
-            <div className="flex items-center gap-2">
-              <h3 className={`font-heading text-lg font-bold leading-tight flex items-center gap-2 ${phase.textClass}`}>
-                <span>{index + 1}.</span> {phase.label}
-              </h3>
-            </div>
-            <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-text-muted mt-0.5">{phase.subtitle}</p>
+            <h3 className={`font-heading text-lg font-bold leading-tight flex items-center gap-2 ${phase.textClass}`}>
+              <span>{index + 1}.</span>
+              {/* Task 2: truncate label in board mode to first word */}
+              {isBoard ? phase.label.split(' ')[0] : phase.label}
+            </h3>
+            {!isBoard && (
+              <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-text-muted mt-0.5">{phase.subtitle}</p>
+            )}
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
-          {/* Progress Indicator */}
+        {/* Task 2: full progress bar in list; compact badge in board */}
+        {isBoard ? (
+          <span className="text-[11px] font-bold text-text-muted bg-bg-secondary border border-border rounded-full px-2 py-0.5">
+            {phaseDone}/{phaseTotal}
+          </span>
+        ) : (
           <div className="flex flex-col items-end min-w-[140px]">
             <span className="text-[10px] font-bold text-text-muted tracking-wider mb-1.5 uppercase">
               {phaseDone}/{phaseTotal} Completed
@@ -462,22 +514,25 @@ function TodoPhaseGroup({
               />
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {expanded && (
-        <Card className="p-0 overflow-hidden border border-border/50 shadow-sm">
+        // Task 6: removed shadow-sm (DS violation)
+        <Card className="p-0 overflow-hidden border border-border/50">
           <DropPhaseBoard phase={phase}>
-            {/* Table Header (visual only, for alignment) */}
-            <div className="flex items-center gap-2 px-0 py-2 border-b border-border/40 bg-bg-secondary/10">
-              <div className="w-[30px] shrink-0"></div>
-              <div className="w-[30px] shrink-0"></div>
-              <div className="flex-1 px-2 text-[10px] font-bold uppercase tracking-widest text-text-muted">TASK</div>
-              <div className="w-[140px] text-right px-2 text-[10px] font-bold uppercase tracking-widest text-text-muted">DUE DATE</div>
-              <div className="w-[40px] text-center text-[10px] font-bold uppercase tracking-widest text-text-muted">WHO</div>
-              <div className="w-[30px]"></div>
-              {!isReadOnly && <div className="w-[40px]"></div>}
-            </div>
+            {/* Task 2: table column labels only in list mode */}
+            {!isBoard && (
+              <div className="flex items-center gap-2 px-0 py-2 border-b border-border/40 bg-bg-secondary/10">
+                <div className="w-[30px] shrink-0"></div>
+                <div className="w-[30px] shrink-0"></div>
+                <div className="flex-1 px-2 text-[10px] font-bold uppercase tracking-widest text-text-muted">TASK</div>
+                <div className="w-[140px] text-right px-2 text-[10px] font-bold uppercase tracking-widest text-text-muted">DUE DATE</div>
+                <div className="w-[40px] text-center text-[10px] font-bold uppercase tracking-widest text-text-muted">WHO</div>
+                <div className="w-[30px]"></div>
+                {!isReadOnly && <div className="w-[40px]"></div>}
+              </div>
+            )}
 
             <SortableContext items={phaseTodos.map(t => t.id)} strategy={verticalListSortingStrategy}>
               <div className="divide-y divide-border/30 h-full flex flex-col">
@@ -506,7 +561,8 @@ function TodoPhaseGroup({
             </SortableContext>
           </DropPhaseBoard>
 
-          {!isReadOnly && (
+          {/* Task 2: per-phase add form only in list mode; QuickAddBar covers board */}
+          {!isReadOnly && !isBoard && (
             <div className="border-t border-border/30 bg-accent/[0.02]">
               <AddTodoPhaseForm
                 phase={phase}
@@ -527,6 +583,8 @@ export default function TodoTab() {
   const [hideCompleted, setHideCompleted] = useState(false)
   const [celebration, setCelebration] = useState(0)
   const [isGenerating, setIsGenerating] = useState(false)
+  // Task 1: view mode state
+  const [viewMode, setViewMode] = useState('list') // 'list' | 'board'
 
   if (!activeTrip) return null
   const trip = activeTrip
@@ -675,11 +733,36 @@ export default function TodoTab() {
           <p className="text-sm text-text-secondary mt-1">Keep track of what needs to be done, and who is doing it.</p>
         </div>
 
-        {/* View Toggle */}
+        {/* Controls row */}
         <div className="flex items-center gap-3">
+          {/* Task 1: List / Board view toggle — DS pill pattern */}
+          <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5
+                ${viewMode === 'list' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+              List
+            </button>
+            <button
+              onClick={() => setViewMode('board')}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5
+                ${viewMode === 'board' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/>
+              </svg>
+              Board
+            </button>
+          </div>
+
+          {/* Hide Completed toggle */}
           <button
             onClick={() => setHideCompleted(prev => !prev)}
-            className={`text-xs font-medium px-2 py-1 rounded-[var(--radius-sm)] border transition-colors flex items-center gap-1.5 ${hideCompleted ? 'bg-bg-card border-border shadow-sm text-text-primary' : 'bg-transparent border-transparent text-text-muted hover:text-text-secondary hover:bg-bg-secondary'}`}
+            className={`text-xs font-medium px-2 py-1 rounded-[var(--radius-sm)] border transition-colors flex items-center gap-1.5 ${hideCompleted ? 'bg-bg-card border-border text-text-primary' : 'bg-transparent border-transparent text-text-muted hover:text-text-secondary hover:bg-bg-secondary'}`}
           >
             <div className={`w-3 h-3 rounded-sm border flex items-center justify-center shrink-0 transition-colors ${hideCompleted ? 'bg-accent border-accent text-white' : 'border-text-muted'}`}>
               {hideCompleted && <svg viewBox="0 0 14 14" fill="none" className="w-2.5 h-2.5"><path d="M3 7.5L5.5 10L11 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
@@ -687,6 +770,7 @@ export default function TodoTab() {
             Hide Completed
           </button>
 
+          {/* All Tasks / My Tasks toggle */}
           <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
             <button
               onClick={() => setFilter('all')}
@@ -707,20 +791,27 @@ export default function TodoTab() {
         </div>
       </div>
 
+      {/* Task 3: Global Quick Add Bar — always visible */}
+      <QuickAddBar dispatch={dispatch} isReadOnly={isReadOnly} />
+
+      {/* Task 5: Slim Wanda banner — replaces the full-screen empty-state card.
+          Phases are always visible below so users see the structure immediately. */}
       {safeTodos.length === 0 && !isReadOnly && filter === 'all' && (
-        <div className="bg-bg-card border border-border rounded-[var(--radius-lg)] p-8 text-center flex flex-col items-center shadow-sm">
-          <div className="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center text-xl mb-3 border border-accent/20">✨</div>
-          <h3 className="font-heading text-lg font-bold text-text-primary mb-2">Start Your Checklist</h3>
-          <p className="text-sm text-text-secondary mb-5 max-w-sm mx-auto leading-relaxed">Not sure where to begin? Ask Wanda to generate a smart, personalized checklist for your trip.</p>
-          <Button onClick={handleGenerateChecklist} disabled={isGenerating}>
-            {isGenerating ? 'Wanda is thinking...' : 'Ask Wanda for a checklist'}
+        <div className="flex items-center gap-4 bg-bg-card border border-border rounded-[var(--radius-md)] px-5 py-3.5">
+          <div className="w-9 h-9 bg-accent/10 rounded-full flex items-center justify-center text-base border border-accent/20 shrink-0">✨</div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-text-primary leading-snug">Don't know where to start?</p>
+            <p className="text-xs text-text-secondary leading-snug">Let Wanda generate a smart, personalized checklist based on your destination.</p>
+          </div>
+          <Button onClick={handleGenerateChecklist} disabled={isGenerating} size="sm" className="shrink-0">
+            {isGenerating ? 'Thinking...' : 'Generate with Wanda'}
           </Button>
         </div>
       )}
 
-      {/* Phase Groups */}
+      {/* Phase Groups — Task 2: horizontal scroll container in board mode */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <div className="space-y-4">
+        <div className={viewMode === 'board' ? 'flex gap-4 overflow-x-auto pb-4 items-start' : 'space-y-4'}>
           {TODO_PHASES.map((phase, index) => (
             <TodoPhaseGroup
               key={phase.id}
@@ -735,6 +826,7 @@ export default function TodoTab() {
               resolveProfile={resolveProfile}
               tripTravelers={tripTravelers}
               currentUserProfile={currentUserProfile}
+              viewMode={viewMode}
             />
           ))}
         </div>
@@ -742,4 +834,3 @@ export default function TodoTab() {
     </div>
   )
 }
-
