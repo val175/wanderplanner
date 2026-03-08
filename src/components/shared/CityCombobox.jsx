@@ -338,7 +338,13 @@ export default function CityCombobox({
 
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=15&language=en&format=json`)
+        // If user typed "City, Region" split it: search API by city name only,
+        // then post-filter by region so e.g. "San Juan, La Union" works correctly.
+        const parts = query.split(',')
+        const cityToken = parts[0].trim()
+        const regionFilter = parts.length > 1 ? parts.slice(1).join(',').trim().toLowerCase() : null
+
+        const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityToken)}&count=15&language=en&format=json`)
         if (res.ok) {
           const data = await res.json()
           if (data.results) {
@@ -352,8 +358,12 @@ export default function CityCombobox({
                 iso: r.country_code || ''
               }
             })
+            // Post-filter by region token if user typed a comma (e.g. "San Juan, La Union")
+            const filtered = regionFilter
+              ? mapped.filter(r => r.country.toLowerCase().includes(regionFilter))
+              : mapped
             // Filter duplicates by city+country key (which now includes region)
-            const unique = Array.from(new Map(mapped.map(item => [`${item.city}-${item.country}`, item])).values())
+            const unique = Array.from(new Map(filtered.map(item => [`${item.city}-${item.country}`, item])).values())
             setRemoteSuggestions(unique)
           } else {
             setRemoteSuggestions([])
@@ -370,12 +380,19 @@ export default function CityCombobox({
   const suggestions = useMemo(() => {
     if (!query.trim()) return []
     const q = query.toLowerCase()
-    const prefix = CITY_DB.filter(c => c.city.toLowerCase().startsWith(q))
+    // Split on comma so "San Juan, La Union" matches local entries by city token + optional region filter
+    const qParts = q.split(',')
+    const qCity = qParts[0].trim()
+    const qRegion = qParts.length > 1 ? qParts.slice(1).join(',').trim() : null
+    const matchesLocal = (c) => {
+      const cityMatch = c.city.toLowerCase().startsWith(qCity) || c.city.toLowerCase().includes(qCity) || c.country.toLowerCase().startsWith(qCity)
+      if (!cityMatch) return false
+      if (qRegion) return c.country.toLowerCase().includes(qRegion)
+      return true
+    }
+    const prefix = CITY_DB.filter(c => c.city.toLowerCase().startsWith(qCity) && (!qRegion || c.country.toLowerCase().includes(qRegion)))
     const substr = CITY_DB.filter(c =>
-      !c.city.toLowerCase().startsWith(q) && (
-        c.city.toLowerCase().includes(q) ||
-        c.country.toLowerCase().startsWith(q)
-      )
+      !c.city.toLowerCase().startsWith(qCity) && matchesLocal(c)
     )
 
     // Merge local matches with remote maps, filtering identical elements
