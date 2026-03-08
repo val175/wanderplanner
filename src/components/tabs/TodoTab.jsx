@@ -213,6 +213,21 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
     return (
       <div className={`relative group bg-bg-card border border-border/50 rounded-[var(--radius-md)] p-3 transition-all duration-200 hover:border-accent/40 ${todo.done ? 'opacity-60' : ''} ${isReadOnly ? '' : 'cursor-default'}`}>
         <div className="flex items-start gap-2">
+          {/* Drag handle — left side to avoid overlapping absolute top-right delete button */}
+          {canDrag && !isReadOnly && (
+            <div
+              {...dragAttributes}
+              {...dragListeners}
+              className="cursor-grab hover:text-accent text-border transition-colors shrink-0 mt-0.5"
+              title="Drag to reorder"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="9" cy="12" r="1.5"/><circle cx="9" cy="5" r="1.5"/><circle cx="9" cy="19" r="1.5"/>
+                <circle cx="15" cy="12" r="1.5"/><circle cx="15" cy="5" r="1.5"/><circle cx="15" cy="19" r="1.5"/>
+              </svg>
+            </div>
+          )}
+
           {/* Checkbox */}
           <button
             onClick={() => !isReadOnly && onToggle()}
@@ -232,21 +247,6 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
             ${todo.done ? 'line-through text-text-muted' : 'text-text-primary'}`}>
             {todo.text}
           </span>
-
-          {/* Drag handle */}
-          {canDrag && !isReadOnly && (
-            <div
-              {...dragAttributes}
-              {...dragListeners}
-              className="cursor-grab hover:text-accent text-border transition-colors shrink-0 mt-0.5"
-              title="Drag to reorder"
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="9" cy="12" r="1.5"/><circle cx="9" cy="5" r="1.5"/><circle cx="9" cy="19" r="1.5"/>
-                <circle cx="15" cy="12" r="1.5"/><circle cx="15" cy="5" r="1.5"/><circle cx="15" cy="19" r="1.5"/>
-              </svg>
-            </div>
-          )}
         </div>
 
         {/* Footer: only rendered when there's something to show */}
@@ -979,8 +979,9 @@ export default function TodoTab() {
           ))}
         </div>
 
-        {/* Drag overlay — floating preview card that follows the cursor */}
-        <DragOverlay>
+        {/* Drag overlay — board mode only; omitting it in list mode lets dnd-kit
+            apply live pointer transforms to the dragging item itself */}
+        {viewMode === 'board' && <DragOverlay>
           {activeTodo ? (
             <div className="w-72 rotate-1 opacity-95">
               <TodoItem
@@ -998,7 +999,7 @@ export default function TodoTab() {
               />
             </div>
           ) : null}
-        </DragOverlay>
+        </DragOverlay>}
       </DndContext>
     </div>
   )
