@@ -455,7 +455,7 @@ function AddTodoPhaseForm({ phase, onAdd }) {
         className="text-[13px] font-medium text-text-muted hover:text-accent transition-colors py-3 flex items-center gap-1.5 w-full text-left px-5"
       >
         <svg fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-        Add task to {phase.label.split(' ')[0]}
+        Add task to {phase.label.split(' & ')[0]}
       </button>
     )
   }
@@ -492,11 +492,11 @@ function BoardPhaseColumn({ phase, index, phaseTodos, canDrag, isReadOnly, dispa
   const phaseTotal = phaseTodos.length
 
   return (
-    <div className={`min-w-[272px] flex-shrink-0 flex flex-col bg-bg-secondary/20 border rounded-[var(--radius-lg)] p-2 transition-colors ${isOver ? 'border-accent/50 bg-accent/5' : 'border-border/50'}`}>
-      {/* Column header */}
-      <div className="px-2 py-2 mb-2 flex items-center justify-between border-b border-border/30">
-        <h3 className={`font-semibold text-sm ${phase.textClass}`}>
-          {index + 1}. {phase.label.split(' ')[0]}
+    <div className={`flex flex-col flex-shrink-0 w-72 bg-bg-secondary/20 border rounded-[var(--radius-lg)] p-2 transition-colors ${isOver ? 'border-accent/50 bg-accent/5' : 'border-border/50'}`}>
+      {/* Column header — identical structure to BookingsKanban KanbanColumn */}
+      <div className="px-3 py-2 mb-2 flex items-center justify-between border-b border-border/30">
+        <h3 className="font-semibold text-sm text-text-primary">
+          {phase.label.split(' & ')[0]}
         </h3>
         <span className="text-xs font-medium text-text-muted bg-bg-card px-2 py-0.5 rounded-full border border-border/50">
           {phaseDone}/{phaseTotal}
@@ -504,7 +504,7 @@ function BoardPhaseColumn({ phase, index, phaseTodos, canDrag, isReadOnly, dispa
       </div>
 
       {/* Scrollable card area */}
-      <div ref={setNodeRef} className="flex-1 overflow-y-auto space-y-2 min-h-[120px] scrollbar-hide">
+      <div ref={setNodeRef} className="flex-1 overflow-y-auto space-y-2 min-h-[150px] scrollbar-hide">
         <SortableContext items={phaseTodos.map(t => t.id)} strategy={verticalListSortingStrategy}>
           {phaseTodos.length === 0 ? (
             <div className="h-full min-h-[100px] flex items-center justify-center border-2 border-dashed border-border/40 rounded-[var(--radius-md)] text-xs text-text-muted/60 italic">
