@@ -2,17 +2,11 @@
 import { streamText } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
 import { verifyFirebaseToken } from './_auth.js'
+import { CORS_HEADERS } from './_cors.js'
 
 // THIS IS THE MAGIC LINE: Bypasses the 10s timeout on Vercel Hobby tier
 export const config = {
     runtime: 'edge',
-}
-
-const CORS_HEADERS = {
-    'Access-Control-Allow-Origin': 'https://planner.vlbonite.co',
-    'Access-Control-Allow-Methods': 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
-    'Access-Control-Allow-Headers': 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization',
-    'Access-Control-Allow-Credentials': 'true',
 }
 
 export default async function handler(req) {

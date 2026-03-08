@@ -2,6 +2,7 @@
 import * as cheerio from 'cheerio'
 import { callOpenRouter } from './_openrouter.js'
 import { verifyFirebaseToken } from './_auth.js'
+import { setCorsHeaders } from './_cors.js'
 
 async function scrapeMetadata(url) {
     const response = await fetch(url, {
@@ -22,11 +23,7 @@ async function scrapeMetadata(url) {
 }
 
 export default async function handler(req, res) {
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Origin', 'https://planner.vlbonite.co');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
-
+    setCorsHeaders(res)
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
