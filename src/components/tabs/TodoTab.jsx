@@ -16,6 +16,20 @@ import { useTripTravelers } from '../../hooks/useTripTravelers'
 import { triggerHaptic } from '../../utils/haptics'
 import { auth } from '../../firebase/config'
 
+// Anchors the DragOverlay to the cursor — matches BookingsKanban behaviour
+const snapCursorToTopLeft = ({ activatorEvent, draggingNodeRect, transform }) => {
+  if (draggingNodeRect && activatorEvent) {
+    const offsetX = activatorEvent.clientX - draggingNodeRect.left
+    const offsetY = activatorEvent.clientY - draggingNodeRect.top
+    return {
+      ...transform,
+      x: transform.x + offsetX - draggingNodeRect.width / 2,
+      y: transform.y + offsetY - 20,
+    }
+  }
+  return transform
+}
+
 function isPastDue(isoDateStr) {
   if (!isoDateStr) return false;
   const today = new Date();
@@ -953,6 +967,7 @@ export default function TodoTab() {
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
+        modifiers={[snapCursorToTopLeft]}
         onDragStart={canDrag && !isReadOnly ? handleDragStart : undefined}
         onDragEnd={handleDragEnd}
       >
