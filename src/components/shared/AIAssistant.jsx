@@ -85,26 +85,23 @@ export default function AIAssistant() {
   const showPills = messages.length === 0 && !isLoading;
   const isMobile = useMediaQuery('(max-width: 767px)');
 
-  // Renders a single action pill for a pending tool call
-  // In ai@6, server-side tools stream as type 'tool-{name}' (e.g. 'tool-add_to_packing_list'),
-  // NOT 'dynamic-tool' (which is only for truly unregistered/unknown tools).
-  // 'output-available' means addToolResult was already called — derive done from part state.
-  const ActionPill = ({ inv }) => {
+  // ── Generic pill base ────────────────────────────────────────────────────────
+  // Handles shared logic: done state, styling, addToolResult, toast + undo.
+  // Tool-specific wrappers (PackingPill, VotingPill) map inv.input → these props.
+  const ActionPill = ({ inv, toolName, emoji, label, onConfirm, onUndo, toastLabel }) => {
     const [localDone, setLocalDone] = useState(false)
     const done = localDone || inv.state === 'output-available'
-    const { item, section, emoji } = inv.input || {}
-    if (!item) return null
+    if (!label) return null
 
     const canAct = !!activeTrip && !done
 
     const handleClick = () => {
       if (!canAct) return
       const newId = generateId()
-      dispatch({ type: ACTIONS.ADD_PACKING_ITEM, payload: { id: newId, name: item, section: section || 'Misc' } })
-      // addToolResult signature changed in ai@6 — tool name required; cast to any for dynamic tools
-      try { addToolResult({ tool: 'add_to_packing_list', toolCallId: inv.toolCallId, output: 'added' }) } catch {}
-      showToast(`${emoji || '🧳'} ${item} added to packing`, {
-        undo: () => dispatch({ type: ACTIONS.DELETE_PACKING_ITEM, payload: newId }),
+      onConfirm(newId)
+      try { addToolResult({ tool: toolName, toolCallId: inv.toolCallId, output: 'added' }) } catch {}
+      showToast(`${emoji || '✨'} ${label} ${toastLabel}`, {
+        undo: () => onUndo(newId),
       })
       setLocalDone(true)
     }
@@ -132,10 +129,59 @@ export default function AIAssistant() {
           letterSpacing: '-0.01em',
         }}
       >
-        <span style={{ fontSize: '14px' }}>{done ? '✅' : (emoji || '🧳')}</span>
-        <span>{done ? 'Added' : `Add ${item}`}</span>
+        <span style={{ fontSize: '14px' }}>{done ? '✅' : (emoji || '✨')}</span>
+        <span>{done ? 'Added' : `Add ${label}`}</span>
         {!done && <span style={{ opacity: 0.6, fontSize: '11px', marginLeft: '2px' }}>+</span>}
       </button>
+    )
+  }
+
+  // ── Packing list pill ────────────────────────────────────────────────────────
+  const PackingPill = ({ inv }) => {
+    const { item, section, emoji } = inv.input || {}
+    return (
+      <ActionPill
+        inv={inv}
+        toolName="add_to_packing_list"
+        emoji={emoji || '🧳'}
+        label={item}
+        onConfirm={newId => dispatch({
+          type: ACTIONS.ADD_PACKING_ITEM,
+          payload: { id: newId, name: item, section: section || 'Misc' },
+        })}
+        onUndo={newId => dispatch({ type: ACTIONS.DELETE_PACKING_ITEM, payload: newId })}
+        toastLabel="added to packing"
+      />
+    )
+  }
+
+  // ── Voting room pill ─────────────────────────────────────────────────────────
+  const VotingPill = ({ inv }) => {
+    const { title, type, description, emoji, priceDetails } = inv.input || {}
+    return (
+      <ActionPill
+        inv={inv}
+        toolName="add_idea_to_voting_room"
+        emoji={emoji || '💡'}
+        label={title}
+        onConfirm={newId => dispatch({
+          type: ACTIONS.ADD_IDEA,
+          payload: {
+            id: newId,
+            title,
+            type: type || 'other',
+            description: description || '',
+            emoji: emoji || '✨',
+            priceDetails: priceDetails || 'TBD',
+            sourceName: 'Wanda AI',
+            proposerId: auth.currentUser?.uid || null,
+            url: null,
+            imageUrl: null,
+          },
+        })}
+        onUndo={newId => dispatch({ type: ACTIONS.DELETE_IDEA, payload: newId })}
+        toastLabel="added to voting room"
+      />
     )
   }
 
@@ -301,10 +347,16 @@ export default function AIAssistant() {
                   </div>
                 </div>
 
-                {/* Action pills — ai@6: server-streamed tools have type 'tool-{name}', never 'dynamic-tool' */}
+                {/* Action pills — both tools handled; type is 'tool-{name}' in ai@6 */}
                 {m.role === 'assistant' && m.parts
-                  ?.filter(p => p.type === 'tool-add_to_packing_list' && p.state !== 'input-streaming')
-                  .map(p => <ActionPill key={p.toolCallId} inv={p} />)
+                  ?.filter(p =>
+                    (p.type === 'tool-add_to_packing_list' || p.type === 'tool-add_idea_to_voting_room')
+                    && p.state !== 'input-streaming'
+                  )
+                  .map(p => p.type === 'tool-add_to_packing_list'
+                    ? <PackingPill key={p.toolCallId} inv={p} />
+                    : <VotingPill key={p.toolCallId} inv={p} />
+                  )
                 }
               </div>
             ))}
