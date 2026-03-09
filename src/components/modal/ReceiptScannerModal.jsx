@@ -18,6 +18,46 @@ const LOADING_MESSAGES = [
     "Crunching the numbers..."
 ]
 
+const resizeImage = (file, maxDimension = 1280) => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+            const img = new Image()
+            img.onload = () => {
+                const canvas = document.createElement('canvas')
+                let width = img.width
+                let height = img.height
+
+                if (width > height) {
+                    if (width > maxDimension) {
+                        height *= maxDimension / width
+                        width = maxDimension
+                    }
+                } else {
+                    if (height > maxDimension) {
+                        width *= maxDimension / height
+                        height = maxDimension
+                    }
+                }
+
+                canvas.width = width
+                canvas.height = height
+                const ctx = canvas.getContext('2d')
+                ctx.drawImage(img, 0, 0, width, height)
+
+                // Get optimized base64
+                const optimized = canvas.toDataURL('image/jpeg', 0.8)
+                console.log(`Payload optimized: ${(e.target.result.length / 1024).toFixed(1)}KB -> ${(optimized.length / 1024).toFixed(1)}KB`)
+                resolve(optimized.split(',')[1])
+            }
+            img.onerror = reject
+            img.src = e.target.result
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+    })
+}
+
 export default function ReceiptScannerModal({ isOpen, onClose }) {
     const { activeTrip, dispatch } = useTripContext()
     const { currentUserProfile } = useProfiles()
@@ -57,75 +97,67 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
 
         setIsScanning(true)
         try {
-            const reader = new FileReader()
-            reader.onloadend = async () => {
+            const base64String = await resizeImage(file)
+
+            // Get auth token
+            let token = ''
+            try {
+                const { auth } = await import('../../firebase/config')
+                token = await auth.currentUser?.getIdToken()
+            } catch (err) {
+                console.warn('Could not get auth token for scan', err)
+            }
+
+            const response = await fetch('/api/budget/scan-receipt', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                },
+                body: JSON.stringify({ imageBase64: base64String })
+            })
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}))
+                throw new Error(errData.error || `Scan failed (Status ${response.status})`)
+            }
+
+            const result = await response.json()
+            const originalCurrency = (result.currency || 'PHP').toUpperCase()
+
+            let rate = 1
+            if (originalCurrency !== 'PHP') {
                 try {
-                    const base64String = reader.result.split(',')[1]
-
-                    // Get auth token
-                    let token = ''
-                    try {
-                        const { auth } = await import('../../firebase/config')
-                        token = await auth.currentUser?.getIdToken()
-                    } catch (err) {
-                        console.warn('Could not get auth token for scan', err)
+                    const rateRes = await fetch(`https://api.exchangerate-api.com/v4/latest/${originalCurrency}`)
+                    if (rateRes.ok) {
+                        const rateData = await rateRes.json()
+                        rate = rateData.rates['PHP'] || 1
                     }
-
-                    const response = await fetch('/api/budget/scan-receipt', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            ...(token && { 'Authorization': `Bearer ${token}` })
-                        },
-                        body: JSON.stringify({ image: base64String })
-                    })
-
-                    if (!response.ok) {
-                        const errData = await response.json().catch(() => ({}))
-                        throw new Error(errData.error || `Scan failed (Status ${response.status})`)
-                    }
-
-                    const result = await response.json()
-                    const originalCurrency = (result.currency || 'PHP').toUpperCase()
-
-                    let rate = 1
-                    if (originalCurrency !== 'PHP') {
-                        try {
-                            const rateRes = await fetch(`https://api.exchangerate-api.com/v4/latest/${originalCurrency}`)
-                            if (rateRes.ok) {
-                                const rateData = await rateRes.json()
-                                rate = rateData.rates['PHP'] || 1
-                            }
-                        } catch (err) {
-                            console.warn('Currency conversion failed', err)
-                        }
-                    }
-
-                    const budget = activeTrip.budget || []
-                    const sanitisedItems = (result.items || []).map(item => {
-                        const matched = budget.find(c => c.name.toLowerCase() === item.category.toLowerCase())
-                        return {
-                            ...item,
-                            category: matched ? matched.name : (budget[0]?.name || 'Misc'),
-                            originalAmount: item.amount,
-                            originalCurrency: originalCurrency,
-                            amountPHP: Number((item.amount * rate).toFixed(2))
-                        }
-                    })
-
-                    setPendingItems(sanitisedItems)
-                    setStep(2)
                 } catch (err) {
-                    console.error('Scan Error:', err)
-                    alert(err.message)
-                } finally {
-                    setIsScanning(false)
+                    console.warn('Currency conversion failed', err)
                 }
             }
-            reader.readAsDataURL(file)
+
+            const budget = activeTrip.budget || []
+            const sanitisedItems = (result.items || []).map(item => {
+                const matched = budget.find(c => c.name.toLowerCase() === item.category.toLowerCase())
+                return {
+                    ...item,
+                    category: matched ? matched.name : (budget[0]?.name || 'Misc'),
+                    originalAmount: item.amount,
+                    originalCurrency: originalCurrency,
+                    amountPHP: Number((item.amount * rate).toFixed(2))
+                }
+            })
+
+            setPendingItems(sanitisedItems)
+            setStep(2)
         } catch (err) {
+            console.error('Scan Error:', err)
+            alert(err.message)
+        } finally {
             setIsScanning(false)
-            console.error('File Read Error:', err)
+            if (fileInputRef.current) fileInputRef.current.value = ''
         }
     }
 

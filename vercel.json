@@ -1,4 +1,9 @@
 {
+    "functions": {
+        "api/**/*.js": {
+            "maxDuration": 60
+        }
+    },
     "headers": [
         {
             "source": "/api/(.*)",
@@ -31,10 +36,5 @@
             "source": "/((?!api/|.*\\.).*)",
             "destination": "/index.html"
         }
-    ],
-    "functions": {
-        "api/budget/scan-receipt.js": {
-            "maxDuration": 60
-        }
-    }
+    ]
 }
