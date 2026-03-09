@@ -341,9 +341,18 @@ export default function AIAssistant() {
                       ),
                     }}
                   >
-                    {m.parts
-                      ? m.parts.filter(p => p.type === 'text').map((p, i) => <span key={i}>{p.text}</span>)
-                      : m.content}
+                    {(() => {
+                      const textParts = m.parts?.filter(p => p.type === 'text') ?? []
+                      const textContent = textParts.map(p => p.text).join('').trim()
+                      if (m.parts && !textContent) {
+                        // Gemini sometimes omits text when calling tools — show a fallback
+                        const hasVoting = m.parts.some(p => p.type === 'tool-add_idea_to_voting_room')
+                        const hasPacking = m.parts.some(p => p.type === 'tool-add_to_packing_list')
+                        if (hasVoting) return <span style={{ opacity: 0.75 }}>Here are some ideas — tap to add them to your voting room! 💡</span>
+                        if (hasPacking) return <span style={{ opacity: 0.75 }}>Here are some packing suggestions — tap to add them! 🧳</span>
+                      }
+                      return m.parts ? textParts.map((p, i) => <span key={i}>{p.text}</span>) : m.content
+                    })()}
                   </div>
                 </div>
 
