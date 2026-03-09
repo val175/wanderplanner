@@ -48,14 +48,29 @@ export default async function handler(req, res) {
 
             title =
                 $('meta[property="og:title"]').attr('content') ||
+                $('meta[property="og: title"]').attr('content') ||
                 $('meta[name="twitter:title"]').attr('content') ||
                 $('title').text().trim() ||
                 null
 
             imageUrl =
                 $('meta[property="og:image"]').attr('content') ||
+                $('meta[property="og: image"]').attr('content') ||
                 $('meta[name="twitter:image"]').attr('content') ||
                 null
+        }
+
+        // ── 1.1 Microlink fallback ───────────────────────────────────────────
+        // Many travel sites (Agoda, Expedia, etc.) inject og:image via React/JS at runtime,
+        // so static cheerio scraping misses it. Microlink renders with a headless browser.
+        if (!imageUrl) {
+            try {
+                const ml = await fetch(`https://api.microlink.io?url=${encodeURIComponent(url)}`);
+                if (ml.ok) {
+                    const mlJson = await ml.json();
+                    imageUrl = mlJson?.data?.image?.url || mlJson?.data?.logo?.url || null;
+                }
+            } catch (_) { /* non-fatal */ }
         }
     } catch (error) {
         console.error('[extract-pin] Scrape error:', error.message)

@@ -364,6 +364,7 @@ function TokenInventory({ poll, activeUserId }) {
 }
 
 function PollOptionCard({ option, poll, activeUserId, onVote, isLeader, globalTokensRemaining, globalVetoesRemaining, resolveProfile }) {
+    const [imgError, setImgError] = useState(false)
     const userVotes = poll.votes?.[activeUserId] || { tokens: {}, veto: null }
 
     const myTokens = userVotes.tokens[option.id] || 0
@@ -398,8 +399,14 @@ function PollOptionCard({ option, poll, activeUserId, onVote, isLeader, globalTo
 
             {/* Image Thumbnail */}
             <div className={`h-32 w-full bg-bg-secondary rounded-t-[calc(var(--radius-lg)-2px)] overflow-hidden shrink-0 flex items-center justify-center relative ${isLeader ? 'mt-0' : ''}`}>
-                {option.imageUrl ? (
-                    <img src={option.imageUrl} className="w-full h-full object-cover" alt="" loading="lazy" />
+                {option.imageUrl && !imgError ? (
+                    <img
+                        src={option.imageUrl}
+                        className="w-full h-full object-cover"
+                        alt=""
+                        loading="lazy"
+                        onError={() => setImgError(true)}
+                    />
                 ) : (
                     <span className="text-4xl drop-shadow-md">{option.emoji || '✨'}</span>
                 )}
@@ -613,6 +620,7 @@ function PollCard({ poll, activeUserId, onVote, onResolve, onDelete, onCancel, r
 
 // ── Idea Card (Original + Selection Logic) ──
 function IdeaCard({ idea, resolveProfile, onDelete, isSelectable, isSelected, onSelect }) {
+    const [imgError, setImgError] = useState(false)
     const isBooked = idea.status === 'booked'
 
     return (
@@ -653,8 +661,14 @@ function IdeaCard({ idea, resolveProfile, onDelete, isSelectable, isSelected, on
 
             {/* Top Half: Real image or emoji fallback */}
             <div className={`relative h-44 w-full flex items-center justify-center bg-bg-secondary overflow-hidden ${isBooked ? 'mt-6' : ''}`}>
-                {idea.imageUrl ? (
-                    <img src={idea.imageUrl} alt={idea.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" onError={e => { e.currentTarget.style.display = 'none' }} />
+                {idea.imageUrl && !imgError ? (
+                    <img
+                        src={idea.imageUrl}
+                        alt={idea.title}
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                        onError={() => setImgError(true)}
+                    />
                 ) : (
                     <div className="text-6xl drop-shadow-md filter saturate-150 transform group-hover:scale-110 transition-transform duration-500">
                         {idea.emoji || '✨'}
@@ -809,6 +823,7 @@ export default function VotingTab() {
                 priceDetails: data.priceDetails || "TBD",
                 description: data.description || "",
                 emoji: data.emoji || "✨",
+                imageUrl: data.imageUrl || null,
                 sourceName: data.sourceName || "Link",
                 proposerId: currentUserProfile?.id
             }
@@ -852,7 +867,16 @@ export default function VotingTab() {
     const handleCreatePoll = () => {
         if (selectedIdeaIds.size < 2 || !pollTitle.trim()) return
 
-        const selectedOptions = ideas.filter(i => selectedIdeaIds.has(i.id))
+        const selectedOptions = ideas.filter(i => selectedIdeaIds.has(i.id)).map(idea => ({
+            id: idea.id,
+            title: idea.title,
+            emoji: idea.emoji,
+            imageUrl: idea.imageUrl,
+            priceDetails: idea.priceDetails,
+            description: idea.description,
+            url: idea.url,
+            sourceName: idea.sourceName
+        }))
 
         dispatch({
             type: ACTIONS.CREATE_POLL,
