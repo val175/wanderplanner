@@ -26,6 +26,22 @@ const WANDA_TOOLS = {
             emoji:   z.string().describe('One emoji character for this item, e.g. "🧥"'),
         }),
     }),
+    add_idea_to_voting_room: tool({
+        description: [
+            'Add ONE travel recommendation to the trip voting room.',
+            'IMPORTANT: Call once per idea — never group multiple ideas in one call.',
+            'Correct: { title: "Fushimi Inari Hike", type: "activity", description: "Famous torii gate trail", emoji: "⛩️", priceDetails: "Free" }',
+            'Correct: { title: "The Peninsula Hotel", type: "lodging", description: "Luxury hotel in city center", emoji: "🏨", priceDetails: "~$300/night" }',
+            'Call up to 3 times per response for different recommendations.',
+        ].join(' '),
+        parameters: z.object({
+            title:        z.string().describe('Name of the place or activity, e.g. "Fushimi Inari Hike". Plain string, not an array.'),
+            type:         z.enum(['lodging', 'activity', 'food', 'transport', 'shopping', 'other']).describe('Category of the idea'),
+            description:  z.string().describe('One sentence describing why this is worth considering'),
+            emoji:        z.string().describe('One relevant emoji character, e.g. "⛩️"'),
+            priceDetails: z.string().describe('Estimated cost as a plain string, e.g. "~$50/person", "Free", or "TBD"'),
+        }),
+    }),
 }
 
 export default async function handler(req) {
