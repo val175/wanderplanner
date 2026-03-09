@@ -62,6 +62,7 @@ export default async function handler(req) {
                         messages: modelMessages,
                         tools: WANDA_TOOLS,
                     })
+                    console.log(`[chat] serving with ${modelId}`)
                     return result.toUIMessageStreamResponse({ headers: CORS_HEADERS })
                 } catch (e) {
                     console.log(`[chat] ${modelId} failed, trying next:`, e.message)
