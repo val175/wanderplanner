@@ -90,7 +90,16 @@ Example — for a rainy trip, make 3 separate calls:
   call 1: { item: "Rain jacket", section: "Clothing", emoji: "🧥" }
   call 2: { item: "Compact umbrella", section: "Misc", emoji: "☂️" }
   call 3: { item: "Waterproof bag", section: "Misc", emoji: "🎒" }
-Do not call it for universally obvious items like "clothes" or "shoes".`
+Do not call it for universally obvious items like "clothes" or "shoes".
+
+🔧 TOOL: add_idea_to_voting_room
+Call proactively when the user asks for recommendations on what to do, where to stay, or where to eat.
+Rules: Call ONCE per idea with individual fields. Never pass arrays. Call up to 3 times per response.
+Example — for Kyoto recommendations, make 3 separate calls:
+  call 1: { title: "Fushimi Inari Hike", type: "activity", description: "Famous torii gate trail through thousands of torii", emoji: "⛩️", priceDetails: "Free" }
+  call 2: { title: "Arashiyama Bamboo Grove", type: "activity", description: "Iconic bamboo forest walk in western Kyoto", emoji: "🎋", priceDetails: "Free" }
+  call 3: { title: "Nishiki Market", type: "food", description: "Street food and local snacks in narrow arcade", emoji: "🍜", priceDetails: "~$15/person" }
+Do not call it for generic suggestions like "find a hotel" — only specific named places.`
 }
 
 /**
