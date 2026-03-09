@@ -566,20 +566,32 @@ export function tripReducer(state, action) {
 
     // ─── Cities ───
     // payload: { fromIndex, toIndex }
+    // payload: { fromIndex, toIndex }
     case ACTIONS.REORDER_CITIES: {
       return updateTrip(state, activeTripId, trip => {
-        const cities = [...trip.cities]
+        const cities = [...(trip.cities || [])]
+        if (cities.length === 0 || payload.fromIndex === payload.toIndex) return trip
+
         const [moved] = cities.splice(payload.fromIndex, 1)
         cities.splice(payload.toIndex, 0, moved)
 
-        // Sync destinations order: stable-sort destinations so they follow
-        // the new cities order. Destinations whose city name is not in
-        // the cities array (e.g. a round-trip return leg) sort to the end.
+        // Sync destinations: re-sort only the waypoints whose city appears in
+        // the cities guide. Waypoints outside the guide (e.g. origin/return legs)
+        // stay at their original positions.
         const cityOrder = Object.fromEntries(cities.map((c, i) => [c.city, i]))
-        const destinations = [...(trip.destinations || [])].sort((a, b) => {
-          const ai = cityOrder[a.city] ?? Infinity
-          const bi = cityOrder[b.city] ?? Infinity
-          return ai - bi
+        const destinations = [...(trip.destinations || [])]
+
+        const inCityIndices = destinations
+          .map((d, i) => ({ d, i }))
+          .filter(({ d }) => cityOrder[d.city] !== undefined)
+          .map(({ i }) => i)
+
+        const inCityDests = inCityIndices
+          .map(i => destinations[i])
+          .sort((a, b) => cityOrder[a.city] - cityOrder[b.city])
+
+        inCityIndices.forEach((destIdx, j) => {
+          destinations[destIdx] = inCityDests[j]
         })
 
         return { ...trip, cities, destinations }
