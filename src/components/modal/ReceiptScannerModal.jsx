@@ -244,34 +244,19 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
                 {step === 2 && (
                     <div className="space-y-6 animate-fade-in">
                         {/* Paid By Selector */}
-                        <div className="space-y-2.5">
-                            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">Paid By</label>
-                            <div className="flex flex-wrap gap-2">
-                                {activeTrip.travelersSnapshot?.map(p => {
-                                    const id = p.uid || p.id
-                                    const selected = payerId === id
-                                    return (
-                                        <button
-                                            key={id}
-                                            type="button"
-                                            onClick={() => setPayerId(id)}
-                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-pill)] border text-sm transition-all duration-150
-                        ${selected
-                                                    ? 'bg-accent/10 border-accent/40 text-text-primary'
-                                                    : 'bg-bg-secondary border-border text-text-muted hover:border-accent/30 hover:text-text-secondary'
-                                                }`}
-                                        >
-                                            <AvatarCircle profile={p} size={22} />
-                                            <span className="font-medium">{p.name}{id === currentUserProfile?.uid ? ' (you)' : ''}</span>
-                                            {selected && (
-                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
-                                                    <polyline points="20 6 9 17 4 12" />
-                                                </svg>
-                                            )}
-                                        </button>
-                                    )
-                                })}
-                            </div>
+                        <div className="space-y-1.5">
+                            <label className="block text-xs text-text-muted uppercase tracking-wider font-medium mb-1.5">Paid By</label>
+                            <select
+                                value={payerId}
+                                onChange={(e) => setPayerId(e.target.value)}
+                                className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors cursor-pointer appearance-none"
+                            >
+                                {activeTrip.travelersSnapshot?.map(p => (
+                                    <option key={p.uid || p.id} value={p.uid || p.id}>
+                                        {p.name}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
 
                         {/* List Review */}
