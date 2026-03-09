@@ -13,8 +13,42 @@ import { triggerHaptic } from '../../utils/haptics'
 const CATEGORY_META = {
     lodging: { label: 'Lodging', emoji: '🏠' },
     activity: { label: 'Activity', emoji: '🎯' },
-    food: { label: 'Food', emoji: '🍔' },
+    food: { label: 'Restaurants', emoji: '🍴' },
+    transport: { label: 'Transport', emoji: '🚗' },
+    shopping: { label: 'Shopping', emoji: '🛍️' },
     other: { label: 'Other', emoji: '✨' },
+}
+
+/**
+ * Standardize price display for ideas/options
+ * Format: ₱1,234 (est.) /TOTAL
+ */
+function formatIdeaPrice(priceDetails, currency = 'PHP') {
+    if (!priceDetails || priceDetails === 'TBD' || priceDetails === '???') {
+        return { amount: 'TBD', unit: 'total' }
+    }
+
+    // Split amount and unit (e.g., "500 - 1500 per person /TOTAL" -> ["500 - 1500 per person", "TOTAL"])
+    const [rawAmount, rawUnit] = priceDetails.split('/')
+
+    // Clean up amount: remove currency codes like "PHP", "USD", etc.
+    // but preserve the "₱" if already present, or we'll add it later.
+    let amount = rawAmount.replace(/PHP|USD|EUR|GBP|JPY/gi, '').trim()
+
+    // Add peso sign if not present and is PHP (default)
+    if (!amount.includes('₱') && !amount.includes('$') && !amount.includes('€')) {
+        amount = `₱${amount}`
+    }
+
+    // Add (est.) if not present
+    if (!amount.toLowerCase().includes('(est.)')) {
+        amount = `${amount} (est.)`
+    }
+
+    return {
+        amount,
+        unit: (rawUnit || 'total').toLowerCase().trim()
+    }
 }
 function CategoryPill({ type }) {
     const meta = CATEGORY_META[type] || CATEGORY_META.other
@@ -99,14 +133,18 @@ function IdeaTableRow({ idea, resolveProfile, onDelete, isSelectable, isSelected
 
             {/* Est. Cost */}
             <td className="py-3 pr-4 whitespace-nowrap">
-                {idea.priceDetails ? (
-                    <span className="text-[13px] font-bold text-text-primary">
-                        {idea.priceDetails.split('/')[0]}
-                        <span className="text-[10px] font-bold text-text-muted ml-0.5 uppercase">
-                            /{idea.priceDetails.split('/')[1] || 'total'}
+                {(() => {
+                    const { amount, unit } = formatIdeaPrice(idea.priceDetails)
+                    if (amount === 'TBD') return <span className="text-text-muted text-xs">—</span>
+                    return (
+                        <span className="text-[13px] font-bold text-text-primary">
+                            {amount}
+                            <span className="text-[10px] font-bold text-text-muted ml-0.5 uppercase">
+                                /{unit}
+                            </span>
                         </span>
-                    </span>
-                ) : <span className="text-text-muted text-xs">—</span>}
+                    )
+                })()}
             </td>
 
             {/* Proposed by */}
@@ -373,8 +411,15 @@ function PollOptionCard({ option, poll, activeUserId, onVote, isLeader, globalTo
                     {option.title}
                 </a>
                 <div className="text-xs text-text-secondary flex flex-wrap items-center gap-1">
-                    <span className="font-bold">{option.priceDetails?.split('/')[0] || 'TBD'}</span>
-                    <span className="text-[10px] tracking-wider uppercase">/{option.priceDetails?.split('/')[1] || ' TOTAL'}</span>
+                    {(() => {
+                        const { amount, unit } = formatIdeaPrice(option.priceDetails)
+                        return (
+                            <>
+                                <span className="font-bold">{amount}</span>
+                                <span className="text-[10px] tracking-wider uppercase">/{unit}</span>
+                            </>
+                        )
+                    })()}
                     {option.sourceName && <span className="opacity-50">•</span>}
                     {option.sourceName && <span>{option.sourceName}</span>}
                 </div>
@@ -648,8 +693,15 @@ function IdeaCard({ idea, resolveProfile, onDelete, isSelectable, isSelected, on
 
                 <div className="mt-4 mb-2 flex items-center justify-between">
                     <div>
-                        <span className="font-bold text-sm text-text-primary mr-1">{idea.priceDetails ? idea.priceDetails.split('/')[0] : '???'}</span>
-                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">/{idea.priceDetails?.split('/')[1] || ' TOTAL'}</span>
+                        {(() => {
+                            const { amount, unit } = formatIdeaPrice(idea.priceDetails)
+                            return (
+                                <>
+                                    <span className="font-bold text-sm text-text-primary mr-1">{amount}</span>
+                                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">/{unit}</span>
+                                </>
+                            )
+                        })()}
                     </div>
                 </div>
             </div>
@@ -729,10 +781,31 @@ export default function VotingTab() {
             showToast("Wanda is reading the link...", "info")
             const data = await extractIdeaDetails(urlInput, activeTrip?.currency)
 
+            const typeMapping = {
+                'lodging': 'lodging',
+                'hotel': 'lodging',
+                'airbnb': 'lodging',
+                'stay': 'lodging',
+                'activity': 'activity',
+                'tour': 'activity',
+                'experience': 'activity',
+                'thing to do': 'activity',
+                'food': 'food',
+                'resto': 'food',
+                'restaurant': 'food',
+                'cafe': 'food',
+                'dining': 'food',
+                'transport': 'transport',
+                'car': 'transport',
+                'flight': 'transport',
+                'shopping': 'shopping',
+                'mall': 'shopping'
+            }
+
             const newIdea = {
                 url: urlInput,
                 title: data.title || "Untitled Idea",
-                type: data.type || "other",
+                type: typeMapping[data.type?.toLowerCase()] || data.type || "other",
                 priceDetails: data.priceDetails || "TBD",
                 description: data.description || "",
                 emoji: data.emoji || "✨",
@@ -954,14 +1027,14 @@ export default function VotingTab() {
 
                 {/* View Filters, Toggle & URL Extractor */}
                 <div className={`transition-all duration-300 flex items-center justify-between gap-4 mb-4 relative ${isCreatingPoll ? '-mt-4' : ''}`}>
-                    <div className="flex items-center gap-2 overflow-x-auto pb-1 mb-[-4px]">
-                        {['all', 'lodging', 'activity'].map(f => (
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 mb-[-4px] no-scrollbar">
+                        {Object.entries({ all: { label: 'All Categories', emoji: '' }, ...CATEGORY_META }).map(([key, meta]) => (
                             <button
-                                key={f}
-                                onClick={() => setFilter(f)}
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-pill)] text-xs font-medium border transition-colors whitespace-nowrap ${filter === f ? 'bg-accent text-white border-transparent' : 'bg-bg-secondary border-border text-text-muted hover:text-text-secondary'}`}
+                                key={key}
+                                onClick={() => setFilter(key)}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-pill)] text-xs font-medium border transition-colors whitespace-nowrap ${filter === key ? 'bg-accent text-white border-transparent' : 'bg-bg-secondary border-border text-text-muted hover:text-text-secondary'}`}
                             >
-                                {f === 'all' ? 'All Categories' : f === 'lodging' ? <><span>🏠</span> Lodging</> : <><span>🎯</span> Activities</>}
+                                {meta.emoji && <span>{meta.emoji}</span>} {meta.label}
                             </button>
                         ))}
                     </div>
@@ -975,7 +1048,7 @@ export default function VotingTab() {
                                 onClick={() => switchView('table')}
                                 className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${ideaView === 'table' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
                             >
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
                                 Table
                             </button>
                             <button
@@ -983,7 +1056,7 @@ export default function VotingTab() {
                                 onClick={() => switchView('grid')}
                                 className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${ideaView === 'grid' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
                             >
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>
                                 Grid
                             </button>
                         </div>
