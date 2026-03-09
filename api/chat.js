@@ -50,39 +50,22 @@ export default async function handler(req) {
         const geminiKey = process.env.GEMINI_API_KEY
         const openrouterKey = process.env.OPENROUTER_API_KEY
 
+        // Native @ai-sdk/google provider handles Gemini's streaming format correctly,
+        // including tool call chunks (no missing-index Zod errors like the compat endpoint)
         if (geminiKey) {
-            // Primary: gemini-3.1-flash-lite-preview via OpenAI-compat endpoint (500 RPD)
-            // compatibility:'compatible' relaxes strict OpenAI schema validation so Gemini's
-            // non-standard streaming format (missing index on tool_call chunks) doesn't throw
-            const geminiCompat = createOpenAI({
-                baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai',
-                apiKey: geminiKey,
-                compatibility: 'compatible',
-            })
-            try {
-                const result = await streamText({
-                    model: geminiCompat.chat('gemini-3.1-flash-lite-preview'),
-                    system: systemPrompt,
-                    messages: modelMessages,
-                    tools: WANDA_TOOLS,
-                })
-                return result.toUIMessageStreamResponse({ headers: CORS_HEADERS })
-            } catch (e) {
-                console.warn('[chat] gemini-3.1-flash-lite-preview (compat) failed, trying fallback:', e.message)
-            }
-
-            // Fallback: gemini-2.5-flash via native @ai-sdk/google (confirmed tool calling support)
             const google = createGoogleGenerativeAI({ apiKey: geminiKey })
-            try {
-                const result = await streamText({
-                    model: google('gemini-2.5-flash'),
-                    system: systemPrompt,
-                    messages: modelMessages,
-                    tools: WANDA_TOOLS,
-                })
-                return result.toUIMessageStreamResponse({ headers: CORS_HEADERS })
-            } catch (e) {
-                console.warn('[chat] gemini-2.5-flash failed, trying OpenRouter:', e.message)
+            for (const modelId of ['gemini-3.1-flash-lite-preview', 'gemini-2.5-flash']) {
+                try {
+                    const result = await streamText({
+                        model: google(modelId),
+                        system: systemPrompt,
+                        messages: modelMessages,
+                        tools: WANDA_TOOLS,
+                    })
+                    return result.toUIMessageStreamResponse({ headers: CORS_HEADERS })
+                } catch (e) {
+                    console.warn(`[chat] ${modelId} failed, trying next:`, e.message)
+                }
             }
         }
 

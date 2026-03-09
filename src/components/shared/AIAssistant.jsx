@@ -86,9 +86,10 @@ export default function AIAssistant() {
   const isMobile = useMediaQuery('(max-width: 767px)');
 
   // Renders a single action pill for a pending tool call
+  // In ai@6, tools from server are DynamicToolUIPart: inv.input (not inv.args)
   const ActionPill = ({ inv }) => {
     const [done, setDone] = useState(false)
-    const { item, section, emoji } = inv.args || {}
+    const { item, section, emoji } = inv.input || {}
     if (!item) return null
 
     const canAct = !!activeTrip && !done
@@ -97,7 +98,8 @@ export default function AIAssistant() {
       if (!canAct) return
       const newId = generateId()
       dispatch({ type: ACTIONS.ADD_PACKING_ITEM, payload: { id: newId, name: item, section: section || 'Misc' } })
-      addToolResult({ toolCallId: inv.toolCallId, result: 'added' })
+      // addToolResult signature changed in ai@6 — tool name required; cast to any for dynamic tools
+      try { addToolResult({ tool: 'add_to_packing_list', toolCallId: inv.toolCallId, output: 'added' }) } catch {}
       showToast(`${emoji || '🧳'} ${item} added to packing`, {
         undo: () => dispatch({ type: ACTIONS.DELETE_PACKING_ITEM, payload: newId }),
       })
@@ -296,12 +298,11 @@ export default function AIAssistant() {
                   </div>
                 </div>
 
-                {/* Action pills — rendered for assistant messages with tool invocations */}
-                {m.role === 'assistant' && m.toolInvocations?.map(inv =>
-                  inv.toolName === 'add_to_packing_list' ? (
-                    <ActionPill key={inv.toolCallId} inv={inv} />
-                  ) : null
-                )}
+                {/* Action pills — ai@6 uses m.parts with type:'dynamic-tool' for server-side tools */}
+                {m.role === 'assistant' && m.parts
+                  ?.filter(p => p.type === 'dynamic-tool' && p.toolName === 'add_to_packing_list' && p.state !== 'input-streaming')
+                  .map(p => <ActionPill key={p.toolCallId} inv={p} />)
+                }
               </div>
             ))}
 
