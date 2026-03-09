@@ -79,6 +79,7 @@ export const ACTIONS = {
   UPDATE_CITY: 'UPDATE_CITY',
   ADD_CITY: 'ADD_CITY',
   DELETE_CITY: 'DELETE_CITY',
+  REORDER_CITIES: 'REORDER_CITIES',
 
   // Notes
   UPDATE_NOTES: 'UPDATE_NOTES',
@@ -564,6 +565,27 @@ export function tripReducer(state, action) {
       })
 
     // ─── Cities ───
+    // payload: { fromIndex, toIndex }
+    case ACTIONS.REORDER_CITIES: {
+      return updateTrip(state, activeTripId, trip => {
+        const cities = [...trip.cities]
+        const [moved] = cities.splice(payload.fromIndex, 1)
+        cities.splice(payload.toIndex, 0, moved)
+
+        // Sync destinations order: stable-sort destinations so they follow
+        // the new cities order. Destinations whose city name is not in
+        // the cities array (e.g. a round-trip return leg) sort to the end.
+        const cityOrder = Object.fromEntries(cities.map((c, i) => [c.city, i]))
+        const destinations = [...(trip.destinations || [])].sort((a, b) => {
+          const ai = cityOrder[a.city] ?? Infinity
+          const bi = cityOrder[b.city] ?? Infinity
+          return ai - bi
+        })
+
+        return { ...trip, cities, destinations }
+      })
+    }
+
     case ACTIONS.UPDATE_CITY: {
       // Read current trip from state (not yet inside updateTrip callback)
       const currentTrip = state.trips[activeTripId]
