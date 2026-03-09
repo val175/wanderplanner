@@ -12,7 +12,7 @@ import { useMediaQuery } from '../../hooks/useMediaQuery';
 let _systemPromptRef = buildTripSystemPrompt(null);
 
 const chatTransport = new DefaultChatTransport({
-  api: 'https://wanderplan-rust.vercel.app/api/chat',
+  api: '/api/chat',
   body: () => ({ systemPrompt: _systemPromptRef }),
   fetch: async (url, options) => {
     let token = '';

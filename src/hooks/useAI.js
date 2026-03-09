@@ -7,7 +7,7 @@
 import { auth } from '../firebase/config'
 
 // All requests go through our Vercel proxy to keep the API key server-side
-const PROXY_URL = 'https://wanderplan-rust.vercel.app/api/gemini'
+const PROXY_URL = '/api/gemini'
 
 const DEFAULT_MODEL = 'mistralai/mistral-small-3.1-24b-instruct:free'
 
@@ -246,7 +246,7 @@ export async function extractIdeaDetails(url, tripCurrency) {
     let token = '';
     if (auth.currentUser) token = await auth.currentUser.getIdToken();
 
-    const res = await fetch('https://wanderplan-rust.vercel.app/api/extract-idea', {
+    const res = await fetch('/api/extract-idea', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

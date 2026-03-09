@@ -93,7 +93,7 @@ function StepBasics({ form, setForm }) {
       let token = '';
       if (auth.currentUser) token = await auth.currentUser.getIdToken();
 
-      const res = await fetch('https://wanderplan-rust.vercel.app/api/extract-trip', {
+      const res = await fetch('/api/extract-trip', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

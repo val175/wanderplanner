@@ -9,6 +9,13 @@ export default defineConfig({
     react(),
   ],
   server: {
-    port: 5173
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: 'https://wanderplan-rust.vercel.app',
+        changeOrigin: true,
+        secure: true,
+      }
+    }
   }
 })
