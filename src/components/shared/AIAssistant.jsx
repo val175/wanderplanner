@@ -345,11 +345,17 @@ export default function AIAssistant() {
                       const textParts = m.parts?.filter(p => p.type === 'text') ?? []
                       const textContent = textParts.map(p => p.text).join('').trim()
                       if (m.parts && !textContent) {
-                        // Gemini sometimes omits text when calling tools — show a fallback
-                        const hasVoting = m.parts.some(p => p.type === 'tool-add_idea_to_voting_room')
-                        const hasPacking = m.parts.some(p => p.type === 'tool-add_to_packing_list')
-                        if (hasVoting) return <span style={{ opacity: 0.75 }}>Here are some ideas — tap to add them to your voting room! 💡</span>
-                        if (hasPacking) return <span style={{ opacity: 0.75 }}>Here are some packing suggestions — tap to add them! 🧳</span>
+                        // Gemini sometimes omits text when calling tools — build context from tool inputs
+                        const votingParts = m.parts.filter(p => p.type === 'tool-add_idea_to_voting_room' && p.input?.title)
+                        const packingParts = m.parts.filter(p => p.type === 'tool-add_to_packing_list' && p.input?.item)
+                        if (votingParts.length) {
+                          const names = votingParts.map(p => `${p.input.emoji || '📍'} ${p.input.title}`).join(', ')
+                          return <span>Here are some recommendations: {names}. Tap a pill below to add to your voting room!</span>
+                        }
+                        if (packingParts.length) {
+                          const names = packingParts.map(p => `${p.input.emoji || '🧳'} ${p.input.item}`).join(', ')
+                          return <span>Here are some packing suggestions: {names}. Tap to add!</span>
+                        }
                       }
                       return m.parts ? textParts.map((p, i) => <span key={i}>{p.text}</span>) : m.content
                     })()}
