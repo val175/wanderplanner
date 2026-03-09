@@ -55,6 +55,7 @@ function TopAddCityForm({ onAdd, onCancel }) {
 function CityRow({ city }) {
   const { activeTrip, dispatch, isReadOnly } = useTripContext()
   const [loading, setLoading] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
 
   const updateCity = (updates) => {
     dispatch({ type: ACTIONS.UPDATE_CITY, payload: { id: city.id, updates } })
@@ -74,10 +75,50 @@ function CityRow({ city }) {
     }
   }
 
+  const handleDrop = (e) => {
+    if (isReadOnly) return
+    e.preventDefault()
+    setDragOver(false)
+    const raw = e.dataTransfer.getData('application/json')
+    if (!raw) return
+    const { type, cityId } = JSON.parse(raw)
+    if (type !== 'city') return
+    const cities = activeTrip.cities || []
+    const fromIndex = cities.findIndex(c => c.id === cityId)
+    const toIndex = cities.findIndex(c => c.id === city.id)
+    if (fromIndex !== -1 && toIndex !== -1 && fromIndex !== toIndex) {
+      dispatch({ type: ACTIONS.REORDER_CITIES, payload: { fromIndex, toIndex } })
+    }
+  }
+
   const needsInspiration = !(city.weather || city.currencyTip || city.mustDo)
 
   return (
-    <tr className="group hover:bg-bg-hover transition-colors border-t border-border/20">
+    <tr
+      className={`group hover:bg-bg-hover transition-colors border-t border-border/20 ${dragOver && !isReadOnly ? 'ring-2 ring-inset ring-accent' : ''}`}
+      draggable={!isReadOnly}
+      onDragStart={e => {
+        if (isReadOnly || !e.target.closest('.city-drag-handle')) {
+          e.preventDefault()
+          return
+        }
+        e.dataTransfer.setData('application/json', JSON.stringify({ type: 'city', cityId: city.id }))
+      }}
+      onDragOver={e => {
+        if (isReadOnly) return
+        e.preventDefault()
+        setDragOver(true)
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={handleDrop}
+    >
+      {!isReadOnly && (
+        <td className="px-1 py-3 align-middle text-center w-6 shrink-0">
+          <div className="city-drag-handle cursor-grab active:cursor-grabbing text-text-muted opacity-20 hover:opacity-100 transition-opacity select-none">
+            ⠿
+          </div>
+        </td>
+      )}
       <td className="px-2 py-3 align-middle text-center text-2xl" style={{ width: '48px' }}>
         {city.flag || '📍'}
       </td>
@@ -200,6 +241,9 @@ export default function CitiesTab() {
           <table className="w-full text-left border-collapse table-fixed min-w-[850px] text-sm">
             <thead>
               <tr className="border-b border-border/50">
+                {!isReadOnly && (
+                  <th className="px-1 py-2 w-6 shrink-0"></th>
+                )}
                 <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted" style={{ width: '48px' }}></th>
                 <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted" style={{ width: '22%' }}>City</th>
                 <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted" style={{ width: '18%' }}>Weather</th>
