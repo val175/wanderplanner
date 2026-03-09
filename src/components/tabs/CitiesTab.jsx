@@ -100,10 +100,8 @@ function CityRow({ city }) {
       className={`group hover:bg-bg-hover transition-colors border-t border-border/20 ${dragOver && !isReadOnly ? 'ring-2 ring-inset ring-accent' : ''}`}
       draggable={!isReadOnly}
       onDragStart={e => {
-        if (isReadOnly || !e.target.closest('.city-drag-handle')) {
-          e.preventDefault()
-          return
-        }
+        if (isReadOnly) return
+        e.stopPropagation()
         e.dataTransfer.setData('application/json', JSON.stringify({ type: 'city', cityId: city.id }))
       }}
       onDragOver={e => {
