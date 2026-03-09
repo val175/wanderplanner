@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useTripContext } from '../../context/TripContext'
-import { formatCurrency } from '../../utils/helpers'
+import { formatCurrency, formatDate } from '../../utils/helpers'
 import { haversineDistance, geocodeCity } from '../../utils/helpers'
 import { ACTIONS } from '../../state/tripReducer'
 import { useState, useEffect } from 'react'

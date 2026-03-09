@@ -6,8 +6,11 @@ export function generateId() {
 
 export function formatDate(dateStr, style = 'medium') {
   if (!dateStr) return ''
-  const date = new Date(dateStr + 'T00:00:00')
-  if (isNaN(date.getTime())) return dateStr
+  // Only append T00:00:00 for plain date strings (YYYY-MM-DD) to avoid timezone shifting.
+  // Full ISO datetimes already have a time component — appending would make them invalid.
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(String(dateStr)) ? dateStr + 'T00:00:00' : dateStr
+  const date = new Date(normalized)
+  if (isNaN(date.getTime())) return String(dateStr)
 
   switch (style) {
     case 'short':

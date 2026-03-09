@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import Modal from '../shared/Modal'
 import Button from '../shared/Button'
 import AvatarCircle from '../shared/AvatarCircle'
+import Select, { SelectItem } from '../shared/Select'
 import { useTripContext } from '../../context/TripContext'
 import { useProfiles } from '../../context/ProfileContext'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
@@ -9,7 +10,6 @@ import { ACTIONS } from '../../state/tripReducer'
 import { buildSplits } from '../../utils/splitwise'
 
 const inputCls = 'w-full px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors'
-const selectCls = 'w-full px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary focus:border-accent focus:outline-none transition-colors'
 
 const LOADING_MESSAGES = [
     "Scanning receipt...",
@@ -253,17 +253,13 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
                                     <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
                                 </svg>
                             </div>
-                            <select
-                                value={payerId}
-                                onChange={(e) => setPayerId(e.target.value)}
-                                className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors cursor-pointer appearance-none"
-                            >
+                            <Select value={payerId} onValueChange={setPayerId} size="lg">
                                 {travelerProfiles?.map(p => (
-                                    <option key={p.uid || p.id} value={p.uid || p.id}>
+                                    <SelectItem key={p.uid || p.id} value={p.uid || p.id}>
                                         {p.name}{p.uid === currentUserProfile?.uid ? ' (you)' : ''}
-                                    </option>
+                                    </SelectItem>
                                 ))}
-                            </select>
+                            </Select>
                         </div>
 
                         {/* List Review */}
@@ -280,13 +276,11 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
                                                 placeholder="Description"
                                             />
                                             <div className="flex gap-2">
-                                                <select
-                                                    value={item.category}
-                                                    onChange={e => updateItem(idx, 'category', e.target.value)}
-                                                    className={selectCls + ' !py-1 !text-xs flex-1'}
-                                                >
-                                                    {activeTrip.budget?.map(c => <option key={c.id} value={c.name}>{c.emoji} {c.name}</option>)}
-                                                </select>
+                                                <div className="flex-1">
+                                                    <Select value={item.category} onValueChange={v => updateItem(idx, 'category', v)} size="sm" className="text-xs">
+                                                        {activeTrip.budget?.map(c => <SelectItem key={c.id} value={c.name}>{c.emoji} {c.name}</SelectItem>)}
+                                                    </Select>
+                                                </div>
                                                 <div className="w-32 relative">
                                                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-text-muted">₱</span>
                                                     <input

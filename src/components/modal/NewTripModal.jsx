@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import Modal from '../shared/Modal'
 import DatePicker from '../shared/DatePicker'
+import Select, { SelectItem } from '../shared/Select'
 import CityCombobox, { COUNTRY_FLAGS_MAP, resolveCity } from '../shared/CityCombobox'
 import { useTripContext } from '../../context/TripContext'
 import { useProfiles } from '../../context/ProfileContext'
@@ -460,11 +461,9 @@ function StepBudget({ form, setForm }) {
       {/* Currency */}
       <div>
         <label className="block text-sm font-medium text-text-secondary mb-1.5">Currency</label>
-        <select value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
-          className="w-full px-3 py-2.5 bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors appearance-none cursor-pointer"
-        >
-          {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.symbol} {c.code} — {c.name}</option>)}
-        </select>
+        <Select value={form.currency} onValueChange={v => setForm(f => ({ ...f, currency: v }))} size="lg">
+          {CURRENCIES.map(c => <SelectItem key={c.code} value={c.code}>{c.symbol} {c.code} — {c.name}</SelectItem>)}
+        </Select>
       </div>
 
       {/* Budget Categories */}

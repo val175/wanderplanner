@@ -5,10 +5,11 @@ import EditableText from '../shared/EditableText'
 import { useTripContext } from '../../context/TripContext'
 import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
-import { formatCurrency } from '../../utils/helpers'
+import { formatCurrency, formatDate } from '../../utils/helpers'
 import Button from '../shared/Button'
 import { calculateBalances, simplifyDebts, buildSplits } from '../../utils/splitwise'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
+import Select, { SelectItem } from '../shared/Select'
 
 // ── Shared Colors ─────────────────────────────────────────────────────────────
 const CHART_COLORS = [
@@ -380,16 +381,16 @@ function InlineExpenseRow({ categories, travelers, currency, onAdd, prefill }) {
       </td>
       {/* Category */}
       <td className="py-2 px-2 min-w-[130px]">
-        <select value={cat} onChange={e => setCat(e.target.value)} className={selectCls}>
-          {categories.map(c => <option key={c.id} value={c.name}>{c.emoji} {c.name}</option>)}
-        </select>
+        <Select value={cat} onValueChange={setCat} size="sm">
+          {categories.map(c => <SelectItem key={c.id} value={c.name}>{c.emoji} {c.name}</SelectItem>)}
+        </Select>
       </td>
       {/* Paid By */}
       {travelers.length > 1 && (
         <td className="py-2 px-2 min-w-[110px]">
-          <select value={paidBy} onChange={e => setPaidBy(e.target.value)} className={selectCls}>
-            {travelers.map(t => <option key={t.id} value={t.id}>{t.name.split(' ')[0]}</option>)}
-          </select>
+          <Select value={paidBy} onValueChange={setPaidBy} size="sm">
+            {travelers.map(t => <SelectItem key={t.id} value={t.id}>{t.name.split(' ')[0]}</SelectItem>)}
+          </Select>
         </td>
       )}
       {/* Amount */}

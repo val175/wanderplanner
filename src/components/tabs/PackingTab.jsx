@@ -1,5 +1,6 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
-import { createPortal } from 'react-dom'
+import { useState, useMemo, useCallback, useRef } from 'react'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
+import * as Checkbox from '@radix-ui/react-checkbox'
 import { useProfiles } from '../../context/ProfileContext'
 import {
   useReactTable,
@@ -96,75 +97,41 @@ const STARTER_ITEMS = [
 
 // ── Category pill + dropdown ────────────────────────────────────────────────
 function CategoryPill({ value, onChange, disabled }) {
-  const [open, setOpen] = useState(false)
-  const [coords, setCoords] = useState(null)
-  const buttonRef = useRef(null)
-  const dropdownRef = useRef(null)
-
   const cat = CATEGORIES.find(c => c.id === value) || CATEGORIES[4]
 
-  const handleOpen = (e) => {
-    e.stopPropagation()
-    const rect = buttonRef.current.getBoundingClientRect()
-    setCoords({
-      left: rect.left,
-      top: rect.bottom + window.scrollY + 4
-    })
-    setOpen(true)
-  }
-
-  useEffect(() => {
-    if (!open) return
-    const handler = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target) && !buttonRef.current.contains(e.target)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    window.addEventListener('scroll', () => setOpen(false), { passive: true })
-    return () => {
-      document.removeEventListener('mousedown', handler)
-      window.removeEventListener('scroll', () => setOpen(false))
-    }
-  }, [open])
-
   return (
-    <>
-      <button
-        ref={buttonRef}
-        onClick={disabled ? undefined : handleOpen}
-        disabled={disabled}
-        className={`inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 px-3 sm:px-2 py-1 sm:py-0.5 rounded-[var(--radius-pill)] text-xs font-medium border border-border bg-bg-secondary text-text-secondary transition-colors ${disabled ? 'cursor-default' : 'hover:bg-bg-hover'}`}
-      >
-        <span className="text-lg sm:text-base">{cat.emoji}</span>
-        <span className="hidden sm:inline">{cat.label}</span>
-      </button>
-
-      {open && coords && !disabled && createPortal(
-        <div
-          ref={dropdownRef}
-          className="absolute z-[100] rounded-[var(--radius-md)] border border-border bg-bg-card min-w-[140px] py-1"
-          style={{ top: coords.top, left: coords.left }}
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild disabled={disabled}>
+        <button
+          className={`inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 px-3 sm:px-2 py-1 sm:py-0.5 rounded-[var(--radius-pill)] text-xs font-medium border border-border bg-bg-secondary text-text-secondary transition-colors ${disabled ? 'cursor-default' : 'hover:bg-bg-hover'}`}
+        >
+          <span className="text-lg sm:text-base">{cat.emoji}</span>
+          <span className="hidden sm:inline">{cat.label}</span>
+        </button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          align="start"
+          sideOffset={4}
+          className="z-[9999] rounded-[var(--radius-md)] border border-border bg-bg-card min-w-[140px] py-1 animate-scale-in focus:outline-none"
         >
           {CATEGORIES.map(c => (
-            <button
+            <DropdownMenu.Item
               key={c.id}
-              onClick={(e) => {
-                e.stopPropagation()
-                onChange(c.id)
-                setOpen(false)
-              }}
-              className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left transition-colors
-                ${c.id === value ? 'bg-accent/8 text-accent font-semibold' : 'hover:bg-bg-hover text-text-secondary'}`}
+              onSelect={() => onChange(c.id)}
+              className={`flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer select-none outline-none transition-colors
+                ${c.id === value
+                  ? 'text-accent font-semibold data-[highlighted]:bg-accent/15'
+                  : 'text-text-secondary data-[highlighted]:bg-bg-hover data-[highlighted]:text-text-primary'
+                }`}
             >
               <span>{c.emoji}</span>
               <span>{c.label}</span>
-            </button>
+            </DropdownMenu.Item>
           ))}
-        </div>,
-        document.body
-      )}
-    </>
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   )
 }
 
@@ -194,32 +161,28 @@ function QtyStepper({ value, onChange, disabled }) {
 // ── Checkbox cell ───────────────────────────────────────────────────────────
 function PackedCheckbox({ packed, onToggle, disabled }) {
   return (
-    <button
-      onClick={() => !disabled && onToggle()}
+    <Checkbox.Root
+      checked={packed}
+      onCheckedChange={() => !disabled && onToggle()}
+      disabled={disabled}
+      aria-label={packed ? 'Mark unpacked' : 'Mark packed'}
       className={`w-5 h-5 rounded-[var(--radius-sm)] border-2 flex items-center justify-center transition-all ${packed
         ? 'bg-success border-success text-white animate-check-pop'
         : 'border-border-strong hover:border-accent'
         } ${disabled ? 'cursor-default opacity-80' : ''}`}
-      aria-label={packed ? 'Mark unpacked' : 'Mark packed'}
     >
-      {packed && (
+      <Checkbox.Indicator>
         <svg width="14" height="14" viewBox="0 0 12 12" fill="none" className="sm:w-[10px] sm:h-[10px]">
           <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-      )}
-    </button>
+      </Checkbox.Indicator>
+    </Checkbox.Root>
   )
 }
 
 // ── Assignee Pill ───────────────────────────────────────────────────────────
 function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, resolveProfile, currentUserProfile, disabled }) {
-  const [open, setOpen] = useState(false)
-  const [coords, setCoords] = useState(null)
-  const buttonRef = useRef(null)
-  const dropdownRef = useRef(null)
-
-  // Normalize to array of IDs
-  // We need to merge currentUserProfile.id into tripTravelers if it's not there, so they can assign to themselves
+  // Normalize to array of IDs, merge currentUserProfile if not already present
   const allTravelers = useMemo(() => {
     const ids = [...tripTravelers]
     if (currentUserProfile?.id && !ids.includes(currentUserProfile.id)) {
@@ -229,28 +192,6 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
   }, [tripTravelers, currentUserProfile])
 
   const assignees = Array.isArray(value) ? value : (value === 'shared' ? allTravelers : (value ? [value] : []))
-
-  const handleOpen = (e) => {
-    e.stopPropagation()
-    const rect = buttonRef.current.getBoundingClientRect()
-    setCoords({ left: rect.left, top: rect.bottom + window.scrollY + 4 })
-    setOpen(true)
-  }
-
-  useEffect(() => {
-    if (!open) return
-    const handler = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target) && !buttonRef.current.contains(e.target)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    window.addEventListener('scroll', () => setOpen(false), { passive: true })
-    return () => {
-      document.removeEventListener('mousedown', handler)
-      window.removeEventListener('scroll', () => setOpen(false))
-    }
-  }, [open])
 
   let displayNode = null
   let displayName = ''
@@ -275,9 +216,7 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
   } else if (assignees.length === 1) {
     const p = resolveProfile(assignees[0])
     if (p) {
-      displayNode = (
-        <AvatarCircle profile={p} size={22} />
-      )
+      displayNode = <AvatarCircle profile={p} size={22} />
       displayName = p.name
     } else {
       displayNode = (
@@ -297,51 +236,49 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
   }
 
   return (
-    <>
-      <button
-        ref={buttonRef}
-        onClick={disabled ? undefined : handleOpen}
-        disabled={disabled}
-        className={`inline-flex items-center rounded-full border border-transparent transition-all focus:outline-none ${disabled ? 'cursor-default' : 'hover:ring-[2px] ring-accent/30'}`}
-        title={displayName}
-      >
-        {displayNode}
-      </button>
-
-      {open && coords && !disabled && createPortal(
-        <div
-          ref={dropdownRef}
-          className="absolute z-[100] rounded-[var(--radius-md)] border border-border bg-bg-card min-w-[170px] py-1"
-          style={{ top: coords.top, left: coords.left }}
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild disabled={disabled}>
+        <button
+          className={`inline-flex items-center rounded-full border border-transparent transition-all focus:outline-none ${disabled ? 'cursor-default' : 'hover:ring-[2px] ring-accent/30'}`}
+          title={displayName}
+        >
+          {displayNode}
+        </button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          align="start"
+          sideOffset={4}
+          className="z-[9999] rounded-[var(--radius-md)] border border-border bg-bg-card min-w-[170px] py-1 animate-scale-in focus:outline-none"
         >
           {allTravelers.map(tId => {
             const p = resolveProfile(tId)
             if (!p) return null
             const isSelected = assignees.includes(tId)
             return (
-              <button
+              <DropdownMenu.CheckboxItem
                 key={tId}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  const next = isSelected ? assignees.filter(id => id !== tId) : [...assignees, tId]
+                checked={isSelected}
+                onCheckedChange={checked => {
+                  const next = checked ? [...assignees, tId] : assignees.filter(id => id !== tId)
                   onChange(next)
                 }}
-                className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left transition-colors hover:bg-bg-hover text-text-secondary`}
+                onSelect={e => e.preventDefault()}
+                className="flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer select-none outline-none text-text-secondary data-[highlighted]:bg-bg-hover data-[highlighted]:text-text-primary"
               >
                 <div className="flex-1 flex items-center gap-2">
                   <AvatarCircle profile={p} size={16} />
                   <span className="truncate">{p.name}</span>
                 </div>
-                {isSelected && (
-                  <svg className="w-3.5 h-3.5 text-accent shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                )}
-              </button>
+                <DropdownMenu.ItemIndicator>
+                  <svg className="w-3.5 h-3.5 text-accent shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                </DropdownMenu.ItemIndicator>
+              </DropdownMenu.CheckboxItem>
             )
           })}
-        </div>,
-        document.body
-      )}
-    </>
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   )
 }
 
