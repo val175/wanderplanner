@@ -54,7 +54,7 @@ export default async function handler(req) {
         // Uses native @ai-sdk/google provider (not OpenAI compat) so tool call streaming works correctly
         if (geminiKey) {
             const google = createGoogleGenerativeAI({ apiKey: geminiKey })
-            for (const modelId of ['gemini-2.0-flash-lite', 'gemini-2.5-flash']) {
+            for (const modelId of ['gemini-3.1-flash-lite-preview', 'gemini-2.5-flash']) {
                 try {
                     const result = await streamText({
                         model: google(modelId),
