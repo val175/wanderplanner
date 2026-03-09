@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
+import ReceiptScannerModal from '../modal/ReceiptScannerModal'
 import Card from '../shared/Card'
 import EditableText from '../shared/EditableText'
 import { useTripContext } from '../../context/TripContext'
@@ -313,7 +314,7 @@ function CategoryBudgetsCard({ budget, currency, divisor, perPerson, travelers, 
 }
 
 // ── Inline Expense Table Row ──────────────────────────────────────────────────
-function InlineExpenseRow({ categories, travelers, currency, onAdd }) {
+function InlineExpenseRow({ categories, travelers, currency, onAdd, prefill }) {
   const today = new Date().toISOString().slice(0, 10)
   const [desc, setDesc] = useState('')
   const [cat, setCat] = useState(categories[0]?.name || '')
@@ -325,6 +326,20 @@ function InlineExpenseRow({ categories, travelers, currency, onAdd }) {
   // Sync selects when props change (must be effects, not useMemo, to avoid rendering side-effects)
   useEffect(() => { if (categories[0] && !cat) setCat(categories[0].name) }, [categories])
   useEffect(() => { if (travelers[0] && !paidBy) setPaidBy(travelers[0].id) }, [travelers])
+
+  // Handle prefilled data from receipt scan
+  useEffect(() => {
+    if (prefill) {
+      if (prefill.description) setDesc(prefill.description)
+      if (prefill.amount) setAmount(String(prefill.amount))
+      if (prefill.category) {
+        // Try to match category by name (case-insensitive)
+        const matched = categories.find(c => c.name.toLowerCase() === prefill.category.toLowerCase())
+        if (matched) setCat(matched.name)
+        else setCat(prefill.category) // Fallback to provided string
+      }
+    }
+  }, [prefill, categories])
 
   const handleSubmit = (e) => {
     e?.preventDefault()
@@ -402,10 +417,12 @@ function InlineExpenseRow({ categories, travelers, currency, onAdd }) {
   )
 }
 
+
 // ── Spending Log Table ─────────────────────────────────────────────────────────
 function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onDelete }) {
   const [search, setSearch] = useState('')
   const [showInline, setShowInline] = useState(false)
+  const [showScanModal, setShowScanModal] = useState(false)
 
   const filtered = useMemo(() => {
     if (!search.trim()) return spendingLog
@@ -417,6 +434,7 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
 
   const showPaidBy = travelers.length > 1
 
+
   return (
     <Card className="border border-border/50">
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/50">
@@ -426,21 +444,38 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search..."
-            className="px-3 py-1.5 text-sm bg-bg-secondary border border-border/50 rounded-lg text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors w-36"
+            className="px-3 py-1.5 text-sm bg-bg-secondary border border-border/50 rounded-lg text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors w-24 sm:w-36"
           />
+
           {onAdd && (
-            <button
-              onClick={() => setShowInline(p => !p)}
-              className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest rounded-lg border transition-all ${showInline
-                ? 'bg-bg-secondary border-border text-text-muted'
-                : 'bg-accent text-white border-accent hover:bg-accent-hover'
-                }`}
-            >
-              {showInline ? 'Cancel' : '+ Log Expense'}
-            </button>
+            <>
+              <button
+                onClick={() => setShowScanModal(true)}
+                className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest rounded-lg border border-border text-text-secondary hover:text-text-primary hover:border-text-muted transition-all"
+              >
+                📸 Scan Receipt
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowInline(p => !p)
+                }}
+                className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest rounded-lg border transition-all ${showInline
+                  ? 'bg-bg-secondary border-border text-text-muted'
+                  : 'bg-accent text-white border-accent hover:bg-accent-hover'
+                  }`}
+              >
+                {showInline ? 'Cancel' : '+ Log Expense'}
+              </button>
+            </>
           )}
         </div>
       </div>
+
+      <ReceiptScannerModal
+        isOpen={showScanModal}
+        onClose={() => setShowScanModal(false)}
+      />
 
       <div className="overflow-x-auto -mx-5">
         <table className="w-full text-sm">
