@@ -50,11 +50,11 @@ export default async function handler(req) {
         const geminiKey = process.env.GEMINI_API_KEY
         const openrouterKey = process.env.OPENROUTER_API_KEY
 
-        // Try Gemini — flash-lite first (500 RPD), then flash (20 RPD) as safety net
+        // Try Gemini — flash-lite first (1000 RPD), then flash (250 RPD) as safety net
         // Uses native @ai-sdk/google provider (not OpenAI compat) so tool call streaming works correctly
         if (geminiKey) {
             const google = createGoogleGenerativeAI({ apiKey: geminiKey })
-            for (const modelId of ['gemini-3.1-flash-lite-preview', 'gemini-2.5-flash']) {
+            for (const modelId of ['gemini-2.5-flash-lite', 'gemini-2.5-flash']) {
                 try {
                     const result = await streamText({
                         model: google(modelId),
@@ -62,10 +62,9 @@ export default async function handler(req) {
                         messages: modelMessages,
                         tools: WANDA_TOOLS,
                     })
-                    console.log(`[chat] serving with ${modelId}`)
                     return result.toUIMessageStreamResponse({ headers: CORS_HEADERS })
                 } catch (e) {
-                    console.log(`[chat] ${modelId} failed, trying next:`, e.message)
+                    console.warn(`[chat] ${modelId} failed, trying next:`, e.message)
                 }
             }
         }
