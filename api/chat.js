@@ -1,6 +1,7 @@
 // api/chat.js
 import { streamText, tool } from 'ai'
 import { z } from 'zod'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createOpenAI } from '@ai-sdk/openai'
 import { verifyFirebaseToken } from './_auth.js'
 import { CORS_HEADERS } from './_cors.js'
@@ -50,15 +51,13 @@ export default async function handler(req) {
         const openrouterKey = process.env.OPENROUTER_API_KEY
 
         // Try Gemini — flash-lite first (500 RPD), then flash (20 RPD) as safety net
+        // Uses native @ai-sdk/google provider (not OpenAI compat) so tool call streaming works correctly
         if (geminiKey) {
-            const gemini = createOpenAI({
-                baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai',
-                apiKey: geminiKey,
-            })
-            for (const modelId of ['gemini-3.1-flash-lite-preview', 'gemini-2.5-flash']) {
+            const google = createGoogleGenerativeAI({ apiKey: geminiKey })
+            for (const modelId of ['gemini-2.0-flash-lite', 'gemini-2.5-flash']) {
                 try {
                     const result = await streamText({
-                        model: gemini.chat(modelId),
+                        model: google(modelId),
                         system: systemPrompt,
                         messages: modelMessages,
                         tools: WANDA_TOOLS,
