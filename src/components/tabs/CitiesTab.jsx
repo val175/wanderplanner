@@ -81,7 +81,9 @@ function CityRow({ city }) {
     setDragOver(false)
     const raw = e.dataTransfer.getData('application/json')
     if (!raw) return
-    const { type, cityId } = JSON.parse(raw)
+    let parsed
+    try { parsed = JSON.parse(raw) } catch { return }
+    const { type, cityId } = parsed
     if (type !== 'city') return
     const cities = activeTrip.cities || []
     const fromIndex = cities.findIndex(c => c.id === cityId)
@@ -109,7 +111,7 @@ function CityRow({ city }) {
         e.preventDefault()
         setDragOver(true)
       }}
-      onDragLeave={() => setDragOver(false)}
+      onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(false) }}
       onDrop={handleDrop}
     >
       {!isReadOnly && (
