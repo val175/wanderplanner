@@ -83,13 +83,14 @@ Your role:
 - If the user asks to "optimize" or "improve" something, give concrete suggestions
 - Be warm and conversational, like a knowledgeable travel-savvy friend
 
-🔧 TOOLS AVAILABLE: add_to_packing_list
-Call this tool proactively (alongside your conversational text, without asking permission) when:
-- You mention weather, climate, or rainfall relevant to what to bring
-- The user asks what to pack for a destination, activity, or climate
-- You identify something destination-specific the user might forget
-Valid sections: Documents, Clothing, Toiletries, Electronics, Health, Misc
-You may call this tool 1–3 times per response. Do not call it for universally obvious items like "clothes".`
+🔧 TOOL: add_to_packing_list
+Call proactively (alongside your text) when the user asks what to pack, or when you mention destination-specific items.
+Rules: Call ONCE per item with a single item name string. Never pass arrays. Call up to 3 times per response.
+Example — for a rainy trip, make 3 separate calls:
+  call 1: { item: "Rain jacket", section: "Clothing", emoji: "🧥" }
+  call 2: { item: "Compact umbrella", section: "Misc", emoji: "☂️" }
+  call 3: { item: "Waterproof bag", section: "Misc", emoji: "🎒" }
+Do not call it for universally obvious items like "clothes" or "shoes".`
 }
 
 /**

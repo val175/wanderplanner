@@ -13,11 +13,17 @@ export const config = {
 
 const WANDA_TOOLS = {
     add_to_packing_list: tool({
-        description: 'Add an item to the trip packing list when contextually relevant (weather, destination-specific necessities, activity requirements).',
+        description: [
+            'Add ONE specific packing item to the trip packing list.',
+            'IMPORTANT: Call this tool once per individual item — never use arrays, never group items.',
+            'Correct: { item: "Rain jacket", section: "Clothing", emoji: "🧥" }',
+            'Correct: { item: "Compact umbrella", section: "Misc", emoji: "☂️" }',
+            'Call up to 3 times per response for different individual items.',
+        ].join(' '),
         parameters: z.object({
-            item:    z.string().describe('Item name, e.g. "Compact umbrella" or "Reef-safe sunscreen"'),
-            section: z.enum(['Documents', 'Clothing', 'Toiletries', 'Electronics', 'Health', 'Misc']).describe('Which packing section this belongs to'),
-            emoji:   z.string().describe('A single relevant emoji for the item'),
+            item:    z.string().describe('Name of a single packing item as a plain string, e.g. "Rain jacket". Never an array.'),
+            section: z.enum(['Documents', 'Clothing', 'Toiletries', 'Electronics', 'Health', 'Misc']).describe('Packing section for this item'),
+            emoji:   z.string().describe('One emoji character for this item, e.g. "🧥"'),
         }),
     }),
 }
@@ -56,12 +62,14 @@ export default async function handler(req) {
             const google = createGoogleGenerativeAI({ apiKey: geminiKey })
             for (const modelId of ['gemini-3.1-flash-lite-preview', 'gemini-2.5-flash']) {
                 try {
+                    console.log(`[chat] trying model=${modelId}`)
                     const result = await streamText({
                         model: google(modelId),
                         system: systemPrompt,
                         messages: modelMessages,
                         tools: WANDA_TOOLS,
                     })
+                    console.log(`[chat] streaming with model=${modelId}`)
                     return result.toUIMessageStreamResponse({ headers: CORS_HEADERS })
                 } catch (e) {
                     console.warn(`[chat] ${modelId} failed, trying next:`, e.message)
