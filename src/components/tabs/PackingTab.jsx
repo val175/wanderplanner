@@ -196,7 +196,7 @@ function PackedCheckbox({ packed, onToggle, disabled }) {
   return (
     <button
       onClick={() => !disabled && onToggle()}
-      className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${packed
+      className={`w-5 h-5 rounded-[var(--radius-sm)] border-2 flex items-center justify-center transition-all ${packed
         ? 'bg-success border-success text-white animate-check-pop'
         : 'border-border-strong hover:border-accent'
         } ${disabled ? 'cursor-default opacity-80' : ''}`}
@@ -642,9 +642,9 @@ export default function PackingTab() {
       <Card>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-3">
           <div className="flex items-center justify-between xl:justify-start w-full gap-3">
-            <h2 className="font-heading text-lg text-text-primary">🧳 Packing List</h2>
+            <h2 className="font-heading font-semibold text-lg text-text-primary">🧳 Packing List</h2>
             {total > 0 && (
-              <span className="text-sm text-text-muted tabular-nums">{packed}/{total} items packed</span>
+              <span className="text-sm text-text-muted font-medium tabular-nums">{packed}/{total} items packed</span>
             )}
           </div>
         </div>
@@ -675,20 +675,20 @@ export default function PackingTab() {
           <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border mr-1 sm:mr-3">
             <button
               onClick={() => setViewMode('group')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${viewMode === 'group' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${viewMode === 'group' ? 'bg-bg-card text-text-primary' : 'text-text-muted hover:text-text-secondary'
                 }`}
             >
               Everyone
             </button>
             <button
               onClick={() => setViewMode('me')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all flex items-center gap-1.5 ${viewMode === 'me' ? 'bg-bg-card shadow-sm text-accent' : 'text-text-muted hover:text-text-secondary'
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all flex items-center gap-1.5 ${viewMode === 'me' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'
                 }`}
             >
               {viewMode === 'me' && currentUserProfile?.photo ? (
                 <img src={currentUserProfile.photo} alt="" className="w-3.5 h-3.5 rounded-full" />
               ) : viewMode === 'me' ? (
-                <div className="w-3.5 h-3.5 rounded-full bg-accent/20 text-accent flex items-center justify-center text-[7px] font-bold">
+                <div className="w-3.5 h-3.5 rounded-full bg-accent/20 text-accent flex items-center justify-center text-[7px] font-semibold">
                   {currentUserProfile?.name?.charAt(0) || 'M'}
                 </div>
               ) : null}
@@ -721,7 +721,7 @@ export default function PackingTab() {
                 {table.getHeaderGroups()[0].headers.map(header => (
                   <th
                     key={header.id}
-                    className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted overflow-hidden"
+                    className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted overflow-hidden"
                     style={{ width: header.column.columnDef.size === 999 ? 'auto' : header.column.columnDef.size }}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}

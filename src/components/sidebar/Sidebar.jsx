@@ -13,7 +13,7 @@ function TripGroup({ title, trips, activeTripId, onSelect }) {
   if (!trips || trips.length === 0) return null
   return (
     <div className="mb-2 last:mb-0">
-      <div className="px-3 py-1 mb-0.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">
+      <div className="px-3 py-1 mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
         {title}
       </div>
       {trips.map(trip => (
@@ -62,7 +62,7 @@ function TripSwitcher({ trips, activeTrip, activeTripId, onSelect, onNewTrip }) 
         className="w-full flex items-center justify-between p-2 rounded-[var(--radius-md)] hover:bg-bg-hover transition-colors text-left"
       >
         <div className="flex flex-col overflow-hidden">
-          <span className="text-[10px] text-text-muted font-bold uppercase tracking-widest mb-0.5">Trip</span>
+          <span className="text-[10px] text-text-muted font-semibold uppercase tracking-widest mb-0.5">Trip</span>
           <span className="text-sm font-semibold text-text-primary truncate">
             {activeTrip ? `${activeTrip.emoji} ${activeTrip.name || 'Untitled Trip'}` : 'Select a Trip'}
           </span>
@@ -161,7 +161,7 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
         {hasTrips && (
           <>
             <div>
-              <p className="px-3 mb-1 text-[10px] font-bold uppercase tracking-widest text-text-muted">The Plan</p>
+              <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-text-muted">The Plan</p>
               <nav className="flex flex-col gap-[2px]">
                 {thePlanTabs.map(tab => (
                   <NavLink
@@ -177,7 +177,7 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
             </div>
 
             <div>
-              <p className="px-3 mb-1 text-[10px] font-bold uppercase tracking-widest text-text-muted">Tools & Collab</p>
+              <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-text-muted">Tools & Collab</p>
               <nav className="flex flex-col gap-[2px]">
                 {toolsTabs.map(tab => (
                   <NavLink

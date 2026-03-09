@@ -99,7 +99,7 @@ export default function AIAssistant() {
       if (!canAct) return
       const newId = generateId()
       onConfirm(newId)
-      try { addToolResult({ tool: toolName, toolCallId: inv.toolCallId, output: 'added' }) } catch {}
+      try { addToolResult({ tool: toolName, toolCallId: inv.toolCallId, output: 'added' }) } catch { }
       showToast(`${emoji || '✨'} ${label} ${toastLabel}`, {
         undo: () => onUndo(newId),
       })
@@ -190,7 +190,7 @@ export default function AIAssistant() {
       {/* Chat panel */}
       {isOpen && (
         <div
-          className={`${isMobile ? 'fixed inset-0 z-[100] rounded-none' : 'fixed bottom-[80px] right-[24px] w-[360px] max-h-[520px] rounded-[20px] border border-[var(--color-border)] shadow-[0_12px_40px_rgba(0,0,0,0.13),0_2px_8px_rgba(0,0,0,0.06)]'}`}
+          className={`${isMobile ? 'fixed inset-0 z-[100] rounded-none' : 'fixed bottom-[80px] right-[24px] w-[360px] max-h-[520px] rounded-[20px] border border-[var(--color-border)]'}`}
           style={{
             background: 'var(--color-bg-card)',
             display: 'flex',
@@ -254,7 +254,7 @@ export default function AIAssistant() {
                 🪄
               </div>
               <div>
-                <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--color-text-primary)', letterSpacing: '-0.01em' }}>
+                <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-text-primary)', letterSpacing: '-0.01em' }}>
                   Wanda
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '1px' }}>
@@ -488,18 +488,15 @@ export default function AIAssistant() {
             fontSize: '14px',
             fontWeight: 600,
             cursor: 'pointer',
-            boxShadow: '0 4px 18px rgba(217, 119, 87, 0.38)',
             zIndex: 50,
             transition: 'transform 0.15s, box-shadow 0.15s',
             letterSpacing: '-0.01em',
           }}
           onMouseEnter={e => {
             e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 8px 24px rgba(217, 119, 87, 0.48)';
           }}
           onMouseLeave={e => {
             e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 4px 18px rgba(217, 119, 87, 0.38)';
           }}
         >
           <Sparkles size={15} />

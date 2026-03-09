@@ -4,6 +4,7 @@ import Button from '../shared/Button'
 import AvatarCircle from '../shared/AvatarCircle'
 import { useTripContext } from '../../context/TripContext'
 import { useProfiles } from '../../context/ProfileContext'
+import { useTripTravelers } from '../../hooks/useTripTravelers'
 import { ACTIONS } from '../../state/tripReducer'
 import { buildSplits } from '../../utils/splitwise'
 
@@ -61,6 +62,7 @@ const resizeImage = (file, maxDimension = 1280) => {
 export default function ReceiptScannerModal({ isOpen, onClose }) {
     const { activeTrip, dispatch } = useTripContext()
     const { currentUserProfile } = useProfiles()
+    const travelerProfiles = useTripTravelers()
 
     const [step, setStep] = useState(1) // 1: Upload, 2: Review
     const [isScanning, setIsScanning] = useState(false)
@@ -209,7 +211,7 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
                             📸
                         </div>
                         <h3 className="text-lg font-heading font-semibold text-text-primary mb-1">Scan a Receipt</h3>
-                        <p className="text-sm text-text-muted mb-6 px-8 text-center">
+                        <p className="text-sm text-text-muted mb-6 px-8 text-center font-medium">
                             Upload a photo of your receipt and we'll automatically extract line items and convert prices to PHP.
                         </p>
                         <input
@@ -233,7 +235,7 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
                             <span className="text-2xl animate-pulse">🧾</span>
                         </div>
                         <div>
-                            <h3 className="text-xl font-heading font-bold text-text-primary mb-1">
+                            <h3 className="text-xl font-heading font-semibold text-text-primary mb-1">
                                 {LOADING_MESSAGES[loadingMessageIndex]}
                             </h3>
                             <p className="text-sm text-text-muted">This usually takes about 10-15 seconds.</p>
@@ -245,15 +247,20 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
                     <div className="space-y-6 animate-fade-in">
                         {/* Paid By Selector */}
                         <div className="space-y-1.5">
-                            <label className="block text-xs text-text-muted uppercase tracking-wider font-medium mb-1.5">Paid By</label>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                                <label className="block text-xs text-text-muted uppercase tracking-wider font-medium">Paid By</label>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted cursor-help opacity-60 hover:opacity-100 transition-opacity" title="This traveler will be logged as the payer for all items in this receipt. Individual splits remain equal between everyone.">
+                                    <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+                                </svg>
+                            </div>
                             <select
                                 value={payerId}
                                 onChange={(e) => setPayerId(e.target.value)}
                                 className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors cursor-pointer appearance-none"
                             >
-                                {activeTrip.travelersSnapshot?.map(p => (
+                                {travelerProfiles?.map(p => (
                                     <option key={p.uid || p.id} value={p.uid || p.id}>
-                                        {p.name}
+                                        {p.name}{p.uid === currentUserProfile?.uid ? ' (you)' : ''}
                                     </option>
                                 ))}
                             </select>
@@ -261,7 +268,7 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
 
                         {/* List Review */}
                         <div className="space-y-2.5">
-                            <label className="block text-xs font-bold uppercase tracking-widest text-text-muted">Review Items</label>
+                            <label className="block text-xs font-semibold uppercase tracking-widest text-text-muted">Review Items</label>
                             <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1 scrollbar-thin">
                                 {pendingItems.map((item, idx) => (
                                     <div key={idx} className="flex items-start gap-2 bg-bg-secondary/40 p-3 rounded-[var(--radius-md)] border border-border/60 group">
@@ -307,7 +314,7 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
 
                         {/* Footer */}
                         <div className="flex items-center justify-between pt-4 border-t border-border">
-                            <div className="text-sm font-bold text-text-primary">
+                            <div className="text-sm font-semibold text-text-primary">
                                 Total: ₱{totalLog.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </div>
                             <div className="flex gap-3">

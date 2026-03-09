@@ -237,8 +237,8 @@ function StepBasics({ form, setForm }) {
       </div>
 
       <div>
-        <h2 className="font-heading text-xl text-text-primary mb-1">Name your adventure</h2>
-        <p className="text-sm text-text-muted">What should we call this trip?</p>
+        <h2 className="font-heading font-semibold text-xl text-text-primary mb-1">Name your adventure</h2>
+        <p className="text-sm text-text-muted font-medium">What should we call this trip?</p>
       </div>
 
       <div>
@@ -374,8 +374,8 @@ function StepDestinations({ form, setForm }) {
   return (
     <div className="space-y-5 animate-fade-in">
       <div>
-        <h2 className="font-heading text-xl text-text-primary mb-1">Where are you going?</h2>
-        <p className="text-sm text-text-muted">Add your destinations in order of visit.</p>
+        <h2 className="font-heading font-semibold text-xl text-text-primary mb-1">Where are you going?</h2>
+        <p className="text-sm text-text-muted font-medium">Add your destinations in order of visit.</p>
       </div>
 
       <div className="space-y-3">
@@ -453,8 +453,8 @@ function StepBudget({ form, setForm }) {
   return (
     <div className="space-y-5 animate-fade-in">
       <div>
-        <h2 className="font-heading text-xl text-text-primary mb-1">Set your budget</h2>
-        <p className="text-sm text-text-muted">Optional. You can always add this later.</p>
+        <h2 className="font-heading font-semibold text-xl text-text-primary mb-1">Set your budget</h2>
+        <p className="text-sm text-text-muted font-medium">Optional. You can always add this later.</p>
       </div>
 
       {/* Currency */}
@@ -553,16 +553,16 @@ function StepReview({ form, setForm }) {
   return (
     <div className="space-y-5 animate-fade-in">
       <div>
-        <h2 className="font-heading text-xl text-text-primary mb-1">Review your itinerary</h2>
-        <p className="text-sm text-text-muted">Uncheck anything you don't want to include in the trip.</p>
+        <h2 className="font-heading font-semibold text-xl text-text-primary mb-1">Review your itinerary</h2>
+        <p className="text-sm text-text-muted font-medium">Uncheck anything you don't want to include in the trip.</p>
       </div>
 
-      <div className="bg-bg-secondary border border-border rounded-[var(--radius-lg)] overflow-hidden">
+      <div className="bg-bg-secondary border border-border rounded-[var(--radius-lg)]">
         <div className="px-5 py-4 border-b border-border">
           <div className="flex items-center gap-3">
             <span className="text-4xl">{form.emoji}</span>
             <div>
-              <h3 className="font-heading text-lg font-bold text-text-primary">{form.name || 'Untitled Trip'}</h3>
+              <h3 className="font-heading text-lg font-semibold text-text-primary">{form.name || 'Untitled Trip'}</h3>
               {selectedProfiles.length > 0 ? (
                 <div className="flex items-center gap-1.5 mt-1">
                   {selectedProfiles.map(p => <AvatarCircle key={p.id} profile={p} size={22} ring />)}
@@ -582,7 +582,7 @@ function StepReview({ form, setForm }) {
                 value={form.startDate}
                 onChange={val => setForm(f => ({ ...f, startDate: val }))}
                 placeholder="Start Date"
-                className="w-full px-3 py-2 bg-bg-input border border-border rounded-[var(--radius-sm)] text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
+                className="w-full px-3 py-2 bg-bg-input border border-border rounded-[var(--radius-md)] text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
               />
               <span className="text-text-muted text-sm px-1">to</span>
               <DatePicker
@@ -590,7 +590,7 @@ function StepReview({ form, setForm }) {
                 onChange={val => setForm(f => ({ ...f, endDate: val }))}
                 min={form.startDate || undefined}
                 placeholder="End Date"
-                className="w-full px-3 py-2 bg-bg-input border border-border rounded-[var(--radius-sm)] text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
+                className="w-full px-3 py-2 bg-bg-input border border-border rounded-[var(--radius-md)] text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
               />
             </div>
           </div>

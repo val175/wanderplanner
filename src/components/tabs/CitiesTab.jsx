@@ -180,7 +180,7 @@ function CityRow({ city }) {
           <button
             onClick={handleWandaFill}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-1 px-1.5 py-1.5 rounded bg-accent/10 text-accent font-bold hover:bg-accent/20 transition-colors text-[10px] uppercase tracking-widest disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-1 px-1.5 py-1.5 rounded bg-accent/10 text-accent font-semibold hover:bg-accent/20 transition-colors text-[10px] uppercase tracking-widest disabled:opacity-50"
             title="Generate city guide with Wanda"
           >
             {loading ? '...' : '✨ Auto-fill'}
@@ -215,7 +215,7 @@ export default function CitiesTab() {
   return (
     <div className="space-y-6 pb-24 animate-fade-in w-full">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-2">
-        <h2 className="font-heading text-2xl font-bold text-text-primary shrink-0">🏙️ Cities</h2>
+        <h2 className="font-heading text-2xl font-semibold text-text-primary shrink-0">🏙️ Cities</h2>
 
         {!isReadOnly && (
           <div className="flex justify-end flex-1 w-full relative">
@@ -244,14 +244,14 @@ export default function CitiesTab() {
                 {!isReadOnly && (
                   <th className="px-1 py-2 w-6 shrink-0"></th>
                 )}
-                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted" style={{ width: '48px' }}></th>
-                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted" style={{ width: '22%' }}>City</th>
-                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted" style={{ width: '18%' }}>Weather</th>
-                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted" style={{ width: '18%' }}>Currency</th>
-                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted" style={{ width: '28%' }}>Vibe & Must Do</th>
-                <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted text-center" style={{ width: '110px' }}>Action</th>
+                <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted" style={{ width: '48px' }}></th>
+                <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted" style={{ width: '22%' }}>City</th>
+                <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted" style={{ width: '18%' }}>Weather</th>
+                <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted" style={{ width: '18%' }}>Currency</th>
+                <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted" style={{ width: '28%' }}>Vibe & Must Do</th>
+                <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted text-center" style={{ width: '110px' }}>Action</th>
                 {!isReadOnly && (
-                  <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-10 shrink-0"></th>
+                  <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted w-10 shrink-0"></th>
                 )}
               </tr>
             </thead>

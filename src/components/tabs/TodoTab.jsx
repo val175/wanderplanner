@@ -236,8 +236,8 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
               title="Drag to reorder"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="9" cy="12" r="1.5"/><circle cx="9" cy="5" r="1.5"/><circle cx="9" cy="19" r="1.5"/>
-                <circle cx="15" cy="12" r="1.5"/><circle cx="15" cy="5" r="1.5"/><circle cx="15" cy="19" r="1.5"/>
+                <circle cx="9" cy="12" r="1.5" /><circle cx="9" cy="5" r="1.5" /><circle cx="9" cy="19" r="1.5" />
+                <circle cx="15" cy="12" r="1.5" /><circle cx="15" cy="5" r="1.5" /><circle cx="15" cy="19" r="1.5" />
               </svg>
             </div>
           )}
@@ -291,7 +291,7 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
             className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-text-muted hover:text-danger rounded-[var(--radius-sm)]"
             title="Delete task"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
           </button>
         )}
       </div>
@@ -643,14 +643,14 @@ function TodoPhaseGroup({
             <span className={`transform transition-transform ${expanded ? 'rotate-90' : ''}`}>›</span>
           </button>
           <div className="flex flex-col ml-2">
-            <h3 className={`font-heading text-lg font-bold leading-tight flex items-center gap-2 ${phase.textClass}`}>
+            <h3 className={`font-heading text-lg font-semibold leading-tight flex items-center gap-2 ${phase.textClass}`}>
               <span>{index + 1}.</span> {phase.label}
             </h3>
-            <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-text-muted mt-0.5">{phase.subtitle}</p>
+            <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-widest text-text-muted mt-0.5">{phase.subtitle}</p>
           </div>
         </div>
         <div className="flex flex-col items-end min-w-[140px]">
-          <span className="text-[10px] font-bold text-text-muted tracking-wider mb-1.5 uppercase">
+          <span className="text-[10px] font-semibold text-text-muted tracking-wider mb-1.5 uppercase">
             {phaseDone}/{phaseTotal} Completed
           </span>
           <div className="h-1.5 w-full bg-bg-secondary rounded-full overflow-hidden border border-border/30">
@@ -668,9 +668,9 @@ function TodoPhaseGroup({
             <div className="flex items-center gap-2 px-0 py-2 border-b border-border/40 bg-bg-secondary/10">
               <div className="w-[30px] shrink-0"></div>
               <div className="w-[30px] shrink-0"></div>
-              <div className="flex-1 px-2 text-[10px] font-bold uppercase tracking-widest text-text-muted">TASK</div>
-              <div className="w-[140px] text-right px-2 text-[10px] font-bold uppercase tracking-widest text-text-muted">DUE DATE</div>
-              <div className="w-[40px] text-center text-[10px] font-bold uppercase tracking-widest text-text-muted">WHO</div>
+              <div className="flex-1 px-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted">TASK</div>
+              <div className="w-[140px] text-right px-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted">DUE DATE</div>
+              <div className="w-[40px] text-center text-[10px] font-semibold uppercase tracking-widest text-text-muted">WHO</div>
               <div className="w-[30px]"></div>
               {!isReadOnly && <div className="w-[40px]"></div>}
             </div>
@@ -883,8 +883,8 @@ export default function TodoTab() {
       {/* Header Area */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-heading text-text-primary tracking-tight">✅ Trip Tasks</h1>
-          <p className="text-sm text-text-secondary mt-1">Keep track of what needs to be done, and who is doing it.</p>
+          <h1 className="text-2xl font-semibold font-heading text-text-primary tracking-tight">✅ Trip Tasks</h1>
+          <p className="text-sm text-text-secondary mt-1 font-medium">Keep track of what needs to be done, and who is doing it.</p>
         </div>
 
         {/* Controls row */}
@@ -894,20 +894,20 @@ export default function TodoTab() {
             <button
               onClick={() => setViewMode('list')}
               className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5
-                ${viewMode === 'list' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+                ${viewMode === 'list' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
               </svg>
               List
             </button>
             <button
               onClick={() => setViewMode('board')}
               className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5
-                ${viewMode === 'board' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+                ${viewMode === 'board' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/>
+                <rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" />
               </svg>
               Board
             </button>
@@ -928,13 +928,13 @@ export default function TodoTab() {
           <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
             <button
               onClick={() => setFilter('all')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${filter === 'all' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${filter === 'all' ? 'bg-bg-card text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}
             >
               All Tasks
             </button>
             <button
               onClick={() => setFilter('mine')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all flex items-center justify-center gap-1.5 ${filter === 'mine' ? 'bg-bg-card shadow-sm text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all flex items-center justify-center gap-1.5 ${filter === 'mine' ? 'bg-bg-card text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}
             >
               {currentUserProfile && (
                 <AvatarCircle profile={currentUserProfile} size={14} />
@@ -1002,10 +1002,10 @@ export default function TodoTab() {
               <TodoItem
                 todo={activeTodo}
                 isBoard={true}
-                onToggle={() => {}}
-                onUpdate={() => {}}
-                onDelete={() => {}}
-                onDeepLink={() => {}}
+                onToggle={() => { }}
+                onUpdate={() => { }}
+                onDelete={() => { }}
+                onDeepLink={() => { }}
                 resolveProfile={resolveProfile}
                 tripTravelers={tripTravelers}
                 currentUserProfile={currentUserProfile}

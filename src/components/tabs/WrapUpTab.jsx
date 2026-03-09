@@ -14,13 +14,13 @@ function StatCard({ emoji, label, value, sub, accent = false, highlight = false 
       ${highlight ? 'border-accent/30 bg-accent/5' : 'border-border bg-bg-card'}`}>
             <span className="text-2xl leading-none">{emoji}</span>
             <div>
-                <p className={`font-heading text-2xl font-bold leading-tight
+                <p className={`font-heading text-2xl font-semibold leading-tight
           ${accent ? 'text-accent' : 'text-text-primary'}`}>
                     {value}
                 </p>
                 {sub && <p className="text-xs text-text-muted mt-0.5">{sub}</p>}
             </div>
-            <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mt-auto">{label}</p>
+            <p className="text-[10px] font-semibold text-text-muted uppercase tracking-widest mt-auto">{label}</p>
         </div>
     )
 }
@@ -142,7 +142,7 @@ export default function WrapUpTab() {
             {/* Hero */}
             <div className="text-center py-6">
                 <div className="text-5xl mb-4 animate-pulse-warm">🎉</div>
-                <h1 className="font-heading text-3xl font-bold text-text-primary">{trip.name}</h1>
+                <h1 className="font-heading text-3xl font-semibold text-text-primary">{trip.name}</h1>
                 <p className="text-sm text-text-muted mt-2">
                     {effectiveStatus === 'archived' ? '📁 Archived memory' : '📖 Completed trip'}
                 </p>
@@ -150,7 +150,7 @@ export default function WrapUpTab() {
 
             {/* Stats grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <StatCard emoji="🗓️" label="Days" value={stats.totalDays} sub={trip.startDate && trip.endDate ? `${trip.startDate} → ${trip.endDate}` : null} />
+                <StatCard emoji="🗓️" label="Days" value={stats.totalDays} sub={trip.startDate && trip.endDate ? `${formatDate(trip.startDate)} → ${formatDate(trip.endDate)}` : null} />
                 <StatCard emoji="📍" label="Activities" value={stats.totalActivities} sub={`across ${stats.totalDays} days`} />
                 {stats.countries.length > 0 && (
                     <StatCard emoji={stats.countries[0]} label="Countries" value={stats.countries.length} sub={stats.countries.join('  ')} />
@@ -169,8 +169,8 @@ export default function WrapUpTab() {
                 )}
                 {stats.favourite && (
                     <div className="col-span-2 sm:col-span-3 rounded-[var(--radius-lg)] border border-success/30 bg-success/5 p-4">
-                        <p className="text-[10px] font-bold text-success uppercase tracking-widest mb-2">🏆 Group's Favourite</p>
-                        <p className="text-base font-bold text-text-primary">
+                        <p className="text-[10px] font-semibold text-success uppercase tracking-widest mb-2">🏆 Group's Favourite</p>
+                        <p className="text-base font-semibold text-text-primary">
                             {stats.favourite.emoji && <span className="mr-2">{stats.favourite.emoji}</span>}
                             {stats.favourite.title || stats.favourite.name}
                         </p>

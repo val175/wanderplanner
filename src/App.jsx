@@ -66,7 +66,7 @@ function EmptyState({ onNewTrip }) {
     <div className="flex-1 flex items-center justify-center p-8 animate-fade-in-up">
       <div className="text-center max-w-sm">
         <div className="text-7xl mb-6 animate-pulse-warm">🧳</div>
-        <h2 className="font-heading text-2xl font-bold text-text-primary mb-3">
+        <h2 className="font-heading text-2xl font-semibold text-text-primary mb-3">
           No trips yet
         </h2>
         <p className="text-text-muted text-sm leading-relaxed mb-8">
@@ -281,7 +281,7 @@ export default function App() {
       <div className="flex h-screen items-center justify-center bg-bg-primary">
         <div className="text-center max-w-sm px-8">
           <div className="text-5xl mb-5">🔒</div>
-          <h2 className="font-heading text-xl font-bold text-text-primary mb-2">
+          <h2 className="font-heading text-xl font-semibold text-text-primary mb-2">
             Access restricted
           </h2>
           <p className="text-text-muted text-sm mb-6 leading-relaxed">

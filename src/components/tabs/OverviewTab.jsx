@@ -28,7 +28,7 @@ function BentoCard({ children, className = '', onClick }) {
 /* Consistent label style used across all cells */
 function Label({ children }) {
   return (
-    <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.14em]">
+    <span className="text-[10px] font-semibold text-text-muted uppercase tracking-[0.14em]">
       {children}
     </span>
   )
@@ -98,7 +98,7 @@ function WeatherCell({ destinations }) {
             <div className="flex-1 flex flex-col justify-center mt-3">
               <div className="text-4xl leading-none mb-2">{emoji}</div>
               <div className="flex items-baseline gap-1.5">
-                <span className="font-heading font-bold text-2xl text-text-primary">{weather.temp}°</span>
+                <span className="font-heading font-semibold text-2xl text-text-primary">{weather.temp}°</span>
                 <span className="text-xs text-text-muted">feels {weather.feelsLike}°</span>
               </div>
               <div className="text-xs text-text-muted mt-0.5">{label}</div>
@@ -358,7 +358,7 @@ function RouteMapCell({ trip }) {
                             : 'border-t-[#89A88F]'}`} />
                     </div>
                     {/* Pin Label — always-dark for map contrast */}
-                    <div className="mt-1.5 bg-[#0F172A] text-white text-[10px] font-bold px-2.5 py-1 rounded-[6px] whitespace-nowrap z-20">
+                    <div className="mt-1.5 bg-[#0F172A] text-white text-[10px] font-semibold px-2.5 py-1 rounded-[6px] whitespace-nowrap z-20">
                       {label}
                     </div>
                   </div>
@@ -375,7 +375,7 @@ function RouteMapCell({ trip }) {
 
           {/* Top Left: Combined Overview Card */}
           <div className="absolute top-5 left-5 bg-bg-card border border-border rounded-[var(--radius-lg)] p-5 pointer-events-none z-10 flex flex-col min-w-[240px]">
-            <h2 className="text-[16px] font-bold text-text-primary leading-tight flex items-center gap-2">
+            <h2 className="text-[16px] font-semibold text-text-primary leading-tight flex items-center gap-2">
               🗺️ Route Overview
             </h2>
             <p className="text-[12px] font-medium text-text-muted mt-1 tracking-wide">
@@ -387,11 +387,11 @@ function RouteMapCell({ trip }) {
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-3.5 h-3.5 rounded-full bg-[#7CA2CE]" />
-                <span className="text-[10px] font-bold tracking-[0.08em] text-text-secondary uppercase">Start: {dests[0]?.city}</span>
+                <span className="text-[10px] font-semibold tracking-[0.08em] text-text-secondary uppercase">Start: {dests[0]?.city}</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-3.5 h-3.5 rounded-full bg-[#E58F76]" />
-                <span className="text-[10px] font-bold tracking-[0.08em] text-text-secondary uppercase">End: {dests[dests.length - 1]?.city}</span>
+                <span className="text-[10px] font-semibold tracking-[0.08em] text-text-secondary uppercase">End: {dests[dests.length - 1]?.city}</span>
               </div>
             </div>
           </div>
@@ -492,7 +492,7 @@ function AttentionCell({ trip, onTabSwitch }) {
       <div className="px-4 pt-4 pb-3 flex items-center justify-between shrink-0">
         <Label>Needs Attention</Label>
         {items.length > 0 && (
-          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full
+          <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full
             ${highCount > 0 ? 'bg-danger/10 text-danger'
               : 'bg-warning/10 text-warning'}`}>
             {highCount > 0 ? `${highCount} urgent` : `${items.length} items`}
@@ -606,7 +606,7 @@ function BudgetCell({ trip }) {
               <div className="mt-3">
                 <div className="flex justify-between items-baseline mb-1.5">
                   <p className="text-[10px] text-text-muted">Spent</p>
-                  <p className={`text-sm font-bold ${overBudget ? 'text-danger' : 'text-success'}`}>
+                  <p className={`text-sm font-semibold ${overBudget ? 'text-danger' : 'text-success'}`}>
                     {formatCurrency(totalSpent, trip.currency)}{overBudget ? ' ⚠️' : ''}
                   </p>
                 </div>

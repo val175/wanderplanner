@@ -15,8 +15,8 @@ const CHART_COLORS = [
   '#D97757', '#8FB3D9', '#82A88D', '#E6C27A', '#B88FB5', '#7A8B99',
 ]
 
-const inputCls = 'w-full px-2 py-1.5 text-sm bg-bg-input border border-border rounded-md text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors'
-const selectCls = 'w-full px-2 py-1.5 text-sm bg-bg-input border border-border rounded-md text-text-primary focus:border-accent focus:outline-none transition-colors'
+const inputCls = 'w-full px-2 py-1.5 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors'
+const selectCls = 'w-full px-2 py-1.5 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary focus:border-accent focus:outline-none transition-colors'
 
 // ── Overall Budget Summary Card ───────────────────────────────────────────────
 function OverallBudgetCard({ budget, totals, currency, perPerson, onTogglePerPerson, divisor }) {
@@ -25,14 +25,14 @@ function OverallBudgetCard({ budget, totals, currency, perPerson, onTogglePerPer
   const remaining = Math.max(0, totals.max - totals.actual)
 
   return (
-    <Card className="border border-border/60 relative overflow-hidden">
+    <Card className="border border-border/60 relative">
       <div className="flex items-center justify-between mb-6 pl-1">
-        <h2 className="font-heading text-lg text-text-primary flex items-center gap-2">
+        <h2 className="font-heading font-semibold text-lg text-text-primary flex items-center gap-2">
           <span className="text-xl">💰</span> Overall Budget
         </h2>
         <button
           onClick={onTogglePerPerson}
-          className={`px-4 py-1.5 text-[11px] font-medium rounded-full border transition-all duration-200 uppercase tracking-widest
+          className={`px-4 py-1.5 text-[11px] font-medium rounded-[var(--radius-pill)] border transition-all duration-200 uppercase tracking-widest
             ${perPerson ? 'bg-accent text-white border-accent' : 'border-border text-text-secondary hover:text-text-primary hover:bg-bg-hover'}`}
         >
           {perPerson ? 'Per Person' : 'Total'}
@@ -41,14 +41,14 @@ function OverallBudgetCard({ budget, totals, currency, perPerson, onTogglePerPer
 
       <div className="grid grid-cols-2 gap-5 text-center mb-5 pl-1">
         <div className="relative">
-          <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest mb-1.5">Target Budget</p>
+          <p className="text-[10px] text-text-muted font-semibold uppercase tracking-widest mb-1.5">Target Budget</p>
           <p className="font-heading text-2xl sm:text-3xl text-text-secondary tracking-tight">
             {formatCurrency(Math.round(totals.max / divisor), currency)}
           </p>
           <div className="absolute right-0 top-2 bottom-2 w-px bg-border/50 hidden sm:block" />
         </div>
         <div>
-          <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest mb-1.5">Spent</p>
+          <p className="text-[10px] text-text-muted font-semibold uppercase tracking-widest mb-1.5">Spent</p>
           <p className={`font-heading text-2xl sm:text-3xl tracking-tight ${isOver ? 'text-danger' : 'text-text-primary'}`}>
             {formatCurrency(Math.round(totals.actual / divisor), currency)}
           </p>
@@ -56,7 +56,7 @@ function OverallBudgetCard({ budget, totals, currency, perPerson, onTogglePerPer
       </div>
 
       {/* Stacked bar */}
-      <div className="h-5 w-full rounded-md bg-bg-secondary flex overflow-hidden border border-border/30">
+      <div className="h-5 w-full rounded-[var(--radius-md)] bg-bg-secondary flex overflow-hidden border border-border/30">
         {budget.map((cat, i) => {
           if (!cat.actual || cat.actual <= 0) return null
           const w = Math.min(100, (cat.actual / targetMax) * 100)
@@ -125,7 +125,7 @@ function GroupBalancesCard({ spendingLog, travelers, currency }) {
         {transactions.length > 0 && (
           <button
             onClick={() => setShowSettle(p => !p)}
-            className="text-[10px] font-bold uppercase tracking-widest text-accent hover:text-accent-hover transition-colors"
+            className="text-[10px] font-medium uppercase tracking-widest text-accent hover:text-accent-hover transition-colors"
           >
             Settle up
           </button>
@@ -156,14 +156,14 @@ function GroupBalancesCard({ spendingLog, travelers, currency }) {
       </div>
 
       {/* "Total fronted" summary */}
-      <p className="text-[10px] text-text-muted border-t border-border/40 pt-2">
+      <p className="text-[10px] text-text-muted border-t border-border/40 pt-2 font-medium">
         Total fronted: {travelers.map(t => `${t.name.split(' ')[0]} (${formatCurrency(Math.round(fronted[t.id] || 0), currency)})`).join(' · ')}
       </p>
 
       {/* Settle-up transactions */}
       {showSettle && transactions.length > 0 && (
         <div className="mt-3 space-y-1.5 border-t border-border/40 pt-3">
-          <p className="text-[10px] text-text-muted uppercase tracking-widest font-medium mb-2">How to settle</p>
+          <p className="text-[10px] text-text-muted uppercase tracking-widest font-semibold mb-2">How to settle</p>
           {(() => {
             const COFFEE_THRESHOLD = 300
             const MICRO_PHRASES = [
@@ -193,7 +193,7 @@ function GroupBalancesCard({ spendingLog, travelers, currency }) {
               }
 
               return (
-                <div key={i} className="flex items-center gap-2 py-1.5 px-2.5 bg-bg-secondary rounded-lg text-[12px]">
+                <div key={i} className="flex items-center gap-2 py-1.5 px-2.5 bg-bg-secondary rounded-[var(--radius-md)] text-[12px]">
                   <span className="font-medium text-text-primary">{fromName}</span>
                   <span className="text-text-muted">→</span>
                   <span className="font-medium text-text-primary">{toName}</span>
@@ -231,7 +231,7 @@ function CategoryBudgetsCard({ budget, currency, divisor, perPerson, travelers, 
         {!isReadOnly && (
           <button
             onClick={() => setAddingCategory(p => !p)}
-            className="text-[10px] font-bold uppercase tracking-widest text-accent hover:text-accent-hover transition-colors"
+            className="text-[10px] font-medium uppercase tracking-widest text-accent hover:text-accent-hover transition-colors"
           >
             {addingCategory ? 'Cancel' : '+ Add'}
           </button>
@@ -241,15 +241,15 @@ function CategoryBudgetsCard({ budget, currency, divisor, perPerson, travelers, 
       {addingCategory && (
         <form onSubmit={handleAddCategory} className="flex items-center gap-2 mb-3 pb-3 border-b border-border/40">
           <select value={newEmoji} onChange={e => setNewEmoji(e.target.value)}
-            className="px-2 py-1 text-base bg-bg-input border border-border rounded-md focus:outline-none">
+            className="px-2 py-1 text-base bg-bg-input border border-border rounded-[var(--radius-md)] focus:outline-none">
             {commonEmojis.map(e => <option key={e} value={e}>{e}</option>)}
           </select>
           <input value={newName} onChange={e => setNewName(e.target.value)}
             placeholder="Category name..." autoFocus
-            className="flex-1 px-2 py-1.5 text-sm bg-bg-input border border-border rounded-md text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none" />
+            className="flex-1 px-2 py-1.5 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none" />
           <input value={newMax} onChange={e => setNewMax(e.target.value)}
             type="number" min="0" placeholder="Max budget"
-            className="w-28 px-2 py-1.5 text-sm bg-bg-input border border-border rounded-md text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none" />
+            className="w-28 px-2 py-1.5 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none" />
           <Button type="submit" size="sm" disabled={!newName.trim()}>Add</Button>
         </form>
       )}
@@ -286,7 +286,7 @@ function CategoryBudgetsCard({ budget, currency, divisor, perPerson, travelers, 
                     className="text-[10px] text-text-muted/60 font-medium"
                     inputClassName="w-20 py-0 px-1 text-xs"
                     readOnly={isReadOnly}
-                    displayValue={cat.max > 0 ? `/${formatCurrency(Math.round(cat.max / divisor), currency, true)}` : '/Set max'}
+                    displayValue={cat.max > 0 ? `/${formatCurrency(Math.round(cat.max / divisor), currency)}` : '/Set max'}
                   />
                   <button
                     onClick={() => dispatch({ type: ACTIONS.DELETE_BUDGET_CATEGORY, payload: cat.id })}
@@ -409,7 +409,7 @@ function InlineExpenseRow({ categories, travelers, currency, onAdd, prefill }) {
         <button
           onClick={handleSubmit}
           disabled={!desc.trim() || !amount}
-          className="w-7 h-7 rounded-lg bg-accent text-white flex items-center justify-center disabled:opacity-30 hover:bg-accent-hover transition-colors text-sm font-bold shrink-0"
+          className="w-7 h-7 rounded-[var(--radius-sm)] bg-accent text-white flex items-center justify-center disabled:opacity-30 hover:bg-accent-hover transition-colors text-sm font-medium shrink-0"
           title="Add expense (Enter)"
         >+</button>
       </td>
@@ -438,20 +438,20 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
   return (
     <Card className="border border-border/50">
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/50">
-        <h3 className="font-heading text-base text-text-primary">Spending Log</h3>
+        <h3 className="font-heading font-semibold text-base text-text-primary px-0.5">Spending Log</h3>
         <div className="flex items-center gap-2">
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search..."
-            className="px-3 py-1.5 text-sm bg-bg-secondary border border-border/50 rounded-lg text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors w-24 sm:w-36"
+            className="px-3 py-1.5 text-sm bg-bg-secondary border border-border/50 rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors w-24 sm:w-36"
           />
 
           {onAdd && (
             <>
               <button
                 onClick={() => setShowScanModal(true)}
-                className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest rounded-lg border border-border text-text-secondary hover:text-text-primary hover:border-text-muted transition-all"
+                className="px-3 py-1.5 text-[11px] font-medium uppercase tracking-widest rounded-[var(--radius-md)] border border-border text-text-secondary hover:text-text-primary hover:border-text-muted transition-all"
               >
                 📸 Scan Receipt
               </button>
@@ -460,7 +460,7 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                 onClick={() => {
                   setShowInline(p => !p)
                 }}
-                className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest rounded-lg border transition-all ${showInline
+                className={`px-3 py-1.5 text-[11px] font-medium uppercase tracking-widest rounded-[var(--radius-md)] border transition-all ${showInline
                   ? 'bg-bg-secondary border-border text-text-muted'
                   : 'bg-accent text-white border-accent hover:bg-accent-hover'
                   }`}
@@ -477,15 +477,15 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
         onClose={() => setShowScanModal(false)}
       />
 
-      <div className="overflow-x-auto -mx-5">
+      <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border/50">
-              <th className="text-left py-2 px-3 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[80px]">Date</th>
-              <th className="text-left py-2 px-2 text-[10px] font-bold uppercase tracking-widest text-text-muted">Description</th>
-              <th className="text-left py-2 px-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[130px]">Category</th>
-              {showPaidBy && <th className="text-left py-2 px-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[100px]">Paid by</th>}
-              <th className="text-right py-2 px-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[100px]">Amount</th>
+              <th className="text-left py-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-text-muted w-[80px]">Date</th>
+              <th className="text-left py-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted">Description</th>
+              <th className="text-left py-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted w-[130px]">Category</th>
+              {showPaidBy && <th className="text-left py-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted w-[100px]">Paid by</th>}
+              <th className="text-right py-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted w-[100px]">Amount</th>
               <th className="w-[40px]" />
             </tr>
           </thead>
@@ -517,7 +517,7 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
               const dotColor = catIndex >= 0 ? CHART_COLORS[catIndex % CHART_COLORS.length] : 'var(--color-border)'
               const catEmoji = budget.find(c => c.name === entry.category)?.emoji || '💸'
               const paidByName = travelers.find(t => t.id === entry.paidBy)?.name?.split(' ')[0]
-              const dateLabel = entry.date ? entry.date.replace(/^\d{4}-/, '').replace('-', ' ') : ''
+              const dateLabel = formatDate(entry.date)
 
               return (
                 <tr key={entry.id} className="border-t border-border/20 hover:bg-bg-hover group transition-colors">

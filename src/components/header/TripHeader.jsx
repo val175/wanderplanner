@@ -164,8 +164,8 @@ function CountdownPill({ targetDate }) {
   if (!targetDate || countdown.expired) return null
 
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-bg-secondary border border-border text-[9px] font-bold uppercase tracking-wider text-text-muted whitespace-nowrap ml-1">
-      <span className="text-accent font-bold mr-1">{countdown.days}</span> days away
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-bg-secondary border border-border text-[9px] font-semibold uppercase tracking-wider text-text-muted whitespace-nowrap ml-1">
+      <span className="text-accent font-semibold mr-1">{countdown.days}</span> days away
     </span>
   )
 }
@@ -209,7 +209,7 @@ function InlineTripName({ value, onSave }) {
         onChange={e => setDraft(e.target.value)}
         onBlur={save}
         onKeyDown={handleKeyDown}
-        className="font-heading text-xl md:text-2xl font-bold text-text-primary leading-tight
+        className="font-heading text-xl md:text-2xl font-semibold text-text-primary leading-tight
                    bg-transparent border-b border-accent outline-none w-full min-w-0"
         aria-label="Edit trip name"
       />
@@ -224,7 +224,7 @@ function InlineTripName({ value, onSave }) {
       className="group flex items-center gap-1 min-w-0 text-left shrink"
       aria-label={`Trip name: ${value}. Click to edit.`}
     >
-      <h1 className={`font-heading text-xl md:text-2xl font-bold text-text-primary
+      <h1 className={`font-heading text-xl md:text-2xl font-semibold text-text-primary
                        leading-tight truncate transition-all duration-150
                        ${hovered ? 'underline decoration-border-strong underline-offset-4' : ''}`}>
         {value}
@@ -629,7 +629,7 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
                 </button>
               )}
               {isReadOnly
-                ? <h1 className="font-heading text-xl md:text-2xl font-bold text-text-primary leading-tight truncate shrink">{trip.emoji} {trip.name}</h1>
+                ? <h1 className="font-heading text-xl md:text-2xl font-semibold text-text-primary leading-tight truncate shrink">{trip.emoji} {trip.name}</h1>
                 : (
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="text-xl md:text-2xl leading-none shrink-0" role="img" aria-label="Trip emoji">{trip.emoji}</span>
@@ -637,7 +637,7 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
                   </div>
                 )
               }
-              <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full bg-bg-secondary border border-border text-[9px] font-bold uppercase tracking-widest text-text-muted whitespace-nowrap">
+              <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full bg-bg-secondary border border-border text-[9px] font-semibold uppercase tracking-widest text-text-muted whitespace-nowrap">
                 {effectiveStatus === 'archived' ? 'Archived' :
                   effectiveStatus === 'completed' ? 'Memory' :
                     effectiveStatus === 'ongoing' ? 'Ongoing' : 'Upcoming'}
@@ -665,9 +665,9 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
           <div className="shrink-0 flex items-center justify-between lg:justify-end gap-4 border-t border-border pt-4 lg:pt-0 lg:border-t-0 mt-2 lg:mt-0">
             {/* Readiness */}
             <div className="flex items-center gap-2">
-              <ProgressRing value={readiness} size={36} strokeWidth={3.5} labelClassName="text-[10px] font-bold" />
+              <ProgressRing value={readiness} size={36} strokeWidth={3.5} labelClassName="text-[10px] font-semibold" />
               <div className="flex flex-col justify-center hidden sm:flex">
-                <span className="text-[9px] font-bold uppercase tracking-widest text-text-muted leading-tight">Readiness</span>
+                <span className="text-[9px] font-semibold uppercase tracking-widest text-text-muted leading-tight">Readiness</span>
                 <span className={`text-xs font-semibold leading-tight ${readiness >= 100 ? 'text-success' : 'text-text-primary/70'}`}>
                   {readiness >= 100 ? 'Ready To Go!' : 'On Track'}
                 </span>

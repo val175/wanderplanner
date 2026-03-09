@@ -18,7 +18,7 @@ function ConcertCountdown({ targetDate }) {
   if (countdown.expired) {
     return (
       <div className="text-center py-4">
-        <p className="text-3xl font-heading font-bold text-red-500">🎸 IT'S SHOWTIME! 🎸</p>
+        <p className="text-3xl font-heading font-semibold text-red-500">🎸 IT'S SHOWTIME! 🎸</p>
       </div>
     )
   }
@@ -34,7 +34,7 @@ function ConcertCountdown({ targetDate }) {
           { value: countdown.seconds, label: 'Sec' },
         ].map((unit, i) => (
           <div key={i} className="text-center">
-            <div className={`text-4xl md:text-5xl font-heading font-bold text-white
+            <div className={`text-4xl md:text-5xl font-heading font-semibold text-white
               ${unit.label === 'Sec' ? 'animate-pulse' : ''}`}>
               {String(unit.value).padStart(2, '0')}
             </div>
@@ -100,7 +100,7 @@ export default function ConcertTab() {
             <p className="text-red-500 text-sm uppercase tracking-[0.3em] font-semibold mb-3">
               ★ LIVE EVENT ★
             </p>
-            <h2 className="font-heading text-3xl md:text-4xl font-bold text-white mb-2">
+            <h2 className="font-heading text-3xl md:text-4xl font-semibold text-white mb-2">
               {concertBooking.name}
             </h2>
             {concertDay && (

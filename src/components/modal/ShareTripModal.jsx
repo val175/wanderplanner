@@ -40,7 +40,7 @@ export default function ShareTripModal({ trip, onClose }) {
                 {/* Header */}
                 <div className="flex items-start justify-between mb-5">
                     <div>
-                        <h2 className="text-base font-bold text-text-primary font-heading">Share Trip</h2>
+                        <h2 className="text-base font-semibold text-text-primary font-heading">Share Trip</h2>
                         <p className="text-xs text-text-muted mt-0.5 leading-relaxed">
                             Allowed users can open your trip via this link.
                         </p>
@@ -69,7 +69,7 @@ export default function ShareTripModal({ trip, onClose }) {
 
                 {/* Link box */}
                 <div className="mb-4">
-                    <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">
+                    <label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">
                         Share Link
                     </label>
                     <input
@@ -137,7 +137,7 @@ export default function ShareTripModal({ trip, onClose }) {
                                 <button
                                     type="button"
                                     onClick={() => setShowRevokeConfirm(false)}
-                                    className="text-xs px-3 py-1.5 rounded-[var(--radius-sm)] border border-border text-text-muted hover:text-text-primary"
+                                    className="text-xs font-medium px-3 py-1.5 rounded-[var(--radius-sm)] border border-border text-text-muted hover:text-text-primary"
                                 >
                                     Cancel
                                 </button>
@@ -145,7 +145,7 @@ export default function ShareTripModal({ trip, onClose }) {
                                     type="button"
                                     onClick={handleRevoke}
                                     disabled={revoking}
-                                    className="text-xs px-3 py-1.5 rounded-[var(--radius-sm)] bg-danger text-white hover:bg-danger/90 disabled:opacity-60"
+                                    className="text-xs font-medium px-3 py-1.5 rounded-[var(--radius-sm)] bg-danger text-white hover:bg-danger/90 disabled:opacity-60"
                                 >
                                     {revoking ? 'Revoking…' : 'Revoke'}
                                 </button>

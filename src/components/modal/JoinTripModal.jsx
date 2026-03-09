@@ -15,7 +15,7 @@ export default function JoinTripModal({ pendingInvite, onAccept, onDecline }) {
                 </div>
 
                 <div>
-                    <h2 className="font-heading text-xl font-bold text-text-primary mb-1">
+                    <h2 className="font-heading text-xl font-semibold text-text-primary mb-1">
                         You've been invited!
                     </h2>
                     <p className="text-sm text-text-muted">
@@ -32,7 +32,7 @@ export default function JoinTripModal({ pendingInvite, onAccept, onDecline }) {
                     {(startDate || endDate) && (
                         <div>
                             <p className="text-xs text-text-muted font-medium uppercase tracking-wider mb-1">Dates</p>
-                            <p className="text-sm text-text-primary">
+                            <p className="text-sm text-text-primary font-medium">
                                 {startDate || '?'} {endDate ? `→ ${endDate}` : ''}
                             </p>
                         </div>
@@ -41,7 +41,7 @@ export default function JoinTripModal({ pendingInvite, onAccept, onDecline }) {
                     {destinations?.length > 0 && (
                         <div>
                             <p className="text-xs text-text-muted font-medium uppercase tracking-wider mb-1">Destinations</p>
-                            <p className="text-sm text-text-primary">
+                            <p className="text-sm text-text-primary font-medium">
                                 {destinations.map(d => `${d.flag || ''} ${d.city}`).join(', ')}
                             </p>
                         </div>

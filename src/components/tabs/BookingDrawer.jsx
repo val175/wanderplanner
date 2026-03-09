@@ -72,7 +72,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
                             <EditableText
                                 value={booking.name}
                                 onSave={val => onUpdate(booking.id, { name: val })}
-                                className="font-heading text-lg font-bold text-text-primary block"
+                                className="font-heading text-lg font-semibold text-text-primary block"
                                 readOnly={isReadOnly}
                             />
                             <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold border ${statusConfig.colors}`}>

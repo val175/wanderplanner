@@ -110,9 +110,9 @@ export default function BookingsTab() {
 
       {/* Summary bar */}
       <Card>
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="font-heading text-lg text-text-primary">🎫 Bookings</h2>
-          <span className="text-sm text-text-muted">{confirmedCount} of {totalCount} confirmed</span>
+        <div className="flex items-center justify-between mb-2 px-0.5">
+          <h2 className="font-heading font-semibold text-lg text-text-primary">🎫 Bookings</h2>
+          <span className="text-sm text-text-muted font-medium">{confirmedCount} of {totalCount} confirmed</span>
         </div>
         <ProgressBar value={confirmedCount} max={totalCount} colorClass="bg-success" height="h-2" />
       </Card>
@@ -168,16 +168,16 @@ export default function BookingsTab() {
           <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border">
             <button
               onClick={() => setViewMode('table')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'table' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'table' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
               Table
             </button>
             <button
               onClick={() => setViewMode('board')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'board' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'board' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
               Board
             </button>
           </div>

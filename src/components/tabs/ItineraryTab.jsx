@@ -61,7 +61,7 @@ function KanbanAddRow({ onAdd }) {
         className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted focus:outline-none min-w-0"
       />
       <div className="w-[80px] shrink-0 text-right opacity-0 group-hover:opacity-100 transition-opacity">
-        <button type="submit" className="text-xs font-medium bg-bg-secondary hover:bg-border/50 text-text-secondary px-3 py-1.5 rounded-[var(--radius-pill)]" disabled={!name.trim()}>
+        <button type="submit" className="text-xs font-semibold bg-bg-secondary hover:bg-bg-hover text-text-secondary px-3 py-1.5 rounded-[var(--radius-pill)]" disabled={!name.trim()}>
           Add
         </button>
       </div>
@@ -290,12 +290,12 @@ function DayGroupTable({ day, onReorderDay, trip }) {
             <table className="w-full text-left border-collapse table-fixed min-w-[600px] text-sm">
               <thead>
                 <tr className="border-b border-border/50 bg-bg-secondary/10">
-                  <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[30px] overflow-hidden"></th>
-                  <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[100px] overflow-hidden">TIME</th>
-                  <th className="px-0 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[30px] text-center overflow-hidden"></th>
-                  <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-auto text-left overflow-hidden">ACTIVITY</th>
-                  <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[25%] text-left overflow-hidden">LOCATION</th>
-                  <th className="px-2 py-2 text-[10px] font-bold uppercase tracking-widest text-text-muted w-[40px] overflow-hidden"></th>
+                  <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted w-[30px] overflow-hidden"></th>
+                  <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted w-[100px] overflow-hidden">TIME</th>
+                  <th className="px-0 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted w-[30px] text-center overflow-hidden"></th>
+                  <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted w-auto text-left overflow-hidden">ACTIVITY</th>
+                  <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted w-[25%] text-left overflow-hidden">LOCATION</th>
+                  <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted w-[40px] overflow-hidden"></th>
                 </tr>
               </thead>
               <tbody>
@@ -671,7 +671,7 @@ export default function ItineraryTab() {
       {/* Header Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="font-heading text-xl text-text-primary">📅 Itinerary</h2>
+          <h2 className="font-heading font-semibold text-xl text-text-primary">📅 Itinerary</h2>
           <p className="text-xs text-text-muted mt-0.5">{trip.itinerary?.reduce((acc, d) => acc + (d.activities?.length || 0), 0) || 0} activities across {trip.itinerary?.length || 0} days</p>
         </div>
 
@@ -680,16 +680,16 @@ export default function ItineraryTab() {
           <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
             <button
               onClick={() => setViewMode('table')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'table' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'table' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
               Table
             </button>
             <button
               onClick={() => setViewMode('kanban')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'kanban' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'kanban' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
               Board
             </button>
           </div>
@@ -744,7 +744,7 @@ export default function ItineraryTab() {
                   {!isReadOnly && (
                     <button
                       onClick={handleAddDay}
-                      className="w-full py-3 rounded-lg border border-dashed border-border text-text-muted hover:text-text-secondary hover:border-border-strong transition-colors text-sm font-medium"
+                      className="w-full py-3 rounded-[var(--radius-md)] border border-dashed border-border text-text-muted hover:text-text-secondary hover:border-border-strong transition-colors text-sm font-medium"
                     >
                       + Add another day group
                     </button>
@@ -776,7 +776,7 @@ export default function ItineraryTab() {
           <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mb-5 text-3xl">
             🗺️
           </div>
-          <h3 className="text-2xl font-heading font-medium text-text-primary mb-2">Build your perfect trip</h3>
+          <h3 className="text-2xl font-heading font-semibold text-text-primary mb-2">Build your perfect trip</h3>
           <p className="text-text-muted mb-8 text-sm leading-relaxed">
             Start outlining your days and dragging activities around until your schedule is air-tight.
           </p>

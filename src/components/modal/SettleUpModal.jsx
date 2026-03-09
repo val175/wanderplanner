@@ -43,7 +43,7 @@ export default function SettleUpModal({ tripId, onClose }) {
                 {/* Header */}
                 <div className="flex items-start justify-between mb-5">
                     <div>
-                        <h2 className="text-base font-bold text-text-primary font-heading">💸 Settle Up</h2>
+                        <h2 className="text-base font-semibold text-text-primary font-heading">💸 Settle Up</h2>
                         <p className="text-xs text-text-muted mt-0.5 leading-relaxed">
                             Confirm everyone's square before archiving.
                         </p>
@@ -63,7 +63,7 @@ export default function SettleUpModal({ tripId, onClose }) {
                         </div>
                     ) : (
                         <div className="space-y-2">
-                            <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-3">
+                            <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-3">
                                 Simplified Debts ({transactions.length} transfer{transactions.length !== 1 ? 's' : ''})
                             </p>
                             {transactions.map((txn, i) => {
@@ -78,7 +78,7 @@ export default function SettleUpModal({ tripId, onClose }) {
                                                 <span className="text-success font-semibold">{to?.name || txn.to}</span>
                                             </p>
                                         </div>
-                                        <span className="text-sm font-bold text-text-primary shrink-0">
+                                        <span className="text-sm font-semibold text-text-primary shrink-0">
                                             {formatCurrency(txn.amount, currency)}
                                         </span>
                                     </div>

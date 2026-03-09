@@ -13,7 +13,9 @@ export function formatDate(dateStr, style = 'medium') {
     case 'short':
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     case 'medium':
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      // Output: "MMM D, 'YY" (e.g., "May 2, '94")
+      const parts = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }).split(', ')
+      return `${parts[0]}, '${parts[1]}`
     case 'long':
       return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
     case 'full':
@@ -21,7 +23,8 @@ export function formatDate(dateStr, style = 'medium') {
     case 'weekday':
       return date.toLocaleDateString('en-US', { weekday: 'short' })
     default:
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      const dParts = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }).split(', ')
+      return `${dParts[0]}, '${dParts[1]}`
   }
 }
 
@@ -39,10 +42,13 @@ export function formatDateRange(startDate, endDate) {
   return `${startMonth} ${start.getDate()} – ${endMonth} ${end.getDate()}, ${end.getFullYear()}`
 }
 
-export function formatCurrency(amount, currencyCode = 'PHP') {
+export function formatCurrency(amount, currencyCode = 'PHP', showDecimals = false) {
   if (amount == null || isNaN(amount)) return ''
   const symbol = getCurrencySymbol(currencyCode)
-  return `${symbol}${Number(amount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+  const options = showDecimals
+    ? { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+    : { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+  return `${symbol}${Number(amount).toLocaleString('en-US', options)}`
 }
 
 export function formatCurrencyRange(min, max, currencyCode = 'PHP') {
@@ -151,12 +157,12 @@ export async function geocodeCity(cityStr, countryHint = null) {
         // admin1 = state/region, admin2 = province/county, admin3/4 = finer divisions.
         const perfectMatch = targetRegion
           ? results.find(r => {
-              if ((r.country || '').toLowerCase() !== targetCountry) return false
-              const regionPool = [r.admin1, r.admin2, r.admin3, r.admin4]
-                .filter(Boolean)
-                .map(a => a.toLowerCase())
-              return regionPool.some(a => a.includes(targetRegion) || targetRegion.includes(a))
-            })
+            if ((r.country || '').toLowerCase() !== targetCountry) return false
+            const regionPool = [r.admin1, r.admin2, r.admin3, r.admin4]
+              .filter(Boolean)
+              .map(a => a.toLowerCase())
+            return regionPool.some(a => a.includes(targetRegion) || targetRegion.includes(a))
+          })
           : null
 
         // Country-only match as second-best fallback
