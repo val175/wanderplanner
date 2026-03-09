@@ -78,14 +78,12 @@ export default async function handler(req) {
             const google = createGoogleGenerativeAI({ apiKey: geminiKey })
             for (const modelId of ['gemini-3.1-flash-lite-preview', 'gemini-2.5-flash']) {
                 try {
-                    console.log(`[chat] trying model=${modelId}`)
                     const result = await streamText({
                         model: google(modelId),
                         system: systemPrompt,
                         messages: modelMessages,
                         tools: WANDA_TOOLS,
                     })
-                    console.log(`[chat] streaming with model=${modelId}`)
                     return result.toUIMessageStreamResponse({ headers: CORS_HEADERS })
                 } catch (e) {
                     console.warn(`[chat] ${modelId} failed, trying next:`, e.message)
