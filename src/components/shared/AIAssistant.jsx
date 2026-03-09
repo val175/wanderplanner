@@ -86,9 +86,12 @@ export default function AIAssistant() {
   const isMobile = useMediaQuery('(max-width: 767px)');
 
   // Renders a single action pill for a pending tool call
-  // In ai@6, tools from server are DynamicToolUIPart: inv.input (not inv.args)
+  // In ai@6, server-side tools stream as type 'tool-{name}' (e.g. 'tool-add_to_packing_list'),
+  // NOT 'dynamic-tool' (which is only for truly unregistered/unknown tools).
+  // 'output-available' means addToolResult was already called — derive done from part state.
   const ActionPill = ({ inv }) => {
-    const [done, setDone] = useState(false)
+    const [localDone, setLocalDone] = useState(false)
+    const done = localDone || inv.state === 'output-available'
     const { item, section, emoji } = inv.input || {}
     if (!item) return null
 
@@ -103,7 +106,7 @@ export default function AIAssistant() {
       showToast(`${emoji || '🧳'} ${item} added to packing`, {
         undo: () => dispatch({ type: ACTIONS.DELETE_PACKING_ITEM, payload: newId }),
       })
-      setDone(true)
+      setLocalDone(true)
     }
 
     return (
@@ -298,9 +301,9 @@ export default function AIAssistant() {
                   </div>
                 </div>
 
-                {/* Action pills — ai@6 uses m.parts with type:'dynamic-tool' for server-side tools */}
+                {/* Action pills — ai@6: server-streamed tools have type 'tool-{name}', never 'dynamic-tool' */}
                 {m.role === 'assistant' && m.parts
-                  ?.filter(p => p.type === 'dynamic-tool' && p.toolName === 'add_to_packing_list' && p.state !== 'input-streaming')
+                  ?.filter(p => p.type === 'tool-add_to_packing_list' && p.state !== 'input-streaming')
                   .map(p => <ActionPill key={p.toolCallId} inv={p} />)
                 }
               </div>
