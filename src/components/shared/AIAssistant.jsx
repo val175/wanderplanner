@@ -5,6 +5,8 @@ import { Send, X, Sparkles } from 'lucide-react';
 import { auth } from '../../firebase/config';
 import { TripContext } from '../../context/TripContext';
 import { buildTripSystemPrompt } from '../../hooks/useAI';
+import { generateId } from '../../utils/helpers';
+import { ACTIONS } from '../../state/tripReducer';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 
 let _systemPromptRef = buildTripSystemPrompt(null);
@@ -39,13 +41,13 @@ export default function AIAssistant() {
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
 
-  const { activeTrip } = useContext(TripContext);
+  const { activeTrip, dispatch, showToast } = useContext(TripContext);
 
   useEffect(() => {
     _systemPromptRef = buildTripSystemPrompt(activeTrip);
   }, [activeTrip]);
 
-  const { messages, sendMessage, status, error } = useChat({
+  const { messages, sendMessage, status, error, addToolResult } = useChat({
     transport: chatTransport,
   });
 
@@ -82,6 +84,55 @@ export default function AIAssistant() {
 
   const showPills = messages.length === 0 && !isLoading;
   const isMobile = useMediaQuery('(max-width: 767px)');
+
+  // Renders a single action pill for a pending tool call
+  const ActionPill = ({ inv }) => {
+    const [done, setDone] = useState(false)
+    const { item, section, emoji } = inv.args || {}
+    if (!item) return null
+
+    const canAct = !!activeTrip && !done
+
+    const handleClick = () => {
+      if (!canAct) return
+      const newId = generateId()
+      dispatch({ type: ACTIONS.ADD_PACKING_ITEM, payload: { id: newId, name: item, section: section || 'Misc' } })
+      addToolResult({ toolCallId: inv.toolCallId, result: 'added' })
+      showToast(`${emoji || '🧳'} ${item} added to packing`, {
+        undo: () => dispatch({ type: ACTIONS.DELETE_PACKING_ITEM, payload: newId }),
+      })
+      setDone(true)
+    }
+
+    return (
+      <button
+        onClick={handleClick}
+        disabled={!canAct}
+        title={!activeTrip ? 'Select a trip first' : undefined}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '5px 12px',
+          marginTop: '6px',
+          borderRadius: '9999px',
+          border: `1px solid ${done ? 'var(--color-success, #22c55e)' : 'var(--color-accent)'}`,
+          background: done ? 'rgba(34,197,94,0.08)' : 'transparent',
+          color: done ? 'var(--color-success, #22c55e)' : 'var(--color-accent)',
+          fontSize: '12px',
+          fontWeight: 600,
+          cursor: canAct ? 'pointer' : 'default',
+          opacity: !activeTrip ? 0.45 : 1,
+          transition: 'all 0.15s',
+          letterSpacing: '-0.01em',
+        }}
+      >
+        <span style={{ fontSize: '14px' }}>{done ? '✅' : (emoji || '🧳')}</span>
+        <span>{done ? 'Added' : `Add ${item}`}</span>
+        {!done && <span style={{ opacity: 0.6, fontSize: '11px', marginLeft: '2px' }}>+</span>}
+      </button>
+    )
+  }
 
   return (
     <>
@@ -215,32 +266,42 @@ export default function AIAssistant() {
                 key={m.id}
                 style={{
                   display: 'flex',
-                  justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start',
+                  flexDirection: 'column',
+                  alignItems: m.role === 'user' ? 'flex-end' : 'flex-start',
                 }}
               >
-                {m.role === 'assistant' && (
-                  <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'linear-gradient(135deg, var(--color-accent) 0%, #e8a87c 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', flexShrink: 0, marginRight: '8px', marginTop: '2px' }}>
-                    🪄
+                <div style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start', width: '100%' }}>
+                  {m.role === 'assistant' && (
+                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'linear-gradient(135deg, var(--color-accent) 0%, #e8a87c 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', flexShrink: 0, marginRight: '8px', marginTop: '2px' }}>
+                      🪄
+                    </div>
+                  )}
+                  <div
+                    style={{
+                      padding: '9px 13px',
+                      borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '4px 16px 16px 16px',
+                      maxWidth: '82%',
+                      fontSize: '13px',
+                      lineHeight: '1.55',
+                      whiteSpace: 'pre-wrap',
+                      ...(m.role === 'user'
+                        ? { background: 'var(--color-accent)', color: '#fff' }
+                        : { background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }
+                      ),
+                    }}
+                  >
+                    {m.parts
+                      ? m.parts.filter(p => p.type === 'text').map((p, i) => <span key={i}>{p.text}</span>)
+                      : m.content}
                   </div>
-                )}
-                <div
-                  style={{
-                    padding: '9px 13px',
-                    borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '4px 16px 16px 16px',
-                    maxWidth: '82%',
-                    fontSize: '13px',
-                    lineHeight: '1.55',
-                    whiteSpace: 'pre-wrap',
-                    ...(m.role === 'user'
-                      ? { background: 'var(--color-accent)', color: '#fff' }
-                      : { background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }
-                    ),
-                  }}
-                >
-                  {m.parts
-                    ? m.parts.filter(p => p.type === 'text').map((p, i) => <span key={i}>{p.text}</span>)
-                    : m.content}
                 </div>
+
+                {/* Action pills — rendered for assistant messages with tool invocations */}
+                {m.role === 'assistant' && m.toolInvocations?.map(inv =>
+                  inv.toolName === 'add_to_packing_list' ? (
+                    <ActionPill key={inv.toolCallId} inv={inv} />
+                  ) : null
+                )}
               </div>
             ))}
 
