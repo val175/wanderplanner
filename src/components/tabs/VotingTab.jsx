@@ -73,6 +73,7 @@ function SourceIcon({ sourceName }) {
 // ── Idea Table Row ──
 function IdeaTableRow({ idea, resolveProfile, onDelete, isSelectable, isSelected, onSelect }) {
     const [menuOpen, setMenuOpen] = useState(false)
+    const [imgError, setImgError] = useState(false)
     const isBooked = idea.status === 'booked'
     const proposer = resolveProfile(idea.proposerId)
     const date = idea.createdAt ? new Date(idea.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'
@@ -100,10 +101,17 @@ function IdeaTableRow({ idea, resolveProfile, onDelete, isSelectable, isSelected
             {/* Thumbnail */}
             <td className="pr-3 py-3 w-12">
                 <div className="w-10 h-10 rounded-lg overflow-hidden bg-bg-secondary flex items-center justify-center shrink-0">
-                    {idea.imageUrl
-                        ? <img src={idea.imageUrl} alt="" className="w-full h-full object-cover" loading="lazy" onError={e => { e.currentTarget.style.display = 'none' }} />
-                        : <span className="text-xl">{idea.emoji || '✨'}</span>
-                    }
+                    {idea.imageUrl && !imgError ? (
+                        <img
+                            src={idea.imageUrl}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                            onError={() => setImgError(true)}
+                        />
+                    ) : (
+                        <span className="text-xl">{idea.emoji || '✨'}</span>
+                    )}
                 </div>
             </td>
 
@@ -868,14 +876,14 @@ export default function VotingTab() {
         if (selectedIdeaIds.size < 2 || !pollTitle.trim()) return
 
         const selectedOptions = ideas.filter(i => selectedIdeaIds.has(i.id)).map(idea => ({
-            id: idea.id,
-            title: idea.title,
-            emoji: idea.emoji,
-            imageUrl: idea.imageUrl,
-            priceDetails: idea.priceDetails,
-            description: idea.description,
-            url: idea.url,
-            sourceName: idea.sourceName
+            id: idea.id || generateId(),
+            title: idea.title || "Untitled",
+            emoji: idea.emoji || "✨",
+            imageUrl: idea.imageUrl || null,
+            priceDetails: idea.priceDetails || "TBD",
+            description: idea.description || "",
+            url: idea.url || "",
+            sourceName: idea.sourceName || "Link"
         }))
 
         dispatch({
