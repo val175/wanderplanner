@@ -17,6 +17,9 @@ import { triggerHaptic, hapticImpact } from '../../utils/haptics'
 import { useDrag } from '@use-gesture/react'
 import { useEffect } from 'react'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { useSmartLocation } from '../../hooks/useSmartLocation'
+import LocationPill from '../shared/LocationPill'
+import LocationAutocomplete from '../shared/LocationAutocomplete'
 
 // ── Utilities ──────────────────────────────────────────────────────────────
 function getActivityAccent(emoji) {
@@ -98,7 +101,7 @@ function AddActivityModal({ isOpen, onClose, itinerary, onAdd }) {
 }
 
 // ── Table View: Day Group ───────────────────────────────────────────────────
-function DayGroupTable({ day, onReorderDay, trip }) {
+function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, setActiveSearchActivity }) {
   const { dispatch, isReadOnly } = useTripContext()
   const [expanded, setExpanded] = useState(true)
   const [dragOverGroup, setDragOverGroup] = useState(false)
@@ -330,7 +333,13 @@ function DayGroupTable({ day, onReorderDay, trip }) {
                             <div className="flex-1 min-w-0">
                               <EditableText
                                 value={activity.name}
-                                onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { name: val } } })}
+                                onSave={async (val) => {
+                                  dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { name: val } } })
+                                  // Auto-resolve if location is empty and name is provided
+                                  if (val && !activity.location?.verified) {
+                                    resolveLocation(day.id, activity.id, val, day.location)
+                                  }
+                                }}
                                 className="text-[14px] text-text-primary font-semibold w-full block truncate"
                                 inputClassName="w-full font-semibold px-0 py-0 h-auto min-h-0"
                                 placeholder="Activity name"
@@ -362,20 +371,17 @@ function DayGroupTable({ day, onReorderDay, trip }) {
                           </div>
                         </td>
 
-                        {/* Location */}
                         <td className="px-2 pt-4 pb-2 align-top">
-                          <div className="flex items-start gap-1.5 text-[13px] text-text-secondary">
-                            <span className="text-danger flex-shrink-0 opacity-80 mt-0.5 text-xs">📍</span>
-                            <EditableText
-                              value={activity.location || ''}
-                              onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { location: val } } })}
-                              className="truncate hover:text-text-primary w-full leading-snug"
-                              inputClassName="w-full px-0 py-0 leading-snug"
-                              placeholder="+ Location"
-                              multiline
-                              readOnly={isReadOnly}
-                            />
-                          </div>
+                          <LocationPill
+                            location={activity.location}
+                            isResolving={isResolving} // Simplified for now
+                            readOnly={isReadOnly}
+                            onClick={() => setActiveSearchActivity({
+                              dayId: day.id,
+                              activityId: activity.id,
+                              initialValue: typeof activity.location === 'string' ? activity.location : (activity.location?.placeName || activity.name)
+                            })}
+                          />
                         </td>
 
                         {/* Actions */}
@@ -465,7 +471,7 @@ function DayGroupTable({ day, onReorderDay, trip }) {
 }
 
 // ── Kanban View: Day Column ──────────────────────────────────────────────────
-function KanbanColumn({ day }) {
+function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearchActivity }) {
   const { dispatch, isReadOnly } = useTripContext()
   const [dragOverCol, setDragOverCol] = useState(false)
 
@@ -539,7 +545,13 @@ function KanbanColumn({ day }) {
               <div className="flex-1 min-w-0 pr-6">
                 <EditableText
                   value={activity.name}
-                  onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { name: val } } })}
+                  onSave={async (val) => {
+                    dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { name: val } } })
+                    // Auto-resolve if location is empty and name is provided
+                    if (val && !activity.location?.verified) {
+                      resolveLocation(day.id, activity.id, val, day.location)
+                    }
+                  }}
                   className="font-semibold text-sm text-text-primary leading-tight truncate w-full"
                   inputClassName="w-full text-sm font-semibold p-0 h-auto"
                   readOnly={isReadOnly}
@@ -560,11 +572,23 @@ function KanbanColumn({ day }) {
             </div>
 
             {/* Bottom Row */}
-            <div className="flex items-center justify-between pt-2 border-t border-border/30 mt-2">
+            <div className="flex items-center justify-between pt-2 border-t border-border/30 mt-2 gap-2">
+              <div className="flex-1 min-w-0">
+                <LocationPill
+                  location={activity.location}
+                  isResolving={isResolving}
+                  readOnly={isReadOnly}
+                  onClick={() => setActiveSearchActivity({
+                    dayId: day.id,
+                    activityId: activity.id,
+                    initialValue: typeof activity.location === 'string' ? activity.location : (activity.location?.placeName || activity.name)
+                  })}
+                />
+              </div>
               <TimePicker
                 value={activity.time}
                 onChange={time => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { time } } })}
-                className="text-xs font-mono font-medium text-text-secondary bg-bg-hover rounded-full px-2 py-0.5 w-full border-none"
+                className="text-[10px] font-mono font-medium text-text-secondary bg-bg-secondary rounded px-2 py-0.5 w-[60px] shrink-0 border-none"
                 placeholder="Time"
                 disabled={isReadOnly}
               />
@@ -602,6 +626,8 @@ export default function ItineraryTab() {
   const [viewMode, setViewMode] = useState('table') // 'table' | 'kanban'
   const [activeDayIndex, setActiveDayIndex] = useState(0) // For mobile swipe view context
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [activeSearchActivity, setActiveSearchActivity] = useState(null) // { dayId, activityId, initialValue }
+  const { resolveLocation, isResolving } = useSmartLocation()
 
   if (!activeTrip) return null
   const trip = activeTrip
@@ -655,8 +681,46 @@ export default function ItineraryTab() {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         itinerary={trip.itinerary || []}
-        onAdd={({ dayId, activity }) => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId, activity } })}
+        onAdd={async ({ dayId, activity }) => {
+          const action = dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId, activity } })
+          // The ADD_ACTIVITY dispatch returns the lucky winner's ID if we generate it there... 
+          // but our reducer generates it. We'll need to find it relative to the city hint.
+          if (activity.name) {
+            // Find the day to get its location/city hint
+            const day = trip.itinerary.find(d => d.id === dayId)
+            // Wait a tick for the state to settle or just fire and forget since the hook uses dispatch
+            // We don't have the new activity ID yet because dispatch doesn't return it in this pattern.
+            // Let's refine useSmartLocation to return the data if needed or just handle it post-update.
+          }
+        }}
       />
+
+      <Modal
+        isOpen={!!activeSearchActivity}
+        onClose={() => setActiveSearchActivity(null)}
+        title="📍 Update Location"
+      >
+        <div className="p-6">
+          <p className="text-sm text-text-secondary mb-4">
+            Search for a specific place to get accurate map data and photos.
+          </p>
+          <LocationAutocomplete
+            initialValue={activeSearchActivity?.initialValue || ''}
+            onSelect={(locationData) => {
+              dispatch({
+                type: ACTIONS.UPDATE_ACTIVITY,
+                payload: {
+                  dayId: activeSearchActivity.dayId,
+                  activityId: activeSearchActivity.activityId,
+                  updates: { location: locationData }
+                }
+              })
+              setActiveSearchActivity(null)
+              triggerHaptic('medium')
+            }}
+          />
+        </div>
+      </Modal>
 
       {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-6 gap-2">
@@ -733,6 +797,9 @@ export default function ItineraryTab() {
                       key={trip.itinerary[activeDayIndex].id}
                       day={trip.itinerary[activeDayIndex]}
                       trip={trip}
+                      resolveLocation={resolveLocation}
+                      isResolving={isResolving}
+                      setActiveSearchActivity={setActiveSearchActivity}
                       onReorderDay={(from, to) => dispatch({ type: ACTIONS.REORDER_DAYS, payload: { fromIndex: from, toIndex: to } })}
                     />
                   )}
@@ -754,6 +821,9 @@ export default function ItineraryTab() {
                       key={day.id}
                       day={day}
                       trip={trip}
+                      resolveLocation={resolveLocation}
+                      isResolving={isResolving}
+                      setActiveSearchActivity={setActiveSearchActivity}
                       onReorderDay={(from, to) => dispatch({ type: ACTIONS.REORDER_DAYS, payload: { fromIndex: from, toIndex: to } })}
                     />
                   ))}
@@ -772,7 +842,14 @@ export default function ItineraryTab() {
             <div className="absolute inset-0 right-[-24px] pr-6 pb-6 overflow-x-auto overflow-y-hidden custom-scrollbar">
               <div className="flex gap-4 min-fit-content h-full items-start">
                 {trip.itinerary.map(day => (
-                  <KanbanColumn key={day.id} day={day} />
+                  <KanbanColumn
+                    key={day.id}
+                    day={day}
+                    trip={trip}
+                    resolveLocation={resolveLocation}
+                    isResolving={isResolving}
+                    setActiveSearchActivity={setActiveSearchActivity}
+                  />
                 ))}
                 {!isReadOnly && (
                   <button

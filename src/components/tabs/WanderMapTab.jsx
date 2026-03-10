@@ -78,29 +78,24 @@ export default function WanderMapTab() {
     }), [destCoords]);
 
     if (!mapboxToken) return (
-        <div className="flex flex-col items-center justify-center p-12 bg-bg-secondary rounded-[var(--radius-lg)] border border-border h-[600px] mt-4">
-            <span className="text-4xl mb-4">🔑</span>
-            <h2 className="text-lg font-heading font-bold text-text-primary">Map Token Required</h2>
-            <p className="text-sm text-text-muted mt-2 text-center max-w-xs">
-                Please configure VITE_MAPBOX_PART2 in your environment to unlock the full WanderMap experience.
-            </p>
+        <div className="absolute inset-0 animate-fade-in z-0">
+            {/* Map Container */}
+            <div className="w-full h-full relative flex flex-col items-center justify-center">
+                <div className="p-12 bg-bg-secondary rounded-[var(--radius-lg)] border border-border text-center max-w-md">
+                    <span className="text-4xl mb-4 block">🔑</span>
+                    <h2 className="text-lg font-heading font-bold text-text-primary">Map Token Required</h2>
+                    <p className="text-sm text-text-muted mt-2">
+                        Please configure VITE_MAPBOX_PART2 in your environment to unlock the full WanderMap experience.
+                    </p>
+                </div>
+            </div>
         </div>
     );
 
     return (
-        <div className="flex flex-col h-[calc(100vh-160px)] md:h-[calc(100vh-120px)] animate-fade-in relative">
-            {/* Header Area */}
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                    <h2 className="text-2xl font-heading font-bold text-text-primary">📍 WanderMap</h2>
-                    <span className={`px-2 py-0.5 rounded-[var(--radius-pill)] text-[10px] font-bold uppercase tracking-widest border border-border bg-bg-card text-accent`}>
-                        {isMicroView ? 'Micro View' : 'Macro View'}
-                    </span>
-                </div>
-            </div>
-
+        <div className="absolute inset-0 animate-fade-in z-0">
             {/* Map Container */}
-            <div className="flex-1 relative rounded-[var(--radius-lg)] overflow-hidden border border-border bg-bg-secondary">
+            <div className="w-full h-full relative">
                 <Map
                     ref={mapRef}
                     mapboxAccessToken={mapboxToken}
@@ -115,7 +110,7 @@ export default function WanderMapTab() {
                     mapStyle="mapbox://styles/mapbox/light-v11"
                     style={{ width: '100%', height: '100%' }}
                 >
-                    <NavigationControl position="bottom-right" showCompass={false} />
+                    <NavigationControl position="top-right" showCompass={false} />
 
                     {/* Route Line */}
                     {layers.itinerary && destCoords.length >= 2 && (

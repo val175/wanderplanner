@@ -70,7 +70,13 @@ export function useMapDiscovery(trip) {
             }
 
             const promises = allActivities.map(async (activity) => {
-                const query = activity.location || activity.name;
+                // If we already have rich location data with coordinates, use them directly
+                if (activity.location?.coordinates?.lat && activity.location?.coordinates?.lng) {
+                    const coords = [activity.location.coordinates.lng, activity.location.coordinates.lat];
+                    return { activityId: activity.id, coords, activity };
+                }
+
+                const query = typeof activity.location === 'string' ? activity.location : activity.name;
                 const countryHint = destinations[0]?.country || null;
                 const coords = await geocodeCity(query, countryHint);
                 return { activityId: activity.id, coords, activity };
