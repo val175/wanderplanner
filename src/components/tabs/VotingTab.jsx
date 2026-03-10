@@ -5,7 +5,7 @@ import Button from '../shared/Button'
 import { useTripContext } from '../../context/TripContext'
 import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
-import { formatDate, formatCurrency, generateId } from '../../utils/helpers'
+import { formatDate, formatCurrency, formatCurrencyRange, generateId } from '../../utils/helpers'
 import AvatarCircle from '../shared/AvatarCircle'
 import { triggerHaptic } from '../../utils/haptics'
 import { extractIdeaDetails } from '../../hooks/useAI'
@@ -30,27 +30,27 @@ function formatIdeaPrice(priceDetails, currency = 'PHP') {
         return { amount: 'TBD', unit: 'total' }
     }
 
-    // Split amount and unit (e.g., "500 - 1500 per person /TOTAL" -> ["500 - 1500 per person", "TOTAL"])
     const [rawAmount, rawUnit] = priceDetails.split('/')
-
-    // Clean up amount: remove currency codes like "PHP", "USD", etc.
-    // but preserve the "₱" if already present, or we'll add it later.
+    const unit = (rawUnit || 'total').toLowerCase().trim()
     let amount = rawAmount.replace(/PHP|USD|EUR|GBP|JPY/gi, '').trim()
 
-    // Add peso sign if not present and is PHP (default)
-    if (!amount.includes('₱') && !amount.includes('$') && !amount.includes('€')) {
-        amount = `${amount}`
+    // Handle price ranges like "60000 - 120000" or "60,000 – 120,000"
+    const rangeMatch = amount.match(/^([\d,]+)\s*[-–]\s*([\d,]+)/)
+    if (rangeMatch) {
+        const low = parseFloat(rangeMatch[1].replace(/,/g, ''))
+        const high = parseFloat(rangeMatch[2].replace(/,/g, ''))
+        return { amount: formatCurrencyRange(low, high, currency), unit }
     }
 
-    // Add (est.) if not present
-    if (!amount.toLowerCase().includes('(est.)')) {
+    // Single number
+    const num = parseFloat(amount.replace(/[^0-9.]/g, ''))
+    if (!isNaN(num) && num > 0) {
+        amount = `${formatCurrency(num, currency)} (est.)`
+    } else if (!amount.toLowerCase().includes('(est.)')) {
         amount = `${amount} (est.)`
     }
 
-    return {
-        amount,
-        unit: (rawUnit || 'total').toLowerCase().trim()
-    }
+    return { amount, unit }
 }
 function CategoryPill({ type }) {
     const meta = CATEGORY_META[type] || CATEGORY_META.other
@@ -148,7 +148,7 @@ function IdeaTableRow({ idea, resolveProfile, onDelete, isSelectable, isSelected
                     if (amount === 'TBD') return <span className="text-text-muted text-xs">—</span>
                     return (
                         <span className="text-[13px] font-semibold text-text-primary">
-                            {formatCurrency(priceNum, 'PHP') || amount}
+                            {amount}
                             <span className="text-[10px] font-semibold text-text-muted ml-0.5 uppercase">
                                 /{unit}
                             </span>
@@ -216,8 +216,8 @@ function IdeaTableView({ ideas, resolveProfile, onDelete, isSelectable, selected
                 return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
             }
             if (sortCol === 'cost') {
-                va = parseFloat((a.priceDetails || '').replace(/[^0-9.]/g, '')) || 0
-                vb = parseFloat((b.priceDetails || '').replace(/[^0-9.]/g, '')) || 0
+                va = parseFloat((a.priceDetails || '').split(/[-–]/)[0].replace(/[^0-9.]/g, '')) || 0
+                vb = parseFloat((b.priceDetails || '').split(/[-–]/)[0].replace(/[^0-9.]/g, '')) || 0
                 return sortDir === 'asc' ? va - vb : vb - va
             }
             // date (default)
@@ -430,10 +430,9 @@ function PollOptionCard({ option, poll, activeUserId, onVote, isLeader, globalTo
                 <div className="text-xs text-text-secondary flex flex-wrap items-center gap-1">
                     {(() => {
                         const { amount, unit } = formatIdeaPrice(option.priceDetails)
-                        const priceNumOpt = parseFloat((option.priceDetails || '').replace(/[^0-9.]/g, '')) || 0
                         return (
                             <>
-                                <span className="font-semibold">{formatCurrency(priceNumOpt, 'PHP') || amount}</span>
+                                <span className="font-semibold">{amount}</span>
                                 <span className="text-[10px] tracking-wider uppercase">/{unit}</span>
                             </>
                         )
@@ -720,10 +719,9 @@ function IdeaCard({ idea, resolveProfile, onDelete, isSelectable, isSelected, on
                     <div>
                         {(() => {
                             const { amount, unit } = formatIdeaPrice(idea.priceDetails)
-                            const priceNumIdea = parseFloat((idea.priceDetails || '').replace(/[^0-9.]/g, '')) || 0
                             return (
                                 <>
-                                    <span className="font-semibold text-sm text-text-primary mr-1">{formatCurrency(priceNumIdea, 'PHP') || amount}</span>
+                                    <span className="font-semibold text-sm text-text-primary mr-1">{amount}</span>
                                     <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">/{unit}</span>
                                 </>
                             )
@@ -900,7 +898,7 @@ export default function VotingTab() {
                 url: parsedIdea.url,
                 title: parsedIdea.title,
                 type,
-                priceDetails: 'TBD',
+                priceDetails: parsedIdea.priceEstimate || 'TBD',
                 description: [parsedIdea.vibe, parsedIdea.location].filter(Boolean).join(' • '),
                 emoji: '🎬',
                 imageUrl: parsedIdea.thumbnail_url || null,

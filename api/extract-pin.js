@@ -38,8 +38,9 @@ export default async function handler(req, res) {
                 category: z.string().describe('One of: Food, Activity, Nightlife, Stay, Shopping, Other'),
                 location: z.string().describe('City or neighborhood extracted from the caption'),
                 vibe: z.string().describe('1-2 word mood descriptor, e.g. "Aesthetic", "High-Energy", "Chill"'),
+                priceEstimate: z.string().describe('Estimated cost. Format as "LOW - HIGH/PERSON" or "LOW - HIGH/TOTAL" or "Free/TOTAL". Use numeric values only (no currency symbol), e.g. "20 - 50/PERSON" or "Free/TOTAL". Infer realistically from category and location.'),
             }),
-            prompt: `Extract travel idea details from this TikTok video caption: "${title}"`,
+            prompt: `Extract travel idea details from this TikTok video caption: "${title}". For priceEstimate, infer a realistic cost range based on the type of place and location even if not explicit.`,
         })
 
         return res.status(200).json({ ...object, url, thumbnail_url })
