@@ -110,7 +110,7 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
                 console.warn('Could not get auth token for scan', err)
             }
 
-            const response = await fetch('/api/budget/scan-receipt', {
+            const response = await fetch('https://wanderplan-rust.vercel.app/api/budget/scan-receipt', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

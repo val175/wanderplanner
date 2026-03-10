@@ -6,8 +6,9 @@
  */
 import { auth } from '../firebase/config'
 
-// All requests go through our Vercel proxy to keep the API key server-side
-const PROXY_URL = '/api/gemini'
+// All AI/API requests go to the Vercel deployment (absolute URL required — frontend is on Hostinger)
+const VERCEL_API = 'https://wanderplan-rust.vercel.app'
+const PROXY_URL = `${VERCEL_API}/api/gemini`
 
 const DEFAULT_MODEL = 'mistralai/mistral-small-3.1-24b-instruct:free'
 
@@ -160,7 +161,7 @@ export async function generateCityGuide(city, trip) {
     let token = '';
     if (auth.currentUser) token = await auth.currentUser.getIdToken();
 
-    const res = await fetch('/api/cities/auto-fill', {
+    const res = await fetch(`${VERCEL_API}/api/cities/auto-fill`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -186,7 +187,7 @@ export async function extractIdeaDetails(url, tripCurrency) {
     let token = '';
     if (auth.currentUser) token = await auth.currentUser.getIdToken();
 
-    const res = await fetch('/api/extract-idea', {
+    const res = await fetch(`${VERCEL_API}/api/extract-idea`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

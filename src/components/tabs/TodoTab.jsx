@@ -777,7 +777,7 @@ export default function TodoTab() {
       const token = await auth.currentUser?.getIdToken()
       if (!token) throw new Error("No auth token")
 
-      const res = await fetch('/api/generate-checklist', {
+      const res = await fetch('https://wanderplan-rust.vercel.app/api/generate-checklist', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
