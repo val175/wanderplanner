@@ -358,8 +358,8 @@ export default function CityCombobox({
               // People say "San Juan, La Union" (admin2), not "San Juan, Ilocos Region" (admin1).
               const displaySub = (
                 admin2 && admin2 !== r.name && admin2 !== baseC ? admin2
-                : admin1 && admin1 !== r.name && admin1 !== baseC ? admin1
-                : ''
+                  : admin1 && admin1 !== r.name && admin1 !== baseC ? admin1
+                    : ''
               )
 
               // Pool ALL admin levels for filter-matching so "la union" matches even
@@ -379,9 +379,9 @@ export default function CityCombobox({
             // Post-filter by region token: check both display string AND the full admin pool
             const filtered = regionFilter
               ? mapped.filter(r =>
-                  r.country.toLowerCase().includes(regionFilter) ||
-                  r._regionPool.includes(regionFilter)
-                )
+                r.country.toLowerCase().includes(regionFilter) ||
+                r._regionPool.includes(regionFilter)
+              )
               : mapped
             // Deduplicate by city+country key
             const unique = Array.from(new Map(filtered.map(item => [`${item.city}-${item.country}`, item])).values())
@@ -448,19 +448,16 @@ export default function CityCombobox({
   }
 
   const handleBlur = () => {
-    // Delay so click on dropdown suggestion fires before blur closes it
-    setTimeout(() => {
-      setOpen(false)
-      // On blur, attempt to resolve the typed city against CITY_DB so
-      // free-typed known city names get their country + flag auto-filled
-      if (query.trim()) {
-        const resolved = resolveCity(query, country, flag)
-        if (resolved.flag !== flag || resolved.country !== country) {
-          setQuery(resolved.city)
-          onChange(resolved)
-        }
+    // The onMouseDown(e.preventDefault()) on the buttons already prevents
+    // blur when clicking suggestions.
+    setOpen(false)
+    if (query.trim()) {
+      const resolved = resolveCity(query, country, flag)
+      if (resolved.flag !== flag || resolved.country !== country) {
+        setQuery(resolved.city)
+        onChange(resolved)
       }
-    }, 150)
+    }
   }
 
   const handleKeyDown = (e) => {
