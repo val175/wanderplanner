@@ -86,9 +86,9 @@ function CityRow({ city }) {
 
       const updates = {
         mustDo: `${data.description}\n\n${data.highlights.map(h => `• ${h}`).join('\n')}`,
-        currencyTip: data.exchangeRatePHP ? `💱 ${data.exchangeRatePHP}` : `💱 ${data.currencyCode} (${data.currencyName})`,
+        currencyTip: data.currencyTip || `💱 ${data.currencyCode} (${data.currencyName})`,
         flag: data.flagEmoji || city.flag,
-        weather: data.weather || `🌤️ Check local forecast (Primary: ${data.language})`
+        weather: data.weatherTip || `🌤️ Check local forecast (Primary: ${data.language})`
       }
 
       updateCity(updates)
@@ -258,9 +258,9 @@ function CityMobileCard({ city }) {
           id: city.id,
           updates: {
             mustDo: `${data.description}\n\n${data.highlights.map(h => `• ${h}`).join('\n')}`,
-            currencyTip: data.exchangeRatePHP ? `💱 ${data.exchangeRatePHP}` : `💱 ${data.currencyCode} (${data.currencyName})`,
+            currencyTip: data.currencyTip || `💱 ${data.currencyCode} (${data.currencyName})`,
             flag: data.flagEmoji || city.flag,
-            weather: data.weather || `🌤️ Check local forecast (Primary: ${data.language})`
+            weather: data.weatherTip || `🌤️ Check local forecast (Primary: ${data.language})`
           }
         }
       })

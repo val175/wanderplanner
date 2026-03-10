@@ -557,9 +557,9 @@ function PollCard({ poll, activeUserId, onVote, onResolve, onDelete, onCancel, r
     return (
         <div className="flex flex-col md:flex-row border border-border rounded-[var(--radius-xl)] bg-bg-card overflow-hidden relative mb-6">
             {/* Left side: Activity Log */}
-            <div className="w-full md:w-[30%] border-b md:border-b-0 md:border-r border-border p-4 md:p-6 bg-bg-primary flex flex-col shrink-0">
+            <div className="order-2 md:order-1 w-full md:w-[30%] border-t md:border-t-0 md:border-r border-border p-4 md:p-6 bg-bg-primary flex flex-col shrink-0">
                 <h3 className="text-[11px] font-semibold text-text-muted uppercase tracking-[0.15em] mb-3 md:mb-6">Activity Log</h3>
-                <div className="flex-1 space-y-4 md:space-y-5 overflow-y-auto pr-2 max-h-36 md:max-h-none">
+                <div className="flex-1 space-y-4 md:space-y-5 overflow-y-auto pr-2 max-h-[200px] md:max-h-none">
                     {logs.length === 0 ? (
                         <p className="text-xs text-text-secondary mt-6 font-medium">Start a poll to see voting activity here.</p>
                     ) : (
@@ -578,8 +578,8 @@ function PollCard({ poll, activeUserId, onVote, onResolve, onDelete, onCancel, r
             </div>
 
             {/* Right side: Options and Actions */}
-            <div className="w-full md:w-[70%] p-4 md:p-6 flex flex-col">
-                <div className="flex justify-between items-start mb-6">
+            <div className="order-1 md:order-2 w-full md:w-[70%] p-4 md:p-6 flex flex-col">
+                <div className="flex flex-col sm:flex-row justify-between items-start mb-6 gap-4 sm:gap-2">
                     <div>
                         <div className="flex items-center gap-2 mb-2">
                             {poll.status === 'resolved' ? (
@@ -600,8 +600,8 @@ function PollCard({ poll, activeUserId, onVote, onResolve, onDelete, onCancel, r
                     </div>
 
                     {poll.status === 'active' && (
-                        <div className="flex flex-col gap-2 items-end">
-                            <Button onClick={() => onResolve(poll)} variant="secondary" className="px-5 py-2 text-[11px] uppercase tracking-wider font-semibold shadow-none hover:bg-bg-hover">
+                        <div className="flex flex-col gap-2 items-end w-full sm:w-auto">
+                            <Button onClick={() => onResolve(poll)} variant="secondary" className="w-full sm:w-auto px-5 py-2 text-[11px] uppercase tracking-wider font-semibold shadow-none hover:bg-bg-hover">
                                 Resolve Early
                             </Button>
                         </div>
@@ -1034,9 +1034,9 @@ export default function VotingTab() {
                             </div>
 
                             <div className="hidden md:block shrink-0">
-                              <Button size="sm" onClick={() => setShowIdeaExtractor(true)} className="shrink-0">
-                                + Extract Idea
-                              </Button>
+                                <Button size="sm" onClick={() => setShowIdeaExtractor(true)} className="shrink-0">
+                                    + Extract Idea
+                                </Button>
                             </div>
                         </div>
                     </div>

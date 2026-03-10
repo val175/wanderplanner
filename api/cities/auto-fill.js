@@ -49,12 +49,12 @@ export default async function handler(req, res) {
                 highlights: z.array(z.string()).describe('top 3 things to do'),
                 currencyCode: z.string().describe('the 3-letter ISO code like "PHP" or "BRL"'),
                 currencyName: z.string().describe('full currency name'),
+                currencyTip: z.string().describe('A simple, rounded conversion rate against PHP (e.g., "1 USD = ₱58" or "1 EUR = ₱62"). ALWAYS use PHP as the target currency. Use the ₱ symbol. Do not include decimals.'),
                 language: z.string().describe('primary local language'),
                 flagEmoji: z.string().describe('the unicode flag emoji for the destination'),
-                weather: z.string().describe('average high/low temperature for the current month, e.g. "MARCH AVG 14°C / 12°C"'),
-                exchangeRatePHP: z.string().describe('approximate exchange rate vs PHP, formatted as "1 [LocalCode] = [Amount] PHP"')
+                weatherTip: z.string().describe('The typical weather for this city during the month of March. Format exactly like this example: "🌤️ 18°C / 9°C (March)". Always include a relevant weather emoji at the start.')
             }),
-            prompt: `Generate travel details for ${city}${country ? `, ${country}` : ''}. Include historical monthly average weather for the current month.`
+            prompt: `Generate travel details for ${city}${country ? `, ${country}` : ''}. The trip will take place in March. Base the weather tip on typical historical data for March. The travelers use PHP (Philippine Peso) as their home currency.`
         })
 
         return res.status(200).json(object)
