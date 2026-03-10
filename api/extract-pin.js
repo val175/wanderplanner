@@ -107,13 +107,13 @@ export default async function handler(req, res) {
         // ── AI Standardisation via Gemini ─────────────────────────────────────────
         const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY })
         const { object } = await generateObject({
-            model: google('gemini-3.1-flash-lite-preview'),
+            model: google('gemini-2.0-flash-lite'),
             schema: z.object({
                 title: z.string().describe('Clean, catchy name for the location or travel idea'),
                 category: z.string().describe('One of: Food, Activity, Nightlife, Lodging, Transport, Shopping, Other'),
                 location: z.string().describe('City or neighborhood extracted from the context'),
                 vibe: z.string().describe('1-2 word mood descriptor, e.g. "Aesthetic", "High-Energy", "Relaxing"'),
-                estimatedCost: z.string().optional().describe('Estimated cost if mentioned or inferable. Format: "20 - 50/PERSON" or "Free/TOTAL". Numbers only, no currency symbol. Omit entirely if truly unknown.'),
+                estimatedCost: z.string().describe('Price estimate. Use exact price if visible in content. Otherwise make a realistic market-rate estimate and append " (est.)". Format: "20 - 50/person" or "500/night" or "Free". NEVER leave blank.'),
             }),
             prompt: `Extract travel idea details from this web content:\n\n${contextText}`,
         })
