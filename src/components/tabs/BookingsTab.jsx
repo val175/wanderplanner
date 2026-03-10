@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import Card from '../shared/Card'
 import ProgressBar from '../shared/ProgressBar'
 import Button from '../shared/Button'
+import Modal from '../shared/Modal'
 import TabHeader from '../common/TabHeader'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
@@ -10,6 +11,84 @@ import { BOOKING_CATEGORIES } from '../../constants/tabs'
 import BookingsTable from './BookingsTable'
 import BookingsKanban from './BookingsKanban'
 import BookingDrawer from './BookingDrawer'
+
+function AddBookingModal({ isOpen, onClose, onAdd }) {
+  const [bookingData, setBookingData] = useState({
+    name: '',
+    category: BOOKING_CATEGORIES[0].id,
+    estimatedCost: 0
+  })
+
+  const handleSubmit = (e) => {
+    e?.preventDefault()
+    if (!bookingData.name.trim()) return
+    onAdd({
+      name: bookingData.name.trim(),
+      category: bookingData.category,
+      amountPaid: Number(bookingData.estimatedCost) || 0,
+      status: 'to_book',
+      confirmationNumber: '',
+      providerLink: '',
+      location: '',
+    })
+    setBookingData({ name: '', category: BOOKING_CATEGORIES[0].id, estimatedCost: 0 })
+    onClose()
+  }
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="🎫 Add New Booking">
+      <div className="p-6 space-y-4">
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Booking Name</label>
+          <input
+            value={bookingData.name}
+            onChange={e => setBookingData(prev => ({ ...prev, name: e.target.value }))}
+            placeholder="e.g. Flight to Tokyo"
+            className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors"
+            autoFocus
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Category</label>
+            <select
+              value={bookingData.category}
+              onChange={e => setBookingData(prev => ({ ...prev, category: e.target.value }))}
+              className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors"
+            >
+              {BOOKING_CATEGORIES.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.emoji} {c.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Est. Cost</label>
+            <input
+              type="number"
+              value={bookingData.estimatedCost}
+              onChange={e => setBookingData(prev => ({ ...prev, estimatedCost: e.target.value }))}
+              placeholder="0.00"
+              className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors"
+            />
+          </div>
+        </div>
+
+        <div className="pt-4 flex justify-end gap-3 border-t border-border mt-6">
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={!bookingData.name.trim()}>
+            Add Booking
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
 
 const TOGGLEABLE_COLUMNS = [
   { id: 'cost', label: 'Cost' },
@@ -21,6 +100,7 @@ export default function BookingsTab() {
   const { activeTrip, dispatch, showToast, isReadOnly } = useTripContext()
   const [filter, setFilter] = useState('all')
   const [viewMode, setViewMode] = useState('table') // 'table' | 'board'
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
   // Local storage for view preferences
   const [hiddenColumns, setHiddenColumns] = useState(() => {
@@ -109,23 +189,36 @@ export default function BookingsTab() {
         isReadOnly={isReadOnly}
       />
 
+      <AddBookingModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAdd={handleAdd}
+      />
+
       {/* ── Layer 1: Header ── */}
       <TabHeader
         title={<span>🎫 Bookings</span>}
         subtitle="Manage flights, accommodations, and reservations."
         rightSlot={
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col items-end min-w-[120px]">
-              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
-                {confirmedCount} of {totalCount} confirmed
-              </span>
-              <div className="w-32">
-                <ProgressBar value={confirmedCount} max={totalCount} colorClass="bg-success" height="h-1.5" />
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4">
+              <div className="flex flex-col items-end min-w-[120px]">
+                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+                  {confirmedCount} of {totalCount} confirmed
+                </span>
+                <div className="w-32">
+                  <ProgressBar value={confirmedCount} max={totalCount} colorClass="bg-success" height="h-1.5" />
+                </div>
               </div>
+              <Button variant="secondary" size="sm" onClick={handleExport} className="hidden sm:inline-flex">
+                📋 Export
+              </Button>
             </div>
-            <Button variant="secondary" size="sm" onClick={handleExport} className="hidden sm:inline-flex">
-              📋 Export
-            </Button>
+            {!isReadOnly && (
+              <Button onClick={() => setIsAddModalOpen(true)}>
+                + New Booking
+              </Button>
+            )}
           </div>
         }
       />

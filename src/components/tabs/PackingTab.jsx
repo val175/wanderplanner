@@ -13,6 +13,7 @@ import ProgressBar from '../shared/ProgressBar'
 import CelebrationEffect from '../shared/CelebrationEffect'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import Button from '../shared/Button'
+import Modal from '../shared/Modal'
 import EditableText from '../shared/EditableText'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
@@ -20,6 +21,83 @@ import AvatarCircle from '../shared/AvatarCircle'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
 import { triggerHaptic } from '../../utils/haptics'
 import TabHeader from '../common/TabHeader'
+
+function AddPackingModal({ isOpen, onClose, onAdd, defaultAssignee }) {
+  const [itemData, setItemData] = useState({
+    name: '',
+    category: 'misc',
+    qty: 1
+  })
+
+  const handleSubmit = (e) => {
+    e?.preventDefault()
+    if (!itemData.name.trim()) return
+    onAdd({
+      name: itemData.name.trim(),
+      category: itemData.category,
+      qty: Number(itemData.qty) || 1,
+      notes: '',
+      packed: false,
+      assignee: defaultAssignee || []
+    })
+    setItemData({ name: '', category: 'misc', qty: 1 })
+    onClose()
+  }
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="🧳 Add New Item">
+      <div className="p-6 space-y-4">
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Item Name</label>
+          <input
+            value={itemData.name}
+            onChange={e => setItemData(prev => ({ ...prev, name: e.target.value }))}
+            placeholder="e.g. Universal Adapter"
+            className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors"
+            autoFocus
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Category</label>
+            <select
+              value={itemData.category}
+              onChange={e => setItemData(prev => ({ ...prev, category: e.target.value }))}
+              className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors"
+            >
+              {CATEGORIES.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.emoji} {c.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Quantity</label>
+            <input
+              type="number"
+              value={itemData.qty}
+              onChange={e => setItemData(prev => ({ ...prev, qty: e.target.value }))}
+              className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors"
+              min="1"
+            />
+          </div>
+        </div>
+
+        <div className="pt-4 flex justify-end gap-3 border-t border-border mt-6">
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={!itemData.name.trim()}>
+            Add Item
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
 
 // ── Packing Badge Engine ──────────────────────────────────────────────────────
 // Maps itinerary activity keywords → matching packing item keywords → badge emoji
@@ -283,48 +361,6 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
   )
 }
 
-// ── Inline add row ──────────────────────────────────────────────────────────
-function InlineAddRow({ onAdd, defaultAssignee }) {
-  const inputRef = useRef(null)
-  const [name, setName] = useState('')
-  const [category, setCategory] = useState('misc')
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (!name.trim()) return
-    onAdd({ name: name.trim(), category, qty: 1, notes: '', packed: false, assignee: defaultAssignee })
-    setName('')
-    inputRef.current?.focus()
-  }
-
-  return (
-    <tr className="border-t border-border/40 bg-accent/[0.02]">
-      <td className="px-2 py-2 align-middle">
-        <div className="flex items-center justify-center">
-          <div className="w-[18px] h-[18px] rounded border-2 border-border/30 border-dashed" />
-        </div>
-      </td>
-      <td className="px-2 py-2">
-        <form onSubmit={handleSubmit}>
-          <input
-            ref={inputRef}
-            type="text"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder="+ New item (press Enter to add)"
-            className="w-full px-2 py-1.5 text-[13px] bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors"
-          />
-        </form>
-      </td>
-      <td className="px-2 py-2 align-middle">
-        <CategoryPill value={category} onChange={setCategory} />
-      </td>
-      <td colSpan={4} className="px-2 py-2 text-xs text-text-muted italic opacity-60">
-        Fill in details after adding…
-      </td>
-    </tr>
-  )
-}
 
 // ── Main Packing Tab ────────────────────────────────────────────────────────
 export default function PackingTab() {
@@ -334,6 +370,7 @@ export default function PackingTab() {
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [viewMode, setViewMode] = useState('group') // 'group' | 'me'
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
   if (!activeTrip) return null
 
@@ -576,18 +613,32 @@ export default function PackingTab() {
         danger={false}
       />
 
+      <AddPackingModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAdd={onAdd}
+        defaultAssignee={viewMode === 'me' && currentUserProfile?.id ? [currentUserProfile.id] : []}
+      />
+
       {/* ── Layer 1: Header ── */}
       <TabHeader
         title={<span>🧳 Packing List</span>}
         subtitle="Essential gear and shared items for the group."
         rightSlot={
-          <div className="flex flex-col items-end min-w-[120px]">
-            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
-              {packed}/{total} packed
-            </span>
-            <div className="w-32">
-              <ProgressBar value={packed} max={total} colorClass="bg-accent" height="h-1.5" />
+          <div className="flex items-center gap-6">
+            <div className="flex flex-col items-end min-w-[120px]">
+              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+                {packed}/{total} packed
+              </span>
+              <div className="w-32">
+                <ProgressBar value={packed} max={total} colorClass="bg-accent" height="h-1.5" />
+              </div>
             </div>
+            {!isReadOnly && (
+              <Button onClick={() => setIsAddModalOpen(true)}>
+                + New Item
+              </Button>
+            )}
           </div>
         }
       />
@@ -680,9 +731,6 @@ export default function PackingTab() {
                   ))}
                 </tr>
               ))}
-              {!isReadOnly && (
-                <InlineAddRow onAdd={onAdd} defaultAssignee={viewMode === 'me' && currentUserProfile?.id ? [currentUserProfile.id] : []} />
-              )}
             </tbody>
           </table>
         </div>

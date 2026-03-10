@@ -30,89 +30,69 @@ function getActivityAccent(emoji) {
   return map[emoji] || 'border-l-border text-border-strong'
 }
 
-// ── Kanban Add Activity Inline ──────────────────────────────────────────────
-function KanbanAddRow({ onAdd }) {
-  const [name, setName] = useState('')
-  const [time, setTime] = useState('')
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (!name.trim()) return
-    onAdd({ name: name.trim(), time })
-    setName('')
-    setTime('')
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="flex items-center gap-3 w-full group">
-      <div className="w-[100px] shrink-0">
-        <TimePicker
-          value={time}
-          onChange={setTime}
-          className="text-sm border-transparent hover:border-border focus:border-accent bg-transparent w-full"
-          placeholder="+time"
-        />
-      </div>
-      <div className="relative shrink-0 w-[4px] flex items-center justify-center">
-      </div>
-      <input
-        value={name}
-        onChange={e => setName(e.target.value)}
-        placeholder="+ Add item"
-        className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted focus:outline-none min-w-0"
-      />
-      <div className="w-[80px] shrink-0 text-right opacity-0 group-hover:opacity-100 transition-opacity">
-        <button type="submit" className="text-xs font-semibold bg-bg-secondary hover:bg-bg-hover text-text-secondary px-3 py-1.5 rounded-[var(--radius-pill)]" disabled={!name.trim()}>
-          Add
-        </button>
-      </div>
-    </form>
-  )
-}
-
-// ── Table Add Row Inline ──────────────────────────────────────────────
-function TableAddRow({ onAdd }) {
-  const [name, setName] = useState('')
-  const [time, setTime] = useState('')
-  const inputRef = useRef(null)
+function AddActivityModal({ isOpen, onClose, itinerary, onAdd }) {
+  const [activityData, setActivityData] = useState({ name: '', time: '', dayId: itinerary[0]?.id || '' })
 
   const handleSubmit = (e) => {
     e?.preventDefault()
-    if (!name.trim()) return
-    onAdd({ name: name.trim(), time })
-    setName('')
-    setTime('')
-    inputRef.current?.focus()
+    if (!activityData.name.trim() || !activityData.dayId) return
+    onAdd({
+      dayId: activityData.dayId,
+      activity: { name: activityData.name.trim(), time: activityData.time }
+    })
+    setActivityData(prev => ({ ...prev, name: '', time: '' }))
+    onClose()
   }
 
   return (
-    <tr className="border-t border-border/40 bg-accent/[0.02]">
-      <td className="px-2 py-2 align-middle"></td>
-      <td className="px-2 py-2 align-middle">
-        <div className="flex justify-end pr-2">
-          <TimePicker
-            value={time}
-            onChange={setTime}
-            className="text-sm border-transparent hover:border-border focus:border-accent bg-transparent text-text-secondary font-mono w-[100px] text-right"
-            placeholder="+time"
+    <Modal isOpen={isOpen} onClose={onClose} title="📅 Add New Activity">
+      <div className="p-6 space-y-4">
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Target Day</label>
+          <select
+            value={activityData.dayId}
+            onChange={e => setActivityData(prev => ({ ...prev, dayId: e.target.value }))}
+            className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors"
+          >
+            {itinerary.map(day => (
+              <option key={day.id} value={day.id}>
+                Day {day.dayNumber}: {day.location || 'Untitled Location'} ({day.date ? formatDate(day.date, 'short') : 'No date'})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Activity Name</label>
+          <input
+            value={activityData.name}
+            onChange={e => setActivityData(prev => ({ ...prev, name: e.target.value }))}
+            placeholder="e.g. Dinner at 7-Eleven"
+            className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors"
+            autoFocus
           />
         </div>
-      </td>
-      <td className="px-2 py-2 align-middle" colSpan={3}>
-        <form onSubmit={handleSubmit} className="flex h-full w-full">
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Time (Optional)</label>
           <input
-            ref={inputRef}
-            type="text"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSubmit(e)}
-            placeholder="+ Add item (press Enter)"
-            className="w-full px-2 py-1.5 text-[13px] bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors"
+            type="time"
+            value={activityData.time}
+            onChange={e => setActivityData(prev => ({ ...prev, time: e.target.value }))}
+            className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors"
           />
-        </form>
-      </td>
-      <td className="px-2 py-2 align-middle"></td>
-    </tr>
+        </div>
+
+        <div className="pt-4 flex justify-end gap-3 border-t border-border mt-6">
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={!activityData.name.trim() || !activityData.dayId}>
+            Add Activity
+          </Button>
+        </div>
+      </div>
+    </Modal>
   )
 }
 
@@ -473,11 +453,6 @@ function DayGroupTable({ day, onReorderDay, trip }) {
                   <td colSpan={3}></td>
                 </tr>
 
-                {!isReadOnly && (
-                  <TableAddRow
-                    onAdd={act => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: act } })}
-                  />
-                )}
               </tbody>
             </table>
           </div>
@@ -615,14 +590,6 @@ function KanbanColumn({ day }) {
         )}
       </div>
 
-      {!isReadOnly && (
-        <div className="mt-2 text-center text-text-muted opacity-60 hover:opacity-100 transition-opacity">
-          <KanbanAddRow
-            onAdd={act => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: act } })}
-            defaultEmoji="📌"
-          />
-        </div>
-      )}
     </div>
   )
 }
@@ -633,6 +600,7 @@ export default function ItineraryTab() {
   const isMobile = useMediaQuery('(max-width: 767px)')
   const [viewMode, setViewMode] = useState('table') // 'table' | 'kanban'
   const [activeDayIndex, setActiveDayIndex] = useState(0) // For mobile swipe view context
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
   if (!activeTrip) return null
   const trip = activeTrip
@@ -674,13 +642,27 @@ export default function ItineraryTab() {
         title={<span>🗓️ Itinerary</span>}
         subtitle="Plan your days and map out your adventures."
         rightSlot={
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Trip Stats</span>
-            <span className="text-xs font-semibold text-text-secondary">
-              {trip.itinerary?.reduce((acc, d) => acc + (d.activities?.length || 0), 0) || 0} activities · {trip.itinerary?.length || 0} days
-            </span>
+          <div className="flex items-center gap-6">
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Trip Stats</span>
+              <span className="text-xs font-semibold text-text-secondary">
+                {trip.itinerary?.reduce((acc, d) => acc + (d.activities?.length || 0), 0) || 0} activities · {trip.itinerary?.length || 0} days
+              </span>
+            </div>
+            {!isReadOnly && (
+              <Button onClick={() => setIsAddModalOpen(true)}>
+                + New Activity
+              </Button>
+            )}
           </div>
         }
+      />
+
+      <AddActivityModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        itinerary={trip.itinerary || []}
+        onAdd={({ dayId, activity }) => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId, activity } })}
       />
 
       {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}

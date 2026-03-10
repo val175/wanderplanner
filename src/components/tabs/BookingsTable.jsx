@@ -71,52 +71,6 @@ function TypeDropdown({ value, onChange, disabled }) {
     )
 }
 
-// ── Inline Add Row ──────────────────────────────────────────────────────────
-function InlineAddRow({ onAdd }) {
-    const [name, setName] = useState('')
-    const [category, setCategory] = useState(BOOKING_CATEGORIES[0].id)
-    const inputRef = useRef(null)
-
-    const handleSubmit = (e) => {
-        e?.preventDefault()
-        if (!name.trim()) return
-        onAdd({
-            name: name.trim(),
-            category,
-            status: 'to_book',
-            amountPaid: 0,
-            confirmationNumber: '',
-            providerLink: '',
-            location: '',
-        })
-        setName('')
-        inputRef.current?.focus()
-    }
-
-    return (
-        <tr className="border-t border-border/40 bg-accent/[0.02]">
-            <td className="p-2 align-middle">
-                <TypeDropdown value={category} onChange={setCategory} />
-            </td>
-            <td className="p-2">
-                <form onSubmit={handleSubmit} className="flex h-full">
-                    <input
-                        ref={inputRef}
-                        type="text"
-                        value={name}
-                        onChange={e => setName(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && handleSubmit(e)}
-                        placeholder="+ New Booking (press Enter to add)"
-                        className="w-full px-2 py-1.5 text-[13px] bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors"
-                    />
-                </form>
-            </td>
-            <td colSpan={100} className="p-2 text-xs text-text-muted italic opacity-60">
-                Enter details to save...
-            </td>
-        </tr>
-    )
-}
 
 // ── Main Table Component ───────────────────────────────────────────────────
 export default function BookingsTable({
@@ -382,16 +336,6 @@ export default function BookingsTable({
                     )
                 })}
 
-                {onAdd && (
-                    <Card className="p-3 border border-border/50 border-dashed bg-bg-secondary/20 flex flex-col gap-2">
-                        <span className="text-xs font-bold uppercase tracking-wider text-text-muted">Add New Booking</span>
-                        <table className="w-full">
-                            <tbody>
-                                <InlineAddRow onAdd={onAdd} />
-                            </tbody>
-                        </table>
-                    </Card>
-                )}
             </div>
         )
     }
@@ -432,7 +376,6 @@ export default function BookingsTable({
                                 ))}
                             </tr>
                         ))}
-                        {onAdd && <InlineAddRow onAdd={onAdd} />}
                     </tbody>
                 </table>
             </div>

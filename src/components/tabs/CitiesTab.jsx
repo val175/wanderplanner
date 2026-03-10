@@ -4,12 +4,13 @@ import EditableText from '../shared/EditableText'
 import TabHeader from '../common/TabHeader'
 import CityCombobox, { resolveCity } from '../shared/CityCombobox'
 import Button from '../shared/Button'
+import Modal from '../shared/Modal'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { generateCityGuide } from '../../hooks/useAI'
 import { triggerHaptic } from '../../utils/haptics'
 
-function TopAddCityForm({ onAdd, onCancel }) {
+function AddCityModal({ isOpen, onClose, onAdd }) {
   const [cityData, setCityData] = useState({ city: '', country: '', flag: '' })
 
   const handleSubmit = (e) => {
@@ -18,40 +19,54 @@ function TopAddCityForm({ onAdd, onCancel }) {
     const resolved = resolveCity(cityData.city, cityData.country, cityData.flag)
     onAdd(resolved)
     setCityData({ city: '', country: '', flag: '' })
+    onClose()
   }
 
   return (
-    <div className="w-full sm:w-[70%] max-w-[600px] animate-fade-in bg-bg-card rounded-[var(--radius-lg)] border border-border p-1.5 flex items-center gap-2">
-      <div className="flex items-center justify-center w-8 h-8 text-xl shrink-0">
-        {cityData.flag || <span className="text-text-muted text-base">📍</span>}
+    <Modal isOpen={isOpen} onClose={onClose} title="📍 Add New City">
+      <div className="p-6 space-y-4">
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">City Name</label>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-10 h-10 text-2xl shrink-0 bg-bg-secondary rounded-[var(--radius-md)] border border-border">
+              {cityData.flag || <span className="text-text-muted text-base">📍</span>}
+            </div>
+            <div className="flex-1">
+              <CityCombobox
+                value={cityData.city}
+                country={cityData.country}
+                flag={cityData.flag}
+                onChange={updates => setCityData(prev => ({ ...prev, ...updates }))}
+                placeholder="Search for a city..."
+                autoFocus
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Country</label>
+          <input
+            value={cityData.country}
+            onChange={e => setCityData(prev => ({ ...prev, country: e.target.value }))}
+            placeholder="e.g. Japan"
+            className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors"
+          />
+        </div>
+
+        <div className="pt-4 flex justify-end gap-3 border-t border-border mt-6">
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={!cityData.city.trim()}>
+            Add City
+          </Button>
+        </div>
       </div>
-      <div className="flex-1 min-w-[140px]">
-        <CityCombobox
-          value={cityData.city}
-          country={cityData.country}
-          flag={cityData.flag}
-          onChange={updates => setCityData(prev => ({ ...prev, ...updates }))}
-          placeholder="+ Search city..."
-          autoFocus
-        />
-      </div>
-      <div className="w-[100px] sm:w-[130px] shrink-0">
-        <input
-          value={cityData.country}
-          onChange={e => setCityData(prev => ({ ...prev, country: e.target.value }))}
-          placeholder="Country"
-          className="w-full px-2 py-1.5 text-[13px] bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
-        />
-      </div>
-      <Button type="button" size="sm" onClick={handleSubmit} disabled={!cityData.city.trim()} className="px-4 shrink-0">
-        Add
-      </Button>
-      <button type="button" onClick={onCancel} className="px-2 text-text-muted hover:text-text-primary transition-colors shrink-0">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
-      </button>
-    </div>
+    </Modal>
   )
 }
+
 
 function CityRow({ city }) {
   const { activeTrip, dispatch, isReadOnly } = useTripContext()
@@ -227,7 +242,7 @@ function CityRow({ city }) {
 
 export default function CitiesTab() {
   const { activeTrip, dispatch, isReadOnly } = useTripContext()
-  const [adding, setAdding] = useState(false)
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   if (!activeTrip) return null
 
   const cities = activeTrip.cities || []
@@ -238,6 +253,17 @@ export default function CitiesTab() {
       <TabHeader
         title={<span>🏙️ Cities</span>}
         subtitle="Research destinations, weather, and local vibes."
+        rightSlot={!isReadOnly && (
+          <Button onClick={() => setIsAddModalOpen(true)}>
+            + New City
+          </Button>
+        )}
+      />
+
+      <AddCityModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAdd={data => dispatch({ type: ACTIONS.ADD_CITY, payload: data })}
       />
 
       {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
@@ -245,24 +271,6 @@ export default function CitiesTab() {
         <div className="flex gap-1 overflow-x-auto scrollbar-hide flex-1">
           {/* No category filters for Cities yet */}
         </div>
-
-        {!isReadOnly && (
-          <div className="flex justify-end shrink-0 relative">
-            {!adding ? (
-              <Button size="sm" onClick={() => setAdding(true)}>
-                + Add City
-              </Button>
-            ) : (
-              <TopAddCityForm
-                onAdd={data => {
-                  dispatch({ type: ACTIONS.ADD_CITY, payload: data })
-                  setAdding(false)
-                }}
-                onCancel={() => setAdding(false)}
-              />
-            )}
-          </div>
-        )}
       </div>
 
       <Card className="border border-border/50 p-0 overflow-hidden w-full max-w-full">
@@ -297,7 +305,7 @@ export default function CitiesTab() {
         <div className="text-center py-12">
           <p className="text-4xl mb-3">🏙️</p>
           <p className="text-text-muted">No cities added yet.</p>
-          <p className="text-text-muted text-sm mt-1">Click "+ Add City" to add a destination.</p>
+          {!isReadOnly && <p className="text-text-muted text-sm mt-1">Click "+ New City" to add a destination.</p>}
         </div>
       )}
     </div>
