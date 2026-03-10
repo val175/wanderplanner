@@ -8,8 +8,7 @@ import { ACTIONS } from '../../state/tripReducer'
 import { formatDate, formatCurrency, formatCurrencyRange, generateId } from '../../utils/helpers'
 import AvatarCircle from '../shared/AvatarCircle'
 import { triggerHaptic } from '../../utils/haptics'
-import { extractIdeaDetails } from '../../hooks/useAI'
-import { auth } from '../../firebase/config'
+import IdeaExtractorModal from '../modal/IdeaExtractorModal'
 
 // ── Category helpers ──
 const CATEGORY_META = {
@@ -738,10 +737,8 @@ export default function VotingTab() {
     const { activeTrip, dispatch, showToast } = useTripContext()
     const { currentUserProfile, resolveProfile } = useProfiles()
 
-    // Idea Extraction State
-    const [urlInput, setUrlInput] = useState('')
-    const [isExtracting, setIsExtracting] = useState(false)
     const [filter, setFilter] = useState('all')
+    const [showIdeaExtractor, setShowIdeaExtractor] = useState(false)
 
     // View toggle: 'grid' | 'table'
     const [ideaView, setIdeaView] = useState(() => localStorage.getItem('votingTab_view') || 'table')
@@ -752,12 +749,6 @@ export default function VotingTab() {
     const [selectedIdeaIds, setSelectedIdeaIds] = useState(new Set())
     const [pollTitle, setPollTitle] = useState('')
     const pollTitleRef = useRef(null)
-    const [showExtractInput, setShowExtractInput] = useState(false)
-
-    // TikTok video link extraction
-    const [videoUrl, setVideoUrl] = useState('')
-    const [isParsing, setIsParsing] = useState(false)
-    const [parsedIdea, setParsedIdea] = useState(null)
 
     // Scroll to input when we start creating a poll
     useEffect(() => {
@@ -797,119 +788,6 @@ export default function VotingTab() {
         }
         return arr
     }, [ideas, filter])
-
-    const handleExtract = async (e) => {
-        e.preventDefault()
-        if (!urlInput.trim() || !urlInput.includes('http')) {
-            showToast("Please enter a valid URL", "warning")
-            return
-        }
-
-        setIsExtracting(true)
-        try {
-            showToast("Wanda is reading the link...", "info")
-            const data = await extractIdeaDetails(urlInput, activeTrip?.currency)
-
-            const typeMapping = {
-                'lodging': 'lodging',
-                'hotel': 'lodging',
-                'airbnb': 'lodging',
-                'stay': 'lodging',
-                'activity': 'activity',
-                'tour': 'activity',
-                'experience': 'activity',
-                'thing to do': 'activity',
-                'food': 'food',
-                'resto': 'food',
-                'restaurant': 'food',
-                'cafe': 'food',
-                'dining': 'food',
-                'transport': 'transport',
-                'car': 'transport',
-                'flight': 'transport',
-                'shopping': 'shopping',
-                'mall': 'shopping'
-            }
-
-            const newIdea = {
-                url: urlInput,
-                title: data.title || "Untitled Idea",
-                type: typeMapping[data.type?.toLowerCase()] || data.type || "other",
-                priceDetails: data.priceDetails || "TBD",
-                description: data.description || "",
-                emoji: data.emoji || "✨",
-                imageUrl: data.imageUrl || null,
-                sourceName: data.sourceName || "Link",
-                proposerId: currentUserProfile?.id
-            }
-
-            dispatch({ type: ACTIONS.ADD_IDEA, payload: newIdea })
-            setUrlInput('')
-            setShowExtractInput(false)
-            showToast("Idea added to the board! 💡")
-        } catch (err) {
-            console.error(err)
-            showToast(err.message || "Could not parse link. Try again.", "error")
-        } finally {
-            setIsExtracting(false)
-        }
-    }
-
-    const handleParseIdea = async (e) => {
-        e.preventDefault()
-        if (!videoUrl.trim()) return
-        setIsParsing(true)
-        setParsedIdea(null)
-        try {
-            let token = ''
-            try { if (auth.currentUser) token = await auth.currentUser.getIdToken() } catch (_) {}
-            const res = await fetch('/api/extract-pin', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { Authorization: `Bearer ${token}` }),
-                },
-                body: JSON.stringify({ url: videoUrl }),
-            })
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({}))
-                throw new Error(err.error || `Error ${res.status}`)
-            }
-            setParsedIdea(await res.json())
-        } catch (err) {
-            showToast(err.message || "Could not parse video link. Try again.", "error")
-        } finally {
-            setIsParsing(false)
-        }
-    }
-
-    const handleAddParsedIdea = () => {
-        if (!parsedIdea) return
-        const categoryMap = {
-            food: 'food', restaurant: 'food', cafe: 'food', dining: 'food',
-            activity: 'activity', tour: 'activity', experience: 'activity',
-            stay: 'lodging', hotel: 'lodging', lodging: 'lodging', accommodation: 'lodging',
-            nightlife: 'activity', bar: 'food', shopping: 'shopping',
-        }
-        const type = categoryMap[parsedIdea.category?.toLowerCase()] || 'activity'
-        dispatch({
-            type: ACTIONS.ADD_IDEA,
-            payload: {
-                url: parsedIdea.url,
-                title: parsedIdea.title,
-                type,
-                priceDetails: parsedIdea.priceEstimate || 'TBD',
-                description: [parsedIdea.vibe, parsedIdea.location].filter(Boolean).join(' • '),
-                emoji: '🎬',
-                imageUrl: parsedIdea.thumbnail_url || null,
-                sourceName: 'TikTok',
-                proposerId: currentUserProfile?.id,
-            },
-        })
-        setVideoUrl('')
-        setParsedIdea(null)
-        showToast("Video idea added to the board! 🎬")
-    }
 
     const handleDeleteIdea = (ideaId) => {
         dispatch({ type: ACTIONS.DELETE_IDEA, payload: ideaId })
@@ -1061,53 +939,6 @@ export default function VotingTab() {
                 </Card>
             </div>
 
-            {/* ── Social Media Link Extraction ── */}
-            <div className="border border-border bg-bg-card rounded-[var(--radius-lg)] p-4 shadow-none">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-3">Extract from TikTok</p>
-                <form onSubmit={handleParseIdea} className="flex gap-2">
-                    <input
-                        type="url"
-                        value={videoUrl}
-                        onChange={e => setVideoUrl(e.target.value)}
-                        placeholder="Paste a TikTok video link..."
-                        disabled={isParsing}
-                        className="flex-1 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent placeholder:text-text-muted"
-                    />
-                    <Button type="submit" size="sm" disabled={isParsing || !videoUrl.trim()}>
-                        {isParsing ? 'Extracting link...' : 'Parse Idea'}
-                    </Button>
-                </form>
-
-                {parsedIdea && (
-                    <div className="mt-4 border border-border bg-bg-card rounded-[var(--radius-lg)] p-4 shadow-none animate-fade-in">
-                        <div className="flex gap-4">
-                            {parsedIdea.thumbnail_url && (
-                                <img
-                                    src={parsedIdea.thumbnail_url}
-                                    alt={parsedIdea.title}
-                                    className="w-20 h-20 object-cover rounded-[var(--radius-md)] shrink-0"
-                                />
-                            )}
-                            <div className="flex-1 min-w-0">
-                                <h3 className="font-heading font-semibold text-text-primary leading-snug line-clamp-2">{parsedIdea.title}</h3>
-                                <p className="text-text-muted text-sm mt-0.5">{parsedIdea.location}</p>
-                                <div className="flex flex-wrap gap-1.5 mt-2">
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-pill)] text-xs font-medium border border-border bg-bg-secondary text-text-secondary">
-                                        {parsedIdea.category}
-                                    </span>
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-pill)] text-xs font-medium border border-border bg-bg-secondary text-text-secondary">
-                                        ✨ {parsedIdea.vibe}
-                                    </span>
-                                </div>
-                            </div>
-                            <Button size="sm" variant="secondary" onClick={handleAddParsedIdea} className="shrink-0 self-start">
-                                Add to Board
-                            </Button>
-                        </div>
-                    </div>
-                )}
-            </div>
-
             {/* ── Polls / Proposals Section (Convergent Phase) ── */}
             <div className="space-y-5 animate-fade-in mt-2 pb-8">
                 {polls.length > 0 ? (
@@ -1203,36 +1034,14 @@ export default function VotingTab() {
                             </button>
                         </div>
 
-                        {!showExtractInput ? (
-                            <Button size="sm" onClick={() => setShowExtractInput(true)} className="shrink-0">
-                                + Extract Idea
-                            </Button>
-                        ) : (
-                            <div className="p-1 pr-1.5 h-[42px] bg-[#fcf9f5] absolute right-0 z-40 w-full sm:w-[320px] animate-fade-in rounded-full flex items-center border-[#EAE3DE] border-[2px]">
-                                <form onSubmit={handleExtract} className="flex gap-2 w-full h-full items-center">
-                                    <input
-                                        type="url"
-                                        value={urlInput}
-                                        onChange={e => setUrlInput(e.target.value)}
-                                        placeholder="Paste a link..."
-                                        className="flex-1 pl-4 pr-2 py-0 h-full bg-transparent outline-none focus:ring-0 shadow-none border-none text-[14px] font-medium text-text-primary placeholder:text-[#A7A3A0]"
-                                        disabled={isExtracting}
-                                        autoFocus
-                                    />
-                                    <button type="submit" disabled={isExtracting || !urlInput.trim()} className="shrink-0 px-5 py-1.5 text-[13px] font-semibold bg-[#EFBCA6] hover:bg-[#E3A387] text-white rounded-full transition-colors disabled:opacity-50 h-[30px] flex items-center justify-center">
-                                        {isExtracting ? '...' : 'Add'}
-                                    </button>
-                                    <button type="button" onClick={() => setShowExtractInput(false)} className="px-2 text-[#908D89] hover:text-text-primary flex items-center justify-center transition-colors">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                                    </button>
-                                </form>
-                            </div>
-                        )}
+                        <Button size="sm" onClick={() => setShowIdeaExtractor(true)} className="shrink-0">
+                            + Extract Idea
+                        </Button>
                     </div>
                 </div>
 
                 {/* Idea Pool: Grid or Table */}
-                {ideas.length === 0 && !isExtracting ? (
+                {ideas.length === 0 ? (
                     <div className="py-24 mt-8 text-center flex flex-col items-center justify-center border-2 border-dashed border-border rounded-[var(--radius-xl)] bg-bg-secondary/30">
                         <span className="text-5xl opacity-50 mb-4 saturate-0">📦</span>
                         <h3 className="font-heading font-semibold text-lg text-text-primary">The board is empty</h3>
@@ -1253,12 +1062,11 @@ export default function VotingTab() {
                             selectedIdeaIds={selectedIdeaIds}
                             onSelect={toggleIdeaSelection}
                             onSelectAll={handleSelectAll}
-                            isExtracting={isExtracting}
+                            isExtracting={false}
                         />
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 mt-6 relative pb-4">
-                        {isExtracting && <SkeletonCard />}
                         {visibleIdeas.map(idea => (
                             <IdeaCard
                                 key={idea.id}
@@ -1273,6 +1081,8 @@ export default function VotingTab() {
                     </div>
                 )}
             </div>
+
+            <IdeaExtractorModal isOpen={showIdeaExtractor} onClose={() => setShowIdeaExtractor(false)} />
 
             {/* Floating action bar — shown whenever 2+ ideas are selected */}
             <FloatingActionBar
