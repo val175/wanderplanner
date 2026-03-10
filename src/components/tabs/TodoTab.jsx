@@ -777,7 +777,7 @@ export default function TodoTab() {
       const token = await auth.currentUser?.getIdToken()
       if (!token) throw new Error("No auth token")
 
-      const res = await fetch(`${import.meta.env.VITE_API_BASE || ''}/api/generate-checklist`, {
+      const res = await fetch('/api/generate-checklist', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

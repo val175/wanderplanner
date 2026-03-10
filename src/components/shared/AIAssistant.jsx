@@ -11,10 +11,8 @@ import { useMediaQuery } from '../../hooks/useMediaQuery';
 
 let _systemPromptRef = buildTripSystemPrompt(null);
 
-const API_BASE = import.meta.env.VITE_API_BASE || ''
-
 const chatTransport = new DefaultChatTransport({
-  api: `${API_BASE}/api/chat`,
+  api: '/api/chat',
   body: () => ({ systemPrompt: _systemPromptRef }),
   fetch: async (url, options) => {
     let token = '';

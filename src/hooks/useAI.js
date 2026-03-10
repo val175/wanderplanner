@@ -7,8 +7,7 @@
 import { auth } from '../firebase/config'
 
 // All requests go through our Vercel proxy to keep the API key server-side
-const API_BASE = import.meta.env.VITE_API_BASE || ''
-const PROXY_URL = `${API_BASE}/api/gemini`
+const PROXY_URL = '/api/gemini'
 
 const DEFAULT_MODEL = 'mistralai/mistral-small-3.1-24b-instruct:free'
 
@@ -161,7 +160,7 @@ export async function generateCityGuide(city, trip) {
     let token = '';
     if (auth.currentUser) token = await auth.currentUser.getIdToken();
 
-    const res = await fetch(`${API_BASE}/api/cities/auto-fill`, {
+    const res = await fetch('/api/cities/auto-fill', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -187,7 +186,7 @@ export async function extractIdeaDetails(url, tripCurrency) {
     let token = '';
     if (auth.currentUser) token = await auth.currentUser.getIdToken();
 
-    const res = await fetch(`${API_BASE}/api/extract-idea`, {
+    const res = await fetch('/api/extract-idea', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

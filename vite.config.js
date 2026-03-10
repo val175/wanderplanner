@@ -10,12 +10,5 @@ export default defineConfig({
   ],
   server: {
     port: 5173,
-    proxy: {
-      '/api': {
-        target: 'https://wanderplan-rust.vercel.app',
-        changeOrigin: true,
-        secure: true,
-      }
-    }
   }
 })
