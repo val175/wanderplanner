@@ -24,7 +24,7 @@ function detectSocialPlatform(url) {
         for (const [domain, name] of Object.entries(SOCIAL_PLATFORMS)) {
             if (hostname === domain || hostname.endsWith('.' + domain)) return name
         }
-    } catch (_) {}
+    } catch (_) { }
     return null
 }
 
@@ -32,7 +32,7 @@ function extractSocialHandle(url) {
     try {
         const parts = new URL(url).pathname.split('/').filter(Boolean)
         return parts[0] || ''
-    } catch (_) {}
+    } catch (_) { }
     return ''
 }
 
@@ -69,7 +69,7 @@ async function scrapeMetadata(url) {
 }
 
 export default async function handler(req, res) {
-    setCorsHeaders(res)
+    setCorsHeaders(req, res)
     if (req.method === 'OPTIONS') return res.status(200).end()
 
     // Rest of your POST logic...

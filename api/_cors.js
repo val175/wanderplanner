@@ -1,36 +1,48 @@
 /**
  * api/_cors.js — Single source of truth for CORS headers.
- *
- * Two export shapes because we have two handler styles:
- *
- *   Edge runtime (chat.js):
- *     import { CORS_HEADERS } from './_cors.js'
- *     return new Response(body, { headers: CORS_HEADERS })
- *
- *   Serverless / Node runtime (extract-*.js, generate-checklist.js):
- *     import { setCorsHeaders } from './_cors.js'
- *     setCorsHeaders(res)
- *     if (req.method === 'OPTIONS') return res.status(200).end()
- *
- * Adding or changing a header in ONE place here fixes every endpoint at once.
+ * Supports both production and local development (localhost).
  */
 
-const ALLOWED_ORIGIN  = 'https://planner.vlbonite.co'
-const ALLOWED_METHODS = 'GET,OPTIONS,PATCH,DELETE,POST,PUT'
-const ALLOWED_HEADERS = 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+const PRODUCTION_ORIGIN = 'https://planner.vlbonite.co'
 
-/** Plain object — spread directly into edge Response headers. */
-export const CORS_HEADERS = {
-    'Access-Control-Allow-Origin':      ALLOWED_ORIGIN,
-    'Access-Control-Allow-Methods':     ALLOWED_METHODS,
-    'Access-Control-Allow-Headers':     ALLOWED_HEADERS,
+/**
+ * Returns allowed origin based on the request.
+ * If origin is localhost or production, reflects it back.
+ * Otherwise defaults to production origin.
+ */
+function getAllowedOrigin(req) {
+    const origin = req.headers?.origin || (req.headers?.get && req.headers.get('origin')) || ''
+
+    if (
+        origin === PRODUCTION_ORIGIN ||
+        origin.startsWith('http://localhost:') ||
+        origin.startsWith('http://127.0.0.1:')
+    ) {
+        return origin
+    }
+
+    return PRODUCTION_ORIGIN
+}
+
+const COMMON_HEADERS = {
+    'Access-Control-Allow-Methods': 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
+    'Access-Control-Allow-Headers': 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization',
     'Access-Control-Allow-Credentials': 'true',
 }
 
+/** Plain object — spread directly into edge Response headers. */
+export function getCorsHeaders(req) {
+    return {
+        ...COMMON_HEADERS,
+        'Access-Control-Allow-Origin': getAllowedOrigin(req),
+    }
+}
+
 /** Mutates a Node/Vercel serverless `res` object with the CORS headers. */
-export function setCorsHeaders(res) {
-    res.setHeader('Access-Control-Allow-Origin',      ALLOWED_ORIGIN)
-    res.setHeader('Access-Control-Allow-Methods',     ALLOWED_METHODS)
-    res.setHeader('Access-Control-Allow-Headers',     ALLOWED_HEADERS)
-    res.setHeader('Access-Control-Allow-Credentials', 'true')
+export function setCorsHeaders(req, res) {
+    const origin = getAllowedOrigin(req)
+    res.setHeader('Access-Control-Allow-Origin', origin)
+    res.setHeader('Access-Control-Allow-Methods', COMMON_HEADERS['Access-Control-Allow-Methods'])
+    res.setHeader('Access-Control-Allow-Headers', COMMON_HEADERS['Access-Control-Allow-Headers'])
+    res.setHeader('Access-Control-Allow-Credentials', COMMON_HEADERS['Access-Control-Allow-Credentials'])
 }

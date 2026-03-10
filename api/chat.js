@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { verifyFirebaseToken } from './_auth.js'
-import { CORS_HEADERS } from './_cors.js'
+import { getCorsHeaders } from './_cors.js'
 
 // THIS IS THE MAGIC LINE: Bypasses the 10s timeout on Vercel Hobby tier
 export const config = {
@@ -46,10 +46,10 @@ const WANDA_TOOLS = {
 
 export default async function handler(req) {
     if (req.method === 'OPTIONS') {
-        return new Response(null, { status: 200, headers: CORS_HEADERS })
+        return new Response(null, { status: 200, headers: getCorsHeaders(req) })
     }
     if (req.method !== 'POST') {
-        return new Response('Method Not Allowed', { status: 405, headers: CORS_HEADERS })
+        return new Response('Method Not Allowed', { status: 405, headers: getCorsHeaders(req) })
     }
 
     try {
@@ -57,7 +57,7 @@ export default async function handler(req) {
         const authHeader = req.headers.get('Authorization') || req.headers.get('authorization')
         const userPayload = await verifyFirebaseToken(authHeader)
         if (!userPayload) {
-            return new Response('Unauthorized', { status: 401, headers: CORS_HEADERS })
+            return new Response('Unauthorized', { status: 401, headers: getCorsHeaders(req) })
         }
         const { messages, systemPrompt: clientPrompt } = await req.json()
         const systemPrompt = clientPrompt || "You are Wanda, a friendly travel planning assistant."
@@ -86,7 +86,7 @@ export default async function handler(req) {
                         messages: modelMessages,
                         tools: WANDA_TOOLS,
                     })
-                    return result.toUIMessageStreamResponse({ headers: CORS_HEADERS })
+                    return result.toUIMessageStreamResponse({ headers: getCorsHeaders(req) })
                 } catch (e) {
                     console.warn(`[chat] ${modelId} failed, trying next:`, e.message)
                 }
@@ -105,19 +105,19 @@ export default async function handler(req) {
                 messages: modelMessages,
                 tools: WANDA_TOOLS,
             })
-            return result.toUIMessageStreamResponse({ headers: CORS_HEADERS })
+            return result.toUIMessageStreamResponse({ headers: getCorsHeaders(req) })
         }
 
         return new Response(JSON.stringify({ error: 'No AI providers configured' }), {
             status: 500,
-            headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+            headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         })
 
     } catch (error) {
         console.error('Streaming Error:', error)
         return new Response(JSON.stringify({ error: error.message }), {
             status: 500,
-            headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+            headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         })
     }
 }

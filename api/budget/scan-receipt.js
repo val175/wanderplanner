@@ -2,7 +2,7 @@ import { generateObject } from 'ai'
 import { z } from 'zod'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { verifyFirebaseToken } from '../_auth.js'
-import { CORS_HEADERS } from '../_cors.js'
+import { setCorsHeaders } from '../_cors.js'
 
 const receiptSchema = z.object({
     currency: z.string().describe('The overarching 3-letter currency code, e.g., JPY, PHP, USD'),
@@ -14,10 +14,7 @@ const receiptSchema = z.object({
 })
 
 export default async function handler(req, res) {
-    // Standard CORS block for Express-style handler
-    Object.entries(CORS_HEADERS).forEach(([key, value]) => {
-        res.setHeader(key, value)
-    })
+    setCorsHeaders(req, res)
 
     if (req.method === 'OPTIONS') {
         return res.status(200).end()
@@ -44,7 +41,7 @@ export default async function handler(req, res) {
         })
 
         const { object } = await generateObject({
-            model: google('gemini-2.5-flash'),
+            model: google('gemini-3.1-flash-lite-preview'),
             schema: receiptSchema,
             messages: [
                 {
