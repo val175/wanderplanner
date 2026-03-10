@@ -20,6 +20,95 @@ import ProgressBar from '../shared/ProgressBar'
 import Modal from '../shared/Modal'
 import Select, { SelectItem } from '../shared/Select'
 
+function AddTodoModal({ isOpen, onClose, onAdd, travelers, phases }) {
+  const [todoData, setTodoData] = useState({
+    text: '',
+    assigneeId: '',
+    dueDate: '',
+    phase: phases[0]?.id || 'planning'
+  })
+
+  // Reset state when opening
+  useEffect(() => {
+    if (isOpen) {
+      setTodoData({
+        text: '',
+        assigneeId: '',
+        dueDate: '',
+        phase: phases[0]?.id || 'planning'
+      })
+    }
+  }, [isOpen, phases])
+
+  const handleSubmit = (e) => {
+    e?.preventDefault()
+    if (!todoData.text.trim()) return
+    onAdd({
+      text: todoData.text.trim(),
+      assigneeId: todoData.assigneeId || null,
+      dueDate: todoData.dueDate || '',
+      phase: todoData.phase,
+      done: false
+    })
+    onClose()
+  }
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="✅ Create New Task">
+      <div className="p-6 space-y-4">
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Task Description</label>
+          <input
+            value={todoData.text}
+            onChange={e => setTodoData(prev => ({ ...prev, text: e.target.value }))}
+            placeholder="e.g. Apply for Schengen Visa"
+            className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors"
+            autoFocus
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Assignee</label>
+            <Select value={todoData.assigneeId} onValueChange={v => setTodoData(prev => ({ ...prev, assigneeId: v }))}>
+              <SelectItem value="">Unassigned</SelectItem>
+              {travelers.map(t => (
+                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+              ))}
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Target Phase</label>
+            <Select value={todoData.phase} onValueChange={v => setTodoData(prev => ({ ...prev, phase: v }))}>
+              {phases.map(p => (
+                <SelectItem key={p.id} value={p.id}>{p.label.split(' & ')[0]}</SelectItem>
+              ))}
+            </Select>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Due Date (Optional)</label>
+          <DatePicker
+            value={todoData.dueDate}
+            onChange={v => setTodoData(prev => ({ ...prev, dueDate: v }))}
+            placeholder="Select date"
+          />
+        </div>
+
+        <div className="pt-4 flex justify-end gap-3 border-t border-border mt-6">
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={!todoData.text.trim()}>
+            Create Task
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 // Anchors the DragOverlay to the cursor — matches BookingsKanban behaviour
 const snapCursorToTopLeft = ({ activatorEvent, draggingNodeRect, transform }) => {
   if (draggingNodeRect && activatorEvent) {
@@ -799,16 +888,6 @@ export default function TodoTab() {
       <TabHeader
         title={<span>✅ To Do</span>}
         subtitle="Track milestones, visas, and administrative tasks."
-        rightSlot={
-          <div className="flex flex-col items-end min-w-[120px]">
-            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
-              {Math.round((completedCount / (totalCount || 1)) * 100)}% Complete
-            </span>
-            <div className="w-32">
-              <ProgressBar value={completedCount} max={totalCount} colorClass="bg-accent" height="h-1.5" />
-            </div>
-          </div>
-        }
       />
 
       {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
@@ -946,6 +1025,14 @@ export default function TodoTab() {
           ) : null}
         </DragOverlay>}
       </DndContext>
+
+      <AddTodoModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAdd={data => dispatch({ type: ACTIONS.ADD_TODO, payload: data })}
+        travelers={travelers}
+        phases={TODO_PHASES}
+      />
     </div>
   )
 }

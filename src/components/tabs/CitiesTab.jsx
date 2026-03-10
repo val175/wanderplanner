@@ -252,6 +252,14 @@ export default function CitiesTab() {
       <TabHeader
         title={<span>🏙️ Cities</span>}
         subtitle="Research destinations, weather, and local vibes."
+        rightSlot={
+          <div className="flex flex-col items-end">
+            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Destinations</span>
+            <span className="text-xs font-semibold text-text-secondary">
+              {cities.length} {cities.length === 1 ? 'city' : 'cities'}
+            </span>
+          </div>
+        }
       />
 
       <AddCityModal

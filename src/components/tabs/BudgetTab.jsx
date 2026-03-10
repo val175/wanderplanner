@@ -309,7 +309,7 @@ function GroupBalancesCard({ spendingLog, travelers, currency }) {
 
 
 
-function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onDelete, search, onSearch, showInline, onToggleInline, onShowScan }) {
+function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onDelete, search, onSearch, onShowScan }) {
   const showPaidBy = travelers.length > 1
 
   const filtered = useMemo(() => {
@@ -337,7 +337,7 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
           </thead>
           <tbody>
 
-            {filtered.length === 0 && !showInline && (
+            {filtered.length === 0 && (
               <tr>
                 <td colSpan={showPaidBy ? 6 : 5} className="py-10 text-center text-text-muted">
                   {search ? (
@@ -444,16 +444,6 @@ export default function BudgetTab() {
       <TabHeader
         title="💰 Budget"
         subtitle="Track expenses and manage trip funds."
-        rightSlot={
-          <div className="flex flex-col items-end min-w-[120px]">
-            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
-              Overall Health
-            </span>
-            <div className="w-32">
-              <ProgressBar value={totals.actual} max={totals.max || 1} colorClass={totals.actual > totals.max ? 'bg-danger' : 'bg-success'} height="h-1.5" />
-            </div>
-          </div>
-        }
       />
 
       <AddExpenseModal

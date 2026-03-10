@@ -79,7 +79,6 @@ export default function BookingsTable({
     hiddenColumns,
     onUpdate,
     onDelete,
-    onAdd,
     onRowClick,
     isReadOnly
 }) {
