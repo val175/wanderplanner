@@ -107,7 +107,7 @@ export default async function handler(req, res) {
         // ── AI Standardisation via Gemini ─────────────────────────────────────────
         const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY })
         const { object } = await generateObject({
-            model: google('gemini-2.0-flash-lite'),
+            model: google('gemini-3.1-flash-lite'),
             schema: z.object({
                 title: z.string().describe('Clean, catchy name for the location or travel idea'),
                 category: z.string().describe('One of: Food, Activity, Nightlife, Lodging, Transport, Shopping, Other'),
