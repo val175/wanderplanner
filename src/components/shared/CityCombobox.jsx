@@ -305,11 +305,15 @@ export default function CityCombobox({
   const [dropPos, setDropPos] = useState({ top: 0, left: 0 })
   const inputRef = useRef(null)
   const containerRef = useRef(null)
+  const dropdownRef = useRef(null)
 
   // Click outside listener to close dropdown
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
+      // Check if click is inside the main container OR the portal dropdown
+      const isInside = (containerRef.current && containerRef.current.contains(e.target)) ||
+        (dropdownRef.current && dropdownRef.current.contains(e.target))
+      if (!isInside) {
         setOpen(false)
       }
     }
@@ -318,11 +322,19 @@ export default function CityCombobox({
   }, [])
 
   // Only sync down when parent clears the field (modal/form reset)
+  // or when an external change (like Wanda auto-fill) happens.
   useEffect(() => {
-    if (value === '') setQuery('')
-    else if (value && value !== query) setQuery(value)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value])
+    if (value === '') {
+      setQuery('')
+      return
+    }
+
+    // If the prop value changed but we are NOT currently typing in it,
+    // sync the internal query state to match.
+    if (value && value !== query && document.activeElement !== inputRef.current) {
+      setQuery(value)
+    }
+  }, [value]) // dependent only on value to avoid loops with query updates
 
   // useLayoutEffect fires before paint — ensures dropdown never renders at wrong position on first frame
   useLayoutEffect(() => {
@@ -446,9 +458,17 @@ export default function CityCombobox({
   const commitSelection = (entry) => {
     // Derive flag either from original entry (iso) or fallback to mapping
     const derivedFlag = entry.iso ? isoToFlag(entry.iso) : flagFromCity(entry)
-    setQuery(entry.city)
+    const cityName = entry.city
+
+    // Update local state first
+    setQuery(cityName)
     setOpen(false)
-    onChange({ city: entry.city, country: entry.country, flag: derivedFlag })
+
+    // Notify parent
+    onChange({ city: cityName, country: entry.country, flag: derivedFlag })
+
+    // Re-focus input to allow continued typing/navigation
+    inputRef.current?.focus()
   }
 
   const handleInputChange = (e) => {
@@ -459,10 +479,13 @@ export default function CityCombobox({
     onChange({ city: val, country, flag })
   }
 
-  const handleBlur = () => {
-    // On focus loss, attempt to resolve the typed city against CITY_DB so
-    // free-typed known city names get their country + flag auto-filled.
-    // We no longer setOpen(false) here to avoid racing with scrolling/clicks.
+  const handleBlur = (e) => {
+    // If the new focus is still inside the combobox or the dropdown, ignore
+    if (containerRef.current?.contains(e.relatedTarget) ||
+      dropdownRef.current?.contains(e.relatedTarget)) {
+      return
+    }
+
     if (query.trim()) {
       const resolved = resolveCity(query, country, flag)
       if (resolved.flag !== flag || resolved.country !== country) {
@@ -504,6 +527,8 @@ export default function CityCombobox({
       />
       {open && suggestions.length > 0 && createPortal(
         <ul
+          ref={dropdownRef}
+          onMouseDown={e => e.preventDefault()} // CRITICAL: prevents blur when clicking scrollbar/list background
           style={{
             position: 'fixed',
             top: dropPos.top,
@@ -512,8 +537,8 @@ export default function CityCombobox({
             width: 'max-content',
             maxWidth: '340px',
           }}
-          className="z-[9999] bg-bg-primary border border-border rounded-[var(--radius-md)]
-                     max-h-52 overflow-y-auto pointer-events-auto"
+          className="z-[10001] bg-bg-primary border border-border rounded-[var(--radius-md)]
+                     max-h-52 overflow-y-auto pointer-events-auto shadow-xl"
         >
           {suggestions.map((entry, i) => (
             <li key={i}>

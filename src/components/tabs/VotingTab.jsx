@@ -556,28 +556,7 @@ function PollCard({ poll, activeUserId, onVote, onResolve, onDelete, onCancel, r
 
     return (
         <div className="flex flex-col md:flex-row border border-border rounded-[var(--radius-xl)] bg-bg-card overflow-hidden relative mb-6">
-            {/* Left side: Activity Log */}
-            <div className="order-2 md:order-1 w-full md:w-[30%] border-t md:border-t-0 md:border-r border-border p-4 md:p-6 bg-bg-primary flex flex-col shrink-0">
-                <h3 className="text-[11px] font-semibold text-text-muted uppercase tracking-[0.15em] mb-3 md:mb-6">Activity Log</h3>
-                <div className="flex-1 space-y-4 md:space-y-5 overflow-y-auto pr-2 max-h-[200px] md:max-h-none">
-                    {logs.length === 0 ? (
-                        <p className="text-xs text-text-secondary mt-6 font-medium">Start a poll to see voting activity here.</p>
-                    ) : (
-                        logs.map(log => (
-                            <div key={log.id} className="flex gap-3 items-start relative">
-                                <div className="absolute left-3.5 top-8 bottom-[-20px] w-px bg-border -z-10"></div>
-                                <AvatarCircle profile={log.user} size={28} />
-                                <p className="text-[13px] text-text-secondary leading-snug">
-                                    <span className="font-semibold text-text-primary">{log.user?.name || 'Someone'}</span> {log.action} <span className="font-semibold text-text-primary">{log.target}</span>.
-                                    <span className="block text-[10px] text-text-muted uppercase font-semibold mt-1 tracking-wider">Just Now</span>
-                                </p>
-                            </div>
-                        ))
-                    )}
-                </div>
-            </div>
-
-            {/* Right side: Options and Actions */}
+            {/* Options container — order-1 on mobile (top) */}
             <div className="order-1 md:order-2 w-full md:w-[70%] p-4 md:p-6 flex flex-col">
                 <div className="flex flex-col sm:flex-row justify-between items-start mb-6 gap-4 sm:gap-2">
                     <div>
@@ -608,7 +587,6 @@ function PollCard({ poll, activeUserId, onVote, onResolve, onDelete, onCancel, r
                     )}
                 </div>
 
-                {/* Horizontally scrollable cards container */}
                 <div className="flex overflow-x-auto gap-5 pb-4 snap-x pl-1 pt-3">
                     {poll.options.map(opt => (
                         <div key={opt.id} className="min-w-[240px] w-[240px] max-w-[240px] snap-start shrink-0">
@@ -622,6 +600,27 @@ function PollCard({ poll, activeUserId, onVote, onResolve, onDelete, onCancel, r
                         <button onClick={() => onDelete(poll.id)} className="hover:text-danger hover:underline transition-colors">Delete/Archive</button>
                         {onCancel && <button onClick={() => onCancel(poll.id)} className="hover:text-accent hover:underline transition-colors">Cancel Poll & Refund</button>}
                     </div>
+                </div>
+            </div>
+
+            {/* Activity Log container — order-2 on mobile (bottom) */}
+            <div className="order-2 md:order-1 w-full md:w-[30%] border-t md:border-t-0 md:border-r border-border p-4 md:p-6 bg-bg-primary flex flex-col shrink-0">
+                <h3 className="text-[11px] font-semibold text-text-muted uppercase tracking-[0.15em] mb-3 md:mb-6">Activity Log</h3>
+                <div className="flex-1 space-y-4 md:space-y-5 overflow-y-auto pr-2 max-h-[200px] md:max-h-none">
+                    {logs.length === 0 ? (
+                        <p className="text-xs text-text-secondary mt-6 font-medium">Start a poll to see voting activity here.</p>
+                    ) : (
+                        logs.map(log => (
+                            <div key={log.id} className="flex gap-3 items-start relative">
+                                <div className="absolute left-3.5 top-8 bottom-[-20px] w-px bg-border -z-10"></div>
+                                <AvatarCircle profile={log.user} size={28} />
+                                <p className="text-[13px] text-text-secondary leading-snug">
+                                    <span className="font-semibold text-text-primary">{log.user?.name || 'Someone'}</span> {log.action} <span className="font-semibold text-text-primary">{log.target}</span>.
+                                    <span className="block text-[10px] text-text-muted uppercase font-semibold mt-1 tracking-wider">Just Now</span>
+                                </p>
+                            </div>
+                        ))
+                    )}
                 </div>
             </div>
         </div>
@@ -749,6 +748,7 @@ export default function VotingTab() {
     const [isCreatingPoll, setIsCreatingPoll] = useState(false)
     const [selectedIdeaIds, setSelectedIdeaIds] = useState(new Set())
     const [pollTitle, setPollTitle] = useState('')
+
     const pollTitleRef = useRef(null)
 
     // Scroll to input when we start creating a poll
