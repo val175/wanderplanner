@@ -1,4 +1,5 @@
 import { generateObject } from 'ai'
+import { z } from 'zod'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { verifyFirebaseToken } from '../_auth.js'
