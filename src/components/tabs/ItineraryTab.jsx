@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, Fragment } from 'react'
+import { createPortal } from 'react-dom'
 import TabHeader from '../common/TabHeader'
 import Card from '../shared/Card'
 import EditableText from '../shared/EditableText'
@@ -697,8 +698,8 @@ export default function ItineraryTab() {
       </div>
 
       {/* FABs — mobile only, 2 CTAs grouped */}
-      {!isReadOnly && (
-        <div className="fixed bottom-[80px] right-4 z-40 flex flex-col gap-2 md:hidden">
+      {!isReadOnly && createPortal(
+        <div className="fixed bottom-24 right-4 z-40 flex flex-col gap-2 md:hidden">
           <button
             onClick={() => { hapticImpact('medium'); setIsAddModalOpen(true) }}
             className="shadow-lg bg-bg-card border border-border text-text-primary rounded-full px-4 py-3 font-semibold flex items-center gap-2 text-sm"
@@ -713,7 +714,8 @@ export default function ItineraryTab() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
             New Day
           </button>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Content Area */}

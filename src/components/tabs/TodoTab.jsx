@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { createPortal } from 'react-dom'
 import { DndContext, DragOverlay, closestCorners, KeyboardSensor, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -966,14 +967,15 @@ export default function TodoTab() {
       </div>
 
       {/* FAB — mobile only */}
-      {!isReadOnly && (
+      {!isReadOnly && createPortal(
         <button
           onClick={() => { hapticImpact('medium'); setIsAddModalOpen(true) }}
-          className="fixed bottom-[80px] right-4 z-40 block md:hidden shadow-lg bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2"
+          className="fixed bottom-24 right-4 z-40 block md:hidden shadow-lg bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
           To Do
-        </button>
+        </button>,
+        document.body
       )}
 
 

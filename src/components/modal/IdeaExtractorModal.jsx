@@ -82,7 +82,7 @@ export default function IdeaExtractorModal({ isOpen, onClose }) {
                 </p>
                 <form onSubmit={handleExtract} className="space-y-4">
                     <input
-                        type="url"
+                        type="text"
                         value={url}
                         onChange={e => setUrl(e.target.value)}
                         placeholder="https://..."

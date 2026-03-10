@@ -555,11 +555,11 @@ function PollCard({ poll, activeUserId, onVote, onResolve, onDelete, onCancel, r
     })
 
     return (
-        <div className="flex border border-border rounded-[var(--radius-xl)] bg-bg-card overflow-hidden relative mb-6">
+        <div className="flex flex-col md:flex-row border border-border rounded-[var(--radius-xl)] bg-bg-card overflow-hidden relative mb-6">
             {/* Left side: Activity Log */}
-            <div className="w-[30%] border-r border-border p-6 bg-bg-primary flex flex-col shrink-0">
-                <h3 className="text-[11px] font-semibold text-text-muted uppercase tracking-[0.15em] mb-6">Activity Log</h3>
-                <div className="flex-1 space-y-5 overflow-y-auto pr-2">
+            <div className="w-full md:w-[30%] border-b md:border-b-0 md:border-r border-border p-4 md:p-6 bg-bg-primary flex flex-col shrink-0">
+                <h3 className="text-[11px] font-semibold text-text-muted uppercase tracking-[0.15em] mb-3 md:mb-6">Activity Log</h3>
+                <div className="flex-1 space-y-4 md:space-y-5 overflow-y-auto pr-2 max-h-36 md:max-h-none">
                     {logs.length === 0 ? (
                         <p className="text-xs text-text-secondary mt-6 font-medium">Start a poll to see voting activity here.</p>
                     ) : (
@@ -578,7 +578,7 @@ function PollCard({ poll, activeUserId, onVote, onResolve, onDelete, onCancel, r
             </div>
 
             {/* Right side: Options and Actions */}
-            <div className="w-[70%] p-6 flex flex-col">
+            <div className="w-full md:w-[70%] p-4 md:p-6 flex flex-col">
                 <div className="flex justify-between items-start mb-6">
                     <div>
                         <div className="flex items-center gap-2 mb-2">
@@ -1040,13 +1040,16 @@ export default function VotingTab() {
                     </div>
 
                     {/* FAB — mobile only */}
-                    <button
-                        onClick={() => { hapticImpact('medium'); setShowIdeaExtractor(true) }}
-                        className="fixed bottom-[80px] right-4 z-40 block md:hidden shadow-lg bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2"
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
-                        Extract Idea
-                    </button>
+                    {createPortal(
+                        <button
+                            onClick={() => { hapticImpact('medium'); setShowIdeaExtractor(true) }}
+                            className="fixed bottom-24 right-4 z-40 block md:hidden shadow-lg bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+                            Extract Idea
+                        </button>,
+                        document.body
+                    )}
                 </div>
 
                 {/* Idea Pool: Grid or Table */}
