@@ -20,45 +20,22 @@ const CHART_COLORS = [
 const inputCls = 'w-full px-2 py-1.5 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors'
 const selectCls = 'w-full px-2 py-1.5 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary focus:border-accent focus:outline-none transition-colors'
 
-// ── Overall Budget Summary Card ───────────────────────────────────────────────
-function OverallBudgetCard({ budget, totals, currency, perPerson, onTogglePerPerson, divisor }) {
+// ── Extracted Budget Progress Bar ─────────────────────────────────────────────
+function BudgetProgressBar({ budget, totals, currency, divisor }) {
   const targetMax = totals.max || 1
   const isOver = totals.actual > totals.max && totals.max > 0
   const remaining = Math.max(0, totals.max - totals.actual)
 
   return (
-    <Card className="border border-border/60 relative">
-      <div className="flex items-center justify-between mb-6 pl-1">
-        <h2 className="font-heading font-semibold text-lg text-text-primary flex items-center gap-2">
-          <span className="text-xl">💰</span> Overall Budget
-        </h2>
-        <button
-          onClick={onTogglePerPerson}
-          className={`px-4 py-1.5 text-[11px] font-medium rounded-[var(--radius-pill)] border transition-all duration-200 uppercase tracking-widest
-            ${perPerson ? 'bg-accent text-white border-accent' : 'border-border text-text-secondary hover:text-text-primary hover:bg-bg-hover'}`}
-        >
-          {perPerson ? 'Per Person' : 'Total'}
-        </button>
+    <div className="bg-bg-card border border-border rounded-[var(--radius-lg)] p-4">
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Overall Budget</span>
+        <span className={`text-[11px] font-semibold ${isOver ? 'text-danger' : 'text-text-muted'}`}>
+          {isOver ? 'Over Budget' : `${formatCurrency(Math.round(remaining / divisor), currency)} Left`}
+        </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-5 text-center mb-5 pl-1">
-        <div className="relative">
-          <p className="text-[10px] text-text-muted font-semibold uppercase tracking-widest mb-1.5">Target Budget</p>
-          <p className="font-heading text-2xl sm:text-3xl text-text-secondary tracking-tight">
-            {formatCurrency(Math.round(totals.max / divisor), currency)}
-          </p>
-          <div className="absolute right-0 top-2 bottom-2 w-px bg-border/50 hidden sm:block" />
-        </div>
-        <div>
-          <p className="text-[10px] text-text-muted font-semibold uppercase tracking-widest mb-1.5">Spent</p>
-          <p className={`font-heading text-2xl sm:text-3xl tracking-tight ${isOver ? 'text-danger' : 'text-text-primary'}`}>
-            {formatCurrency(Math.round(totals.actual / divisor), currency)}
-          </p>
-        </div>
-      </div>
-
-      {/* Stacked bar */}
-      <div className="h-5 w-full rounded-[var(--radius-md)] bg-bg-secondary flex overflow-hidden border border-border/30">
+      <div className="h-4 w-full rounded-full bg-bg-secondary flex overflow-hidden border border-border/30">
         {budget.map((cat, i) => {
           if (!cat.actual || cat.actual <= 0) return null
           const w = Math.min(100, (cat.actual / targetMax) * 100)
@@ -74,29 +51,18 @@ function OverallBudgetCard({ budget, totals, currency, perPerson, onTogglePerPer
         )}
       </div>
 
-      <div className="flex items-center justify-between mt-2 pl-0.5">
-        <div className="flex flex-wrap gap-x-3 gap-y-1">
-          {budget.filter(c => c.actual > 0).map((cat, i) => {
-            const idx = budget.indexOf(cat)
-            return (
-              <span key={cat.id} className="flex items-center gap-1 text-[10px] text-text-muted">
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }} />
-                {cat.name}
-              </span>
-            )
-          })}
-        </div>
-        {!isOver && totals.max > 0 ? (
-          <span className="text-[11px] font-medium text-text-muted whitespace-nowrap">
-            {formatCurrency(Math.round(remaining / divisor), currency)} Remaining
-          </span>
-        ) : isOver ? (
-          <span className="text-[11px] font-medium text-danger whitespace-nowrap">
-            {formatCurrency(Math.round((totals.actual - totals.max) / divisor), currency)} Over Budget
-          </span>
-        ) : null}
+      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-3">
+        {budget.filter(c => c.actual > 0).map((cat, i) => {
+          const idx = budget.indexOf(cat)
+          return (
+            <span key={cat.id} className="flex items-center gap-1 text-[10px] text-text-muted">
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }} />
+              {cat.name}
+            </span>
+          )
+        })}
       </div>
-    </Card>
+    </div>
   )
 }
 
@@ -421,11 +387,7 @@ function InlineExpenseRow({ categories, travelers, currency, onAdd, prefill }) {
 
 
 // ── Spending Log Table ─────────────────────────────────────────────────────────
-function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onDelete }) {
-  const [search, setSearch] = useState('')
-  const [showInline, setShowInline] = useState(false)
-  const [showScanModal, setShowScanModal] = useState(false)
-
+function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onDelete, search, onSearch, showInline, onToggleInline, onShowScan }) {
   const filtered = useMemo(() => {
     if (!search.trim()) return spendingLog
     const q = search.toLowerCase()
@@ -436,48 +398,8 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
 
   const showPaidBy = travelers.length > 1
 
-
   return (
     <Card className="border border-border/50">
-      <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/50">
-        <h3 className="font-heading font-semibold text-base text-text-primary px-0.5">Spending Log</h3>
-        <div className="flex items-center gap-2">
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search..."
-            className="px-3 py-1.5 text-sm bg-bg-secondary border border-border/50 rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors w-24 sm:w-36"
-          />
-
-          {onAdd && (
-            <>
-              <button
-                onClick={() => setShowScanModal(true)}
-                className="px-3 py-1.5 text-[11px] font-medium uppercase tracking-widest rounded-[var(--radius-md)] border border-border text-text-secondary hover:text-text-primary hover:border-text-muted transition-all"
-              >
-                📸 Scan Receipt
-              </button>
-
-              <button
-                onClick={() => {
-                  setShowInline(p => !p)
-                }}
-                className={`px-3 py-1.5 text-[11px] font-medium uppercase tracking-widest rounded-[var(--radius-md)] border transition-all ${showInline
-                  ? 'bg-bg-secondary border-border text-text-muted'
-                  : 'bg-accent text-white border-accent hover:bg-accent-hover'
-                  }`}
-              >
-                {showInline ? 'Cancel' : '+ Log Expense'}
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-
-      <ReceiptScannerModal
-        isOpen={showScanModal}
-        onClose={() => setShowScanModal(false)}
-      />
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -582,12 +504,14 @@ export default function BudgetTab() {
   const { currentUserProfile } = useProfiles()
   const travelers = useTripTravelers()
   const [perPerson, setPerPerson] = useState(false)
+  const [search, setSearch] = useState('')
+  const [showInline, setShowInline] = useState(false)
+  const [showScanModal, setShowScanModal] = useState(false)
 
   if (!activeTrip) return null
   const trip = activeTrip
   const budget = trip.budget || []
   const currency = trip.currency || 'PHP'
-
 
   const totals = useMemo(() => ({
     min: budget.reduce((s, b) => s + (b.min || 0), 0),
@@ -609,13 +533,13 @@ export default function BudgetTab() {
     <div className="space-y-6 animate-fade-in pb-16 w-full">
       {/* ── Layer 1: Header ── */}
       <TabHeader
-        title={<span>💰 Budget & Split</span>}
-        subtitle="Track expenses, category limits, and who owes what."
+        title={<span>💰 Budget</span>}
+        subtitle="Track spending, split costs, and manage trip funds."
         rightSlot={
           <div className="flex flex-col items-end">
-            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Total Spending</span>
-            <span className="text-sm font-semibold text-text-secondary">
-              {formatCurrency(totals.actual, currency)}
+            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Spent / Max</span>
+            <span className={`text-sm font-semibold ${totals.actual > totals.max ? 'text-danger' : 'text-text-secondary'}`}>
+              {formatCurrency(Math.round(totals.actual / divisor), currency)} / {formatCurrency(Math.round(totals.max / divisor), currency)}
             </span>
           </div>
         }
@@ -623,14 +547,17 @@ export default function BudgetTab() {
 
       {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
       <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
-        <div className="flex gap-1 overflow-x-auto scrollbar-hide flex-1">
-          {/* No category filters for Budget yet */}
-        </div>
+        <div className="flex items-center gap-4 flex-1">
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search expenses..."
+            className="px-3 py-1.5 text-sm bg-bg-secondary border border-border/50 rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors w-full max-w-[240px]"
+          />
 
-        <div className="flex items-center gap-3 shrink-0">
           {/* Per Person Toggle */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-text-muted">Per Person:</span>
+          <div className="flex items-center gap-2 shrink-0 h-full">
+            <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">Per Person:</span>
             <button
               onClick={() => setPerPerson(!perPerson)}
               className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${perPerson ? 'bg-accent' : 'bg-border'}`}
@@ -639,23 +566,38 @@ export default function BudgetTab() {
             </button>
           </div>
         </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {!isReadOnly && (
+            <>
+              <button
+                onClick={() => setShowScanModal(true)}
+                className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-[var(--radius-md)] border border-orange-500/20 bg-orange-500/5 text-orange-500 hover:bg-orange-500/10 transition-all"
+              >
+                📸 Extract Receipt
+              </button>
+
+              <Button
+                onClick={() => setShowInline(!showInline)}
+                size="sm"
+                variant={showInline ? 'secondary' : 'primary'}
+              >
+                {showInline ? 'Cancel' : '+ Log Expense'}
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Full-width Overall Budget card */}
-      <OverallBudgetCard
-        budget={budget}
-        totals={totals}
-        currency={currency}
-        perPerson={perPerson}
-        divisor={divisor}
-        onTogglePerPerson={() => setPerPerson(p => !p)}
+      <ReceiptScannerModal
+        isOpen={showScanModal}
+        onClose={() => setShowScanModal(false)}
       />
 
-      {/* 3-column grid: wide left (2/3 spending log), narrow right (1/3 sidebar) */}
-      <div className="grid sm:grid-cols-3 gap-5 items-start">
-
-        {/* Left column — Spending Log table (2/3 width) */}
-        <div className="sm:col-span-2">
+      {/* 2:1 Grid:wide Left (Activities), narrow Right (Analytics) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        {/* Left Column (2/3 width) */}
+        <div className="lg:col-span-2">
           <SpendingLogTable
             spendingLog={trip.spendingLog || []}
             budget={budget}
@@ -663,16 +605,23 @@ export default function BudgetTab() {
             currency={currency}
             onAdd={isReadOnly ? null : handleAddSpending}
             onDelete={isReadOnly ? null : handleDeleteSpending}
+            search={search}
+            onSearch={setSearch}
+            showInline={showInline}
+            onToggleInline={() => setShowInline(!showInline)}
+            onShowScan={() => setShowScanModal(true)}
           />
         </div>
 
-        {/* Right column — Balances at top, then Category Budgets */}
-        <div className="sm:col-span-1 space-y-4 sm:sticky sm:top-[88px]">
-          <GroupBalancesCard
-            spendingLog={trip.spendingLog || []}
-            travelers={travelers}
+        {/* Right Column (1/3 width) - Analytics Column */}
+        <div className="lg:col-span-1 space-y-6 sm:sticky sm:top-[88px]">
+          <BudgetProgressBar
+            budget={budget}
+            totals={totals}
             currency={currency}
+            divisor={divisor}
           />
+
           <CategoryBudgetsCard
             budget={budget}
             currency={currency}
@@ -681,8 +630,13 @@ export default function BudgetTab() {
             travelers={travelers}
             isReadOnly={isReadOnly}
           />
-        </div>
 
+          <GroupBalancesCard
+            spendingLog={trip.spendingLog || []}
+            travelers={travelers}
+            currency={currency}
+          />
+        </div>
       </div>
     </div>
   )
