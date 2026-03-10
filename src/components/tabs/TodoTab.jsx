@@ -565,9 +565,6 @@ function BoardPhaseColumn({ phase, index, phaseTodos, canDrag, isReadOnly, dispa
         <h3 className="font-semibold text-sm text-text-primary">
           {phase.label.split(' & ')[0]}
         </h3>
-        <span className="text-xs font-medium text-text-muted bg-bg-card px-2 py-0.5 rounded-full border border-border/50">
-          {phaseDone}/{phaseTotal}
-        </span>
       </div>
 
       {/* Scrollable card area */}
@@ -661,17 +658,6 @@ function TodoPhaseGroup({
               <span>{index + 1}.</span> {phase.label}
             </h3>
             <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-widest text-text-muted mt-0.5">{phase.subtitle}</p>
-          </div>
-        </div>
-        <div className="flex flex-col items-end min-w-[140px]">
-          <span className="text-[10px] font-semibold text-text-muted tracking-wider mb-1.5 uppercase">
-            {phaseDone}/{phaseTotal} Completed
-          </span>
-          <div className="h-1.5 w-full bg-bg-secondary rounded-full overflow-hidden border border-border/30">
-            <div
-              className={`h-full ${phase.color} transition-all duration-500 ease-out`}
-              style={{ width: `${progressPercent}%` }}
-            />
           </div>
         </div>
       </div>
@@ -888,20 +874,38 @@ export default function TodoTab() {
       <TabHeader
         title={<span>✅ To Do</span>}
         subtitle="Track milestones, visas, and administrative tasks."
+        rightSlot={
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex flex-col items-end min-w-[120px]">
+              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+                {safeTodos.filter(t => t.done).length}/{safeTodos.length} completed
+              </span>
+              <div className="w-32">
+                <ProgressBar
+                  value={safeTodos.filter(t => t.done).length}
+                  max={safeTodos.length}
+                  colorClass="bg-accent"
+                  height="h-1.5"
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={() => setHideCompleted(prev => !prev)}
+              className={`text-[11px] font-semibold px-2 py-1 rounded-[var(--radius-sm)] border transition-colors flex items-center gap-1.5 ${hideCompleted ? 'bg-bg-card border-border text-text-primary' : 'bg-transparent border-transparent text-text-muted hover:text-text-secondary hover:bg-bg-secondary'}`}
+            >
+              <div className={`w-2.5 h-2.5 rounded-sm border flex items-center justify-center shrink-0 transition-colors ${hideCompleted ? 'bg-accent border-accent text-white' : 'border-text-muted'}`}>
+                {hideCompleted && <svg viewBox="0 0 14 14" fill="none" className="w-2 h-2"><path d="M3 7.5L5.5 10L11 4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+              </div>
+              Hide Done
+            </button>
+          </div>
+        }
       />
 
       {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
       <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
-        {/* Left: Category Filters */}
         <div className="flex-1">
-          <select
-            value={filter === 'mine' ? 'mine' : 'all'}
-            onChange={e => setFilter(e.target.value)}
-            className="text-sm bg-bg-secondary border border-border rounded-[var(--radius-md)] px-3 py-1.5 text-text-primary focus:outline-none focus:border-accent w-auto min-w-[140px] cursor-pointer"
-          >
-            <option value="all">All Tasks</option>
-            <option value="mine">My Tasks Only</option>
-          </select>
         </div>
 
         {/* Right: Toggles & Action Buttons */}
@@ -940,16 +944,6 @@ export default function TodoTab() {
                 Board
               </button>
             </div>
-
-            <button
-              onClick={() => setHideCompleted(prev => !prev)}
-              className={`text-xs font-medium px-2 py-1 rounded-[var(--radius-sm)] border transition-colors flex items-center gap-1.5 ${hideCompleted ? 'bg-bg-card border-border text-text-primary' : 'bg-transparent border-transparent text-text-muted hover:text-text-secondary hover:bg-bg-secondary'}`}
-            >
-              <div className={`w-3 h-3 rounded-sm border flex items-center justify-center shrink-0 transition-colors ${hideCompleted ? 'bg-accent border-accent text-white' : 'border-text-muted'}`}>
-                {hideCompleted && <svg viewBox="0 0 14 14" fill="none" className="w-2.5 h-2.5"><path d="M3 7.5L5.5 10L11 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-              </div>
-              Hide Done
-            </button>
           </div>
 
           {/* Secondary Actions */}

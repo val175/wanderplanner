@@ -367,7 +367,6 @@ export default function PackingTab() {
   const { activeTrip, dispatch, showToast, isReadOnly } = useTripContext()
   const { currentUserProfile, resolveProfile } = useProfiles()
   const [celebration, setCelebration] = useState(0)
-  const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [viewMode, setViewMode] = useState('group') // 'group' | 'me'
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -600,18 +599,6 @@ export default function PackingTab() {
   return (
     <div className="space-y-5 animate-fade-in">
       <CelebrationEffect trigger={celebration} />
-      <ConfirmDialog
-        isOpen={showResetConfirm}
-        onClose={() => setShowResetConfirm(false)}
-        onConfirm={() => {
-          dispatch({ type: ACTIONS.RESET_PACKING })
-          showToast('Packing list reset')
-        }}
-        title="Reset Packing List?"
-        message="This will uncheck all packed items. Your items will not be removed."
-        confirmLabel="Reset All"
-        danger={false}
-      />
 
       <AddPackingModal
         isOpen={isAddModalOpen}
@@ -677,15 +664,6 @@ export default function PackingTab() {
                 <Button variant="secondary" size="sm" onClick={handleStarterList}>
                   Starter List
                 </Button>
-                {total > 0 && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setShowResetConfirm(true)}
-                  >
-                    Reset
-                  </Button>
-                )}
               </div>
 
               {/* Primary Actions */}

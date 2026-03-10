@@ -997,16 +997,19 @@ export default function VotingTab() {
                     )}
 
                     <div className={`transition-all duration-300 flex items-center justify-between border-b border-border pb-4 mb-2 relative ${isCreatingPoll ? '-mt-2' : ''}`}>
-                        <div className="flex items-center gap-2 overflow-x-auto pb-1 mb-[-4px] no-scrollbar">
-                            {Object.entries({ all: { label: 'All Categories', emoji: '' }, ...CATEGORY_META }).map(([key, meta]) => (
-                                <button
-                                    key={key}
-                                    onClick={() => setFilter(key)}
-                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-pill)] text-xs font-medium border transition-colors whitespace-nowrap ${filter === key ? 'bg-accent text-white border-transparent' : 'bg-bg-secondary border-border text-text-muted hover:text-text-secondary'}`}
-                                >
-                                    {meta.emoji && <span>{meta.emoji}</span>} {meta.label}
-                                </button>
-                            ))}
+                        <div className="flex-1">
+                            <select
+                                value={filter}
+                                onChange={e => setFilter(e.target.value)}
+                                className="text-sm bg-bg-secondary border border-border rounded-[var(--radius-md)] px-3 py-1.5 text-text-primary focus:outline-none focus:border-accent w-auto min-w-[140px] cursor-pointer"
+                            >
+                                <option value="all">All Categories</option>
+                                {Object.entries(CATEGORY_META).map(([key, meta]) => (
+                                    <option key={key} value={key}>
+                                        {meta.emoji} {meta.label}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">

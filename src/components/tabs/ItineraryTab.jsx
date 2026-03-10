@@ -209,7 +209,7 @@ function DayGroupTable({ day, onReorderDay, trip }) {
                 Day {day.dayNumber}:
               </span>
               <span className="font-heading font-semibold text-text-primary text-base whitespace-nowrap">
-                {day.date ? formatDate(day.date, 'weekday') : 'Day'}
+                {day.date ? formatDate(day.date, 'weekday') : ''}
               </span>
               <EditableText
                 value={day.location || ''}
