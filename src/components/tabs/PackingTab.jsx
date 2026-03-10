@@ -637,33 +637,25 @@ export default function PackingTab() {
 
       {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
       <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
-        {/* Left: Category filter pills */}
-        <div className="flex gap-1 overflow-x-auto scrollbar-hide flex-1">
-          {filters.map(f => (
-            <button
-              key={f.id}
-              onClick={() => setCategoryFilter(f.id)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-[var(--radius-pill)] whitespace-nowrap transition-colors
-                ${categoryFilter === f.id
-                  ? 'bg-accent text-white'
-                  : 'bg-bg-secondary text-text-muted hover:text-text-secondary border border-border'
-                }`}
-            >
-              {f.label}
-            </button>
-          ))}
+        {/* Left: Category Filters */}
+        <div className="flex-1">
+          <select
+            value={categoryFilter}
+            onChange={e => setCategoryFilter(e.target.value)}
+            className="text-sm bg-bg-secondary border border-border rounded-[var(--radius-md)] px-3 py-1.5 text-text-primary focus:outline-none focus:border-accent w-auto min-w-[140px] cursor-pointer"
+          >
+            {filters.map(f => (
+              <option key={f.id} value={f.id}>
+                {f.label === 'All' ? 'All Items' : f.label}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {/* Right: Actions & Toggles */}
-        <div className="flex items-center gap-2 shrink-0">
-          {!isReadOnly && (
-            <Button size="sm" onClick={() => setIsAddModalOpen(true)}>
-              + New Item
-            </Button>
-          )}
-
-          {/* Visibility Toggle: Everyone / Just Me */}
-          <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border">
+        {/* Right: Toggles & Actions */}
+        <div className="flex items-center gap-3 shrink-0">
+          {/* Scope Toggles: Everyone / Just Me */}
+          <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
             <button
               onClick={() => setViewMode('group')}
               className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${viewMode === 'group' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
@@ -678,17 +670,28 @@ export default function PackingTab() {
             </button>
           </div>
 
-          {total === 0 ? (
-            <Button variant="secondary" size="sm" onClick={handleStarterList}>📋 Starter list</Button>
-          ) : (
+          {!isReadOnly && (
             <>
-              <Button variant="secondary" size="sm" onClick={handleStarterList}>📋 Starter list</Button>
-              <button
-                onClick={() => setShowResetConfirm(true)}
-                className="text-xs text-text-muted hover:text-danger font-medium transition-colors ml-1 hidden sm:block"
-              >
-                Reset all
-              </button>
+              {/* Secondary Actions */}
+              <div className="flex items-center gap-2">
+                <Button variant="secondary" size="sm" onClick={handleStarterList}>
+                  Starter List
+                </Button>
+                {total > 0 && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setShowResetConfirm(true)}
+                  >
+                    Reset
+                  </Button>
+                )}
+              </div>
+
+              {/* Primary Actions */}
+              <Button size="sm" onClick={() => setIsAddModalOpen(true)}>
+                🧳 New Item
+              </Button>
             </>
           )}
         </div>

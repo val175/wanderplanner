@@ -269,18 +269,18 @@ export default function CitiesTab() {
       />
 
       {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
-      {!isReadOnly && (
-        <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
-          <div className="flex gap-1 overflow-x-auto scrollbar-hide flex-1">
-            {/* No category filters for Cities yet */}
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Button size="sm" onClick={() => setIsAddModalOpen(true)}>
-              + New City
-            </Button>
-          </div>
+      <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
+        <div className="flex-1">
+          {/* No category filters for Cities yet */}
         </div>
-      )}
+        <div className="flex items-center gap-2 shrink-0">
+          {!isReadOnly && (
+            <Button size="sm" onClick={() => setIsAddModalOpen(true)}>
+              🏙️ New City
+            </Button>
+          )}
+        </div>
+      </div>
 
       <Card className="border border-border/50 p-0 overflow-hidden w-full max-w-full">
         <div className="w-full overflow-x-auto overflow-y-visible scrollbar-thin">

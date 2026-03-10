@@ -473,14 +473,14 @@ export default function BudgetTab() {
                 variant="secondary"
                 size="sm"
               >
-                ✨ Extract Receipt
+                Extract Receipt
               </Button>
 
               <Button
                 onClick={() => setIsAddModalOpen(true)}
                 size="sm"
               >
-                + Log Expense
+                ➕ Log Expense
               </Button>
             </>
           )}

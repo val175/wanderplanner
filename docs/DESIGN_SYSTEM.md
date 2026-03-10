@@ -95,11 +95,18 @@ All tables (e.g., Budget Spending Log, Bookings Table, Packing Table) must follo
 
 ### 6. Tab Layouts
 When building a top-level Tab component (e.g., `BookingsTab`, `TodoTab`, `PackingTab`):
-- **Layer 1: Tab Header (`TabHeader`)**: The `rightSlot` is STRICTLY for passive, read-only statistics (e.g., Progress Bars, "X of Y packed", "X items"). **Never** put primary action CTAs (like "+ New Item") in the `rightSlot`.
+- **Layer 1: Tab Header (`TabHeader`)**: The `rightSlot` is STRICTLY for passive, read-only statistics (e.g., Progress Bars, "X of Y packed", "X items"). **Never** put primary or secondary action CTAs (like "+ New Item" or "Export") in the `rightSlot`.
 - **Layer 2: The Toolbar**: This layer sits below the TabHeader (`<div className="flex items-center justify-between border-b border-border pb-4 mb-6">`).
-    - **Left Side**: Filter pills or search bars.
-    - **Right Side**: (`<div className="flex items-center gap-2 shrink-0">`) Strictly for View Toggles AND primary action CTAs (e.g., `<Button size="sm">+ New Item</Button>`). Multiple elements must be inline with `gap-2` or `gap-3`.
-- **Width**: Tabs should naturally expand to fill the width provided by their parent container. Let them breathe horizontally (`w-full`).
+    - **Left Side (Filters/Search)**: If a tab uses category filters, use a standard `<select>` dropdown instead of horizontal pills.
+        - The first option must always be "All Categories" followed by specific categories.
+        - **Classes**: `text-sm bg-bg-secondary border border-border rounded-[var(--radius-md)] px-3 py-1.5 text-text-primary focus:outline-none focus:border-accent w-auto min-w-[140px] cursor-pointer`.
+    - **Right Side (Toggles & CTAs)**: (`<div className="flex items-center gap-2 shrink-0">`) must follow this EXACT horizontal order from left to right:
+        1. **Scope Toggles** (e.g., "Everyone / Just Me")
+        2. **View Toggles** (e.g., "Table / Board")
+        3. **Secondary Actions** (`variant="secondary"`, TEXT ONLY, no emojis. e.g., "Extract Receipt", "Export", "Starter List")
+        4. **Primary Actions** (`variant="primary"`, ALWAYS EMOJI + TEXT. e.g., "✨ New Item", "➕ Log Expense")
+- **Visibility**: Hide all Secondary and Primary CTAs if `isReadOnly` is true.
+- **Width**: Tabs should naturally expand to fill the width provided by their parent container (`w-full`).
 - **Bottom Padding**: Always ensure the root wrapper of a tab has `pb-12` or `pb-24`.
 - **Animation**: Use `className="space-y-6 animate-fade-in"` for the root tab container.
 

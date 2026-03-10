@@ -659,12 +659,12 @@ export default function ItineraryTab() {
 
       {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
       <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
-        <div className="flex gap-1 overflow-x-auto scrollbar-hide flex-1">
+        <div className="flex-1">
           {/* No category filters for Itinerary yet */}
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          {/* View Toggle */}
+          {/* View Toggles */}
           <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border">
             <button
               onClick={() => setViewMode('table')}
@@ -685,10 +685,10 @@ export default function ItineraryTab() {
           {!isReadOnly && (
             <>
               <Button size="sm" onClick={() => setIsAddModalOpen(true)}>
-                + New Activity
+                📍 New Activity
               </Button>
               <Button size="sm" onClick={handleAddDay} className="shrink-0">
-                + New Day
+                ✨ New Day
               </Button>
             </>
           )}

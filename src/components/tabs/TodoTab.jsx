@@ -892,35 +892,21 @@ export default function TodoTab() {
 
       {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
       <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
-        {/* Left: Category Filters (Placeholder if none specified, or reuse existing) */}
-        <div className="flex gap-1 overflow-x-auto scrollbar-hide flex-1">
-          {/* Note: TodoTab handles categories within phase groups, leaving left side flexible */}
+        {/* Left: Category Filters */}
+        <div className="flex-1">
+          <select
+            value={filter === 'mine' ? 'mine' : 'all'}
+            onChange={e => setFilter(e.target.value)}
+            className="text-sm bg-bg-secondary border border-border rounded-[var(--radius-md)] px-3 py-1.5 text-text-primary focus:outline-none focus:border-accent w-auto min-w-[140px] cursor-pointer"
+          >
+            <option value="all">All Tasks</option>
+            <option value="mine">My Tasks Only</option>
+          </select>
         </div>
 
         {/* Right: Toggles & Action Buttons */}
         <div className="flex items-center gap-3 shrink-0">
-          <Button variant="secondary" size="sm" onClick={handleGenerateChecklist} disabled={isGenerating} className="hidden sm:inline-flex">
-            {isGenerating ? '⌛ Generating...' : '🪄 Wanda Checklist'}
-          </Button>
-
-          {!isReadOnly && (
-            <Button size="sm" onClick={() => setIsAddModalOpen(true)}>
-              + New Task
-            </Button>
-          )}
-
-          {/* Hide Completed toggle */}
-          <button
-            onClick={() => setHideCompleted(prev => !prev)}
-            className={`text-xs font-medium px-2 py-1 rounded-[var(--radius-sm)] border transition-colors flex items-center gap-1.5 ${hideCompleted ? 'bg-bg-card border-border text-text-primary' : 'bg-transparent border-transparent text-text-muted hover:text-text-secondary hover:bg-bg-secondary'}`}
-          >
-            <div className={`w-3 h-3 rounded-sm border flex items-center justify-center shrink-0 transition-colors ${hideCompleted ? 'bg-accent border-accent text-white' : 'border-text-muted'}`}>
-              {hideCompleted && <svg viewBox="0 0 14 14" fill="none" className="w-2.5 h-2.5"><path d="M3 7.5L5.5 10L11 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-            </div>
-            Hide Completed
-          </button>
-
-          {/* Visibility Toggle: Everyone / Just Me */}
+          {/* Scope Toggles: Everyone / Just Me */}
           <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
             <button
               onClick={() => setFilter('all')}
@@ -936,23 +922,53 @@ export default function TodoTab() {
             </button>
           </div>
 
-          {/* View Toggle */}
-          <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
+          {/* View Toggles & refine */}
+          <div className="flex items-center gap-2">
+            <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'list' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+                List
+              </button>
+              <button
+                onClick={() => setViewMode('board')}
+                className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'board' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
+                Board
+              </button>
+            </div>
+
             <button
-              onClick={() => setViewMode('list')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'list' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+              onClick={() => setHideCompleted(prev => !prev)}
+              className={`text-xs font-medium px-2 py-1 rounded-[var(--radius-sm)] border transition-colors flex items-center gap-1.5 ${hideCompleted ? 'bg-bg-card border-border text-text-primary' : 'bg-transparent border-transparent text-text-muted hover:text-text-secondary hover:bg-bg-secondary'}`}
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
-              List
-            </button>
-            <button
-              onClick={() => setViewMode('board')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'board' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
-              Board
+              <div className={`w-3 h-3 rounded-sm border flex items-center justify-center shrink-0 transition-colors ${hideCompleted ? 'bg-accent border-accent text-white' : 'border-text-muted'}`}>
+                {hideCompleted && <svg viewBox="0 0 14 14" fill="none" className="w-2.5 h-2.5"><path d="M3 7.5L5.5 10L11 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+              </div>
+              Hide Done
             </button>
           </div>
+
+          {/* Secondary Actions */}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleGenerateChecklist}
+            disabled={isGenerating}
+            className="hidden sm:inline-flex"
+          >
+            {isGenerating ? 'Generating...' : 'Wanda Checklist'}
+          </Button>
+
+          {/* Primary Actions */}
+          {!isReadOnly && (
+            <Button size="sm" onClick={() => setIsAddModalOpen(true)}>
+              ✅ New Task
+            </Button>
+          )}
         </div>
       </div>
 
