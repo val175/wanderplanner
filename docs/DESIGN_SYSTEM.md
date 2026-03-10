@@ -95,8 +95,12 @@ All tables (e.g., Budget Spending Log, Bookings Table, Packing Table) must follo
 
 ### 6. Tab Layouts
 When building a top-level Tab component (e.g., `BookingsTab`, `TodoTab`, `PackingTab`):
-- **Width**: Tabs should naturally expand to fill the width provided by their parent container. **Do not** arbitrarily choke the layout with classes like `max-w-3xl` or `max-w-4xl` unless explicitly requested. Let them breathe horizontally (`w-full`), stacking cards or stretching tables as needed to provide a true data-dense app experience.
-- **Bottom Padding**: Always ensure the root wrapper of a tab has `pb-12` or `pb-24` to prevent content from being trapped under floating action bars or mobile browsers.
+- **Layer 1: Tab Header (`TabHeader`)**: The `rightSlot` is STRICTLY for passive, read-only statistics (e.g., Progress Bars, "X of Y packed", "X items"). **Never** put primary action CTAs (like "+ New Item") in the `rightSlot`.
+- **Layer 2: The Toolbar**: This layer sits below the TabHeader (`<div className="flex items-center justify-between border-b border-border pb-4 mb-6">`).
+    - **Left Side**: Filter pills or search bars.
+    - **Right Side**: (`<div className="flex items-center gap-2 shrink-0">`) Strictly for View Toggles AND primary action CTAs (e.g., `<Button size="sm">+ New Item</Button>`). Multiple elements must be inline with `gap-2` or `gap-3`.
+- **Width**: Tabs should naturally expand to fill the width provided by their parent container. Let them breathe horizontally (`w-full`).
+- **Bottom Padding**: Always ensure the root wrapper of a tab has `pb-12` or `pb-24`.
 - **Animation**: Use `className="space-y-6 animate-fade-in"` for the root tab container.
 
 ### 7. Common UI Patterns

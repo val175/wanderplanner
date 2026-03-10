@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import ReceiptScannerModal from '../modal/ReceiptScannerModal'
+import Modal from '../shared/Modal'
 import Card from '../shared/Card'
 import TabHeader from '../common/TabHeader'
 import EditableText from '../shared/EditableText'
@@ -11,6 +12,100 @@ import Button from '../shared/Button'
 import { calculateBalances, simplifyDebts, buildSplits } from '../../utils/splitwise'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
 import Select, { SelectItem } from '../shared/Select'
+
+function AddExpenseModal({ isOpen, onClose, onAdd, travelers, categories }) {
+  const [expenseData, setExpenseData] = useState({
+    description: '',
+    amount: '',
+    category: categories[0]?.name || '',
+    paidBy: travelers[0]?.id || ''
+  })
+
+  // Prefill check (if needed, though here it's simple state)
+  useEffect(() => {
+    if (isOpen) {
+      setExpenseData({
+        description: '',
+        amount: '',
+        category: categories[0]?.name || '',
+        paidBy: travelers[0]?.id || ''
+      })
+    }
+  }, [isOpen, categories, travelers])
+
+  const handleSubmit = (e) => {
+    e?.preventDefault()
+    if (!expenseData.description.trim() || !expenseData.amount) return
+    const splits = buildSplits(Number(expenseData.amount), travelers.map(t => t.id), 'equal')
+    onAdd({
+      description: expenseData.description.trim(),
+      amount: Number(expenseData.amount),
+      category: expenseData.category,
+      paidBy: expenseData.paidBy,
+      splitBetween: travelers.map(t => t.id),
+      splits,
+      splitMode: 'equal',
+      date: new Date().toISOString()
+    })
+    onClose()
+  }
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="💸 Log New Expense">
+      <div className="p-6 space-y-4">
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Description</label>
+          <input
+            value={expenseData.description}
+            onChange={e => setExpenseData(prev => ({ ...prev, description: e.target.value }))}
+            placeholder="e.g. Dinner at 7-Eleven"
+            className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors"
+            autoFocus
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Amount</label>
+            <input
+              type="number"
+              value={expenseData.amount}
+              onChange={e => setExpenseData(prev => ({ ...prev, amount: e.target.value }))}
+              placeholder="0.00"
+              className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 font-mono focus:outline-none focus:border-accent transition-colors"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Category</label>
+            <Select value={expenseData.category} onValueChange={v => setExpenseData(prev => ({ ...prev, category: v }))}>
+              {categories.map(c => (
+                <SelectItem key={c.id} value={c.name}>{c.emoji} {c.name}</SelectItem>
+              ))}
+            </Select>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Paid By</label>
+          <Select value={expenseData.paidBy} onValueChange={v => setExpenseData(prev => ({ ...prev, paidBy: v }))}>
+            {travelers.map(t => (
+              <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+            ))}
+          </Select>
+        </div>
+
+        <div className="pt-4 flex justify-end gap-3 border-t border-border mt-6">
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={!expenseData.description.trim() || !expenseData.amount}>
+            Log Expense
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
 
 // ── Shared Colors ─────────────────────────────────────────────────────────────
 const CHART_COLORS = ['#E08D8D', '#DBC0A7', '#A3B18A', '#93AFBA'] // Coral, Peach, Sage, Blue
@@ -212,109 +307,6 @@ function GroupBalancesCard({ spendingLog, travelers, currency }) {
   )
 }
 
-// ── Inline Expense Table Row ──────────────────────────────────────────────────
-function InlineExpenseRow({ categories, travelers, currency, onAdd, prefill }) {
-  const today = new Date().toISOString().slice(0, 10)
-  const [desc, setDesc] = useState('')
-  const [cat, setCat] = useState(categories[0]?.name || '')
-  const [paidBy, setPaidBy] = useState(travelers[0]?.id || '')
-  const [amount, setAmount] = useState('')
-  const descRef = useRef()
-  const amtRef = useRef()
-
-  // Sync selects when props change (must be effects, not useMemo, to avoid rendering side-effects)
-  useEffect(() => { if (categories[0] && !cat) setCat(categories[0].name) }, [categories])
-  useEffect(() => { if (travelers[0] && !paidBy) setPaidBy(travelers[0].id) }, [travelers])
-
-  // Handle prefilled data from receipt scan
-  useEffect(() => {
-    if (prefill) {
-      if (prefill.description) setDesc(prefill.description)
-      if (prefill.amount) setAmount(String(prefill.amount))
-      if (prefill.category) {
-        // Try to match category by name (case-insensitive)
-        const matched = categories.find(c => c.name.toLowerCase() === prefill.category.toLowerCase())
-        if (matched) setCat(matched.name)
-        else setCat(prefill.category) // Fallback to provided string
-      }
-    }
-  }, [prefill, categories])
-
-  const handleSubmit = (e) => {
-    e?.preventDefault()
-    if (!desc.trim() || !amount) return
-    const splits = buildSplits(Number(amount), travelers.map(t => t.id), 'equal')
-    onAdd({
-      description: desc.trim(),
-      amount: Number(amount),
-      category: cat,
-      paidBy,
-      splitBetween: travelers.map(t => t.id),
-      splits,
-      splitMode: 'equal',
-    })
-    setDesc(''); setAmount('')
-    descRef.current?.focus()
-  }
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') handleSubmit()
-  }
-
-  return (
-    <tr className="border-t border-border/30 bg-accent/[0.03]">
-      {/* Date */}
-      <td className="py-2 px-3 text-[11px] text-text-muted whitespace-nowrap">Today</td>
-      {/* Description */}
-      <td className="py-2 px-2">
-        <input
-          ref={descRef}
-          value={desc}
-          onChange={e => setDesc(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="What did you spend on?"
-          className={inputCls}
-          autoFocus
-        />
-      </td>
-      {/* Category */}
-      <td className="py-2 px-2 min-w-[130px]">
-        <Select value={cat} onValueChange={setCat} size="sm">
-          {categories.map(c => <SelectItem key={c.id} value={c.name}>{c.emoji} {c.name}</SelectItem>)}
-        </Select>
-      </td>
-      {/* Paid By */}
-      {travelers.length > 1 && (
-        <td className="py-2 px-2 min-w-[110px]">
-          <Select value={paidBy} onValueChange={setPaidBy} size="sm">
-            {travelers.map(t => <SelectItem key={t.id} value={t.id}>{t.name.split(' ')[0]}</SelectItem>)}
-          </Select>
-        </td>
-      )}
-      {/* Amount */}
-      <td className="py-2 px-2 min-w-[90px]">
-        <input
-          ref={amtRef}
-          type="number" min="0"
-          value={amount}
-          onChange={e => setAmount(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="0"
-          className={inputCls + ' text-right font-mono'}
-        />
-      </td>
-      {/* Submit */}
-      <td className="py-2 px-3">
-        <button
-          onClick={handleSubmit}
-          disabled={!desc.trim() || !amount}
-          className="w-7 h-7 rounded-[var(--radius-sm)] bg-accent text-white flex items-center justify-center disabled:opacity-30 hover:bg-accent-hover transition-colors text-sm font-medium shrink-0"
-          title="Add expense (Enter)"
-        >+</button>
-      </td>
-    </tr>
-  )
-}
 
 
 function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onDelete, search, onSearch, showInline, onToggleInline, onShowScan }) {
@@ -344,15 +336,6 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
             </tr>
           </thead>
           <tbody>
-            {/* Inline input row */}
-            {showInline && (
-              <InlineExpenseRow
-                categories={budget}
-                travelers={travelers}
-                currency={currency}
-                onAdd={(data) => { onAdd(data); setShowInline(false) }}
-              />
-            )}
 
             {filtered.length === 0 && !showInline && (
               <tr>
@@ -433,7 +416,7 @@ export default function BudgetTab() {
   const { activeTrip, dispatch, isReadOnly } = useTripContext()
   const travelers = useTripTravelers()
   const [search, setSearch] = useState('')
-  const [showInline, setShowInline] = useState(false)
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [showScanModal, setShowScanModal] = useState(false)
 
   if (!activeTrip) return null
@@ -461,6 +444,24 @@ export default function BudgetTab() {
       <TabHeader
         title="💰 Budget"
         subtitle="Track expenses and manage trip funds."
+        rightSlot={
+          <div className="flex flex-col items-end min-w-[120px]">
+            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+              Overall Health
+            </span>
+            <div className="w-32">
+              <ProgressBar value={totals.actual} max={totals.max || 1} colorClass={totals.actual > totals.max ? 'bg-danger' : 'bg-success'} height="h-1.5" />
+            </div>
+          </div>
+        }
+      />
+
+      <AddExpenseModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAdd={handleAddSpending}
+        travelers={travelers}
+        categories={budget}
       />
 
       {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
@@ -486,11 +487,10 @@ export default function BudgetTab() {
               </Button>
 
               <Button
-                onClick={() => setShowInline(!showInline)}
+                onClick={() => setIsAddModalOpen(true)}
                 size="sm"
-                variant={showInline ? 'secondary' : 'primary'}
               >
-                {showInline ? 'Cancel' : '+ Log Expense'}
+                + Log Expense
               </Button>
             </>
           )}
@@ -515,8 +515,6 @@ export default function BudgetTab() {
             onDelete={isReadOnly ? null : handleDeleteSpending}
             search={search}
             onSearch={setSearch}
-            showInline={showInline}
-            onToggleInline={() => setShowInline(!showInline)}
             onShowScan={() => setShowScanModal(true)}
           />
         </div>

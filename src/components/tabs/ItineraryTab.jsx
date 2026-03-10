@@ -637,23 +637,15 @@ export default function ItineraryTab() {
 
   return (
     <div className="space-y-6 animate-fade-in flex flex-col h-full min-h-[calc(100vh-120px)]">
-      {/* ── Layer 1: Header ── */}
       <TabHeader
         title={<span>🗓️ Itinerary</span>}
         subtitle="Plan your days and map out your adventures."
         rightSlot={
-          <div className="flex items-center gap-6">
-            <div className="flex flex-col items-end">
-              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Trip Stats</span>
-              <span className="text-xs font-semibold text-text-secondary">
-                {trip.itinerary?.reduce((acc, d) => acc + (d.activities?.length || 0), 0) || 0} activities · {trip.itinerary?.length || 0} days
-              </span>
-            </div>
-            {!isReadOnly && (
-              <Button onClick={() => setIsAddModalOpen(true)}>
-                + New Activity
-              </Button>
-            )}
+          <div className="flex flex-col items-end">
+            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Trip Stats</span>
+            <span className="text-xs font-semibold text-text-secondary">
+              {trip.itinerary?.reduce((acc, d) => acc + (d.activities?.length || 0), 0) || 0} activities · {trip.itinerary?.length || 0} days
+            </span>
           </div>
         }
       />
@@ -691,9 +683,14 @@ export default function ItineraryTab() {
           </div>
 
           {!isReadOnly && (
-            <Button size="sm" onClick={handleAddDay} className="shrink-0">
-              + New Day
-            </Button>
+            <>
+              <Button size="sm" onClick={() => setIsAddModalOpen(true)}>
+                + New Activity
+              </Button>
+              <Button size="sm" onClick={handleAddDay} className="shrink-0">
+                + New Day
+              </Button>
+            </>
           )}
         </div>
       </div>

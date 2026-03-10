@@ -249,15 +249,9 @@ export default function CitiesTab() {
 
   return (
     <div className="space-y-6 pb-24 animate-fade-in w-full">
-      {/* ── Layer 1: Header ── */}
       <TabHeader
         title={<span>🏙️ Cities</span>}
         subtitle="Research destinations, weather, and local vibes."
-        rightSlot={!isReadOnly && (
-          <Button onClick={() => setIsAddModalOpen(true)}>
-            + New City
-          </Button>
-        )}
       />
 
       <AddCityModal
@@ -267,11 +261,18 @@ export default function CitiesTab() {
       />
 
       {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
-      <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
-        <div className="flex gap-1 overflow-x-auto scrollbar-hide flex-1">
-          {/* No category filters for Cities yet */}
+      {!isReadOnly && (
+        <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
+          <div className="flex gap-1 overflow-x-auto scrollbar-hide flex-1">
+            {/* No category filters for Cities yet */}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button size="sm" onClick={() => setIsAddModalOpen(true)}>
+              + New City
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       <Card className="border border-border/50 p-0 overflow-hidden w-full max-w-full">
         <div className="w-full overflow-x-auto overflow-y-visible scrollbar-thin">

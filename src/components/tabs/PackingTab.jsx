@@ -620,25 +620,17 @@ export default function PackingTab() {
         defaultAssignee={viewMode === 'me' && currentUserProfile?.id ? [currentUserProfile.id] : []}
       />
 
-      {/* ── Layer 1: Header ── */}
       <TabHeader
         title={<span>🧳 Packing List</span>}
         subtitle="Essential gear and shared items for the group."
         rightSlot={
-          <div className="flex items-center gap-6">
-            <div className="flex flex-col items-end min-w-[120px]">
-              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
-                {packed}/{total} packed
-              </span>
-              <div className="w-32">
-                <ProgressBar value={packed} max={total} colorClass="bg-accent" height="h-1.5" />
-              </div>
+          <div className="flex flex-col items-end min-w-[120px]">
+            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+              {packed}/{total} packed
+            </span>
+            <div className="w-32">
+              <ProgressBar value={packed} max={total} colorClass="bg-accent" height="h-1.5" />
             </div>
-            {!isReadOnly && (
-              <Button onClick={() => setIsAddModalOpen(true)}>
-                + New Item
-              </Button>
-            )}
           </div>
         }
       />
@@ -664,6 +656,12 @@ export default function PackingTab() {
 
         {/* Right: Actions & Toggles */}
         <div className="flex items-center gap-2 shrink-0">
+          {!isReadOnly && (
+            <Button size="sm" onClick={() => setIsAddModalOpen(true)}>
+              + New Item
+            </Button>
+          )}
+
           {/* Visibility Toggle: Everyone / Just Me */}
           <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border">
             <button
@@ -687,7 +685,7 @@ export default function PackingTab() {
               <Button variant="secondary" size="sm" onClick={handleStarterList}>📋 Starter list</Button>
               <button
                 onClick={() => setShowResetConfirm(true)}
-                className="text-xs text-text-muted hover:text-danger transition-colors ml-1 hidden sm:block"
+                className="text-xs text-text-muted hover:text-danger font-medium transition-colors ml-1 hidden sm:block"
               >
                 Reset all
               </button>

@@ -195,30 +195,17 @@ export default function BookingsTab() {
         onAdd={handleAdd}
       />
 
-      {/* ── Layer 1: Header ── */}
       <TabHeader
         title={<span>🎫 Bookings</span>}
         subtitle="Manage flights, accommodations, and reservations."
         rightSlot={
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col items-end min-w-[120px]">
-                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
-                  {confirmedCount} of {totalCount} confirmed
-                </span>
-                <div className="w-32">
-                  <ProgressBar value={confirmedCount} max={totalCount} colorClass="bg-success" height="h-1.5" />
-                </div>
-              </div>
-              <Button variant="secondary" size="sm" onClick={handleExport} className="hidden sm:inline-flex">
-                📋 Export
-              </Button>
+          <div className="flex flex-col items-end min-w-[120px]">
+            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+              {confirmedCount} of {totalCount} confirmed
+            </span>
+            <div className="w-32">
+              <ProgressBar value={confirmedCount} max={totalCount} colorClass="bg-success" height="h-1.5" />
             </div>
-            {!isReadOnly && (
-              <Button onClick={() => setIsAddModalOpen(true)}>
-                + New Booking
-              </Button>
-            )}
           </div>
         }
       />
@@ -266,6 +253,16 @@ export default function BookingsTab() {
                 </div>
               </div>
             </div>
+          )}
+
+          <Button variant="secondary" size="sm" onClick={handleExport} className="hidden sm:inline-flex">
+            📋 Export
+          </Button>
+
+          {!isReadOnly && (
+            <Button size="sm" onClick={() => setIsAddModalOpen(true)}>
+              + New Booking
+            </Button>
           )}
 
           {/* View Toggle */}

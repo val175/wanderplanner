@@ -17,6 +17,8 @@ import { triggerHaptic } from '../../utils/haptics'
 import { auth } from '../../firebase/config'
 import TabHeader from '../common/TabHeader'
 import ProgressBar from '../shared/ProgressBar'
+import Modal from '../shared/Modal'
+import Select, { SelectItem } from '../shared/Select'
 
 // Anchors the DragOverlay to the cursor — matches BookingsKanban behaviour
 const snapCursorToTopLeft = ({ activatorEvent, draggingNodeRect, transform }) => {
@@ -452,46 +454,6 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
   )
 }
 
-function AddTodoPhaseForm({ phase, onAdd }) {
-  const [text, setText] = useState('')
-  const [expanded, setExpanded] = useState(false)
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (!text.trim()) return
-    onAdd({ text: text.trim(), phase: phase.id })
-    setText('')
-    setExpanded(false)
-  }
-
-  if (!expanded) {
-    return (
-      <button
-        onClick={() => setExpanded(true)}
-        className="text-[13px] font-medium text-text-muted hover:text-accent transition-colors py-3 flex items-center gap-1.5 w-full text-left px-5"
-      >
-        <svg fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-        Add task to {phase.label.split(' & ')[0]}
-      </button>
-    )
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="flex gap-2 items-center py-2 px-5">
-      <input
-        value={text}
-        onChange={e => setText(e.target.value)}
-        placeholder="What needs to be done?"
-        className="flex-1 px-3 py-1.5 text-sm bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary placeholder:text-text-muted outline-none focus:border-accent"
-        autoFocus
-      />
-      <Button type="submit" size="sm">
-        Add
-      </Button>
-      <button type="button" onClick={() => setExpanded(false)} className="text-xs text-text-muted hover:text-text-primary p-2">✕</button>
-    </form>
-  )
-}
 
 function DropPhaseBoard({ phase, children }) {
   const { setNodeRef } = useDroppable({
@@ -549,45 +511,6 @@ function BoardPhaseColumn({ phase, index, phaseTodos, canDrag, isReadOnly, dispa
   )
 }
 
-// Task 3: Global Quick Add bar — persistent, always above phase groups
-function QuickAddBar({ dispatch, isReadOnly }) {
-  const [text, setText] = useState('')
-  const [phase, setPhase] = useState('planning')
-
-  const handleAdd = () => {
-    if (!text.trim()) return
-    dispatch({ type: ACTIONS.ADD_TODO, payload: { text: text.trim(), phase } })
-    setText('')
-    triggerHaptic('light')
-  }
-
-  if (isReadOnly) return null
-
-  return (
-    <div className="flex items-center gap-3 bg-bg-card border border-border rounded-[var(--radius-md)] px-4 py-2.5">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted shrink-0">
-        <path d="M12 4.5v15m7.5-7.5h-15" />
-      </svg>
-      <input
-        value={text}
-        onChange={e => setText(e.target.value)}
-        onKeyDown={e => e.key === 'Enter' && handleAdd()}
-        placeholder="Quick add a task... (e.g. 'Book flights to Rio')"
-        className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted outline-none min-w-0"
-      />
-      <select
-        value={phase}
-        onChange={e => setPhase(e.target.value)}
-        className="text-xs bg-bg-secondary border border-border rounded-[var(--radius-sm)] px-2 py-1 text-text-secondary outline-none focus:border-accent shrink-0 cursor-pointer"
-      >
-        {TODO_PHASES.map((p, i) => (
-          <option key={p.id} value={p.id}>{i + 1}. {p.label.split(' ')[0]}</option>
-        ))}
-      </select>
-      <Button size="sm" onClick={handleAdd} disabled={!text.trim()}>Add</Button>
-    </div>
-  )
-}
 
 /* ─────────────────────────────────────────────────────────────
    TodoPhaseGroup — Task 2: accepts viewMode for board layout
@@ -703,15 +626,6 @@ function TodoPhaseGroup({
               </div>
             </SortableContext>
           </DropPhaseBoard>
-
-          {!isReadOnly && (
-            <div className="border-t border-border/30 bg-accent/[0.02]">
-              <AddTodoPhaseForm
-                phase={phase}
-                onAdd={data => dispatch({ type: ACTIONS.ADD_TODO, payload: data })}
-              />
-            </div>
-          )}
         </Card>
       )}
     </div>
@@ -725,9 +639,8 @@ export default function TodoTab() {
   const [hideCompleted, setHideCompleted] = useState(false)
   const [celebration, setCelebration] = useState(0)
   const [isGenerating, setIsGenerating] = useState(false)
-  // Task 1: view mode state
   const [viewMode, setViewMode] = useState('list') // 'list' | 'board'
-  // Active drag item for DragOverlay — must be declared before early return
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [activeTodo, setActiveTodo] = useState(null)
 
   if (!activeTrip) return null
@@ -907,6 +820,16 @@ export default function TodoTab() {
 
         {/* Right: Toggles & Action Buttons */}
         <div className="flex items-center gap-3 shrink-0">
+          <Button variant="secondary" size="sm" onClick={handleGenerateChecklist} disabled={isGenerating} className="hidden sm:inline-flex">
+            {isGenerating ? '⌛ Generating...' : '🪄 Wanda Checklist'}
+          </Button>
+
+          {!isReadOnly && (
+            <Button size="sm" onClick={() => setIsAddModalOpen(true)}>
+              + New Task
+            </Button>
+          )}
+
           {/* Hide Completed toggle */}
           <button
             onClick={() => setHideCompleted(prev => !prev)}
@@ -951,15 +874,9 @@ export default function TodoTab() {
               Board
             </button>
           </div>
-
-          <Button variant="secondary" size="sm" onClick={handleGenerateChecklist} disabled={isGenerating} className="hidden sm:inline-flex">
-            {isGenerating ? '⌛ Generating...' : '🪄 Wanda Checklist'}
-          </Button>
         </div>
       </div>
 
-      {/* Task 3: Global Quick Add Bar — always visible */}
-      <QuickAddBar dispatch={dispatch} isReadOnly={isReadOnly} />
 
       {/* Task 5: Slim Wanda banner — replaces the full-screen empty-state card.
           Phases are always visible below so users see the structure immediately. */}
