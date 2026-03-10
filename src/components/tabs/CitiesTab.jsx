@@ -65,8 +65,17 @@ function CityRow({ city }) {
     triggerHaptic('medium')
     setLoading(true)
     try {
-      const guideObj = await generateCityGuide(city, activeTrip)
-      updateCity(guideObj)
+      const data = await generateCityGuide(city, activeTrip)
+
+      const updates = {
+        mustDo: `${data.description}\n\n${data.highlights.map(h => `• ${h}`).join('\n')}`,
+        currencyTip: `💱 ${data.currencyCode} (${data.currencyName})`,
+        flag: data.flagEmoji || city.flag,
+        // Since we purged Open-Meteo, we can set a reminder to check weather
+        weather: `🌤️ Check local forecast (Primary: ${data.language})`
+      }
+
+      updateCity(updates)
     } catch (e) {
       console.error(e)
       dispatch({ type: ACTIONS.SHOW_TOAST, payload: { message: "Wanda couldn't generate the guide right now.", type: 'error' } })
@@ -154,15 +163,25 @@ function CityRow({ city }) {
         />
       </td>
       <td className="px-2 py-3 align-middle" style={{ width: '18%' }}>
-        <EditableText
-          value={city.currencyTip}
-          onSave={val => updateCity({ currencyTip: val })}
-          className="text-[13px] text-text-secondary leading-snug whitespace-pre-wrap min-h-[40px] flex items-center pr-2"
-          inputClassName="w-full text-[13px]"
-          placeholder="e.g. 1 USD = 150 JPY"
-          multiline
-          readOnly={isReadOnly}
-        />
+        {(() => {
+          const isPHP = city.currencyCode === 'PHP' || city.country?.toLowerCase().includes('philippines')
+          const displayValue = isPHP
+            ? '💱 Uses PHP'
+            : (city.currencyTip || '💱 Exchange rate unavailable')
+
+          return (
+            <EditableText
+              value={city.currencyTip}
+              displayValue={displayValue}
+              onSave={val => updateCity({ currencyTip: val })}
+              className="text-sm text-text-primary font-heading leading-snug whitespace-pre-wrap min-h-[40px] flex items-center pr-2"
+              inputClassName="w-full text-sm font-heading"
+              placeholder="e.g. 1 USD = 150 JPY"
+              multiline
+              readOnly={isReadOnly}
+            />
+          )
+        })()}
       </td>
       <td className="px-2 py-3 align-middle" style={{ width: '28%' }}>
         <EditableText

@@ -62,6 +62,6 @@ export default async function handler(req, res) {
         return res.status(429).json({ error: 'All AI models unavailable. Please try again in a moment.' })
     } catch (error) {
         console.error('AI Proxy Error:', error)
-        return res.status(500).json({ error: error.message || 'Internal Server Error' })
+        return res.status(500).json({ error: error.message || 'AI generation failed' })
     }
 }
