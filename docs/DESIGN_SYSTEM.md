@@ -96,19 +96,78 @@ All tables (e.g., Budget Spending Log, Bookings Table, Packing Table) must follo
 ### 6. Tab Layouts
 When building a top-level Tab component (e.g., `BookingsTab`, `TodoTab`, `PackingTab`):
 - **Layer 1: Tab Header (`TabHeader`)**: The `rightSlot` is STRICTLY for passive, read-only statistics (e.g., Progress Bars, "X of Y packed", "X items"). **Never** put primary or secondary action CTAs (like "+ New Item" or "Export") in the `rightSlot`.
-- **Layer 2: The Toolbar**: This layer sits below the TabHeader (`<div className="flex items-center justify-between border-b border-border pb-4 mb-6">`).
-    - **Left Side (Filters/Search)**: If a tab uses category filters, use a standard `<select>` dropdown instead of horizontal pills.
+- **Layer 2: The Toolbar**: This layer sits below the TabHeader.
+    - **Outer wrapper**: `<div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-6 gap-2">` — stacks vertically on mobile, horizontal on desktop.
+    - **Left Side (Filters/Search)**: `<div className="flex-1">` — stacks above the right side on mobile. If a tab uses category filters, use a standard `<select>` dropdown.
         - The first option must always be "All Categories" followed by specific categories.
         - **Classes**: `text-sm bg-bg-secondary border border-border rounded-[var(--radius-md)] px-3 py-1.5 text-text-primary focus:outline-none focus:border-accent w-auto min-w-[140px] cursor-pointer`.
-    - **Right Side (Toggles & CTAs)**: (`<div className="flex items-center gap-2 shrink-0">`) must follow this EXACT horizontal order from left to right:
-        1. **Scope Toggles** (e.g., "Everyone / Just Me")
-        2. **View Toggles** (e.g., "Table / Board")
-        3. **Secondary Actions** (`variant="secondary"`, TEXT ONLY, no emojis. e.g., "Extract Receipt", "Export", "Starter List")
-        4. **Primary Actions** (`variant="primary"`, ALWAYS EMOJI + TEXT. e.g., "✨ New Item", "➕ Log Expense")
+    - **Right Side (Toggles & CTAs)**: Use `<div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">` — horizontally scrollable on mobile. All internal buttons must have `shrink-0`. The EXACT horizontal order from left to right:
+        1. **Scope Toggles** (e.g., "Everyone / Just Me") — always `shrink-0`
+        2. **View Toggles** (e.g., "Table / Board") — always `shrink-0`
+        3. **Secondary Actions** — keep visible but `shrink-0` (e.g., "Starter List") OR `hidden md:inline-flex shrink-0` if space is very tight
+        4. **Primary Actions** — **MUST be `hidden md:inline-flex shrink-0`** on mobile (replaced by FAB below)
 - **Visibility**: Hide all Secondary and Primary CTAs if `isReadOnly` is true.
 - **Width**: Tabs should naturally expand to fill the width provided by their parent container (`w-full`).
 - **Bottom Padding**: Always ensure the root wrapper of a tab has `pb-12` or `pb-24`.
 - **Animation**: Use `className="space-y-6 animate-fade-in"` for the root tab container.
+
+#### Mobile FAB Pattern (< 768px)
+Every tab with a primary CTA must include a Floating Action Button shown only on mobile (`block md:hidden`). The FAB replaces the `hidden md:inline-flex` primary button.
+
+**Single CTA FAB:**
+```jsx
+{!isReadOnly && (
+  <button
+    onClick={() => { hapticImpact('medium'); setIsAddModalOpen(true) }}
+    className="fixed bottom-[80px] right-4 z-40 block md:hidden shadow-lg bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2"
+  >
+    <svg width="16" height="16" ...>+</svg>
+    New Item
+  </button>
+)}
+```
+
+**Dual CTA FAB (2 primary actions, e.g. ItineraryTab):** Stack in a vertical column with the primary action at the bottom (accent bg) and secondary at the top (card bg):
+```jsx
+{!isReadOnly && (
+  <div className="fixed bottom-[80px] right-4 z-40 flex flex-col gap-2 md:hidden">
+    <button onClick={() => { hapticImpact('medium'); /* secondary action */ }}
+      className="shadow-lg bg-bg-card border border-border text-text-primary rounded-full px-4 py-3 font-semibold flex items-center gap-2 text-sm">
+      Secondary
+    </button>
+    <button onClick={() => { hapticImpact('medium'); /* primary action */ }}
+      className="shadow-lg bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2 text-sm">
+      Primary
+    </button>
+  </div>
+)}
+```
+
+**Haptic feedback:** Always import `hapticImpact` from `../../utils/haptics`. Call `hapticImpact('medium')` on FAB click handlers. Call `hapticSelection()` on swipe threshold events and toggle changes.
+
+#### Mobile Table-to-Card Pattern
+For tabs with data tables (`BookingsTable`, Spending Log in `BudgetTab`, Packing List, Cities), wrap the desktop `<table>` / `<Card>` in `hidden md:block` and add a mobile-only sibling card list:
+
+```jsx
+{/* Mobile card view */}
+<div className="flex flex-col gap-3 md:hidden">
+  {data.map(item => (
+    <div key={item.id} className="bg-bg-card border border-border p-3 rounded-[var(--radius-md)]">
+      {/* Card content — reuse sub-components from the table column definitions */}
+    </div>
+  ))}
+</div>
+
+{/* Desktop table view */}
+<Card className="hidden md:block overflow-hidden">
+  {/* Original table unchanged */}
+</Card>
+```
+
+**Rules:**
+- Mobile cards map the same `data` array the table uses — never fetch or derive data differently
+- Reuse existing sub-components (e.g. `PackedCheckbox`, `CategoryPill`) inside the card layout — they already handle touch sizing
+- Delete buttons are always visible on cards (not `opacity-0 group-hover:opacity-100` like table rows)
 
 ### 7. Common UI Patterns
 

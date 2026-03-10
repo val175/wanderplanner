@@ -8,7 +8,7 @@ import Modal from '../shared/Modal'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { generateCityGuide } from '../../hooks/useAI'
-import { triggerHaptic } from '../../utils/haptics'
+import { triggerHaptic, hapticImpact } from '../../utils/haptics'
 
 function AddCityModal({ isOpen, onClose, onAdd }) {
   const [cityData, setCityData] = useState({ city: '', country: '', flag: '' })
@@ -240,6 +240,80 @@ function CityRow({ city }) {
   )
 }
 
+// ── Mobile Card ─────────────────────────────────────────────────────────────
+function CityMobileCard({ city }) {
+  const { activeTrip, dispatch, isReadOnly } = useTripContext()
+  const [loading, setLoading] = useState(false)
+
+  const needsInspiration = !(city.weather || city.currencyTip || city.mustDo)
+
+  const handleWandaFill = async () => {
+    triggerHaptic('medium')
+    setLoading(true)
+    try {
+      const data = await generateCityGuide(city, activeTrip)
+      dispatch({
+        type: ACTIONS.UPDATE_CITY,
+        payload: {
+          id: city.id,
+          updates: {
+            mustDo: `${data.description}\n\n${data.highlights.map(h => `• ${h}`).join('\n')}`,
+            currencyTip: `💱 ${data.currencyCode} (${data.currencyName})`,
+            flag: data.flagEmoji || city.flag,
+            weather: `🌤️ Check local forecast (Primary: ${data.language})`
+          }
+        }
+      })
+    } catch (e) {
+      console.error(e)
+      dispatch({ type: ACTIONS.SHOW_TOAST, payload: { message: "Wanda couldn't generate the guide right now.", type: 'error' } })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="bg-bg-card border border-border p-3 rounded-[var(--radius-md)]">
+      <div className="flex items-start gap-3">
+        <span className="text-2xl shrink-0 mt-0.5">{city.flag || '📍'}</span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="font-semibold text-sm text-text-primary truncate">{city.city}</p>
+              <p className="text-xs text-text-muted">{city.country}</p>
+            </div>
+            {!isReadOnly && (
+              <button
+                onClick={() => { triggerHaptic('medium'); dispatch({ type: ACTIONS.DELETE_CITY, payload: city.id }) }}
+                className="p-1 text-text-muted hover:text-danger transition-colors shrink-0"
+                title="Delete City"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            )}
+          </div>
+          {!needsInspiration && (
+            <div className="mt-2 space-y-1">
+              {city.weather && <p className="text-xs text-text-secondary">🌤️ {city.weather}</p>}
+              {city.currencyTip && <p className="text-xs text-text-secondary">{city.currencyTip}</p>}
+              {city.mustDo && <p className="text-xs text-text-secondary line-clamp-2 whitespace-pre-wrap">{city.mustDo}</p>}
+            </div>
+          )}
+          {!isReadOnly && needsInspiration && (
+            <button
+              onClick={handleWandaFill}
+              disabled={loading}
+              className="mt-2 flex items-center gap-1 px-2 py-1 rounded bg-accent/10 text-accent font-semibold hover:bg-accent/20 transition-colors text-[10px] uppercase tracking-widest disabled:opacity-50"
+            >
+              {loading ? '...' : '✨ Auto-fill with Wanda'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function CitiesTab() {
   const { activeTrip, dispatch, isReadOnly } = useTripContext()
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -269,20 +343,39 @@ export default function CitiesTab() {
       />
 
       {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
-      <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-6 gap-2">
         <div className="flex-1">
           {/* No category filters for Cities yet */}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
           {!isReadOnly && (
-            <Button size="sm" onClick={() => setIsAddModalOpen(true)}>
+            <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="hidden md:inline-flex shrink-0">
               🏙️ New City
             </Button>
           )}
         </div>
       </div>
 
-      <Card className="border border-border/50 p-0 overflow-hidden w-full max-w-full">
+      {/* FAB — mobile only */}
+      {!isReadOnly && (
+        <button
+          onClick={() => { hapticImpact('medium'); setIsAddModalOpen(true) }}
+          className="fixed bottom-[80px] right-4 z-40 block md:hidden shadow-lg bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+          New City
+        </button>
+      )}
+
+      {/* ── Mobile card view ── */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {cities.map(city => (
+          <CityMobileCard key={city.id} city={city} />
+        ))}
+      </div>
+
+      {/* ── Desktop table view ── */}
+      <Card className="hidden md:block border border-border/50 p-0 overflow-hidden w-full max-w-full">
         <div className="w-full overflow-x-auto overflow-y-visible scrollbar-thin">
           <table className="w-full text-left border-collapse table-fixed min-w-[850px] text-sm">
             <thead>

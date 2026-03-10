@@ -7,7 +7,7 @@ import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { formatDate, formatCurrency, formatCurrencyRange, generateId } from '../../utils/helpers'
 import AvatarCircle from '../shared/AvatarCircle'
-import { triggerHaptic } from '../../utils/haptics'
+import { triggerHaptic, hapticImpact } from '../../utils/haptics'
 import IdeaExtractorModal from '../modal/IdeaExtractorModal'
 import TabHeader from '../common/TabHeader'
 
@@ -996,7 +996,7 @@ export default function VotingTab() {
                         </div>
                     )}
 
-                    <div className={`transition-all duration-300 flex items-center justify-between border-b border-border pb-4 mb-2 relative ${isCreatingPoll ? '-mt-2' : ''}`}>
+                    <div className={`transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-2 relative gap-2 ${isCreatingPoll ? '-mt-2' : ''}`}>
                         <div className="flex-1">
                             <select
                                 value={filter}
@@ -1012,7 +1012,7 @@ export default function VotingTab() {
                             </select>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
                             {/* View toggle */}
                             <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
                                 <button
@@ -1033,11 +1033,20 @@ export default function VotingTab() {
                                 </button>
                             </div>
 
-                            <Button size="sm" onClick={() => setShowIdeaExtractor(true)} className="shrink-0">
+                            <Button size="sm" onClick={() => setShowIdeaExtractor(true)} className="hidden md:inline-flex shrink-0">
                                 + Extract Idea
                             </Button>
                         </div>
                     </div>
+
+                    {/* FAB — mobile only */}
+                    <button
+                        onClick={() => { hapticImpact('medium'); setShowIdeaExtractor(true) }}
+                        className="fixed bottom-[80px] right-4 z-40 block md:hidden shadow-lg bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2"
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+                        Extract Idea
+                    </button>
                 </div>
 
                 {/* Idea Pool: Grid or Table */}

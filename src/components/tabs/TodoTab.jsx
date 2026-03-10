@@ -13,7 +13,7 @@ import { TODO_PHASES } from '../../constants/tabs'
 import AvatarCircle from '../shared/AvatarCircle'
 import DatePicker from '../shared/DatePicker'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
-import { triggerHaptic } from '../../utils/haptics'
+import { triggerHaptic, hapticImpact } from '../../utils/haptics'
 import { auth } from '../../firebase/config'
 import TabHeader from '../common/TabHeader'
 import ProgressBar from '../shared/ProgressBar'
@@ -904,12 +904,13 @@ export default function TodoTab() {
       />
 
       {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
-      <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-6 gap-2">
         <div className="flex-1">
+          {/* No category filters for Todo */}
         </div>
 
-        {/* Right: Toggles & Action Buttons */}
-        <div className="flex items-center gap-3 shrink-0">
+        {/* Right: Toggles & Actions — horizontally scrollable on mobile */}
+        <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
           {/* Scope Toggles: Everyone / Just Me */}
           <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
             <button
@@ -926,24 +927,22 @@ export default function TodoTab() {
             </button>
           </div>
 
-          {/* View Toggles & refine */}
-          <div className="flex items-center gap-2">
-            <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
-              <button
-                onClick={() => setViewMode('list')}
-                className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'list' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
-                List
-              </button>
-              <button
-                onClick={() => setViewMode('board')}
-                className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'board' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
-                Board
-              </button>
-            </div>
+          {/* View Toggles */}
+          <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'list' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+              List
+            </button>
+            <button
+              onClick={() => setViewMode('board')}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'board' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
+              Board
+            </button>
           </div>
 
           {/* Secondary Actions */}
@@ -952,19 +951,30 @@ export default function TodoTab() {
             size="sm"
             onClick={handleGenerateChecklist}
             disabled={isGenerating}
-            className="hidden sm:inline-flex"
+            className="shrink-0 hidden md:inline-flex"
           >
             {isGenerating ? 'Generating...' : 'Wanda Checklist'}
           </Button>
 
-          {/* Primary Actions */}
+          {/* Primary Actions — hidden on mobile (shown as FAB) */}
           {!isReadOnly && (
-            <Button size="sm" onClick={() => setIsAddModalOpen(true)}>
+            <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="hidden md:inline-flex shrink-0">
               ✅ New Task
             </Button>
           )}
         </div>
       </div>
+
+      {/* FAB — mobile only */}
+      {!isReadOnly && (
+        <button
+          onClick={() => { hapticImpact('medium'); setIsAddModalOpen(true) }}
+          className="fixed bottom-[80px] right-4 z-40 block md:hidden shadow-lg bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+          To Do
+        </button>
+      )}
 
 
       {/* Task 5: Slim Wanda banner — replaces the full-screen empty-state card.

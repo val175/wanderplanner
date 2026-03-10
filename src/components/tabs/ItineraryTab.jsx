@@ -12,7 +12,7 @@ import { ACTIONS } from '../../state/tripReducer'
 import { formatDate, formatCurrency } from '../../utils/helpers'
 import { ACTIVITY_EMOJIS } from '../../constants/emojis'
 import { COUNTRY_TIMEZONE, getUTCOffsetHours, applyTimezoneOffset, FLIGHT_ACTIVITY_PATTERNS, FLIGHT_EMOJIS } from '../../utils/timezones'
-import { triggerHaptic } from '../../utils/haptics'
+import { triggerHaptic, hapticImpact } from '../../utils/haptics'
 import { useDrag } from '@use-gesture/react'
 import { useEffect } from 'react'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
@@ -658,14 +658,15 @@ export default function ItineraryTab() {
       />
 
       {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
-      <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-6 gap-2">
         <div className="flex-1">
-          {/* No category filters for Itinerary yet */}
+          {/* No category filters for Itinerary */}
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        {/* Right: Toggles & Actions — horizontally scrollable on mobile */}
+        <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
           {/* View Toggles */}
-          <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border">
+          <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
             <button
               onClick={() => setViewMode('table')}
               className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'table' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
@@ -684,16 +685,36 @@ export default function ItineraryTab() {
 
           {!isReadOnly && (
             <>
-              <Button size="sm" onClick={() => setIsAddModalOpen(true)}>
+              <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="hidden md:inline-flex shrink-0">
                 📍 New Activity
               </Button>
-              <Button size="sm" onClick={handleAddDay} className="shrink-0">
+              <Button size="sm" onClick={handleAddDay} className="hidden md:inline-flex shrink-0">
                 ✨ New Day
               </Button>
             </>
           )}
         </div>
       </div>
+
+      {/* FABs — mobile only, 2 CTAs grouped */}
+      {!isReadOnly && (
+        <div className="fixed bottom-[80px] right-4 z-40 flex flex-col gap-2 md:hidden">
+          <button
+            onClick={() => { hapticImpact('medium'); setIsAddModalOpen(true) }}
+            className="shadow-lg bg-bg-card border border-border text-text-primary rounded-full px-4 py-3 font-semibold flex items-center gap-2 text-sm"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+            Activity
+          </button>
+          <button
+            onClick={() => { hapticImpact('medium'); handleAddDay() }}
+            className="shadow-lg bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2 text-sm"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+            New Day
+          </button>
+        </div>
+      )}
 
       {/* Content Area */}
       {trip.itinerary && trip.itinerary.length > 0 ? (

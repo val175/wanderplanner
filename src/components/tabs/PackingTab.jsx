@@ -19,7 +19,7 @@ import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import AvatarCircle from '../shared/AvatarCircle'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
-import { triggerHaptic } from '../../utils/haptics'
+import { triggerHaptic, hapticImpact } from '../../utils/haptics'
 import TabHeader from '../common/TabHeader'
 
 function AddPackingModal({ isOpen, onClose, onAdd, defaultAssignee }) {
@@ -623,7 +623,7 @@ export default function PackingTab() {
       />
 
       {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
-      <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-6 gap-2">
         {/* Left: Category Filters */}
         <div className="flex-1">
           <select
@@ -639,8 +639,8 @@ export default function PackingTab() {
           </select>
         </div>
 
-        {/* Right: Toggles & Actions */}
-        <div className="flex items-center gap-3 shrink-0">
+        {/* Right: Toggles & Actions — horizontally scrollable on mobile */}
+        <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
           {/* Scope Toggles: Everyone / Just Me */}
           <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
             <button
@@ -659,15 +659,11 @@ export default function PackingTab() {
 
           {!isReadOnly && (
             <>
-              {/* Secondary Actions */}
-              <div className="flex items-center gap-2">
-                <Button variant="secondary" size="sm" onClick={handleStarterList}>
-                  Starter List
-                </Button>
-              </div>
+              <Button variant="secondary" size="sm" onClick={handleStarterList} className="shrink-0">
+                Starter List
+              </Button>
 
-              {/* Primary Actions */}
-              <Button size="sm" onClick={() => setIsAddModalOpen(true)}>
+              <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="hidden md:inline-flex shrink-0">
                 🧳 New Item
               </Button>
             </>
@@ -675,8 +671,90 @@ export default function PackingTab() {
         </div>
       </div>
 
-      {/* ── Table ── */}
-      <Card className="overflow-hidden">
+      {/* FAB — mobile only */}
+      {!isReadOnly && (
+        <button
+          onClick={() => { hapticImpact('medium'); setIsAddModalOpen(true) }}
+          className="fixed bottom-[80px] right-4 z-40 block md:hidden shadow-lg bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+          New Item
+        </button>
+      )}
+
+      {/* ── Mobile card view ── */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {data.map(item => {
+          const badges = packingBadges.get(item.id)
+          return (
+            <div
+              key={item.id}
+              className={`bg-bg-card border border-border p-3 rounded-[var(--radius-md)] transition-colors ${item.packed ? 'opacity-60' : ''}`}
+            >
+              <div className="flex items-start gap-3">
+                <div className="pt-0.5 shrink-0">
+                  <PackedCheckbox
+                    packed={item.packed}
+                    onToggle={() => onToggle(item.id)}
+                    disabled={isReadOnly}
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className={`font-medium text-sm ${item.packed ? 'text-text-muted line-through' : 'text-text-primary'}`}>
+                      {item.name}
+                    </span>
+                    {badges && !item.packed && (
+                      <span className="flex items-center gap-0.5">
+                        {badges.map((badge, i) => (
+                          <span key={i} title="Relevant to your itinerary!" className="text-[13px] animate-pulse" style={{ animationDuration: '2.5s' }}>{badge}</span>
+                        ))}
+                      </span>
+                    )}
+                  </div>
+                  {item.notes && (
+                    <p className="text-xs text-text-muted mt-0.5 truncate">{item.notes}</p>
+                  )}
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    <CategoryPill
+                      value={item.category || 'misc'}
+                      onChange={val => onUpdate(item.id, { category: val })}
+                      disabled={isReadOnly}
+                    />
+                    <QtyStepper
+                      value={item.qty || 1}
+                      onChange={val => onUpdate(item.id, { qty: val })}
+                      disabled={isReadOnly}
+                    />
+                    <AssigneePill
+                      value={item.assignee}
+                      packedBy={item.packedBy}
+                      isPacked={item.packed}
+                      onChange={val => onUpdate(item.id, { assignee: val })}
+                      tripTravelers={travelerIds}
+                      resolveProfile={resolveProfile}
+                      currentUserProfile={currentUserProfile}
+                      disabled={isReadOnly}
+                    />
+                  </div>
+                </div>
+                {!isReadOnly && (
+                  <button
+                    onClick={() => onDelete(item.id)}
+                    className="p-1 text-text-muted hover:text-danger transition-colors shrink-0"
+                    title="Delete"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </button>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* ── Desktop table view ── */}
+      <Card className="hidden md:block overflow-hidden">
         <div className="overflow-x-auto scrollbar-thin">
           <table className="w-full text-left border-collapse table-fixed min-w-[600px]">
             <thead>

@@ -12,6 +12,7 @@ import Button from '../shared/Button'
 import { calculateBalances, simplifyDebts, buildSplits } from '../../utils/splitwise'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
 import Select, { SelectItem } from '../shared/Select'
+import { hapticImpact } from '../../utils/haptics'
 
 function AddExpenseModal({ isOpen, onClose, onAdd, travelers, categories }) {
   const [expenseData, setExpenseData] = useState({
@@ -323,7 +324,54 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
   return (
     <Card className="border-border bg-bg-card overflow-hidden">
 
-      <div className="overflow-x-auto">
+      {/* ── Mobile card view ── */}
+      <div className="flex flex-col gap-3 p-3 md:hidden">
+        {filtered.length === 0 && (
+          <p className="text-center text-[13px] text-text-muted py-6">
+            {search ? `No results for "${search}"` : 'No expenses yet — tap + Log Expense to add one'}
+          </p>
+        )}
+        {filtered.map(entry => {
+          const catIndex = budget.findIndex(c => c.name === entry.category)
+          const dotColor = catIndex >= 0 ? CHART_COLORS[catIndex % CHART_COLORS.length] : 'var(--color-border)'
+          const catEmoji = budget.find(c => c.name === entry.category)?.emoji || '💸'
+          const paidByName = travelers.find(t => t.id === entry.paidBy)?.name?.split(' ')[0]
+          const dateLabel = formatDate(entry.date)
+          return (
+            <div key={entry.id} className="bg-bg-card border border-border p-3 rounded-[var(--radius-md)]">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-semibold text-text-primary truncate">{entry.description}</p>
+                  <p className="text-[11px] text-text-muted mt-0.5">{dateLabel}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[14px] font-mono font-bold text-text-primary tabular-nums">
+                    {formatCurrency(entry.amount, currency)}
+                  </span>
+                  {onDelete && (
+                    <button onClick={() => onDelete(entry.id)} className="p-1.5 text-text-muted hover:text-danger">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-3 text-[11px] text-text-secondary pt-2 border-t border-border/20">
+                <span className="flex items-center gap-1">
+                  <span>{catEmoji}</span>
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: dotColor }} />
+                  {entry.category}
+                </span>
+                {showPaidBy && paidByName && (
+                  <span className="text-text-muted">· Paid by {paidByName}</span>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* ── Desktop table view ── */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border/50">
@@ -362,7 +410,6 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                   <td className="py-3 px-2">
                     <span className="flex items-center gap-1.5">
                       <span className="text-[13px] font-medium text-text-primary">{entry.description}</span>
-                      {/* Warn if this expense was logged when fewer travelers existed */}
                       {showPaidBy && entry.splits && Object.keys(entry.splits).length < travelers.length && (
                         <span
                           title="This expense was split between fewer people than are currently on the trip. Delete and re-log to fix the balance."
@@ -455,8 +502,9 @@ export default function BudgetTab() {
       />
 
       {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
-      <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
-        <div className="flex-1 max-w-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-6 gap-2">
+        {/* Left: Search */}
+        <div className="flex-1 md:max-w-sm">
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -465,13 +513,15 @@ export default function BudgetTab() {
           />
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Right: Actions — horizontally scrollable on mobile */}
+        <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
           {!isReadOnly && (
             <>
               <Button
                 onClick={() => setShowScanModal(true)}
                 variant="secondary"
                 size="sm"
+                className="shrink-0"
               >
                 Extract Receipt
               </Button>
@@ -479,6 +529,7 @@ export default function BudgetTab() {
               <Button
                 onClick={() => setIsAddModalOpen(true)}
                 size="sm"
+                className="hidden md:inline-flex shrink-0"
               >
                 ➕ Log Expense
               </Button>
@@ -486,6 +537,17 @@ export default function BudgetTab() {
           )}
         </div>
       </div>
+
+      {/* FAB — mobile only */}
+      {!isReadOnly && (
+        <button
+          onClick={() => { hapticImpact('medium'); setIsAddModalOpen(true) }}
+          className="fixed bottom-[80px] right-4 z-40 block md:hidden shadow-lg bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+          Log Expense
+        </button>
+      )}
 
       <ReceiptScannerModal
         isOpen={showScanModal}

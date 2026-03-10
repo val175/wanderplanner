@@ -13,3 +13,18 @@ export function triggerHaptic(type = 'light') {
         }
     }
 }
+
+/**
+ * Semantic alias — fire on primary action buttons (FABs, submit, confirm).
+ * @param {'light' | 'medium' | 'heavy'} intensity
+ */
+export function hapticImpact(intensity = 'medium') {
+    triggerHaptic(intensity)
+}
+
+/**
+ * Semantic alias — fire on selection changes, toggle flips, or swipe-threshold events.
+ */
+export function hapticSelection() {
+    triggerHaptic('light')
+}
