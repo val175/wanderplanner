@@ -607,7 +607,7 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
   }
 
   return (
-    <header className="animate-fade-in border-b border-border bg-bg-primary/95 backdrop-blur-sm relative z-20">
+    <header className="animate-fade-in border-b border-border bg-bg-primary/95 backdrop-blur-sm sticky top-0 z-20">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-5">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
 

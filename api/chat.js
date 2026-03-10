@@ -1,7 +1,6 @@
 // api/chat.js
 import { streamText, tool } from 'ai'
 import { z } from 'zod'
-import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createOpenAI } from '@ai-sdk/openai'
 import { verifyFirebaseToken } from './_auth.js'
 import { CORS_HEADERS } from './_cors.js'
@@ -72,14 +71,17 @@ export default async function handler(req) {
         const geminiKey = process.env.GEMINI_API_KEY
         const openrouterKey = process.env.OPENROUTER_API_KEY
 
-        // Native @ai-sdk/google provider handles Gemini's streaming format correctly,
-        // including tool call chunks (no missing-index Zod errors like the compat endpoint)
+        // Use Gemini via OpenAI-compat endpoint — preview models (gemini-3.1-flash-lite-preview)
+        // are only registered on this surface, not on the native generateContent endpoint.
         if (geminiKey) {
-            const google = createGoogleGenerativeAI({ apiKey: geminiKey })
+            const gemini = createOpenAI({
+                apiKey: geminiKey,
+                baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+            })
             for (const modelId of ['gemini-3.1-flash-lite-preview', 'gemini-2.5-flash']) {
                 try {
                     const result = await streamText({
-                        model: google(modelId),
+                        model: gemini(modelId),
                         system: systemPrompt,
                         messages: modelMessages,
                         tools: WANDA_TOOLS,
