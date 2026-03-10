@@ -55,9 +55,22 @@ export default async function handler(req) {
     try {
         // Authenticate the request
         const authHeader = req.headers.get('Authorization') || req.headers.get('authorization')
-        const userPayload = await verifyFirebaseToken(authHeader)
+        let userPayload
+        try {
+            userPayload = await verifyFirebaseToken(authHeader)
+        } catch (authError) {
+            console.warn('[chat] Auth failed:', authError.message)
+            return new Response(JSON.stringify({ error: authError.message }), {
+                status: 401,
+                headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+            })
+        }
+
         if (!userPayload) {
-            return new Response('Unauthorized', { status: 401, headers: getCorsHeaders(req) })
+            return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+                status: 401,
+                headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+            })
         }
         const { messages, systemPrompt: clientPrompt } = await req.json()
         const systemPrompt = clientPrompt || "You are Wanda, a friendly travel planning assistant."

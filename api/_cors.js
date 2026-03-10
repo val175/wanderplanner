@@ -6,17 +6,20 @@
 const PRODUCTION_ORIGIN = 'https://planner.vlbonite.co'
 
 /**
- * Returns allowed origin based on the request.
- * If origin is localhost or production, reflects it back.
- * Otherwise defaults to production origin.
+ * Returns allowed origin based on the request headers.
+ * Supports production, local dev, and local network IPs for mobile testing.
  */
 function getAllowedOrigin(req) {
     const origin = req.headers?.origin || (req.headers?.get && req.headers.get('origin')) || ''
 
     if (
         origin === PRODUCTION_ORIGIN ||
+        origin.endsWith('.vlbonite.co') ||
         origin.startsWith('http://localhost:') ||
-        origin.startsWith('http://127.0.0.1:')
+        origin.startsWith('http://127.0.0.1:') ||
+        origin.startsWith('http://192.168.') ||
+        origin.startsWith('http://10.') ||
+        origin.startsWith('http://172.')
     ) {
         return origin
     }
@@ -26,8 +29,9 @@ function getAllowedOrigin(req) {
 
 const COMMON_HEADERS = {
     'Access-Control-Allow-Methods': 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
-    'Access-Control-Allow-Headers': 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization',
+    'Access-Control-Allow-Headers': 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, x-ai-sdk-runtime, x-ai-sdk-version',
     'Access-Control-Allow-Credentials': 'true',
+    'Vary': 'Origin',
 }
 
 /** Plain object — spread directly into edge Response headers. */

@@ -15,14 +15,31 @@ const chatTransport = new DefaultChatTransport({
   api: 'https://wanderplan-rust.vercel.app/api/chat',
   body: () => ({ systemPrompt: _systemPromptRef }),
   fetch: async (url, options) => {
-    let token = '';
-    if (auth.currentUser) {
-      try { token = await auth.currentUser.getIdToken(); } catch (e) { console.warn(e); }
+    try {
+      let token = '';
+      if (auth.currentUser) {
+        try { token = await auth.currentUser.getIdToken(); } catch (e) { console.warn("[Wanda] Token error:", e); }
+      }
+      const headers = new Headers(options.headers || {});
+      headers.set('Content-Type', 'application/json');
+      if (token) headers.set('Authorization', `Bearer ${token}`);
+
+      const response = await fetch(url, {
+        ...options,
+        headers,
+        mode: 'cors',
+        credentials: 'omit', // Standard for cross-site API unless using cookies
+      });
+
+      if (!response.ok) {
+        // Log details to help user debug on device
+        console.error(`[Wanda] HTTP ${response.status}: ${response.statusText}`);
+      }
+      return response;
+    } catch (err) {
+      console.error("[Wanda] Fetch crash:", err);
+      throw err;
     }
-    const headers = new Headers(options.headers);
-    headers.set('Content-Type', 'application/json');
-    if (token) headers.set('Authorization', `Bearer ${token}`);
-    return fetch(url, { ...options, headers });
   }
 });
 
