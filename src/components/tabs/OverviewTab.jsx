@@ -130,6 +130,7 @@ function RouteMapCell({ trip }) {
   const [totalDist, setTotalDist] = useState(0)
   const [isExpanded, setIsExpanded] = useState(false)
   const [coordsLoading, setCoordsLoading] = useState(false)
+  const [isMapLoaded, setIsMapLoaded] = useState(false)
   const mapRef = useRef(null)
 
   // Calculate days spent in each city for the marker labels
@@ -201,22 +202,31 @@ function RouteMapCell({ trip }) {
   // Re-fit map to new bounds whenever coords update (trip switch or initial load).
   // initialViewState only applies on mount, so we need this for subsequent updates.
   useEffect(() => {
-    if (!mapRef.current || coords.length < 2) return
+    if (!mapRef.current || !isMapLoaded || coords.length < 2) return
     const lons = coords.map(c => c[0])
     const lats = coords.map(c => c[1])
-    mapRef.current.fitBounds(
-      [[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]],
-      { padding: { top: 90, bottom: 90, left: 260, right: 90 }, maxZoom: 12, duration: 800 }
-    )
+    try {
+      mapRef.current.fitBounds(
+        [[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]],
+        { padding: { top: 90, bottom: 90, left: 260, right: 90 }, maxZoom: 12, duration: 800 }
+      )
+    } catch (e) {
+      console.warn("Mapbox fitBounds failed:", e)
+    }
   }, [coords])
 
   // Handle escape key to close full screen map
   useEffect(() => {
-    if (!mapRef.current) return
+    if (!mapRef.current || !isMapLoaded) return
     // Force Mapbox to recalculate its canvas size when container dimensions change suddenly
-    setTimeout(() => mapRef.current.resize(), 10)
-    setTimeout(() => mapRef.current.resize(), 150)
-    setTimeout(() => mapRef.current.resize(), 300)
+    const safeResize = () => {
+      try {
+        if (mapRef.current) mapRef.current.resize()
+      } catch (e) { /* ignore cleanup race */ }
+    }
+    setTimeout(safeResize, 10)
+    setTimeout(safeResize, 150)
+    setTimeout(safeResize, 300)
 
     if (!isExpanded) return
     const handleKeyDown = (e) => {
@@ -318,6 +328,8 @@ function RouteMapCell({ trip }) {
           <Map
             ref={mapRef}
             mapboxAccessToken={mapboxToken}
+            onLoad={() => setIsMapLoaded(true)}
+            fog={null}
             initialViewState={{
               bounds,
               // Extra left padding to make room for the large top-left card overlay

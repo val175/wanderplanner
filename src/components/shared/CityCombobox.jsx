@@ -304,6 +304,18 @@ export default function CityCombobox({
   // Position of the dropdown in viewport coords — avoids overflow-clip from ancestors
   const [dropPos, setDropPos] = useState({ top: 0, left: 0 })
   const inputRef = useRef(null)
+  const containerRef = useRef(null)
+
+  // Click outside listener to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // Only sync down when parent clears the field (modal/form reset)
   useEffect(() => {
@@ -448,9 +460,9 @@ export default function CityCombobox({
   }
 
   const handleBlur = () => {
-    // The onMouseDown(e.preventDefault()) on the buttons already prevents
-    // blur when clicking suggestions.
-    setOpen(false)
+    // On focus loss, attempt to resolve the typed city against CITY_DB so
+    // free-typed known city names get their country + flag auto-filled.
+    // We no longer setOpen(false) here to avoid racing with scrolling/clicks.
     if (query.trim()) {
       const resolved = resolveCity(query, country, flag)
       if (resolved.flag !== flag || resolved.country !== country) {
@@ -473,7 +485,7 @@ export default function CityCombobox({
   }
 
   return (
-    <div className="relative flex-1">
+    <div ref={containerRef} className="relative flex-1">
       <input
         ref={inputRef}
         type="text"
@@ -501,7 +513,7 @@ export default function CityCombobox({
             maxWidth: '340px',
           }}
           className="z-[9999] bg-bg-primary border border-border rounded-[var(--radius-md)]
-                     max-h-52 overflow-y-auto"
+                     max-h-52 overflow-y-auto pointer-events-auto"
         >
           {suggestions.map((entry, i) => (
             <li key={i}>
