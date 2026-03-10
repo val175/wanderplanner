@@ -13,7 +13,7 @@ import { useTripTravelers } from '../../hooks/useTripTravelers'
 import Select, { SelectItem } from '../shared/Select'
 
 // ── Shared Colors ─────────────────────────────────────────────────────────────
-const CHART_COLORS = ['#60A5FA', '#F97316', '#4ADE80', '#A78BFA', '#F472B6']
+const CHART_COLORS = ['#E08D8D', '#DBC0A7', '#A3B18A', '#93AFBA'] // Coral, Peach, Sage, Blue
 
 const inputCls = 'w-full px-2 py-1.5 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors'
 
