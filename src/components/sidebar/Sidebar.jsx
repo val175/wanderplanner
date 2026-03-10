@@ -6,7 +6,7 @@ import ProfileManager from '../shared/ProfileManager'
 import { useAuth } from '../../hooks/useAuth'
 import { getEffectiveStatus } from '../../utils/tripStatus'
 
-const THE_PLAN_IDS = ['overview', 'itinerary', 'cities', 'bookings']
+const THE_PLAN_IDS = ['overview', 'wandermap', 'itinerary', 'cities', 'bookings']
 const TOOLS_IDS = ['voting', 'budget', 'todo', 'packing', 'concert']
 
 function TripGroup({ title, trips, activeTripId, onSelect }) {

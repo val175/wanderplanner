@@ -35,6 +35,7 @@ import VotingTab from './components/tabs/VotingTab'
 import CitiesTab from './components/tabs/CitiesTab'
 import PackingTab from './components/tabs/PackingTab'
 import ConcertTab from './components/tabs/ConcertTab'
+import WanderMapTab from './components/tabs/WanderMapTab'
 import WrapUpTab from './components/tabs/WrapUpTab'
 
 /* ─────────────────────────────────────────────────────────────
@@ -45,6 +46,7 @@ function TabPanel({ activeTab, onTabSwitch }) {
   const effectiveTab = isReadOnly && activeTab === 'overview' ? 'wrap-up' : activeTab
   switch (effectiveTab) {
     case 'overview': return <OverviewTab onTabSwitch={onTabSwitch} />
+    case 'wandermap': return <WanderMapTab />
     case 'itinerary': return <ItineraryTab />
     case 'bookings': return <BookingsTab />
     case 'budget': return <BudgetTab />

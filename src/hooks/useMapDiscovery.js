@@ -7,14 +7,16 @@ import { geocodeCity, haversineDistance } from '../utils/helpers';
  * Filters voting room ideas based on proximity to trip destinations.
  */
 export function useMapDiscovery(trip) {
-    const [destCoords, setDestCoords] = useState([]); // Array of { cityId, coords: [lng, lat] }
-    const [ideaCoords, setIdeaCoords] = useState([]); // Array of { ideaId, coords: [lng, lat] }
+    const [destCoords, setDestCoords] = useState([]); // Array of { cityId, coords: [lng, lat], city }
+    const [ideaCoords, setIdeaCoords] = useState([]); // Array of { ideaId, coords: [lng, lat], idea }
+    const [itineraryCoords, setItineraryCoords] = useState([]); // Array of { activityId, coords: [lng, lat], activity }
     const [isLoading, setIsLoading] = useState(false);
 
     const destinations = trip?.destinations || [];
     const ideas = trip?.ideas || [];
+    const itinerary = trip?.itinerary || [];
 
-    // 1. Geocode all destinations
+    // 1. Geocode all destinations (Macro markers)
     useEffect(() => {
         let active = true;
         async function loadDestinations() {
@@ -22,7 +24,7 @@ export function useMapDiscovery(trip) {
             const validDests = destinations.filter(d => d && d.city);
             const promises = validDests.map(async (d) => {
                 const coords = await geocodeCity(d.city, d.country);
-                return { cityId: d.id, coords, city: d.city };
+                return { cityId: d.id || d.city, coords, city: d.city };
             });
 
             const results = await Promise.all(promises);
@@ -34,15 +36,12 @@ export function useMapDiscovery(trip) {
         return () => { active = false; };
     }, [destinations]);
 
-    // 2. Geocode all ideas from voting room
-    // Optimization: Only geocode if they have a 'location' or 'title' that looks like a place
+    // 2. Geocode all ideas from voting room (Discovery pins)
     useEffect(() => {
         let active = true;
         async function loadIdeas() {
             const validIdeas = ideas.filter(i => i && i.title);
             const promises = validIdeas.map(async (idea) => {
-                // Use title as search term for ideas (often a specific place name)
-                // Pass the first destination's country as a hint to narrow down search
                 const countryHint = destinations[0]?.country || null;
                 const coords = await geocodeCity(idea.title, countryHint);
                 return { ideaId: idea.id, coords, idea };
@@ -53,14 +52,41 @@ export function useMapDiscovery(trip) {
             setIdeaCoords(results.filter(r => r.coords));
         }
         if (ideas.length > 0) loadIdeas();
-        else setIdeaCoords([]);
+        else if (active) setIdeaCoords([]);
         return () => { active = false; };
     }, [ideas, destinations]);
 
-    // 3. Proximity Filter
-    // Find ideas within X km of ANY destination stop
+    // 3. Geocode Itinerary Activities (Micro markers)
+    useEffect(() => {
+        let active = true;
+        async function loadActivities() {
+            const allActivities = itinerary.flatMap(day =>
+                (day.activities || []).filter(a => a && (a.location || a.name))
+            );
+
+            if (allActivities.length === 0) {
+                if (active) setItineraryCoords([]);
+                return;
+            }
+
+            const promises = allActivities.map(async (activity) => {
+                const query = activity.location || activity.name;
+                const countryHint = destinations[0]?.country || null;
+                const coords = await geocodeCity(query, countryHint);
+                return { activityId: activity.id, coords, activity };
+            });
+
+            const results = await Promise.all(promises);
+            if (!active) return;
+            setItineraryCoords(results.filter(r => r.coords));
+        }
+        loadActivities();
+        return () => { active = false; };
+    }, [itinerary, destinations]);
+
+    // 4. Proximity Filter for Ideas
     const discoveredIdeas = useMemo(() => {
-        const PROXIMITY_THRESHOLD_KM = 50; // Show ideas within 50km of the route stops
+        const PROXIMITY_THRESHOLD_KM = 50;
 
         return ideaCoords.filter(ic => {
             return destCoords.some(dc => {
@@ -76,6 +102,7 @@ export function useMapDiscovery(trip) {
     return {
         destCoords,
         ideaCoords,
+        itineraryCoords,
         discoveredIdeas,
         isLoading
     };

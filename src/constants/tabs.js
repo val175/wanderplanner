@@ -1,5 +1,6 @@
 export const TAB_CONFIG = [
   { id: 'overview', label: 'Overview', emoji: '🗺️' },
+  { id: 'wandermap', label: 'Map', emoji: '📍' },
   { id: 'itinerary', label: 'Itinerary', emoji: '📅' },
   { id: 'bookings', label: 'Bookings', emoji: '🎫' },
   { id: 'budget', label: 'Budget', emoji: '💰' },
