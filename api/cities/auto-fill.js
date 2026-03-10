@@ -50,9 +50,11 @@ export default async function handler(req, res) {
                 currencyCode: z.string().describe('the 3-letter ISO code like "PHP" or "BRL"'),
                 currencyName: z.string().describe('full currency name'),
                 language: z.string().describe('primary local language'),
-                flagEmoji: z.string().describe('the unicode flag emoji for the destination')
+                flagEmoji: z.string().describe('the unicode flag emoji for the destination'),
+                weather: z.string().describe('average high/low temperature for the current month, e.g. "MARCH AVG 14°C / 12°C"'),
+                exchangeRatePHP: z.string().describe('approximate exchange rate vs PHP, formatted as "1 [LocalCode] = [Amount] PHP"')
             }),
-            prompt: `Generate travel details for ${city}${country ? `, ${country}` : ''}.`
+            prompt: `Generate travel details for ${city}${country ? `, ${country}` : ''}. Include historical monthly average weather for the current month.`
         })
 
         return res.status(200).json(object)
