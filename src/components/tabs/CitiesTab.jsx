@@ -263,12 +263,12 @@ export default function CitiesTab() {
                 {!isReadOnly && (
                   <th className="px-1 py-2 w-6 shrink-0"></th>
                 )}
-                <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted" style={{ width: '48px' }}></th>
-                <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted" style={{ width: '22%' }}>City</th>
-                <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted" style={{ width: '18%' }}>Weather</th>
-                <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted" style={{ width: '18%' }}>Currency</th>
-                <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted" style={{ width: '28%' }}>Vibe & Must Do</th>
-                <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted text-center" style={{ width: '110px' }}>Action</th>
+                <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted" style={{ width: '48px' }}></th>
+                <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted" style={{ width: '22%' }}>City</th>
+                <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted" style={{ width: '18%' }}>Weather</th>
+                <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted" style={{ width: '18%' }}>Currency</th>
+                <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted" style={{ width: '28%' }}>Vibe & Must Do</th>
+                <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted text-center" style={{ width: '110px' }}>Action</th>
                 {!isReadOnly && (
                   <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted w-10 shrink-0"></th>
                 )}

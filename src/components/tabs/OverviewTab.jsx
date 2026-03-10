@@ -28,7 +28,7 @@ function BentoCard({ children, className = '', onClick }) {
 /* Consistent label style used across all cells */
 function Label({ children }) {
   return (
-    <span className="text-[10px] font-semibold text-text-muted uppercase tracking-[0.14em]">
+    <span className="text-xs font-bold text-text-muted uppercase tracking-wider">
       {children}
     </span>
   )

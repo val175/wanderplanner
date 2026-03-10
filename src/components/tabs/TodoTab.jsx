@@ -268,7 +268,7 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
             {todo.dueDate ? (
               <span className={`text-[11px] ${pastDue ? 'text-danger font-medium' : 'text-text-muted'}`}>
-                {todo.dueDate}
+                {formatDate(todo.dueDate)}
               </span>
             ) : <span />}
             {todo.assigneeId && (
@@ -668,9 +668,9 @@ function TodoPhaseGroup({
             <div className="flex items-center gap-2 px-0 py-2 border-b border-border/40 bg-bg-secondary/10">
               <div className="w-[30px] shrink-0"></div>
               <div className="w-[30px] shrink-0"></div>
-              <div className="flex-1 px-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted">TASK</div>
-              <div className="w-[140px] text-right px-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted">DUE DATE</div>
-              <div className="w-[40px] text-center text-[10px] font-semibold uppercase tracking-widest text-text-muted">WHO</div>
+              <div className="flex-1 px-2 text-xs font-bold uppercase tracking-wider text-text-muted">TASK</div>
+              <div className="w-[140px] text-right px-2 text-xs font-bold uppercase tracking-wider text-text-muted">DUE DATE</div>
+              <div className="w-[40px] text-center text-xs font-bold uppercase tracking-wider text-text-muted">WHO</div>
               <div className="w-[30px]"></div>
               {!isReadOnly && <div className="w-[40px]"></div>}
             </div>

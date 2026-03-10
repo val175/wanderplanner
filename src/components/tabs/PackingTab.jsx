@@ -658,7 +658,7 @@ export default function PackingTab() {
                 {table.getHeaderGroups()[0].headers.map(header => (
                   <th
                     key={header.id}
-                    className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted overflow-hidden"
+                    className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted overflow-hidden"
                     style={{ width: header.column.columnDef.size === 999 ? 'auto' : header.column.columnDef.size }}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}

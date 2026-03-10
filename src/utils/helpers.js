@@ -16,9 +16,9 @@ export function formatDate(dateStr, style = 'medium') {
     case 'short':
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     case 'medium':
-      // Output: "MMM D, 'YY" (e.g., "May 2, '94")
       const parts = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }).split(', ')
-      return `${parts[0]}, '${parts[1]}`
+      const yearPart = parts[1]
+      return `${parts[0]}, '${yearPart}`
     case 'long':
       return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
     case 'full':
@@ -27,7 +27,8 @@ export function formatDate(dateStr, style = 'medium') {
       return date.toLocaleDateString('en-US', { weekday: 'short' })
     default:
       const dParts = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }).split(', ')
-      return `${dParts[0]}, '${dParts[1]}`
+      const dYearPart = dParts[1]
+      return `${dParts[0]}, '${dYearPart}`
   }
 }
 

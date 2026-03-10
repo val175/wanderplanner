@@ -482,11 +482,11 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border/50">
-              <th className="text-left py-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-text-muted w-[80px]">Date</th>
-              <th className="text-left py-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted">Description</th>
-              <th className="text-left py-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted w-[130px]">Category</th>
-              {showPaidBy && <th className="text-left py-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted w-[100px]">Paid by</th>}
-              <th className="text-right py-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted w-[100px]">Amount</th>
+              <th className="text-left py-2 px-3 text-xs font-bold uppercase tracking-wider text-text-muted w-[80px]">Date</th>
+              <th className="text-left py-2 px-2 text-xs font-bold uppercase tracking-wider text-text-muted">Description</th>
+              <th className="text-left py-2 px-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[130px]">Category</th>
+              {showPaidBy && <th className="text-left py-2 px-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[100px]">Paid by</th>}
+              <th className="text-right py-2 px-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[100px]">Amount</th>
               <th className="w-[40px]" />
             </tr>
           </thead>

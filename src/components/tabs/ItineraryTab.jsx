@@ -228,7 +228,7 @@ function DayGroupTable({ day, onReorderDay, trip }) {
                 Day {day.dayNumber}:
               </span>
               <span className="font-heading font-semibold text-text-primary text-base whitespace-nowrap">
-                {day.date ? new Date(day.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' }) : 'Day'}
+                {day.date ? formatDate(day.date, 'weekday') : 'Day'}
               </span>
               <EditableText
                 value={day.location || ''}
@@ -290,12 +290,12 @@ function DayGroupTable({ day, onReorderDay, trip }) {
             <table className="w-full text-left border-collapse table-fixed min-w-[600px] text-sm">
               <thead>
                 <tr className="border-b border-border/50 bg-bg-secondary/10">
-                  <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted w-[30px] overflow-hidden"></th>
-                  <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted w-[100px] overflow-hidden">TIME</th>
-                  <th className="px-0 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted w-[30px] text-center overflow-hidden"></th>
-                  <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted w-auto text-left overflow-hidden">ACTIVITY</th>
-                  <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted w-[25%] text-left overflow-hidden">LOCATION</th>
-                  <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted w-[40px] overflow-hidden"></th>
+                  <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[30px] overflow-hidden"></th>
+                  <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[100px] overflow-hidden">TIME</th>
+                  <th className="px-0 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[30px] text-center overflow-hidden"></th>
+                  <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-auto text-left overflow-hidden">ACTIVITY</th>
+                  <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[25%] text-left overflow-hidden">LOCATION</th>
+                  <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[40px] overflow-hidden"></th>
                 </tr>
               </thead>
               <tbody>

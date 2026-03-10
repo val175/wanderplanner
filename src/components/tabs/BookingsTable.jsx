@@ -354,7 +354,7 @@ export default function BookingsTable({
 
                             <div className="grid grid-cols-2 gap-2 mt-1 pt-2 border-t border-border/30">
                                 <div>
-                                    <span className="text-[10px] uppercase tracking-wider text-text-muted font-semibold block mb-0.5">Date</span>
+                                    <span className="text-xs font-bold uppercase tracking-wider text-text-muted block mb-0.5">Date</span>
                                     <div onClick={e => e.stopPropagation()}>
                                         <DatePicker
                                             value={booking.bookByDate || booking.startDate || ''}
@@ -365,7 +365,7 @@ export default function BookingsTable({
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <span className="text-[10px] uppercase tracking-wider text-text-muted font-semibold block mb-0.5">Cost</span>
+                                    <span className="text-xs font-bold uppercase tracking-wider text-text-muted block mb-0.5">Cost</span>
                                     <div onClick={e => e.stopPropagation()}>
                                         <EditableText
                                             value={booking.amountPaid ? String(booking.amountPaid) : ''}
@@ -384,7 +384,7 @@ export default function BookingsTable({
 
                 {onAdd && (
                     <Card className="p-3 border border-border/50 border-dashed bg-bg-secondary/20 flex flex-col gap-2">
-                        <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Add New Booking</span>
+                        <span className="text-xs font-bold uppercase tracking-wider text-text-muted">Add New Booking</span>
                         <table className="w-full">
                             <tbody>
                                 <InlineAddRow onAdd={onAdd} />
@@ -406,7 +406,7 @@ export default function BookingsTable({
                             {table.getHeaderGroups()[0].headers.map(header => (
                                 <th
                                     key={header.id}
-                                    className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted overflow-hidden"
+                                    className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted overflow-hidden"
                                     style={{ width: header.column.id === 'name' ? '100%' : header.column.getSize() }}
                                 >
                                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
