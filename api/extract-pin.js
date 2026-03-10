@@ -3,7 +3,7 @@
 // then standardises both via Gemini generateObject (Vercel AI SDK).
 // Fallback chain for generic URLs: full scrape → Microlink → URL-only inference.
 import { generateObject } from 'ai'
-import { createOpenAI } from '@ai-sdk/openai'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { z } from 'zod'
 import * as cheerio from 'cheerio'
 import { verifyFirebaseToken } from './_auth.js'
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
             thumbnail_url = oembed.thumbnail_url || null
             sourceName = 'TikTok'
 
-        // ── Branch B: Generic URL — TripAdvisor, Airbnb, Booking.com, blogs, etc. ─
+            // ── Branch B: Generic URL — TripAdvisor, Airbnb, Booking.com, blogs, etc. ─
         } else {
             // Attempt 1: direct scrape with browser-like headers
             try {
@@ -101,16 +101,15 @@ export default async function handler(req, res) {
                     const name = host.split('.')[0]
                     sourceName = name.charAt(0).toUpperCase() + name.slice(1)
                 }
-            } catch (_) {}
+            } catch (_) { }
         }
 
-        // ── AI Standardisation via Gemini (OpenAI-compat endpoint) ───────────────
-        const openai = createOpenAI({
+        // ── AI Standardisation via Gemini (Native SDK) ───────────────────────────
+        const google = createGoogleGenerativeAI({
             apiKey: process.env.GEMINI_API_KEY,
-            baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
         })
         const { object } = await generateObject({
-            model: openai('gemini-3.1-flash-lite-preview'),
+            model: google('gemini-3.1-flash-lite-preview'),
             schema: z.object({
                 title: z.string().describe('Clean, catchy name for the location or travel idea'),
                 category: z.string().describe('One of: Food, Activity, Nightlife, Lodging, Transport, Shopping, Other'),

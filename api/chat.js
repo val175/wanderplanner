@@ -2,6 +2,7 @@
 import { streamText, tool } from 'ai'
 import { z } from 'zod'
 import { createOpenAI } from '@ai-sdk/openai'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { verifyFirebaseToken } from './_auth.js'
 import { CORS_HEADERS } from './_cors.js'
 
@@ -20,9 +21,9 @@ const WANDA_TOOLS = {
             'Call up to 3 times per response for different individual items.',
         ].join(' '),
         parameters: z.object({
-            item:    z.string().describe('Name of a single packing item as a plain string, e.g. "Rain jacket". Never an array.'),
+            item: z.string().describe('Name of a single packing item as a plain string, e.g. "Rain jacket". Never an array.'),
             section: z.enum(['Documents', 'Clothing', 'Toiletries', 'Electronics', 'Health', 'Misc']).describe('Packing section for this item'),
-            emoji:   z.string().describe('One emoji character for this item, e.g. "🧥"'),
+            emoji: z.string().describe('One emoji character for this item, e.g. "🧥"'),
         }),
     }),
     add_idea_to_voting_room: tool({
@@ -34,10 +35,10 @@ const WANDA_TOOLS = {
             'Call up to 3 times per response for different recommendations.',
         ].join(' '),
         parameters: z.object({
-            title:        z.string().describe('Name of the place or activity, e.g. "Fushimi Inari Hike". Plain string, not an array.'),
-            type:         z.enum(['lodging', 'activity', 'food', 'transport', 'shopping', 'other']).describe('Category of the idea'),
-            description:  z.string().describe('One sentence describing why this is worth considering'),
-            emoji:        z.string().describe('One relevant emoji character, e.g. "⛩️"'),
+            title: z.string().describe('Name of the place or activity, e.g. "Fushimi Inari Hike". Plain string, not an array.'),
+            type: z.enum(['lodging', 'activity', 'food', 'transport', 'shopping', 'other']).describe('Category of the idea'),
+            description: z.string().describe('One sentence describing why this is worth considering'),
+            emoji: z.string().describe('One relevant emoji character, e.g. "⛩️"'),
             priceDetails: z.string().describe('Estimated cost as a plain string, e.g. "~$50/person", "Free", or "TBD"'),
         }),
     }),
@@ -74,14 +75,13 @@ export default async function handler(req) {
         // Use Gemini via OpenAI-compat endpoint — preview models (gemini-3.1-flash-lite-preview)
         // are only registered on this surface, not on the native generateContent endpoint.
         if (geminiKey) {
-            const gemini = createOpenAI({
+            const google = createGoogleGenerativeAI({
                 apiKey: geminiKey,
-                baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
             })
-            for (const modelId of ['gemini-3.1-flash-lite-preview', 'gemini-2.5-flash']) {
+            for (const modelId of ['gemini-3.1-flash-lite-preview']) {
                 try {
                     const result = await streamText({
-                        model: gemini(modelId),
+                        model: google(modelId),
                         system: systemPrompt,
                         messages: modelMessages,
                         tools: WANDA_TOOLS,

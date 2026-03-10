@@ -1,6 +1,6 @@
 import { generateObject } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
-import { z } from 'zod'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { verifyFirebaseToken } from '../_auth.js'
 import { setCorsHeaders } from '../_cors.js'
 
@@ -25,11 +25,10 @@ export default async function handler(req, res) {
 
         let model;
         if (geminiKey) {
-            const openai = createOpenAI({
+            const google = createGoogleGenerativeAI({
                 apiKey: geminiKey,
-                baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
             })
-            model = openai('gemini-3.1-flash-lite-preview')
+            model = google('gemini-3.1-flash-lite-preview')
         } else if (openrouterKey) {
             const openrouter = createOpenAI({
                 apiKey: openrouterKey,
