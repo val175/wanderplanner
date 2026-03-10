@@ -389,7 +389,7 @@ function PollOptionCard({ option, poll, activeUserId, onVote, isLeader, globalTo
     const isVetoedByAnyone = totalVetoes > 0
 
     return (
-        <div className={`relative flex flex-col h-full rounded-[var(--radius-lg)] border-[2px] transition-all bg-bg-card 
+        <div className={`relative flex flex-col rounded-[var(--radius-lg)] border-[2px] transition-all bg-bg-card
             ${isVetoedByAnyone ? 'border-danger/30 opacity-70 grayscale' : isLeader ? 'border-accent ring-1 ring-accent/20' : 'border-border'}
             ${myTokens > 0 && !isLeader ? 'border-amber-300' : ''}`}>
 
@@ -607,10 +607,10 @@ function PollCard({ poll, activeUserId, onVote, onResolve, onDelete, onCancel, r
                     )}
                 </div>
 
-                {/* Horizontally scrollable cards container — requires stretching items height */}
-                <div className="flex overflow-x-auto gap-5 pb-4 snap-x pl-1 pt-3 items-stretch">
+                {/* Horizontally scrollable cards container */}
+                <div className="flex overflow-x-auto gap-5 pb-4 snap-x pl-1 pt-3">
                     {poll.options.map(opt => (
-                        <div key={opt.id} className="min-w-[240px] w-[240px] max-w-[240px] snap-start shrink-0 flex">
+                        <div key={opt.id} className="min-w-[240px] w-[240px] max-w-[240px] snap-start shrink-0">
                             <PollOptionCard option={opt} poll={poll} activeUserId={activeUserId} onVote={onVote} isLeader={leaderId === opt.id} globalTokensRemaining={globalTokensRemaining} globalVetoesRemaining={globalVetoesRemaining} resolveProfile={resolveProfile} />
                         </div>
                     ))}
