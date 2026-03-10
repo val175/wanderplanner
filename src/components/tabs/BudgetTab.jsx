@@ -527,13 +527,15 @@ export default function BudgetTab() {
                 Extract Receipt
               </Button>
 
-              <Button
-                onClick={() => setIsAddModalOpen(true)}
-                size="sm"
-                className="hidden md:inline-flex shrink-0"
-              >
-                ➕ Log Expense
-              </Button>
+              <div className="hidden md:block shrink-0">
+                <Button
+                  onClick={() => setIsAddModalOpen(true)}
+                  size="sm"
+                  className="shrink-0"
+                >
+                  ➕ Log Expense
+                </Button>
+              </div>
             </>
           )}
         </div>

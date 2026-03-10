@@ -608,7 +608,7 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
 
   return (
     <header className="animate-fade-in border-b border-border bg-bg-primary/95 backdrop-blur-sm sticky top-0 z-20">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-5">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-5">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
 
           {/* LEFT — Typography and Sub-Details */}
@@ -642,6 +642,12 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
                   effectiveStatus === 'completed' ? 'Memory' :
                     effectiveStatus === 'ongoing' ? 'Ongoing' : 'Upcoming'}
               </span>
+
+              {/* Mobile-only right actions — pulled to title row to avoid extra row */}
+              <div className="ml-auto flex items-center gap-1.5 shrink-0 lg:hidden">
+                <TravelerPicker trip={trip} travelerProfiles={travelerProfiles} dispatch={dispatch} isReadOnly={isReadOnly} />
+                <HeaderOptionsDropdown trip={trip} dispatch={dispatch} isReadOnly={isReadOnly} onRenameRequest={handleRenameClick} />
+              </div>
             </div>
 
             {/* Bottom Row: Cities · Dates · Countdown */}
@@ -661,12 +667,12 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
             </div>
           </div>
 
-          {/* RIGHT — Global Actions + Status */}
-          <div className="shrink-0 flex items-center justify-between lg:justify-end gap-4 border-t border-border pt-4 lg:pt-0 lg:border-t-0 mt-2 lg:mt-0">
+          {/* RIGHT — Global Actions + Status (desktop only) */}
+          <div className="hidden lg:flex shrink-0 items-center justify-end gap-4">
             {/* Readiness */}
             <div className="flex items-center gap-2">
               <ProgressRing value={readiness} size={36} strokeWidth={3.5} labelClassName="text-[10px] font-semibold" />
-              <div className="flex flex-col justify-center hidden sm:flex">
+              <div className="flex flex-col justify-center">
                 <span className="text-[9px] font-semibold uppercase tracking-widest text-text-muted leading-tight">Readiness</span>
                 <span className={`text-xs font-semibold leading-tight ${readiness >= 100 ? 'text-success' : 'text-text-primary/70'}`}>
                   {readiness >= 100 ? 'Ready To Go!' : 'On Track'}
@@ -675,7 +681,7 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
             </div>
 
             {/* Divider */}
-            <div className="hidden lg:block w-px h-8 bg-border"></div>
+            <div className="w-px h-8 bg-border"></div>
 
             {/* Avatars */}
             <div className="flex items-center">

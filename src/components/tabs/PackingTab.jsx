@@ -664,9 +664,11 @@ export default function PackingTab() {
                 Starter List
               </Button>
 
-              <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="hidden md:inline-flex shrink-0">
-                🧳 New Item
-              </Button>
+              <div className="hidden md:block shrink-0">
+                <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="shrink-0">
+                  🧳 New Item
+                </Button>
+              </div>
             </>
           )}
         </div>

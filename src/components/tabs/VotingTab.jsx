@@ -1033,9 +1033,11 @@ export default function VotingTab() {
                                 </button>
                             </div>
 
-                            <Button size="sm" onClick={() => setShowIdeaExtractor(true)} className="hidden md:inline-flex shrink-0">
+                            <div className="hidden md:block shrink-0">
+                              <Button size="sm" onClick={() => setShowIdeaExtractor(true)} className="shrink-0">
                                 + Extract Idea
-                            </Button>
+                              </Button>
+                            </div>
                         </div>
                     </div>
 

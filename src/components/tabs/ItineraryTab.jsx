@@ -685,14 +685,14 @@ export default function ItineraryTab() {
           </div>
 
           {!isReadOnly && (
-            <>
-              <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="hidden md:inline-flex shrink-0">
+            <div className="hidden md:flex items-center gap-2 shrink-0">
+              <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="shrink-0">
                 📍 New Activity
               </Button>
-              <Button size="sm" onClick={handleAddDay} className="hidden md:inline-flex shrink-0">
+              <Button size="sm" onClick={handleAddDay} className="shrink-0">
                 ✨ New Day
               </Button>
-            </>
+            </div>
           )}
         </div>
       </div>

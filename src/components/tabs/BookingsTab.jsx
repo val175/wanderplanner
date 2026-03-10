@@ -274,15 +274,15 @@ export default function BookingsTab() {
           )}
 
           {!isReadOnly && (
-            <>
-              <Button variant="secondary" size="sm" onClick={handleExport} className="hidden md:inline-flex shrink-0">
+            <div className="hidden md:flex items-center gap-2 shrink-0">
+              <Button variant="secondary" size="sm" onClick={handleExport} className="shrink-0">
                 Export
               </Button>
 
-              <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="hidden md:inline-flex shrink-0">
+              <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="shrink-0">
                 🎫 New Booking
               </Button>
-            </>
+            </div>
           )}
         </div>
       </div>

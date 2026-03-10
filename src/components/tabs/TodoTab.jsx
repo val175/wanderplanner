@@ -945,22 +945,26 @@ export default function TodoTab() {
             </button>
           </div>
 
-          {/* Secondary Actions */}
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleGenerateChecklist}
-            disabled={isGenerating}
-            className="shrink-0 hidden md:inline-flex"
-          >
-            {isGenerating ? 'Generating...' : 'Wanda Checklist'}
-          </Button>
+          {/* Secondary Actions — hidden on mobile */}
+          <div className="hidden md:block shrink-0">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleGenerateChecklist}
+              disabled={isGenerating}
+              className="shrink-0"
+            >
+              {isGenerating ? 'Generating...' : 'Wanda Checklist'}
+            </Button>
+          </div>
 
           {/* Primary Actions — hidden on mobile (shown as FAB) */}
           {!isReadOnly && (
-            <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="hidden md:inline-flex shrink-0">
-              ✅ New Task
-            </Button>
+            <div className="hidden md:block shrink-0">
+              <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="shrink-0">
+                ✅ New Task
+              </Button>
+            </div>
           )}
         </div>
       </div>
