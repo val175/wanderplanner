@@ -57,7 +57,7 @@ export default function IdeaExtractorModal({ isOpen, onClose }) {
                     url: data.url,
                     title: data.title || 'Untitled Idea',
                     type: TYPE_MAP[data.category?.toLowerCase()] || 'other',
-                    priceDetails: data.estimatedCost || 'TBD',
+                    priceDetails: (data.estimatedCost && data.estimatedCost !== 'null') ? data.estimatedCost : 'TBD',
                     description: [data.vibe, data.location].filter(Boolean).join(' • '),
                     emoji: '✨',
                     imageUrl: data.thumbnail_url || null,

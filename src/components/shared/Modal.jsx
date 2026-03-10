@@ -1,6 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog'
 
-export default function Modal({ isOpen, onClose, children, className = '', maxWidth = 'max-w-xl' }) {
+export default function Modal({ isOpen, onClose, children, className = '', maxWidth = 'max-w-xl', title }) {
   return (
     <Dialog.Root open={isOpen} onOpenChange={open => !open && onClose()}>
       <Dialog.Portal>
@@ -29,6 +29,24 @@ export default function Modal({ isOpen, onClose, children, className = '', maxWi
           <div className="flex justify-center pt-3 pb-1 md:hidden">
             <div className="w-12 h-1.5 bg-border rounded-full opacity-60" />
           </div>
+
+          {/* Optional title header */}
+          {title && (
+            <div className="flex items-center justify-between px-6 pt-5 pb-1">
+              <Dialog.Title className="font-heading font-semibold text-lg text-text-primary">
+                {title}
+              </Dialog.Title>
+              <Dialog.Close
+                onClick={onClose}
+                className="p-1.5 rounded-[var(--radius-sm)] text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </Dialog.Close>
+            </div>
+          )}
+
           {children}
         </Dialog.Content>
       </Dialog.Portal>

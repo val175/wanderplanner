@@ -1,12 +1,22 @@
 // api/extract-pin.js
 // Unified idea extractor — smart routes between TikTok oEmbed and generic HTML scraping,
 // then standardises both via Gemini generateObject (Vercel AI SDK).
+// Fallback chain for generic URLs: full scrape → Microlink → URL-only inference.
 import { generateObject } from 'ai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { z } from 'zod'
 import * as cheerio from 'cheerio'
 import { verifyFirebaseToken } from './_auth.js'
 import { setCorsHeaders } from './_cors.js'
+
+// Mimic a real browser to avoid bot-blocking on travel sites
+const BROWSER_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Cache-Control': 'no-cache',
+    'Referer': 'https://www.google.com/',
+}
 
 export default async function handler(req, res) {
     setCorsHeaders(res)
@@ -37,24 +47,48 @@ export default async function handler(req, res) {
             thumbnail_url = oembed.thumbnail_url || null
             sourceName = 'TikTok'
 
-        // ── Branch B: Generic URL — TripAdvisor, Airbnb, blogs, etc. ─────────────
+        // ── Branch B: Generic URL — TripAdvisor, Airbnb, Booking.com, blogs, etc. ─
         } else {
-            const htmlRes = await fetch(url, {
-                headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Wanderplan/1.0)' },
-                redirect: 'follow',
-            })
-            if (!htmlRes.ok) throw new Error(`Could not fetch URL (status ${htmlRes.status})`)
-            const html = await htmlRes.text()
-            const $ = cheerio.load(html)
+            // Attempt 1: direct scrape with browser-like headers
+            try {
+                const htmlRes = await fetch(url, { headers: BROWSER_HEADERS, redirect: 'follow' })
+                if (htmlRes.ok) {
+                    const html = await htmlRes.text()
+                    const $ = cheerio.load(html)
+                    const ogTitle = $('meta[property="og:title"]').attr('content') || ''
+                    const ogDesc = $('meta[property="og:description"]').attr('content')
+                        || $('meta[name="description"]').attr('content') || ''
+                    // TripAdvisor uses "og: image" with a space — handle both forms
+                    const ogImage = $('meta[property="og:image"]').attr('content')
+                        || $('meta[property="og: image"]').attr('content')
+                        || $('meta[name="twitter:image"]').attr('content') || ''
+                    const pageTitle = $('title').text().trim() || ''
+                    contextText = [ogTitle || pageTitle, ogDesc].filter(Boolean).join('\n')
+                    thumbnail_url = ogImage || null
+                }
+            } catch (_) { /* non-fatal — fall through to Microlink */ }
 
-            const ogTitle = $('meta[property="og:title"]').attr('content') || ''
-            const ogDesc = $('meta[property="og:description"]').attr('content') || ''
-            const ogImage = $('meta[property="og:image"]').attr('content') || ''
-            const pageTitle = $('title').text().trim() || ''
+            // Attempt 2: Microlink for JS-rendered sites (Agoda, Booking.com, etc.)
+            // Also fills in thumbnail when direct scrape got text but no image
+            if (!contextText || !thumbnail_url) {
+                try {
+                    const ml = await fetch(`https://api.microlink.io?url=${encodeURIComponent(url)}`)
+                    if (ml.ok) {
+                        const mlData = (await ml.json()).data || {}
+                        if (!contextText) {
+                            contextText = [mlData.title, mlData.description].filter(Boolean).join('\n')
+                        }
+                        if (!thumbnail_url) {
+                            thumbnail_url = mlData.image?.url || null
+                        }
+                    }
+                } catch (_) { /* non-fatal */ }
+            }
 
-            contextText = [ogTitle || pageTitle, ogDesc].filter(Boolean).join('\n')
-            thumbnail_url = ogImage || null
+            // Attempt 3: URL-only fallback — AI can still infer from the URL structure
+            if (!contextText) contextText = url
 
+            // Infer source name from hostname
             try {
                 const host = new URL(url).hostname.replace('www.', '')
                 if (host.includes('tripadvisor')) sourceName = 'TripAdvisor'
@@ -70,8 +104,6 @@ export default async function handler(req, res) {
             } catch (_) {}
         }
 
-        if (!contextText) throw new Error('Could not extract content from this link.')
-
         // ── AI Standardisation via Gemini ─────────────────────────────────────────
         const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY })
         const { object } = await generateObject({
@@ -81,7 +113,7 @@ export default async function handler(req, res) {
                 category: z.string().describe('One of: Food, Activity, Nightlife, Lodging, Transport, Shopping, Other'),
                 location: z.string().describe('City or neighborhood extracted from the context'),
                 vibe: z.string().describe('1-2 word mood descriptor, e.g. "Aesthetic", "High-Energy", "Relaxing"'),
-                estimatedCost: z.string().optional().describe('Estimated cost if mentioned or inferable. Format: "20 - 50/PERSON" or "Free/TOTAL". Numbers only, no currency symbol.'),
+                estimatedCost: z.string().optional().describe('Estimated cost if mentioned or inferable. Format: "20 - 50/PERSON" or "Free/TOTAL". Numbers only, no currency symbol. Omit entirely if truly unknown.'),
             }),
             prompt: `Extract travel idea details from this web content:\n\n${contextText}`,
         })

@@ -25,7 +25,7 @@ const CATEGORY_META = {
  * Format: ₱1,234 (est.) /TOTAL
  */
 function formatIdeaPrice(priceDetails, currency = 'PHP') {
-    if (!priceDetails || priceDetails === 'TBD' || priceDetails === '???') {
+    if (!priceDetails || priceDetails === 'TBD' || priceDetails === '???' || priceDetails === 'null') {
         return { amount: 'TBD', unit: 'total' }
     }
 
