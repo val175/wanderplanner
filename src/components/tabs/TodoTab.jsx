@@ -15,6 +15,8 @@ import DatePicker from '../shared/DatePicker'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
 import { triggerHaptic } from '../../utils/haptics'
 import { auth } from '../../firebase/config'
+import TabHeader from '../common/TabHeader'
+import ProgressBar from '../shared/ProgressBar'
 
 // Anchors the DragOverlay to the cursor — matches BookingsKanban behaviour
 const snapCursorToTopLeft = ({ activatorEvent, draggingNodeRect, transform }) => {
@@ -880,39 +882,31 @@ export default function TodoTab() {
     <div className="space-y-6 animate-fade-in pb-12 w-full">
       <CelebrationEffect trigger={celebration} />
 
-      {/* Header Area */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold font-heading text-text-primary tracking-tight">✅ Trip Tasks</h1>
-          <p className="text-sm text-text-secondary mt-1 font-medium">Keep track of what needs to be done, and who is doing it.</p>
+      {/* ── Layer 1: Header ── */}
+      <TabHeader
+        title={<span>✅ To Do</span>}
+        subtitle="Track milestones, visas, and administrative tasks."
+        rightSlot={
+          <div className="flex flex-col items-end min-w-[120px]">
+            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+              {Math.round((completedCount / (totalCount || 1)) * 100)}% Complete
+            </span>
+            <div className="w-32">
+              <ProgressBar value={completedCount} max={totalCount} colorClass="bg-accent" height="h-1.5" />
+            </div>
+          </div>
+        }
+      />
+
+      {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
+      <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
+        {/* Left: Category Filters (Placeholder if none specified, or reuse existing) */}
+        <div className="flex gap-1 overflow-x-auto scrollbar-hide flex-1">
+          {/* Note: TodoTab handles categories within phase groups, leaving left side flexible */}
         </div>
 
-        {/* Controls row */}
-        <div className="flex items-center gap-3">
-          {/* Task 1: List / Board view toggle — DS pill pattern */}
-          <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
-            <button
-              onClick={() => setViewMode('list')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5
-                ${viewMode === 'list' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
-              List
-            </button>
-            <button
-              onClick={() => setViewMode('board')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5
-                ${viewMode === 'board' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" />
-              </svg>
-              Board
-            </button>
-          </div>
-
+        {/* Right: Toggles & Action Buttons */}
+        <div className="flex items-center gap-3 shrink-0">
           {/* Hide Completed toggle */}
           <button
             onClick={() => setHideCompleted(prev => !prev)}
@@ -924,24 +918,43 @@ export default function TodoTab() {
             Hide Completed
           </button>
 
-          {/* All Tasks / My Tasks toggle */}
+          {/* Visibility Toggle: Everyone / Just Me */}
           <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
             <button
               onClick={() => setFilter('all')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${filter === 'all' ? 'bg-bg-card text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${filter === 'all' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
             >
-              All Tasks
+              Everyone
             </button>
             <button
               onClick={() => setFilter('mine')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all flex items-center justify-center gap-1.5 ${filter === 'mine' ? 'bg-bg-card text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${filter === 'mine' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
             >
-              {currentUserProfile && (
-                <AvatarCircle profile={currentUserProfile} size={14} />
-              )}
-              My Tasks
+              Just Me
             </button>
           </div>
+
+          {/* View Toggle */}
+          <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'list' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+              List
+            </button>
+            <button
+              onClick={() => setViewMode('board')}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'board' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
+              Board
+            </button>
+          </div>
+
+          <Button variant="secondary" size="sm" onClick={handleGenerateChecklist} disabled={isGenerating} className="hidden sm:inline-flex">
+            {isGenerating ? '⌛ Generating...' : '🪄 Wanda Checklist'}
+          </Button>
         </div>
       </div>
 

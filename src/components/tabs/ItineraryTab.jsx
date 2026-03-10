@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, Fragment } from 'react'
+import TabHeader from '../common/TabHeader'
 import Card from '../shared/Card'
 import EditableText from '../shared/EditableText'
 import TimePicker from '../shared/TimePicker'
@@ -668,16 +669,29 @@ export default function ItineraryTab() {
 
   return (
     <div className="space-y-6 animate-fade-in flex flex-col h-full min-h-[calc(100vh-120px)]">
-      {/* Header Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="font-heading font-semibold text-xl text-text-primary">📅 Itinerary</h2>
-          <p className="text-xs text-text-muted mt-0.5">{trip.itinerary?.reduce((acc, d) => acc + (d.activities?.length || 0), 0) || 0} activities across {trip.itinerary?.length || 0} days</p>
+      {/* ── Layer 1: Header ── */}
+      <TabHeader
+        title={<span>🗓️ Itinerary</span>}
+        subtitle="Plan your days and map out your adventures."
+        rightSlot={
+          <div className="flex flex-col items-end">
+            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Trip Stats</span>
+            <span className="text-xs font-semibold text-text-secondary">
+              {trip.itinerary?.reduce((acc, d) => acc + (d.activities?.length || 0), 0) || 0} activities · {trip.itinerary?.length || 0} days
+            </span>
+          </div>
+        }
+      />
+
+      {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
+      <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
+        <div className="flex gap-1 overflow-x-auto scrollbar-hide flex-1">
+          {/* No category filters for Itinerary yet */}
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+        <div className="flex items-center gap-3 shrink-0">
           {/* View Toggle */}
-          <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
+          <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border">
             <button
               onClick={() => setViewMode('table')}
               className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'table' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}

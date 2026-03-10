@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Card from '../shared/Card'
 import EditableText from '../shared/EditableText'
+import TabHeader from '../common/TabHeader'
 import CityCombobox, { resolveCity } from '../shared/CityCombobox'
 import Button from '../shared/Button'
 import { useTripContext } from '../../context/TripContext'
@@ -233,11 +234,20 @@ export default function CitiesTab() {
 
   return (
     <div className="space-y-6 pb-24 animate-fade-in w-full">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-2">
-        <h2 className="font-heading text-2xl font-semibold text-text-primary shrink-0">🏙️ Cities</h2>
+      {/* ── Layer 1: Header ── */}
+      <TabHeader
+        title={<span>🏙️ Cities</span>}
+        subtitle="Research destinations, weather, and local vibes."
+      />
+
+      {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
+      <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
+        <div className="flex gap-1 overflow-x-auto scrollbar-hide flex-1">
+          {/* No category filters for Cities yet */}
+        </div>
 
         {!isReadOnly && (
-          <div className="flex justify-end flex-1 w-full relative">
+          <div className="flex justify-end shrink-0 relative">
             {!adding ? (
               <Button size="sm" onClick={() => setAdding(true)}>
                 + Add City

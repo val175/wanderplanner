@@ -19,6 +19,7 @@ import { ACTIONS } from '../../state/tripReducer'
 import AvatarCircle from '../shared/AvatarCircle'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
 import { triggerHaptic } from '../../utils/haptics'
+import TabHeader from '../common/TabHeader'
 
 // ── Packing Badge Engine ──────────────────────────────────────────────────────
 // Maps itinerary activity keywords → matching packing item keywords → badge emoji
@@ -575,22 +576,25 @@ export default function PackingTab() {
         danger={false}
       />
 
-      {/* ── Header Card ── */}
-      <Card>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-3">
-          <div className="flex items-center justify-between xl:justify-start w-full gap-3">
-            <h2 className="font-heading font-semibold text-lg text-text-primary">🧳 Packing List</h2>
-            {total > 0 && (
-              <span className="text-sm text-text-muted font-medium tabular-nums">{packed}/{total} items packed</span>
-            )}
+      {/* ── Layer 1: Header ── */}
+      <TabHeader
+        title={<span>🧳 Packing List</span>}
+        subtitle="Essential gear and shared items for the group."
+        rightSlot={
+          <div className="flex flex-col items-end min-w-[120px]">
+            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+              {packed}/{total} packed
+            </span>
+            <div className="w-32">
+              <ProgressBar value={packed} max={total} colorClass="bg-accent" height="h-1.5" />
+            </div>
           </div>
-        </div>
-        <ProgressBar value={packed} max={total} colorClass="bg-accent" height="h-2" />
-      </Card>
+        }
+      />
 
-      {/* ── Category filter pills + actions row ── */}
-      <div className="flex items-center justify-between gap-4">
-        {/* Left: filter pills */}
+      {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
+      <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
+        {/* Left: Category filter pills */}
         <div className="flex gap-1 overflow-x-auto scrollbar-hide flex-1">
           {filters.map(f => (
             <button
@@ -607,28 +611,20 @@ export default function PackingTab() {
           ))}
         </div>
 
-        {/* Right: actions */}
+        {/* Right: Actions & Toggles */}
         <div className="flex items-center gap-2 shrink-0">
-          <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border mr-1 sm:mr-3">
+          {/* Visibility Toggle: Everyone / Just Me */}
+          <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border">
             <button
               onClick={() => setViewMode('group')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${viewMode === 'group' ? 'bg-bg-card text-text-primary' : 'text-text-muted hover:text-text-secondary'
-                }`}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${viewMode === 'group' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
             >
               Everyone
             </button>
             <button
               onClick={() => setViewMode('me')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all flex items-center gap-1.5 ${viewMode === 'me' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'
-                }`}
+              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${viewMode === 'me' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
             >
-              {viewMode === 'me' && currentUserProfile?.photo ? (
-                <img src={currentUserProfile.photo} alt="" className="w-3.5 h-3.5 rounded-full" />
-              ) : viewMode === 'me' ? (
-                <div className="w-3.5 h-3.5 rounded-full bg-accent/20 text-accent flex items-center justify-center text-[7px] font-semibold">
-                  {currentUserProfile?.name?.charAt(0) || 'M'}
-                </div>
-              ) : null}
               Just Me
             </button>
           </div>

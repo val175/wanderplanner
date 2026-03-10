@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import Card from '../shared/Card'
 import ProgressBar from '../shared/ProgressBar'
 import Button from '../shared/Button'
+import TabHeader from '../common/TabHeader'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { BOOKING_CATEGORIES } from '../../constants/tabs'
@@ -108,18 +109,29 @@ export default function BookingsTab() {
         isReadOnly={isReadOnly}
       />
 
-      {/* Summary bar */}
-      <Card>
-        <div className="flex items-center justify-between mb-2 px-0.5">
-          <h2 className="font-heading font-semibold text-lg text-text-primary">🎫 Bookings</h2>
-          <span className="text-sm text-text-muted font-medium">{confirmedCount} of {totalCount} confirmed</span>
-        </div>
-        <ProgressBar value={confirmedCount} max={totalCount} colorClass="bg-success" height="h-2" />
-      </Card>
+      {/* ── Layer 1: Header ── */}
+      <TabHeader
+        title={<span>🎫 Bookings</span>}
+        subtitle="Manage flights, accommodations, and reservations."
+        rightSlot={
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col items-end min-w-[120px]">
+              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+                {confirmedCount} of {totalCount} confirmed
+              </span>
+              <div className="w-32">
+                <ProgressBar value={confirmedCount} max={totalCount} colorClass="bg-success" height="h-1.5" />
+              </div>
+            </div>
+            <Button variant="secondary" size="sm" onClick={handleExport} className="hidden sm:inline-flex">
+              📋 Export
+            </Button>
+          </div>
+        }
+      />
 
-      {/* Main Controls Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-
+      {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
+      <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
         {/* Left: Category Filters */}
         <div className="flex gap-1 overflow-x-auto scrollbar-hide flex-1">
           {filters.map(f => (
@@ -137,9 +149,8 @@ export default function BookingsTab() {
           ))}
         </div>
 
-        {/* Right: Triggers & Views */}
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-
+        {/* Right: Toggles & View Controls */}
+        <div className="flex items-center gap-2 shrink-0">
           {/* Column Visibility Dropdown (Only relevant in Table view) */}
           {viewMode === 'table' && (
             <div className="relative group">
@@ -181,10 +192,6 @@ export default function BookingsTab() {
               Board
             </button>
           </div>
-
-          <Button variant="secondary" size="sm" onClick={handleExport} className="hidden sm:inline-flex">
-            📋 Export
-          </Button>
         </div>
       </div>
 
