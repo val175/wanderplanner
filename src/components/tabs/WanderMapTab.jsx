@@ -129,14 +129,14 @@ export default function WanderMapTab() {
                     )}
 
                     {/* MACRO VIEW: City Markers */}
-                    {!isMicroView && destCoords.map((d, i) => (
+                    {layers.itinerary && !isMicroView && destCoords.map((d, i) => (
                         <Marker key={`city-${d.cityId}-${i}`} longitude={d.coords[0]} latitude={d.coords[1]} anchor="bottom">
                             <motion.div
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
                                 whileHover={{ scale: 1.1 }}
                                 transition={{ type: 'spring', damping: 15 }}
-                                onClick={() => setSelectedPoint({ type: 'dest', ...d })}
+                                onClick={(e) => { e.stopPropagation(); setSelectedPoint({ type: 'dest', ...d }); }}
                                 className="cursor-pointer flex flex-col items-center pb-2"
                             >
                                 <div className="px-3 py-1.5 bg-bg-card border border-border rounded-[var(--radius-md)] text-text-primary text-xs font-heading font-bold whitespace-nowrap flex items-center gap-2">
@@ -149,7 +149,7 @@ export default function WanderMapTab() {
                     ))}
 
                     {/* MICRO VIEW: Itinerary Detail Markers */}
-                    {isMicroView && itineraryCoords.map((ic, i) => {
+                    {layers.itinerary && isMicroView && itineraryCoords.map((ic, i) => {
                         const emoji = getItineraryEmoji(ic.activity);
                         return (
                             <Marker key={`activity-${ic.activityId}-${i}`} longitude={ic.coords[0]} latitude={ic.coords[1]} anchor="bottom">
@@ -157,10 +157,10 @@ export default function WanderMapTab() {
                                     initial={{ scale: 0, y: 10 }}
                                     animate={{ scale: 1, y: 0 }}
                                     whileHover={{ y: -2 }}
-                                    onClick={() => setSelectedPoint({ type: 'activity', ...ic })}
+                                    onClick={(e) => { e.stopPropagation(); setSelectedPoint({ type: 'activity', ...ic }); }}
                                     className="cursor-pointer flex flex-col items-center pb-2 group"
                                 >
-                                    <div className="w-8 h-8 bg-bg-card border border-border rounded-[var(--radius-md)] text-lg flex items-center justify-center transition-colors hover:border-accent shadow-sm">
+                                    <div className="w-8 h-8 bg-bg-card border border-border rounded-[var(--radius-md)] text-lg flex items-center justify-center transition-colors hover:border-accent">
                                         {emoji}
                                     </div>
                                     <div className="mt-1 px-2 py-0.5 bg-bg-card border border-border rounded-[var(--radius-sm)] text-[10px] font-bold text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap max-w-[120px] truncate">
@@ -171,19 +171,17 @@ export default function WanderMapTab() {
                         );
                     })}
 
-                    {/* Discovery Layer Pins (Active in both views, but filtered) */}
+                    {/* Discovery Layer Pins */}
                     {layers.discovery && discoveredIdeas.map((ic, i) => (
                         <Marker key={`discovery-${ic.ideaId}-${i}`} longitude={ic.coords[0]} latitude={ic.coords[1]} anchor="bottom">
                             <motion.div
                                 initial={{ scale: 0.8, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
                                 whileHover={{ scale: 1.2 }}
-                                onClick={() => setSelectedPoint({ type: 'idea', ...ic })}
+                                onClick={(e) => { e.stopPropagation(); setSelectedPoint({ type: 'idea', ...ic }); }}
                                 className="cursor-pointer text-xl"
                             >
-                                <motion.span animate={{ rotate: [0, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 2 }}>
-                                    ✨
-                                </motion.span>
+                                ✨
                             </motion.div>
                         </Marker>
                     ))}
@@ -197,6 +195,7 @@ export default function WanderMapTab() {
                             offset={40}
                             onClose={() => setSelectedPoint(null)}
                             closeButton={false}
+                            closeOnClick={false}
                             className="z-[1001]"
                         >
                             <LocationDrawer

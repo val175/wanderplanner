@@ -28,7 +28,8 @@ export function useTripTravelers() {
             if (s?.id) {
                 snapshotMap[s.id] = {
                     name: s.name || s.displayName || null,
-                    avatar: s.avatar || s.photoURL || null,
+                    // Support both old (avatar/photoURL) and new (photo/customPhoto) fields
+                    photo: s.customPhoto || s.photo || s.avatar || s.photoURL || null,
                 }
             }
         }
@@ -37,7 +38,7 @@ export function useTripTravelers() {
             const results = ids.map(id => {
                 // 1. Try snapshot cache first (no async lookup needed)
                 if (snapshotMap[id]?.name) {
-                    return { id, name: snapshotMap[id].name, photo: snapshotMap[id].avatar || snapshotMap[id].photo }
+                    return { id, name: snapshotMap[id].name, photo: snapshotMap[id].photo }
                 }
                 // 2. Try live profile resolution
                 const p = resolveProfile(id)

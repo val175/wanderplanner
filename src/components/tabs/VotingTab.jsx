@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { getCategory } from '../../constants/categories'
+import { getCategory, GLOBAL_CATEGORIES } from '../../constants/categories'
 import Card from '../shared/Card'
 import Button from '../shared/Button'
 import { useTripContext } from '../../context/TripContext'
@@ -997,9 +997,9 @@ export default function VotingTab() {
                                 className="text-sm bg-bg-secondary border border-border rounded-[var(--radius-md)] px-3 py-1.5 text-text-primary focus:outline-none focus:border-accent w-auto min-w-[140px] cursor-pointer"
                             >
                                 <option value="all">All Categories</option>
-                                {Object.entries(CATEGORY_META).map(([key, meta]) => (
-                                    <option key={key} value={key}>
-                                        {meta.emoji} {meta.label}
+                                {GLOBAL_CATEGORIES.map(cat => (
+                                    <option key={cat.id} value={cat.id}>
+                                        {cat.emoji} {cat.label}
                                     </option>
                                 ))}
                             </select>

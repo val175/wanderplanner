@@ -113,8 +113,8 @@ export default function TimePicker({
           {/* Hours */}
           <div 
             ref={hourRef} 
-            className="scrollbar-hide flex-1 touch-pan-y"
-            style={{ maxHeight: 220, overflowY: 'auto', paddingBlock: 4 }}
+            className="flex-1 touch-pan-y"
+            style={{ maxHeight: 220, overflowY: 'scroll', paddingBlock: 4 }}
           >
             {HOURS.map(hr => (
               <button
@@ -139,8 +139,8 @@ export default function TimePicker({
           {/* Minutes */}
           <div 
             ref={minRef} 
-            className="scrollbar-hide flex-1 touch-pan-y"
-            style={{ maxHeight: 220, overflowY: 'auto', paddingBlock: 4 }}
+            className="flex-1 touch-pan-y"
+            style={{ maxHeight: 220, overflowY: 'scroll', paddingBlock: 4 }}
           >
             {MINUTES.map(mn => (
               <button
