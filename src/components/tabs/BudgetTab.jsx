@@ -390,6 +390,23 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
   const showPaidBy = travelers.length > 1
   const [editId, setEditId] = useState(null)
   const [editData, setEditData] = useState({})
+  const [highlightedExpenseId, setHighlightedExpenseId] = useState(null)
+
+  useEffect(() => {
+    const handleHighlight = (e) => {
+      const { tab, id } = e.detail
+      if (tab === 'budget') {
+        setHighlightedExpenseId(id)
+        setTimeout(() => {
+          const el = document.getElementById(`expense-${id}`)
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 100)
+        setTimeout(() => setHighlightedExpenseId(null), 2000)
+      }
+    }
+    window.addEventListener('highlight-item', handleHighlight)
+    return () => window.removeEventListener('highlight-item', handleHighlight)
+  }, [])
 
   const startEdit = (entry) => {
     setEditId(entry.id)
