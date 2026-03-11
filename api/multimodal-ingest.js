@@ -13,6 +13,25 @@ export async function multimodalIngest(fileBuffer, mimeType) {
     const base64Content = fileBuffer.toString('base64')
 
     const extractionBody = {
+        system_instruction: {
+            parts: [{ text: `You are an expert travel data extraction engine. Analyze the provided document and extract details into structured JSON.
+            
+            ### CATEGORIZATION RULES (CRITICAL):
+            Map to these exact types only:
+            - 'hotel': For any lodging, stays, hotels, resorts, or Airbnbs.
+            - 'flight': For any airline tickets, boarding passes, or flight receipts.
+            - 'experience': For tours, tickets to attractions, activities, or events.
+            - 'transport': For rental cars, trains, buses, ferries, or transfers.
+            - 'concert': Specific music event tickets or receipts.
+            - 'custom': Anything that doesn't fit the above.
+
+            ### FORMATTING:
+            1. TITLE: Concise name (e.g., 'Marriott Cebu' or 'AirAsia Z2 123').
+            2. DATE: Return YYYY-MM-DD only.
+            3. AMOUNT: Number only.
+            4. LOCATION: Specific address or route.
+            `}]
+        },
         contents: [{
             parts: [
                 {
@@ -20,8 +39,7 @@ export async function multimodalIngest(fileBuffer, mimeType) {
                         mime_type: mimeType,
                         data: base64Content
                     }
-                },
-                { text: "You are an expert travel data extraction engine for a premium trip planner. Analyze this booking document (Image, PDF, or Text). Extract the details into the strict JSON format defined in the response schema.\n\n### CATEGORIZATION GUIDELINES:\n- **LODGING**: Hotels, Resorts, Airbnbs, Hostels. Keywords: Check-in, Check-out, Night, Room, Bed.\n- **FLIGHT**: Airline tickets, boarding passes, flight receipts. Keywords: PNR, Seat, Terminal, Gate, Flight Number, Class.\n- **TRANSPORT**: Rental cars, trains, buses, ferries. Keywords: Rental, Drop-off, Station.\n- **ACTIVITY**: Tours, museum tickets, restaurant reservations, events.\n- **OTHER**: Generic travel receipts or miscellaneous docs.\n\n### DATA FORMATTING GUIDELINES:\n1. **TITLE**: A concise name (e.g., 'AirAsia Z2 123' or 'Marriott Cebu').\n2. **DATE**: Return only the date part in ISO 8601 format (YYYY-MM-DD). For lodging, use Check-In. For flights, use Departure date.\n3. **LOCATION**: Use 'Origin to Destination' for flights/transport. For lodging, use the property address.\n4. **AMOUNT**: Pure number (no currency symbols).\n\n### EXAMPLES:\n- Input: Marriott Receipt with Check-in Mar 12 -> Output: { \"type\": \"lodging\", \"title\": \"Marriott\", \"date\": \"2026-03-12\", ... }\n- Input: E-Ticket CEB to MNL -> Output: { \"type\": \"flight\", \"title\": \"Cebu Pacific\", \"location\": \"Cebu (CEB) to Manila (MNL)\", ... }" }
+                }
             ]
         }],
         generationConfig: {
@@ -29,7 +47,7 @@ export async function multimodalIngest(fileBuffer, mimeType) {
             response_schema: {
                 type: "OBJECT",
                 properties: {
-                    type: { type: "STRING", enum: ["lodging", "flight", "activity", "transport", "other"] },
+                    type: { type: "STRING", enum: ["hotel", "flight", "experience", "transport", "concert", "custom"] },
                     title: { type: "STRING" },
                     date: { type: "STRING" },
                     location: { type: "STRING" },

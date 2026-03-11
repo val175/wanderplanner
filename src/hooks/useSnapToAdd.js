@@ -74,7 +74,7 @@ export function useSnapToAdd() {
                 type: ACTIONS.ADD_BOOKING,
                 payload: {
                     name: data.title || (file.name ? `Booking: ${file.name}` : 'New Booking'),
-                    category: data.type || 'other',
+                    category: data.type || 'custom',
                     startDate: sanitizedDate,
                     location: data.location || '',
                     confirmationNumber: data.confirmationNumber || '',
