@@ -77,6 +77,7 @@ export function useSnapToAdd() {
                     amountPaid: Number(data.amountPaid) || 0,
                     status: data.status || 'not_started',
                     notes: data.notes || '',
+                    providerLink: data.providerLink || null,
                     attachments: [{
                         id: Date.now(),
                         name: file.name,
