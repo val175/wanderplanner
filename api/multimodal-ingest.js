@@ -21,7 +21,7 @@ export async function multimodalIngest(fileBuffer, mimeType) {
                         data: base64Content
                     }
                 },
-                { text: "Analyze this booking document (Image, PDF, or Text). Extract the following details into a JSON object: 'type' (lodging, flight, activity, transport, or other), 'title' (a clear name for the booking), 'date' (ISO 8601 format for the start date/time), 'location' (address or venue name), 'confirmationNumber' (if found), 'amountPaid' (numeric value of total cost), 'status' (set to 'booked' if this is a confirmed/paid reservation or itinerary, otherwise 'not_started'). Return ONLY the JSON object. Use null for missing fields." }
+                { text: "Analyze this booking document (Image, PDF, or Text). Extract the following details into a JSON object: 'type' (lodging, flight, activity, transport, or other), 'title' (a clear name for the booking), 'date' (ISO 8601 format for the start date/time), 'location' (address or venue name), 'confirmationNumber' (if found), 'amountPaid' (numeric value of total cost), 'status' (Categorize as: 'confirmed' for final itineraries/receipts/tickets; 'requested' for pending/waitlisted/requested bookings; 'to_book' for quotes/selections/drafts; or 'idea' for general screenshots of searches. Default to 'confirmed' for clear itineraries). Return ONLY the JSON object. Use null for missing fields." }
             ]
         }],
         generationConfig: {
