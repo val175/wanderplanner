@@ -6,8 +6,8 @@ export async function multimodalIngest(fileBuffer, mimeType) {
     const geminiKey = process.env.GEMINI_API_KEY
     if (!geminiKey) throw new Error('GEMINI_API_KEY is not configured')
 
-    // 1. Extraction with Gemini 2.0 Flash (Higher intelligence for complex categorization)
-    const extractionUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent?key=${geminiKey}`
+    // 1. Extraction with Gemini 3.1 Flash-Lite (Strict Priority: 500 RPD)
+    const extractionUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${geminiKey}`
     
     // Convert buffer to base64
     const base64Content = fileBuffer.toString('base64')
