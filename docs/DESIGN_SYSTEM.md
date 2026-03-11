@@ -207,3 +207,63 @@ Before submitting a new component or UI refactor, ensure it passes this "AI Aest
 6. **Focus Rings**: Are you using `focus:border-accent`? Avoid adding `focus:ring` unless absolutely necessary for accessibility.
 7. **Pills & Badges**: Are status/category labels using the neutral `bg-bg-secondary` style instead of vibrant colored backgrounds?
 
+
+---
+
+## 8. Maps & Cartography
+
+All map-related UI must follow these standards to ensure visual coherence between the `OverviewTab` mini-map and the full-screen `WanderMapTab`.
+
+### Map Style
+- **Base style**: `mapbox://styles/mapbox/light-v11` — consistent across all map surfaces.
+- **Fog**: Always `null` (disabled). No atmospheric effects; the design language is clean and flat.
+- **Scroll zoom**: Disabled when embedded inline (e.g., `OverviewTab`). Enabled in full-screen `WanderMapTab`.
+
+### WanderPath (Route Line)
+The animated route line connecting destinations is a core brand element:
+- **Color**: `#D97757` (brand accent = `--color-accent`).
+- **Width**: `2.5px` at macro zoom, up to `3px` at micro zoom.
+- **Opacity**: `1` at macro zoom, `0.45` at micro zoom (markers remain primary).
+- **Animation**: "Flow Path" toggle uses `line-dasharray: [2, 2.5]` + `requestAnimationFrame` loop incrementing `line-offset` — marching-ant effect.
+- **Shadow Ban**: NO `filter: drop-shadow` or `line-blur`. Contrast via color only.
+
+### Marker Anatomy (Tiered Hierarchy)
+
+#### Tier 1 — Macro View City Markers (`zoom < 8`)
+
+```
+       ┌─────────┐  ← Dark label pill
+       │  Tokyo  │    bg: #0F172A | text: white | font: 10px semibold
+       └────┬────┘    rounded: 6px
+            │  ← CSS triangle pointer (color matches border)
+       ┌────┴────┐
+       │  🇯🇵   │  ← Pin Head: w-9 h-9, rounded-full, bg-bg-card
+       └─────────┘    border-2, color-coded:
+                        Start:  #7CA2CE (blue)
+                        End:    #E58F76 (coral)
+                        Middle: #89A88F (sage)
+```
+
+- Label pill MUST use `bg-[#0F172A]` (not `bg-bg-card`) — legible over both light and dark map tiles.
+- Never use Lucide icons in pin heads; always use country flag emoji from destination data.
+
+#### Tier 2 — Micro View Activity Markers (`zoom ≥ 8`)
+- **Shape**: `w-9 h-9` `bg-bg-card` `border border-border` `rounded-[var(--radius-md)]` (square, not circular).
+- **Icon**: Category emoji only (🏨 🍽️ ✈️ etc.). No Lucide icons.
+- **Hover label**: `bg-[#0F172A]` pill, `opacity-0 group-hover:opacity-100 transition-opacity`.
+- **Hover border**: transitions to `border-accent`.
+
+#### Tier 3 — Discovery Pins
+- Plain `text-xl` emoji (✨), no container.
+- `whileHover={{ scale: 1.2 }}` via Framer Motion.
+
+### Map Overlays
+- All floating controls: `bg-bg-card/90 backdrop-blur-xl border border-border`.
+- **Shadow Ban**: Zero `shadow-*` on all overlays. Border alone provides elevation signal.
+- Popups: `closeButton={false}`, `closeOnClick={false}`, `anchor="bottom-right"` to avoid covering the selected pin.
+
+### Haptics
+| Action | Haptic |
+|--------|--------|
+| Toggle a layer | `hapticSelection()` |
+| Click a pin or recenter | `hapticImpact('medium')` |
