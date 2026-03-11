@@ -75,7 +75,7 @@ export function useSnapToAdd() {
                     location: data.location || '',
                     confirmationNumber: data.confirmationNumber || '',
                     amountPaid: Number(data.amountPaid) || 0,
-                    status: data.status || 'not_started',
+                    status: data.status || 'confirmed',
                     notes: data.notes || '',
                     providerLink: data.providerLink || null,
                     attachments: [{

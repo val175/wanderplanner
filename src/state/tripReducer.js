@@ -298,7 +298,23 @@ export function tripReducer(state, action) {
           return d
         })
 
-        return { ...trip, itinerary: finalItin }
+        return {
+          ...trip,
+          itinerary: finalItin,
+          destinations: (trip.destinations || []).map((d, i) => {
+            if (i === payload.index) {
+              return {
+                ...d,
+                city: payload.city,
+                country: payload.country,
+                flag: payload.flag,
+                lat: payload.lat,
+                lng: payload.lng
+              }
+            }
+            return d
+          }),
+        }
       })
 
     // ─── Bookings ───
@@ -603,8 +619,8 @@ export function tripReducer(state, action) {
       const currentTrip = state.trips[activeTripId]
       const oldCity = (currentTrip?.cities || []).find(c => c.id === payload.id)
       const oldName = oldCity?.city
-      const { city: newName, country: newCountry, flag: newFlag } = payload.updates
-      const identityChanged = newName !== undefined || newCountry !== undefined || newFlag !== undefined
+      const { city: newName, country: newCountry, flag: newFlag, lat: newLat, lng: newLng } = payload.updates
+      const identityChanged = newName !== undefined || newCountry !== undefined || newFlag !== undefined || newLat !== undefined || newLng !== undefined
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
         cities: trip.cities.map(c => c.id === payload.id ? { ...c, ...payload.updates } : c),
@@ -617,6 +633,8 @@ export function tripReducer(state, action) {
                 ...(newName !== undefined && { city: newName }),
                 ...(newCountry !== undefined && { country: newCountry }),
                 ...(newFlag !== undefined && { flag: newFlag }),
+                ...(newLat !== undefined && { lat: newLat }),
+                ...(newLng !== undefined && { lng: newLng }),
               }
               : d
           )
@@ -633,6 +651,8 @@ export function tripReducer(state, action) {
           city: payload.city || 'New City',
           country: payload.country || '',
           flag: payload.flag || '🌍',
+          lat: payload.lat,
+          lng: payload.lng,
           highlights: '',
           mustDo: '',
           weather: '',
@@ -645,6 +665,8 @@ export function tripReducer(state, action) {
           city: payload.city || 'New City',
           country: payload.country || '',
           flag: payload.flag || '🌍',
+          lat: payload.lat,
+          lng: payload.lng,
         }],
       }))
 

@@ -23,6 +23,10 @@ export function useMapDiscovery(trip) {
             setIsLoading(true);
             const validDests = destinations.filter(d => d && d.city);
             const promises = validDests.map(async (d) => {
+                // Use persisted coordinates if available
+                if (d.lat !== undefined && d.lng !== undefined) {
+                    return { cityId: d.id || d.city, coords: [d.lng, d.lat], city: d.city };
+                }
                 const coords = await geocodeCity(d.city, d.country);
                 return { cityId: d.id || d.city, coords, city: d.city };
             });
