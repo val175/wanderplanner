@@ -954,7 +954,7 @@ export default function TodoTab() {
               disabled={isGenerating}
               className="shrink-0"
             >
-              {isGenerating ? 'Generating...' : 'Wanda Checklist'}
+              {isGenerating ? 'Generating...' : '✨ Generate with Wanda'}
             </Button>
           </div>
 
@@ -979,22 +979,6 @@ export default function TodoTab() {
           To Do
         </button>,
         document.body
-      )}
-
-
-      {/* Task 5: Slim Wanda banner — replaces the full-screen empty-state card.
-          Phases are always visible below so users see the structure immediately. */}
-      {safeTodos.length === 0 && !isReadOnly && filter === 'all' && (
-        <div className="flex items-center gap-4 bg-bg-card border border-border rounded-[var(--radius-md)] px-5 py-3.5">
-          <div className="w-9 h-9 bg-accent/10 rounded-full flex items-center justify-center text-base border border-accent/20 shrink-0">✨</div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-text-primary leading-snug">Don't know where to start?</p>
-            <p className="text-xs text-text-secondary leading-snug">Let Wanda generate a smart, personalized checklist based on your destination.</p>
-          </div>
-          <Button onClick={handleGenerateChecklist} disabled={isGenerating} size="sm" className="shrink-0">
-            {isGenerating ? 'Thinking...' : 'Generate with Wanda'}
-          </Button>
-        </div>
       )}
 
       {/* Phase Groups — Task 2: horizontal scroll container in board mode */}

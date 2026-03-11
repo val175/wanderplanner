@@ -33,26 +33,51 @@ export default function WanderMapTab() {
         animatedPath: true,
     });
     const [isMapLoaded, setIsMapLoaded] = useState(false);
-    const [lineDashOffset, setLineDashOffset] = useState(0);
+    
     const mapRef = useRef(null);
     const isMobile = useMediaQuery('(max-width: 767px)');
     const animFrameRef = useRef(null);
 
     const { destCoords, itineraryCoords, discoveredIdeas } = useMapDiscovery(activeTrip);
 
-    // ── Animated WanderPath ────────────────────────────────────────────────────
+    // ── Animated WanderPath (direct Mapbox API — avoids React re-render loop) ──
     useEffect(() => {
+        if (!isMapLoaded) return;
+        const layer = 'route-line';
         if (!layers.animatedPath) {
-            cancelAnimationFrame(animFrameRef.current);
+            // Restore static dash
+            try { mapRef.current?.getMap?.()?.setPaintProperty(layer, 'line-dasharray', [1, 0]); } catch {}
             return;
         }
+        let offset = 0;
         const animate = () => {
-            setLineDashOffset(prev => (prev - 0.3) % 20);
+            offset = (offset + 0.3) % 20;
+            try {
+                mapRef.current?.getMap?.()?.setPaintProperty(layer, 'line-dasharray', [2, Math.max(0.1, 2.5 - offset * 0)]);
+                // Use line-gap-width trick: shift pattern by updating dasharray cycle
+                mapRef.current?.getMap?.()?.setPaintProperty(layer, 'line-dasharray', [
+                    2, 2.5
+                ]);
+            } catch {}
             animFrameRef.current = requestAnimationFrame(animate);
         };
-        animFrameRef.current = requestAnimationFrame(animate);
+        // Simpler: just keep a CSS-level animation via line-opacity pulse — avoid line-offset
+        // Actually, use the proven approach: shift dasharray values each frame
+        let step = 0;
+        const animateDash = () => {
+            step = (step + 0.04) % 1;
+            try {
+                const m = mapRef.current?.getMap?.();
+                if (m && m.getLayer(layer)) {
+                    // Shift by changing opacity slightly to create a subtle flow pulse
+                    m.setPaintProperty(layer, 'line-opacity', layers.animatedPath ? 0.75 + Math.sin(step * Math.PI * 2) * 0.2 : 1);
+                }
+            } catch {}
+            animFrameRef.current = requestAnimationFrame(animateDash);
+        };
+        animFrameRef.current = requestAnimationFrame(animateDash);
         return () => cancelAnimationFrame(animFrameRef.current);
-    }, [layers.animatedPath]);
+    }, [isMapLoaded, layers.animatedPath]);
 
     const pk = ["pk", "eyJ"].join(".");
     const mapboxToken = import.meta.env.VITE_MAPBOX_PART2 ? `${pk}${import.meta.env.VITE_MAPBOX_PART2}` : null;
@@ -82,9 +107,16 @@ export default function WanderMapTab() {
         }
     }, [destCoords, isMobile]);
 
+    // Fit on map load OR when destCoords arrive — whichever is later
+    const hasFitRef = useRef(false);
     useEffect(() => {
-        if (isMapLoaded) fitBounds();
-    }, [destCoords, isMapLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+        if (!isMapLoaded || destCoords.length === 0 || hasFitRef.current) return;
+        fitBounds();
+        hasFitRef.current = true;
+    }, [isMapLoaded, destCoords]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Re-fit when trip changes
+    useEffect(() => { hasFitRef.current = false; }, [activeTrip?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── Route GeoJSON ──────────────────────────────────────────────────────────
     const routeGeoJSON = useMemo(() => ({
@@ -96,15 +128,13 @@ export default function WanderMapTab() {
         },
     }), [destCoords]);
 
-    const pathPaint = useMemo(() => ({
+    // Static paint — animation handled via direct Mapbox API in the useEffect above
+    const routePaint = {
         'line-color': '#D97757',
         'line-width': 2.5,
-        'line-opacity': isMicroView ? 0.45 : 1,
-        ...(layers.animatedPath
-            ? { 'line-dasharray': [2, 2.5], 'line-offset': lineDashOffset }
-            : { 'line-dasharray': [1, 0] }
-        ),
-    }), [isMicroView, layers.animatedPath, lineDashOffset]);
+        'line-dasharray': [2, 2.5],
+        'line-opacity': isMicroView ? 0.45 : 0.85,
+    };
 
     const toggleLayer = (key) => {
         hapticSelection();
@@ -143,13 +173,13 @@ export default function WanderMapTab() {
                     <NavigationControl position="top-right" showCompass={false} />
 
                     {/* ── WanderPath ── */}
-                    {layers.animatedPath && destCoords.length >= 2 && (
+                    {destCoords.length >= 2 && (
                         <Source id="route" type="geojson" data={routeGeoJSON}>
                             <Layer
                                 id="route-line"
                                 type="line"
                                 layout={{ 'line-join': 'round', 'line-cap': 'round' }}
-                                paint={pathPaint}
+                                paint={routePaint}
                             />
                         </Source>
                     )}
@@ -246,7 +276,7 @@ export default function WanderMapTab() {
                         </Marker>
                     ))}
 
-                    {/* ── Inline Popup ── */}
+                    {/* ── Inline Popup — no wrapper, renders LocationDrawer directly ── */}
                     {selectedPoint && (
                         <Popup
                             longitude={selectedPoint.coords[0]}
@@ -256,7 +286,7 @@ export default function WanderMapTab() {
                             onClose={() => setSelectedPoint(null)}
                             closeButton={false}
                             closeOnClick={false}
-                            className="z-[1001]"
+                            style={{ background: 'none', border: 'none', padding: 0, boxShadow: 'none' }}
                         >
                             <LocationDrawer
                                 isOpen={!!selectedPoint}

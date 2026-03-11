@@ -15,7 +15,7 @@ import { calculateBalances, simplifyDebts, buildSplits } from '../../utils/split
 import { useTripTravelers } from '../../hooks/useTripTravelers'
 import Select, { SelectItem } from '../shared/Select'
 import { hapticImpact } from '../../utils/haptics'
-import { Plus, Check, X } from 'lucide-react'
+import { Plus, Check, X, Pencil } from 'lucide-react'
 import { GLOBAL_CATEGORIES, CATEGORY_MAP } from '../../constants/categories'
 
 function AddExpenseModal({ isOpen, onClose, onAdd, travelers, categories }) {
@@ -386,8 +386,21 @@ function GroupBalancesCard({ spendingLog, travelers, currency }) {
 }
 
 
-function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onDelete, search, onSearch, onShowScan }) {
+function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onDelete, onEdit, search, onSearch, onShowScan }) {
   const showPaidBy = travelers.length > 1
+  const [editId, setEditId] = useState(null)
+  const [editData, setEditData] = useState({})
+
+  const startEdit = (entry) => {
+    setEditId(entry.id)
+    setEditData({ description: entry.description, amount: entry.amount, category: entry.category })
+  }
+  const commitEdit = () => {
+    if (onEdit && editId) {
+      onEdit(editId, { description: editData.description.trim(), amount: Number(editData.amount), category: editData.category })
+    }
+    setEditId(null)
+  }
 
   const filtered = useMemo(() => {
     if (!search.trim()) return spendingLog
@@ -479,6 +492,46 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
               const catEmoji = budget.find(c => c.name === entry.category)?.emoji || '💸'
               const paidByName = travelers.find(t => t.id === entry.paidBy)?.name?.split(' ')[0]
               const dateLabel = formatDate(entry.date)
+              const isEditing = editId === entry.id
+
+              if (isEditing) {
+                return (
+                  <tr key={entry.id} className="border-t border-border/20 bg-bg-hover">
+                    <td className="py-2 px-3 text-[11px] text-text-muted tabular-nums">{dateLabel}</td>
+                    <td className="py-2 px-2" colSpan={showPaidBy ? 2 : 1}>
+                      <input
+                        value={editData.description}
+                        onChange={e => setEditData(p => ({ ...p, description: e.target.value }))}
+                        className="w-full text-xs bg-bg-input border border-border rounded-[var(--radius-sm)] px-2 py-1 text-text-primary focus:outline-none focus:border-accent"
+                        autoFocus
+                      />
+                    </td>
+                    <td className="py-2 px-2">
+                      <select
+                        value={editData.category}
+                        onChange={e => setEditData(p => ({ ...p, category: e.target.value }))}
+                        className="w-full text-xs bg-bg-input border border-border rounded-[var(--radius-sm)] px-2 py-1 text-text-primary focus:outline-none"
+                      >
+                        {budget.map(c => <option key={c.id} value={c.name}>{c.emoji} {c.name}</option>)}
+                      </select>
+                    </td>
+                    <td className="py-2 px-2 text-right">
+                      <input
+                        type="number"
+                        value={editData.amount}
+                        onChange={e => setEditData(p => ({ ...p, amount: e.target.value }))}
+                        className="w-24 text-xs bg-bg-input border border-border rounded-[var(--radius-sm)] px-2 py-1 font-mono text-text-primary focus:outline-none text-right"
+                      />
+                    </td>
+                    <td className="py-2 px-3">
+                      <div className="flex gap-1">
+                        <button onClick={commitEdit} className="p-1 text-success hover:text-success/80"><Check size={14} /></button>
+                        <button onClick={() => setEditId(null)} className="p-1 text-text-muted hover:text-danger"><X size={14} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              }
 
               return (
                 <tr key={entry.id} className="border-t border-border/20 hover:bg-bg-hover group transition-colors">
@@ -487,10 +540,7 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                     <span className="flex items-center gap-1.5">
                       <span className="text-[13px] font-medium text-text-primary">{entry.description}</span>
                       {showPaidBy && entry.splits && Object.keys(entry.splits).length < travelers.length && (
-                        <span
-                          title="This expense was split between fewer people than are currently on the trip. Delete and re-log to fix the balance."
-                          className="text-[10px] cursor-help"
-                        >⚠️</span>
+                        <span title="Split mismatch" className="text-[10px] cursor-help">⚠️</span>
                       )}
                     </span>
                   </td>
@@ -514,15 +564,22 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                     </span>
                   </td>
                   <td className="py-3 px-3">
-                    {onDelete && (
-                      <button
-                        onClick={() => onDelete(entry.id)}
-                        className="p-2 flex items-center justify-center text-text-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-all"
-                        title="Delete log"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                      </button>
-                    )}
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                      {onEdit && !entry.source && (
+                        <button onClick={() => startEdit(entry)} className="p-1.5 text-text-muted hover:text-accent" title="Edit">
+                          <Pencil size={13} />
+                        </button>
+                      )}
+                      {onDelete && (
+                        <button
+                          onClick={() => onDelete(entry.id)}
+                          className="p-2 flex items-center justify-center text-text-muted hover:text-danger"
+                          title="Delete log"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )
@@ -555,6 +612,10 @@ export default function BudgetTab() {
 
   const handleAddSpending = (data) => {
     dispatch({ type: ACTIONS.ADD_SPENDING, payload: data })
+  }
+
+  const handleEditSpending = (id, updates) => {
+    dispatch({ type: ACTIONS.UPDATE_SPENDING, payload: { id, updates } })
   }
 
   const handleDeleteSpending = (id) => {
@@ -643,6 +704,7 @@ export default function BudgetTab() {
             travelers={travelers}
             currency={currency}
             onAdd={isReadOnly ? null : handleAddSpending}
+            onEdit={isReadOnly ? null : handleEditSpending}
             onDelete={isReadOnly ? null : handleDeleteSpending}
             search={search}
             onSearch={setSearch}

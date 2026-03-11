@@ -71,6 +71,11 @@ export default function TimePicker({
   }
   const display = fmt12h(value)
 
+  const handleWheel = (ref) => (e) => {
+    e.preventDefault()
+    if (ref.current) ref.current.scrollTop += e.deltaY
+  }
+
   const triggerClass = variant === 'input'
     ? `w-full px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-left flex items-center justify-between gap-1 hover:border-accent transition-colors ${className}`
     : `text-xs font-mono tabular-nums cursor-pointer select-none hover:text-text-secondary transition-colors ${className}`
@@ -115,6 +120,7 @@ export default function TimePicker({
             ref={hourRef} 
             className="flex-1 touch-pan-y"
             style={{ maxHeight: 220, overflowY: 'scroll', paddingBlock: 4 }}
+            onWheel={handleWheel(hourRef)}
           >
             {HOURS.map(hr => (
               <button
@@ -141,6 +147,7 @@ export default function TimePicker({
             ref={minRef} 
             className="flex-1 touch-pan-y"
             style={{ maxHeight: 220, overflowY: 'scroll', paddingBlock: 4 }}
+            onWheel={handleWheel(minRef)}
           >
             {MINUTES.map(mn => (
               <button
