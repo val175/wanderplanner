@@ -118,7 +118,10 @@ function TodayAtAGlance({ trip }) {
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <Label className="text-accent">Today at a Glance</Label>
-          <span className="text-[10px] font-mono text-accent/60 px-1.5 py-0.5 rounded border border-accent/10">🪄 Wanda Summary</span>
+          <span className="text-[10px] font-bold px-2.5 py-1 rounded-[var(--radius-pill)] font-heading flex items-center gap-1.5"
+            style={{ background: 'rgba(76,175,118,0.10)', color: '#4CAF76', border: '1px solid rgba(76,175,118,0.20)' }}>
+            🪄 Wanda Summary
+          </span>
         </div>
         
         <div className="flex items-start gap-4">
@@ -135,7 +138,7 @@ function TodayAtAGlance({ trip }) {
                 <div className="h-3 bg-bg-hover rounded w-3/4 animate-pulse" />
               </div>
             ) : (
-              <p className="mt-1.5 text-sm text-text-secondary leading-relaxed font-body">
+              <p className="mt-1.5 text-sm text-text-secondary leading-relaxed font-heading font-normal">
                 {displaySummary}
               </p>
             )}
