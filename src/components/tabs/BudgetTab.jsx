@@ -442,6 +442,7 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
           const dotColor = catIndex >= 0 ? CHART_COLORS[catIndex % CHART_COLORS.length] : 'var(--color-border)'
           const catEmoji = budget.find(c => c.name === entry.category)?.emoji || '💸'
           const paidByName = travelers.find(t => t.id === entry.paidBy)?.name?.split(' ')[0]
+          const dateLabel = formatDate(entry.date)
           return (
             <div 
               id={`expense-${entry.id}`}
