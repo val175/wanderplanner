@@ -58,6 +58,10 @@ Using explicit variables ensures components don't drift in roundness.
 **NO SHADOWS ALLOWED.**
 Per strict UX/UI guidelines for this application, drop shadows are strictly forbidden on all elements (cards, buttons, popups, etc.). Ensure that `shadow-sm`, `shadow-md`, `shadow-card`, etc., are **never** used. Elements should rely on borders, background colors, and typography to establish visual hierarchy.
 
+## Iconography & Emojis
+**Prioritize Emojis Over SVG Icons.**
+For tab representation, category labels, navigation elements, or empty states, use Emojis instead of external icon libraries (like `lucide-react`) whenever possible. This ensures global consistency with the app's playful UI theme. Wait to use SVG icons (like `lucide-react` or `heroicons`) only for functional UI controls (e.g., search magnifying glass, close 'X', expand arrows, edit pencils, and trash cans).
+
 ## Standardized Components
 
 ### 1. Buttons (`src/components/shared/Button.jsx`)
@@ -224,7 +228,7 @@ The animated route line connecting destinations is a core brand element:
 - **Color**: `#D97757` (brand accent = `--color-accent`).
 - **Width**: `2.5px` at macro zoom, up to `3px` at micro zoom.
 - **Opacity**: `1` at macro zoom, `0.45` at micro zoom (markers remain primary).
-- **Animation**: "Flow Path" toggle uses `line-dasharray: [2, 2.5]` + `requestAnimationFrame` loop incrementing `line-offset` — marching-ant effect.
+- **Animation**: Route lines are static by default; animations (Flow Path) are reserved for active navigation modes only.
 - **Shadow Ban**: NO `filter: drop-shadow` or `line-blur`. Contrast via color only.
 
 ### Marker Anatomy (Tiered Hierarchy)
@@ -261,6 +265,7 @@ The animated route line connecting destinations is a core brand element:
 - All floating controls: `bg-bg-card/90 backdrop-blur-xl border border-border`.
 - **Shadow Ban**: Zero `shadow-*` on all overlays. Border alone provides elevation signal.
 - Popups: `closeButton={false}`, `closeOnClick={false}`, `anchor="bottom-right"` to avoid covering the selected pin.
+- **Popup Container**: MUST be transparent shells for internal components; default Mapbox tips (`.mapboxgl-popup-tip`) and background containers (`.mapboxgl-popup-content`) must be disabled or set to `background: none`.
 
 ### Haptics
 | Action | Haptic |

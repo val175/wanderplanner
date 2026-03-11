@@ -111,6 +111,69 @@ function updateTrip(state, tripId, updater) {
   return { ...state, trips }
 }
 
+/**
+ * Unifies booking-budget synchronization logic.
+ * Handles adding/removing expenses based on booking status transitions.
+ * Modifies nextBooking (if needed) and returns updated trip fields.
+ */
+function syncBookingBudget(trip, prev, next) {
+  let spendingLog = trip.spendingLog || []
+  let budget = trip.budget || []
+
+  const wasConfirmed = prev?.status === 'confirmed'
+  const isConfirmed = next.status === 'confirmed'
+  const prevExpenseId = prev?._expenseId
+
+  // 1. Remove stale auto-expense when un-confirming
+  if (wasConfirmed && !isConfirmed && prevExpenseId) {
+    const old = spendingLog.find(s => s.id === prevExpenseId)
+    spendingLog = spendingLog.filter(s => s.id !== prevExpenseId)
+    if (old) {
+      budget = budget.map(b =>
+        b.name === old.category
+          ? { ...b, actual: Math.max(0, (b.actual || 0) - old.amount) }
+          : b
+      )
+    }
+    // Clear the expense ID from the booking record
+    delete next._expenseId
+  }
+
+  // 2. Add expense when newly confirmed and has cost
+  const cost = Number(next.cost || next.amountPaid || 0)
+  if (!wasConfirmed && isConfirmed && cost > 0) {
+    const catName = budget.find(b =>
+      b.name?.toLowerCase() === (next.category || '').toLowerCase() ||
+      b.id === next.category
+    )?.name || next.category || 'Other'
+    
+    const expId = `booking-${next.id}`
+    const entry = {
+      id: expId,
+      description: next.name || 'Booking',
+      amount: cost,
+      category: catName,
+      paidBy: trip.travelerIds?.[0] || '',
+      splitBetween: trip.travelerIds || [],
+      splits: {},
+      splitMode: 'equal',
+      date: new Date().toISOString().slice(0, 10),
+      source: 'booking',
+    }
+    spendingLog = [...spendingLog, entry]
+    budget = budget.map(b =>
+      b.name === catName
+        ? { ...b, actual: (b.actual || 0) + cost }
+        : b
+    )
+    
+    // Stamp the booking with the expense ID for future removal
+    next._expenseId = expId
+  }
+
+  return { spendingLog, budget }
+}
+
 export function tripReducer(state, action) {
   const { type, payload } = action
   const activeTripId = state.activeTripId
@@ -320,63 +383,34 @@ export function tripReducer(state, action) {
 
     // ─── Bookings ───
     case ACTIONS.ADD_BOOKING:
-      return updateTrip(state, activeTripId, trip => ({
-        ...trip,
-        // prepend so newest appears at top
-        bookings: [{ id: generateId(), status: 'not_started', priority: false, amountPaid: 0, confirmationNumber: '', currency: trip.currency, ...payload }, ...trip.bookings],
-      }))
+      return updateTrip(state, activeTripId, trip => {
+        const next = {
+          id: generateId(),
+          status: 'not_started',
+          priority: false,
+          amountPaid: 0,
+          confirmationNumber: '',
+          currency: trip.currency,
+          ...payload
+        }
+        const { spendingLog, budget } = syncBookingBudget(trip, null, next)
+        return {
+          ...trip,
+          bookings: [next, ...trip.bookings],
+          spendingLog,
+          budget
+        }
+      })
 
     case ACTIONS.UPDATE_BOOKING: {
       return updateTrip(state, activeTripId, trip => {
-        const prev = trip.bookings.find(b => b.id === payload.id);
-        const next = { ...prev, ...payload.updates };
-        const bookings = trip.bookings.map(b => b.id === payload.id ? next : b);
-
-        // Auto-sync confirmed booking cost → spendingLog
-        let spendingLog = trip.spendingLog || [];
-        let budget = trip.budget || [];
-
-        const wasConfirmed = prev?.status === 'confirmed';
-        const isConfirmed = next.status === 'confirmed';
-        const prevExpenseId = prev?._expenseId;
-
-        // Remove stale auto-expense when un-confirming
-        if (wasConfirmed && !isConfirmed && prevExpenseId) {
-          const old = spendingLog.find(s => s.id === prevExpenseId);
-          spendingLog = spendingLog.filter(s => s.id !== prevExpenseId);
-          if (old) budget = budget.map(b => b.name === old.category
-            ? { ...b, actual: Math.max(0, (b.actual || 0) - old.amount) } : b);
-        }
-
-        // Add expense when newly confirmed and has cost
-        const cost = Number(next.cost || next.amountPaid || 0);
-        if (!wasConfirmed && isConfirmed && cost > 0) {
-          const catName = budget.find(b =>
-            b.name?.toLowerCase() === (next.category || '').toLowerCase() ||
-            b.id === next.category
-          )?.name || next.category || 'Other';
-          const expId = `booking-${next.id}`;
-          const entry = {
-            id: expId,
-            description: next.name || 'Booking',
-            amount: cost,
-            category: catName,
-            paidBy: trip.travelerIds?.[0] || '',
-            splitBetween: trip.travelerIds || [],
-            splits: {},
-            splitMode: 'equal',
-            date: new Date().toISOString().slice(0, 10),
-            source: 'booking',
-          };
-          spendingLog = [...spendingLog, entry];
-          budget = budget.map(b => b.name === catName
-            ? { ...b, actual: (b.actual || 0) + cost } : b);
-          // Stamp the booking with the expense ID for future removal
-          return { ...trip, bookings: bookings.map(b => b.id === next.id ? { ...b, _expenseId: expId } : b), spendingLog, budget };
-        }
-
-        return { ...trip, bookings, spendingLog, budget };
-      });
+        const prev = trip.bookings.find(b => b.id === payload.id)
+        if (!prev) return trip
+        const next = { ...prev, ...payload.updates }
+        const { spendingLog, budget } = syncBookingBudget(trip, prev, next)
+        const bookings = trip.bookings.map(b => b.id === payload.id ? next : b)
+        return { ...trip, bookings, spendingLog, budget }
+      })
     }
 
     case ACTIONS.DELETE_BOOKING:
@@ -386,22 +420,26 @@ export function tripReducer(state, action) {
       }))
 
     case ACTIONS.CYCLE_BOOKING_STATUS:
-      return updateTrip(state, activeTripId, trip => ({
-        ...trip,
-        bookings: trip.bookings.map(b => {
-          if (b.id !== payload) return b
-          const currentIndex = STATUS_CYCLE.indexOf(b.status)
-          const nextStatus = STATUS_CYCLE[(currentIndex + 1) % STATUS_CYCLE.length]
-          return { ...b, status: nextStatus }
-        }),
-      }))
+      return updateTrip(state, activeTripId, trip => {
+        const prev = trip.bookings.find(b => b.id === payload)
+        if (!prev) return trip
+        const currentIndex = STATUS_CYCLE.indexOf(prev.status)
+        const nextStatus = STATUS_CYCLE[(currentIndex + 1) % STATUS_CYCLE.length]
+        const next = { ...prev, status: nextStatus }
+        const { spendingLog, budget } = syncBookingBudget(trip, prev, next)
+        const bookings = trip.bookings.map(b => b.id === payload ? next : b)
+        return { ...trip, bookings, spendingLog, budget }
+      })
 
-    // payload: { id, status }
     case ACTIONS.SET_BOOKING_STATUS:
-      return updateTrip(state, activeTripId, trip => ({
-        ...trip,
-        bookings: trip.bookings.map(b => b.id === payload.id ? { ...b, status: payload.status } : b),
-      }))
+      return updateTrip(state, activeTripId, trip => {
+        const prev = trip.bookings.find(b => b.id === payload.id)
+        if (!prev) return trip
+        const next = { ...prev, status: payload.status }
+        const { spendingLog, budget } = syncBookingBudget(trip, prev, next)
+        const bookings = trip.bookings.map(b => b.id === payload.id ? next : b)
+        return { ...trip, bookings, spendingLog, budget }
+      })
 
     // ─── Budget ───
     case ACTIONS.UPDATE_BUDGET_CATEGORY:

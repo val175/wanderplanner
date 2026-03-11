@@ -14,7 +14,9 @@ import { getTripStatus } from '../../utils/tripStatus'
 import { formatDateRange } from '../../utils/helpers'
 import { useCountdown } from '../../hooks/useCountdown'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
+import { Search as SearchIcon } from 'lucide-react'
 import ShareTripModal from '../modal/ShareTripModal'
+import GlobalSearchModal from '../modal/GlobalSearchModal'
 
 /* ─────────────────────────────────────────────────────────────
    TravelerPicker — portal-based dropdown (unchanged logic)
@@ -646,6 +648,13 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
               {/* Mobile-only right actions — pulled to title row to avoid extra row */}
               <div className="ml-auto flex items-center gap-1.5 shrink-0 lg:hidden">
                 <TravelerPicker trip={trip} travelerProfiles={travelerProfiles} dispatch={dispatch} isReadOnly={isReadOnly} />
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('open-global-search'))}
+                  className="flex items-center justify-center p-2 rounded-[var(--radius-md)] text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors"
+                  aria-label="Search"
+                >
+                  <SearchIcon size={18} />
+                </button>
                 <HeaderOptionsDropdown trip={trip} dispatch={dispatch} isReadOnly={isReadOnly} onRenameRequest={handleRenameClick} />
               </div>
             </div>
@@ -687,6 +696,19 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
             <div className="flex items-center">
               <TravelerPicker trip={trip} travelerProfiles={travelerProfiles} dispatch={dispatch} isReadOnly={isReadOnly} />
             </div>
+
+            {/* Search */}
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('open-global-search'))}
+              className="flex items-center gap-1.5 p-2 rounded-[var(--radius-md)] text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors border border-border bg-bg-secondary shadow-sm"
+              title="Search (⌘K)"
+              aria-label="Search"
+            >
+              <SearchIcon size={16} />
+              <kbd className="hidden sm:inline-flex px-1 py-0.5 rounded text-[10px] font-sans font-semibold bg-bg-card border border-border text-text-muted/70">
+                ⌘K
+              </kbd>
+            </button>
 
             {/* Ellipsis Menu */}
             <HeaderOptionsDropdown trip={trip} dispatch={dispatch} isReadOnly={isReadOnly} onRenameRequest={handleRenameClick} />

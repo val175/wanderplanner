@@ -425,9 +425,14 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
           const dotColor = catIndex >= 0 ? CHART_COLORS[catIndex % CHART_COLORS.length] : 'var(--color-border)'
           const catEmoji = budget.find(c => c.name === entry.category)?.emoji || '💸'
           const paidByName = travelers.find(t => t.id === entry.paidBy)?.name?.split(' ')[0]
-          const dateLabel = formatDate(entry.date)
           return (
-            <div key={entry.id} className="bg-bg-card border border-border p-3 rounded-[var(--radius-md)]">
+            <div 
+              id={`expense-${entry.id}`}
+              key={entry.id} 
+              className={`bg-bg-card border p-3 rounded-[var(--radius-md)] transition-all ${
+                highlightedExpenseId === entry.id ? 'border-accent bg-accent/10 ring-2 ring-accent/30' : 'border-border'
+              }`}
+            >
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-semibold text-text-primary truncate">{entry.description}</p>
@@ -534,7 +539,13 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
               }
 
               return (
-                <tr key={entry.id} className="border-t border-border/20 hover:bg-bg-hover group transition-colors">
+                <tr 
+                  id={`expense-${entry.id}`}
+                  key={entry.id} 
+                  className={`border-t border-border/20 group transition-colors ${
+                    highlightedExpenseId === entry.id ? 'bg-accent/10 ring-2 ring-accent/30' : 'hover:bg-bg-hover'
+                  }`}
+                >
                   <td className="py-3 px-3 text-[11px] text-text-muted tabular-nums whitespace-nowrap">{dateLabel}</td>
                   <td className="py-3 px-2">
                     <span className="flex items-center gap-1.5">

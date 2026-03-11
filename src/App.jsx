@@ -24,6 +24,7 @@ import JoinTripModal from './components/modal/JoinTripModal'
 // Shared
 import Toast from './components/shared/Toast'
 import AIAssistant from './components/shared/AIAssistant'
+import GlobalSearchModal from './components/modal/GlobalSearchModal'
 
 // Tab components
 import OverviewTab from './components/tabs/OverviewTab'
@@ -136,6 +137,13 @@ function AuthenticatedApp({ user, signOutUser }) {
   const handleCloseModal = useCallback(() => setShowNewTripModal(false), [])
   const handleOpenSidebar = useCallback(() => dispatch({ type: ACTIONS.SET_SIDEBAR, payload: true }), [dispatch])
 
+  const [showSearch, setShowSearch] = useState(false)
+  useEffect(() => {
+    const handleOpenSearch = () => setShowSearch(true)
+    window.addEventListener('open-global-search', handleOpenSearch)
+    return () => window.removeEventListener('open-global-search', handleOpenSearch)
+  }, [])
+
   const handleTabSwitch = useCallback((tabId) => {
     dispatch({ type: ACTIONS.SET_TAB, payload: tabId })
   }, [dispatch])
@@ -229,6 +237,7 @@ function AuthenticatedApp({ user, signOutUser }) {
           onDecline={declineInvite}
         />
 
+        <GlobalSearchModal isOpen={showSearch} onClose={() => setShowSearch(false)} />
         <AIAssistant />
 
         <Toast

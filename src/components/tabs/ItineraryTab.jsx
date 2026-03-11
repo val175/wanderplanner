@@ -110,12 +110,31 @@ function AddActivityModal({ isOpen, onClose, itinerary, onAdd }) {
   )
 }
 
-// ── Table View: Day Group ───────────────────────────────────────────────────
 function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, setActiveSearchActivity }) {
   const { dispatch, isReadOnly } = useTripContext()
   const [expanded, setExpanded] = useState(true)
   const [dragOverGroup, setDragOverGroup] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [highlightedActivityId, setHighlightedActivityId] = useState(null)
+
+  useEffect(() => {
+    const handleHighlight = (e) => {
+      const { id, tab } = e.detail
+      if (tab === 'itinerary' && day.activities?.some(a => a.id === id)) {
+        setHighlightedActivityId(id)
+        setExpanded(true)
+        setTimeout(() => setHighlightedActivityId(null), 3000)
+        
+        // Try to scroll to it
+        setTimeout(() => {
+          const el = document.getElementById(`activity-${id}`)
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 100)
+      }
+    }
+    window.addEventListener('highlight-item', handleHighlight)
+    return () => window.removeEventListener('highlight-item', handleHighlight)
+  }, [day.activities])
 
   // ── Body Clock: compute offset delta for this day ──
   // homeCountry = first city in trip, destinationCountry = city matching day.location
@@ -480,10 +499,27 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
   )
 }
 
-// ── Kanban View: Day Column ──────────────────────────────────────────────────
 function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearchActivity }) {
   const { dispatch, isReadOnly } = useTripContext()
   const [dragOverCol, setDragOverCol] = useState(false)
+  const [highlightedActivityId, setHighlightedActivityId] = useState(null)
+
+  useEffect(() => {
+    const handleHighlight = (e) => {
+      const { id, tab } = e.detail
+      if (tab === 'itinerary' && day.activities?.some(a => a.id === id)) {
+        setHighlightedActivityId(id)
+        setTimeout(() => setHighlightedActivityId(null), 3000)
+        
+        setTimeout(() => {
+          const el = document.getElementById(`kanban-activity-${id}`)
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 100)
+      }
+    }
+    window.addEventListener('highlight-item', handleHighlight)
+    return () => window.removeEventListener('highlight-item', handleHighlight)
+  }, [day.activities])
 
   const handleDrop = (e) => {
     e.preventDefault()
@@ -542,6 +578,7 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
       <div className="flex-1 overflow-y-auto space-y-2 min-h-[150px] scrollbar-hide px-1">
         {day.activities?.map((activity, i) => (
           <div
+            id={`kanban-activity-${activity.id}`}
             key={activity.id}
             draggable={!isReadOnly}
             onDragStart={(e) => {
@@ -549,7 +586,13 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
               e.stopPropagation()
               e.dataTransfer.setData('application/json', JSON.stringify({ type: 'activity', sourceDayId: day.id, activityId: activity.id, sourceIndex: i }))
             }}
-            className={`group bg-bg-card border rounded-[var(--radius-md)] p-3 transition-colors block text-left ${isReadOnly ? 'border-border/50' : 'cursor-grab active:cursor-grabbing border-border/50 hover:border-accent/40 active:border-accent'} relative`}
+            className={`group bg-bg-card border rounded-[var(--radius-md)] p-3 transition-colors block text-left ${
+              highlightedActivityId === activity.id 
+                ? 'ring-2 ring-accent border-accent/50'
+                : isReadOnly 
+                  ? 'border-border/50' 
+                  : 'cursor-grab active:cursor-grabbing border-border/50 hover:border-accent/40 active:border-accent'
+            } relative`}
           >
             <div className="flex items-start gap-2 mb-2 w-full">
               <div className="flex-1 min-w-0 pr-6">

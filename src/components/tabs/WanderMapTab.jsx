@@ -49,27 +49,15 @@ export default function WanderMapTab() {
             try { mapRef.current?.getMap?.()?.setPaintProperty(layer, 'line-dasharray', [1, 0]); } catch {}
             return;
         }
-        let offset = 0;
-        const animate = () => {
-            offset = (offset + 0.3) % 20;
-            try {
-                mapRef.current?.getMap?.()?.setPaintProperty(layer, 'line-dasharray', [2, Math.max(0.1, 2.5 - offset * 0)]);
-                // Use line-gap-width trick: shift pattern by updating dasharray cycle
-                mapRef.current?.getMap?.()?.setPaintProperty(layer, 'line-dasharray', [
-                    2, 2.5
-                ]);
-            } catch {}
-            animFrameRef.current = requestAnimationFrame(animate);
-        };
-        // Simpler: just keep a CSS-level animation via line-opacity pulse — avoid line-offset
-        // Actually, use the proven approach: shift dasharray values each frame
+
+        // ── Animation Disabled per User Request (Minimize Distraction) ──
+        /*
         let step = 0;
         const animateDash = () => {
             step = (step + 0.04) % 1;
             try {
                 const m = mapRef.current?.getMap?.();
                 if (m && m.getLayer(layer)) {
-                    // Shift by changing opacity slightly to create a subtle flow pulse
                     m.setPaintProperty(layer, 'line-opacity', layers.animatedPath ? 0.75 + Math.sin(step * Math.PI * 2) * 0.2 : 1);
                 }
             } catch {}
@@ -77,6 +65,7 @@ export default function WanderMapTab() {
         };
         animFrameRef.current = requestAnimationFrame(animateDash);
         return () => cancelAnimationFrame(animFrameRef.current);
+        */
     }, [isMapLoaded, layers.animatedPath]);
 
     const pk = ["pk", "eyJ"].join(".");
@@ -286,8 +275,25 @@ export default function WanderMapTab() {
                             onClose={() => setSelectedPoint(null)}
                             closeButton={false}
                             closeOnClick={false}
-                            style={{ background: 'none', border: 'none', padding: 0, boxShadow: 'none' }}
+                            className="transparent-popup"
+                            style={{ 
+                                background: 'transparent', 
+                                border: 'none', 
+                                padding: 0, 
+                                boxShadow: 'none' 
+                            }}
                         >
+                            <style>{`
+                                .transparent-popup .mapboxgl-popup-content {
+                                    background: none !important;
+                                    box-shadow: none !important;
+                                    padding: 0 !important;
+                                    border: none !important;
+                                }
+                                .transparent-popup .mapboxgl-popup-tip {
+                                    display: none !important;
+                                }
+                            `}</style>
                             <LocationDrawer
                                 isOpen={!!selectedPoint}
                                 onClose={() => setSelectedPoint(null)}

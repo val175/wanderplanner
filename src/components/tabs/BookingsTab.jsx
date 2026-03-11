@@ -120,6 +120,18 @@ export default function BookingsTab() {
     try { localStorage.setItem('wanderplan_bookings_hidden', JSON.stringify(hiddenColumns)) } catch { }
   }, [hiddenColumns])
 
+  // Listen for global search highlights
+  useEffect(() => {
+    const handleHighlight = (e) => {
+      const { id, tab } = e.detail
+      if (tab === 'bookings') {
+        setSelectedBookingId(id)
+      }
+    }
+    window.addEventListener('highlight-item', handleHighlight)
+    return () => window.removeEventListener('highlight-item', handleHighlight)
+  }, [])
+
   if (!activeTrip) return null
   const trip = activeTrip
 
