@@ -76,6 +76,14 @@ export function useSnapToAdd() {
                     confirmationNumber: data.confirmationNumber || '',
                     amountPaid: Number(data.amountPaid) || 0,
                     status: data.status || 'not_started',
+                    notes: data.notes || '',
+                    attachments: [{
+                        id: Date.now(),
+                        name: file.name,
+                        type: file.type,
+                        url: `data:${file.type};base64,${base64}`,
+                        dateAdded: new Date().toISOString()
+                    }],
                     vector: vector // Matryoshka Embedding (256-dim)
                 }
             })

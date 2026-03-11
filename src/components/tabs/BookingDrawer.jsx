@@ -165,13 +165,62 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
 
                     <hr className="border-border/30" />
 
-                    {/* Attachments Placeholder */}
+                    {/* Attachments Section */}
                     <div className="space-y-3 pb-8">
-                        <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Attachments</span>
-                        <div className="border border-dashed border-border/50 rounded-[var(--radius-md)] p-6 text-center text-text-muted">
-                            <svg className="mx-auto mb-2 opacity-50" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
-                            <p className="text-sm">Attachments coming soon</p>
-                        </div>
+                        <span className="text-xs font-semibold text-text-muted uppercase tracking-wider flex items-center gap-2">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                            Attachments
+                        </span>
+                        
+                        {booking.attachments?.length > 0 ? (
+                            <div className="grid grid-cols-1 gap-2">
+                                {booking.attachments.map((file) => (
+                                    <div key={file.id} className="group relative flex items-center justify-between p-3 bg-bg-secondary/50 border border-border/50 rounded-[var(--radius-md)] hover:border-accent/30 transition-colors">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className="w-10 h-10 flex-shrink-0 bg-bg-card border border-border/30 rounded flex items-center justify-center text-xl overflow-hidden">
+                                                {file.type?.startsWith('image/') ? (
+                                                    <img src={file.url} alt="" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    '📄'
+                                                )}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-medium text-text-primary truncate">{file.name}</p>
+                                                <p className="text-[10px] text-text-muted">{file.type?.split('/')[1]?.toUpperCase() || 'FILE'}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <a 
+                                                href={file.url} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="p-1.5 text-text-muted hover:text-accent rounded hover:bg-bg-hover"
+                                                title="View Attachment"
+                                            >
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                            </a>
+                                            {!isReadOnly && (
+                                                <button 
+                                                    onClick={() => {
+                                                        const remaining = booking.attachments.filter(a => a.id !== file.id)
+                                                        onUpdate(booking.id, { attachments: remaining })
+                                                    }}
+                                                    className="p-1.5 text-text-muted hover:text-danger rounded hover:bg-bg-hover"
+                                                    title="Remove"
+                                                >
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="border border-dashed border-border/50 rounded-[var(--radius-md)] p-6 text-center text-text-muted">
+                                <svg className="mx-auto mb-2 opacity-30" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                                <p className="text-xs">No attachments found</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 
