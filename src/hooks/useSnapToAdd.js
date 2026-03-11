@@ -75,6 +75,7 @@ export function useSnapToAdd() {
                     location: data.location || '',
                     confirmationNumber: data.confirmationNumber || '',
                     amountPaid: Number(data.amountPaid) || 0,
+                    status: data.status || 'not_started',
                     vector: vector // Matryoshka Embedding (256-dim)
                 }
             })
