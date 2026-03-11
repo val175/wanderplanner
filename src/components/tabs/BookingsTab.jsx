@@ -13,6 +13,7 @@ import { hapticImpact } from '../../utils/haptics'
 import BookingsTable from './BookingsTable'
 import BookingsKanban from './BookingsKanban'
 import BookingDrawer from './BookingDrawer'
+import SnapToAddZone from '../shared/SnapToAddZone'
 
 function AddBookingModal({ isOpen, onClose, onAdd }) {
   const [bookingData, setBookingData] = useState({
@@ -211,6 +212,8 @@ export default function BookingsTab() {
           </div>
         }
       />
+
+      {!isReadOnly && <SnapToAddZone />}
 
       {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-6 gap-2">
