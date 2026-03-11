@@ -64,17 +64,18 @@ export function useSnapToAdd() {
             }
 
             const { data, vector } = await response.json()
+            console.log('[useSnapToAdd] Received extracted data:', data)
 
             // Push to local state (tripReducer ADD_BOOKING generates an ID and syncs to Firestore)
             dispatch({
                 type: ACTIONS.ADD_BOOKING,
                 payload: {
-                    name: data.title || 'New Booking',
+                    name: data.title || (file.name ? `Booking: ${file.name}` : 'New Booking'),
                     category: data.type || 'other',
                     startDate: data.date || '',
                     location: data.location || '',
                     confirmationNumber: data.confirmationNumber || '',
-                    amountPaid: Number(data.amountPaid) || 0,
+                    amountPaid: typeof data.amountPaid === 'number' ? data.amountPaid : (Number(data.amountPaid) || 0),
                     status: data.status || 'confirmed',
                     notes: data.notes || '',
                     providerLink: data.providerLink || null,

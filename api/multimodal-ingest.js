@@ -21,13 +21,30 @@ export async function multimodalIngest(fileBuffer, mimeType) {
                         data: base64Content
                     }
                 },
-                { text: "You are an expert travel data extraction engine for a premium trip planner. Analyze this booking document (Image, PDF, or Text). Extract the details into a strict JSON format matching the schema below.\n\n1. Extract all available data. If a field is not present, return null. DO NOT hallucinate.\n2. Format 'date' as an ISO 8601 string.\n3. Ensure 'amountPaid' is a pure number (remove currency symbols, commas, etc.).\n4. For 'confirmationNumber', look for PNR, Booking ID, or Reference Code.\n5. For flights or transit, format the 'location' string as \"Origin to Destination\" (e.g., \"Mactan-Cebu (CEB) to Ninoy Aquino (MNL)\").\n\n<schema>\n{\n  \"type\": \"String. One of: [lodging, flight, activity, transport, other]\",\n  \"title\": \"String. A clear, human-readable name (e.g., 'AirAsia Flight Z2 123' or 'The Peninsula Hotel')\",\n  \"date\": \"String. ISO 8601 format for the start date/time, departure, or check-in.\",\n  \"location\": \"String. Address, venue name, or route.\",\n  \"confirmationNumber\": \"String. The primary confirmation code or PNR.\",\n  \"amountPaid\": \"Number. Numeric value of the total cost.\",\n  \"providerLink\": \"String. A URL to manage the booking or the vendor's website, if present.\",\n  \"notes\": \"String. A concise summary of passengers, cancellation policies, check-in instructions, or inclusions.\",\n  \"status\": \"String. One of: [confirmed, requested, to_book, idea]\"\n}\n</schema>" }
+                { text: "You are an expert travel data extraction engine for a premium trip planner. Analyze this booking document (Image, PDF, or Text). Extract the details into the strict JSON format defined in the response schema.\n\n### GUIDELINES:\n1. **TITLE**: Create a clear, human-readable name (e.g., 'AirAsia Flight Z2 123' or 'The Peninsula Hotel'). If it's a receipt, name it after the merchant.\n2. **TYPE**: Map to the most relevant category: [lodging, flight, activity, transport, other].\n3. **DATE**: Use ISO 8601 format (YYYY-MM-DDTHH:mm:ssZ). For lodging, use Check-In. For flights, use Departure time.\n4. **LOCATION**: Provide the address, venue name, or route (e.g., 'Manila to Cebu').\n5. **AMOUNT**: Extract the pure numeric value of the total cost (remove currency symbols like $, ₱, €, or commas).\n6. **NOTES**: Summarize key details like passengers, check-in instructions, or cancellation policies.\n7. **CONFIRMATION**: Find the PNR, Booking ID, or Reference Code.\n8. **STATUS**: Set to 'confirmed' for receipts/confirmed bookings, 'requested' for pending, 'to_book' for quotes, and 'idea' for general info.\n\nDO NOT hallucinate. If a value is absolutely not present, return null for that field." }
             ]
         }],
         generationConfig: {
-            response_mime_type: "application/json"
+            response_mime_type: "application/json",
+            response_schema: {
+                type: "OBJECT",
+                properties: {
+                    type: { type: "STRING", enum: ["lodging", "flight", "activity", "transport", "other"] },
+                    title: { type: "STRING" },
+                    date: { type: "STRING" },
+                    location: { type: "STRING" },
+                    confirmationNumber: { type: "STRING" },
+                    amountPaid: { type: "NUMBER" },
+                    providerLink: { type: "STRING" },
+                    notes: { type: "STRING" },
+                    status: { type: "STRING", enum: ["confirmed", "requested", "to_book", "idea"] }
+                },
+                required: ["type", "title", "date", "location", "status"]
+            }
         }
     }
+
+    console.log(`[multimodal-ingest] Requesting extraction for mimeType: ${mimeType}`)
 
     const extractionResponse = await fetch(extractionUrl, {
         method: 'POST',
@@ -37,12 +54,21 @@ export async function multimodalIngest(fileBuffer, mimeType) {
 
     if (!extractionResponse.ok) {
         const err = await extractionResponse.json()
+        console.error('[multimodal-ingest] Gemini API Error:', err)
         throw new Error(`Extraction failed: ${err.error?.message || extractionResponse.statusText}`)
     }
 
     const extractionData = await extractionResponse.json()
-    const textResult = extractionData.candidates[0].content.parts[0].text
+    const textResult = extractionData.candidates?.[0]?.content?.parts?.[0]?.text
+    
+    if (!textResult) {
+        console.error('[multimodal-ingest] No text returned from Gemini:', extractionData)
+        throw new Error('No extraction result returned from AI')
+    }
+
+    console.log('[multimodal-ingest] Raw Text Result:', textResult)
     const parsedData = JSON.parse(textResult)
+    console.log('[multimodal-ingest] Parsed Data:', parsedData)
 
     // 2. Embedding with Gemini Embedding 2 (MRL)
     const embeddingUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2-preview:embedContent?key=${geminiKey}`
