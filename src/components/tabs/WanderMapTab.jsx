@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import Map, { Marker, Source, Layer, NavigationControl } from 'react-map-gl';
+import Map, { Marker, Source, Layer, NavigationControl, Popup } from 'react-map-gl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Navigation2, MapPin, Sparkles, Layers, X, Briefcase, Hotel, Compass, Car } from 'lucide-react';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -151,7 +151,7 @@ export default function WanderMapTab() {
 
                     {/* MICRO VIEW: Itinerary Detail Markers */}
                     {isMicroView && itineraryCoords.map((ic, i) => {
-                        const icon = getItineraryIcon(ic.activity);
+                        const emoji = getItineraryEmoji(ic.activity);
                         return (
                             <Marker key={`activity-${ic.activityId}-${i}`} longitude={ic.coords[0]} latitude={ic.coords[1]} anchor="bottom">
                                 <motion.div
@@ -161,8 +161,8 @@ export default function WanderMapTab() {
                                     onClick={() => setSelectedPoint({ type: 'activity', ...ic })}
                                     className="cursor-pointer flex flex-col items-center pb-2 group"
                                 >
-                                    <div className="w-8 h-8 bg-bg-card border border-border rounded-[var(--radius-md)] text-accent flex items-center justify-center transition-colors hover:border-accent">
-                                        {icon}
+                                    <div className="w-8 h-8 bg-bg-card border border-border rounded-[var(--radius-md)] text-lg flex items-center justify-center transition-colors hover:border-accent shadow-sm">
+                                        {emoji}
                                     </div>
                                     <div className="mt-1 px-2 py-0.5 bg-bg-card border border-border rounded-[var(--radius-sm)] text-[10px] font-bold text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap max-w-[120px] truncate">
                                         {ic.activity.name}
@@ -180,12 +180,33 @@ export default function WanderMapTab() {
                                 animate={{ scale: 1, opacity: 1 }}
                                 whileHover={{ scale: 1.2 }}
                                 onClick={() => setSelectedPoint({ type: 'idea', ...ic })}
-                                className="cursor-pointer p-1.5 bg-bg-primary border border-border rounded-full text-indigo-500 hover:text-indigo-600 transition-colors"
+                                className="cursor-pointer text-xl"
                             >
-                                <Sparkles size={14} className="fill-current opacity-20" />
+                                <motion.span animate={{ rotate: [0, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 2 }}>
+                                    ✨
+                                </motion.span>
                             </motion.div>
                         </Marker>
                     ))}
+
+                    {/* Popups (Inline detail overlay) */}
+                    {selectedPoint && (
+                        <Popup
+                            longitude={selectedPoint.coords[0]}
+                            latitude={selectedPoint.coords[1]}
+                            anchor="bottom"
+                            offset={40}
+                            onClose={() => setSelectedPoint(null)}
+                            closeButton={false}
+                            className="z-[1001]"
+                        >
+                            <LocationDrawer
+                                isOpen={!!selectedPoint}
+                                onClose={() => setSelectedPoint(null)}
+                                data={selectedPoint}
+                            />
+                        </Popup>
+                    )}
                 </Map>
 
                 {/* Glassmorphic Map Control Overlay */}
@@ -213,12 +234,7 @@ export default function WanderMapTab() {
                     </div>
                 </div>
 
-                {/* Selection Details Drawer */}
-                <LocationDrawer
-                    isOpen={!!selectedPoint}
-                    onClose={() => setSelectedPoint(null)}
-                    data={selectedPoint}
-                />
+                {/* Content no longer rendered in a fixed drawer */}
             </div>
         </div>
     );
@@ -239,13 +255,15 @@ function LayerButton({ active, onClick, icon, label }) {
     );
 }
 
-function getItineraryIcon(activity) {
+function getItineraryEmoji(activity) {
     const name = (activity.name || '').toLowerCase();
     const notes = (activity.notes || '').toLowerCase();
 
-    if (name.includes('hotel') || name.includes('stay') || notes.includes('lodging')) return <Hotel size={14} />;
-    if (name.includes('flight') || name.includes('airport')) return <Navigation2 size={14} className="rotate-45" />;
-    if (name.includes('train') || name.includes('taxi') || name.includes('car')) return <Car size={14} />;
-    if (name.includes('tour') || name.includes('hike') || notes.includes('explore')) return <Compass size={14} />;
-    return <Briefcase size={14} />;
+    if (name.includes('hotel') || name.includes('stay') || notes.includes('lodging')) return '🏨';
+    if (name.includes('flight') || name.includes('airport') || name.includes('plane')) return '✈️';
+    if (name.includes('dinner') || name.includes('lunch') || name.includes('breakfast') || name.includes('cafe')) return '🍲';
+    if (name.includes('train') || name.includes('rail')) return '🚂';
+    if (name.includes('taxi') || name.includes('uber') || name.includes('car')) return '🚕';
+    if (name.includes('tour') || name.includes('hike') || notes.includes('explore')) return '🧭';
+    return '📌';
 }

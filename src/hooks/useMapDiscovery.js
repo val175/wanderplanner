@@ -96,18 +96,30 @@ export function useMapDiscovery(trip) {
 
     // 4. Proximity Filter for Ideas
     const discoveredIdeas = useMemo(() => {
-        const PROXIMITY_THRESHOLD_KM = 50;
+        const PROXIMITY_THRESHOLD_KM = 30; // Slightly tighter for micro-level discovery
 
         return ideaCoords.filter(ic => {
-            return destCoords.some(dc => {
+            // Check proximity to city destinations
+            const nearCity = destCoords.some(dc => {
                 const dist = haversineDistance(
                     dc.coords[1], dc.coords[0],
                     ic.coords[1], ic.coords[0]
                 );
                 return dist <= PROXIMITY_THRESHOLD_KM;
             });
+
+            // Check proximity to specific itinerary activities
+            const nearActivity = itineraryCoords.some(ac => {
+                const dist = haversineDistance(
+                    ac.coords[1], ac.coords[0],
+                    ic.coords[1], ic.coords[0]
+                );
+                return dist <= 10; // Very close to an activity
+            });
+
+            return nearCity || nearActivity;
         });
-    }, [destCoords, ideaCoords]);
+    }, [destCoords, ideaCoords, itineraryCoords]);
 
     return {
         destCoords,
