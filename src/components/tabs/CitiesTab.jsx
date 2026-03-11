@@ -17,7 +17,7 @@ function AddCityModal({ isOpen, onClose, onAdd }) {
   const handleSubmit = (e) => {
     e?.preventDefault()
     if (!cityData.city.trim()) return
-    const resolved = resolveCity(cityData.city, cityData.country, cityData.flag)
+    const resolved = resolveCity(cityData.city, cityData.country, cityData.flag, cityData.lat, cityData.lng)
     onAdd(resolved)
     setCityData({ city: '', country: '', flag: '' })
     onClose()

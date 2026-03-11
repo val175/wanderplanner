@@ -53,12 +53,12 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
 
     const handleSelect = (feature) => {
         const [lng, lat] = feature.geometry.coordinates
-        const placeName = feature.properties.name || feature.properties.full_address
+        const placeName = feature.properties.name || feature.properties.full_address || ''
 
         onSelect({
             placeName,
             coordinates: { lat, lng },
-            placeId: feature.id,
+            placeId: feature.properties.mapbox_id || feature.id || null,
             photoUrl: `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s+cc402e(${lng},${lat})/${lng},${lat},14/120x120@2x?access_token=${mapboxToken}`,
             mapUrl: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
             verified: true

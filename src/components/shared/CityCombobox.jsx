@@ -274,15 +274,27 @@ export const COUNTRY_FLAGS_MAP = Object.fromEntries(
  * Best-effort resolution: given whatever the user typed, return { city, country, flag }.
  * Priority: CITY_DB exact match → country name lookup → keep whatever we have.
  */
-export function resolveCity(cityName, country, flag) {
+export function resolveCity(cityName, country, flag, lat, lng) {
   const cityTrimmed = cityName.trim()
   const countryTrimmed = country.trim()
   const dbMatch = CITY_DB.find(c => c.city.toLowerCase() === cityTrimmed.toLowerCase())
   if (dbMatch) {
-    return { city: cityTrimmed, country: dbMatch.country, flag: isoToFlag(dbMatch.iso) }
+    return { 
+      city: cityTrimmed, 
+      country: dbMatch.country, 
+      flag: isoToFlag(dbMatch.iso),
+      ...(lat !== undefined && { lat }),
+      ...(lng !== undefined && { lng })
+    }
   }
   const derivedFlag = COUNTRY_FLAGS_MAP[countryTrimmed] || flag || '🌍'
-  return { city: cityTrimmed, country: countryTrimmed, flag: derivedFlag }
+  return { 
+    city: cityTrimmed, 
+    country: countryTrimmed, 
+    flag: derivedFlag,
+    ...(lat !== undefined && { lat }),
+    ...(lng !== undefined && { lng })
+  }
 }
 
 // ── CityCombobox component ────────────────────────────────────────────────────
@@ -467,7 +479,10 @@ export default function CityCombobox({
     setOpen(false)
 
     // Notify parent
-    onChange({ city: cityName, country: entry.country, flag: derivedFlag, lat: entry.lat, lng: entry.lng })
+    const payload = { city: cityName, country: entry.country, flag: derivedFlag }
+    if (entry.lat !== undefined) payload.lat = entry.lat
+    if (entry.lng !== undefined) payload.lng = entry.lng
+    onChange(payload)
 
     // Re-focus input to allow continued typing/navigation
     inputRef.current?.focus()
@@ -489,8 +504,8 @@ export default function CityCombobox({
     }
 
     if (query.trim()) {
-      const resolved = resolveCity(query, country, flag)
-      if (resolved.flag !== flag || resolved.country !== country) {
+      const resolved = resolveCity(query, country, flag, entry?.lat, entry?.lng)
+      if (resolved.flag !== flag || resolved.country !== country || resolved.lat !== entry?.lat) {
         setQuery(resolved.city)
         onChange(resolved)
       }
