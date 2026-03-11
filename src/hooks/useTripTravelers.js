@@ -36,28 +36,30 @@ export function useTripTravelers() {
 
         if (ids.length > 0) {
             const results = ids.map(id => {
-                // 1. Try snapshot cache first (no async lookup needed)
-                if (snapshotMap[id]?.name) {
-                    return { id, name: snapshotMap[id].name, photo: snapshotMap[id].photo }
-                }
-                // 2. Try live profile resolution
+                // 1. ALWAYS prefer live profile (has latest customPhoto)
                 const p = resolveProfile(id)
                 if (p) {
                     return {
                         id,
                         name: p.name || p.displayName || 'Traveler',
                         photo: p.customPhoto || p.photo || p.photoURL || null,
+                        customPhoto: p.customPhoto || null,
                     }
                 }
-                // 3. If it's the current user, use their profile
+                // 2. Current user
                 if (currentUserProfile && (id === currentUserProfile.uid || id === currentUserProfile.id)) {
                     return {
                         id,
                         name: currentUserProfile.name || 'You',
                         photo: currentUserProfile.customPhoto || currentUserProfile.photo || null,
+                        customPhoto: currentUserProfile.customPhoto || null,
                     }
                 }
-                // 4. Profile not yet loaded — placeholder keeps count correct
+                // 3. Snapshot cache (may be stale — name only, no photo)
+                if (snapshotMap[id]?.name) {
+                    return { id, name: snapshotMap[id].name, photo: snapshotMap[id].photo }
+                }
+                // 4. Placeholder
                 return { id, name: 'Traveler', photo: null }
             })
 

@@ -191,8 +191,8 @@ export default function WanderMapTab() {
                         <Popup
                             longitude={selectedPoint.coords[0]}
                             latitude={selectedPoint.coords[1]}
-                            anchor="bottom"
-                            offset={40}
+                            anchor="bottom-right"
+                            offset={[0, -48]}
                             onClose={() => setSelectedPoint(null)}
                             closeButton={false}
                             closeOnClick={false}

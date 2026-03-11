@@ -10,6 +10,7 @@ import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { formatCurrency, formatDate } from '../../utils/helpers'
 import Button from '../shared/Button'
+import AvatarCircle from '../shared/AvatarCircle'
 import { calculateBalances, simplifyDebts, buildSplits } from '../../utils/splitwise'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
 import Select, { SelectItem } from '../shared/Select'
@@ -298,15 +299,14 @@ function BudgetHealthCard({ budget, totals, currency, isReadOnly }) {
   )
 }
 
-// Note: GroupBalancesCard remains as a standalone Card or similar functionality
-
-// ── Group Balances Card ───────────────────────────────────────────────────────
+// ── Group Spend Card ──────────────────────────────────────────────────────────
 function GroupBalancesCard({ spendingLog, travelers, currency }) {
   const balances = useMemo(() => calculateBalances(spendingLog, travelers), [spendingLog, travelers])
   const transactions = useMemo(() => simplifyDebts(balances), [balances])
   const [showSettle, setShowSettle] = useState(false)
 
-  const fronted = useMemo(() => {
+  // Total amount paid by each traveler
+  const spent = useMemo(() => {
     const t = {}
     travelers.forEach(tr => { t[tr.id] = 0 })
     spendingLog.forEach(e => {
@@ -315,13 +315,17 @@ function GroupBalancesCard({ spendingLog, travelers, currency }) {
     return t
   }, [spendingLog, travelers])
 
-  const hasData = spendingLog.some(e => e.paidBy && e.splits) && travelers.length > 1
+  const totalSpend = useMemo(() =>
+    Object.values(spent).reduce((s, v) => s + v, 0)
+  , [spent])
+
+  const hasData = spendingLog.some(e => e.paidBy) && travelers.length > 0
   if (!hasData) return null
 
   return (
     <Card className="border-border bg-bg-card p-4">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-heading font-semibold text-sm text-text-primary">Group Balances</h3>
+        <h3 className="font-heading font-semibold text-sm text-text-primary">Group Spend</h3>
         {transactions.length > 0 && (
           <button
             onClick={() => setShowSettle(p => !p)}
@@ -332,27 +336,33 @@ function GroupBalancesCard({ spendingLog, travelers, currency }) {
         )}
       </div>
 
+      {/* Per-traveler spend with progress bar */}
       <div className="space-y-3 mb-4">
         {travelers.map(t => {
-          const bal = balances[t.id] || 0
-          const isPos = bal > 0.01
-          const isNeg = bal < -0.01
+          const amount = spent[t.id] || 0
+          const pct = totalSpend > 0 ? (amount / totalSpend) * 100 : 0
           return (
-            <div key={t.id} className="flex items-center gap-3">
-              <div className="w-7 h-7 rounded-full bg-bg-secondary border border-border flex items-center justify-center text-[10px] font-bold text-text-secondary shrink-0 overflow-hidden">
-                {t.avatar ? <img src={t.avatar} alt="" className="w-full h-full object-cover" /> : t.name?.[0]?.toUpperCase()}
+            <div key={t.id}>
+              <div className="flex items-center gap-2.5 mb-1.5">
+                <AvatarCircle profile={t} size={24} />
+                <span className="flex-1 text-sm font-medium text-text-secondary truncate">{t.name?.split(' ')[0]}</span>
+                <span className="text-sm font-mono font-bold tabular-nums text-text-primary">
+                  {formatCurrency(Math.round(amount), currency)}
+                </span>
               </div>
-              <span className="flex-1 text-sm font-medium text-text-secondary truncate">{t.name}</span>
-              <span className={`text-sm font-mono font-bold tabular-nums ${isPos ? 'text-green-500' : isNeg ? 'text-danger' : 'text-text-muted'}`}>
-                {isPos ? '+' : ''}{formatCurrency(Math.sign(bal) * Math.round(Math.abs(bal)), currency)}
-              </span>
+              <div className="h-1 bg-bg-secondary rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-accent/70 transition-all duration-500"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
             </div>
           )
         })}
       </div>
 
       <p className="text-[10px] text-text-muted border-t border-border/20 pt-3 font-semibold uppercase tracking-wider">
-        Total fronted: {travelers.map(t => `${t.name.split(' ')[0]} (${formatCurrency(Math.round(fronted[t.id] || 0), currency)})`).join(' · ')}
+        Total: {formatCurrency(Math.round(totalSpend), currency)}
       </p>
 
       {showSettle && transactions.length > 0 && (
@@ -374,7 +384,6 @@ function GroupBalancesCard({ spendingLog, travelers, currency }) {
     </Card>
   )
 }
-
 
 
 function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onDelete, search, onSearch, onShowScan }) {
