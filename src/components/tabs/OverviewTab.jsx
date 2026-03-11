@@ -74,8 +74,28 @@ function TodayAtAGlance({ trip }) {
           })
         })
         
-        const data = await response.json()
-        const text = data.choices?.[0]?.message?.content || data.message || ''
+        const rawText = await response.text()
+        let text = ''
+        if (rawText.trimStart().startsWith('data:')) {
+          // SSE stream — parse each data: chunk and join delta content
+          text = rawText
+            .split('\n')
+            .filter(line => line.startsWith('data:'))
+            .map(line => line.slice(5).trim())
+            .filter(chunk => chunk && chunk !== '[DONE]')
+            .reduce((acc, chunk) => {
+              try {
+                const parsed = JSON.parse(chunk)
+                return acc + (parsed.choices?.[0]?.delta?.content || parsed.choices?.[0]?.message?.content || '')
+              } catch { return acc }
+            }, '')
+        } else {
+          // Plain JSON fallback
+          try {
+            const data = JSON.parse(rawText)
+            text = data.choices?.[0]?.message?.content || data.message || ''
+          } catch { /* silently ignore malformed response */ }
+        }
         if (active) setSummary(text)
       } catch (err) {
         console.error("Wanda Summary failed:", err)
