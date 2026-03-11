@@ -18,12 +18,14 @@ export async function multimodalIngest(fileBuffer, mimeType) {
             
             ### CATEGORIZATION RULES (CRITICAL):
             Map to these exact types only:
-            - 'hotel': For any lodging, stays, hotels, resorts, or Airbnbs.
+            - 'lodging': For any stays, hotels, resorts, or Airbnbs.
             - 'flight': For any airline tickets, boarding passes, or flight receipts.
-            - 'experience': For tours, tickets to attractions, activities, or events.
+            - 'food': For restaurants, cafes, bars, or any dining receipts.
+            - 'activity': For tours, tickets to attractions, or events.
             - 'transport': For rental cars, trains, buses, ferries, or transfers.
+            - 'shopping': For retail purchases, souvenirs, or mall receipts.
             - 'concert': Specific music event tickets or receipts.
-            - 'custom': Anything that doesn't fit the above.
+            - 'other': Anything that doesn't fit the above.
 
             ### FORMATTING:
             1. TITLE: Concise name (e.g., 'Marriott Cebu' or 'AirAsia Z2 123').
@@ -47,7 +49,7 @@ export async function multimodalIngest(fileBuffer, mimeType) {
             response_schema: {
                 type: "OBJECT",
                 properties: {
-                    type: { type: "STRING", enum: ["hotel", "flight", "experience", "transport", "concert", "custom"] },
+                    type: { type: "STRING", enum: ["lodging", "flight", "food", "activity", "transport", "shopping", "concert", "other"] },
                     title: { type: "STRING" },
                     date: { type: "STRING" },
                     location: { type: "STRING" },

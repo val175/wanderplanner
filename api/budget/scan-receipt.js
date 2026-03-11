@@ -9,7 +9,7 @@ const receiptSchema = z.object({
     items: z.array(z.object({
         description: z.string().describe('The specific line item name'),
         amount: z.number().describe('The cost of this specific item'),
-        category: z.enum(['Food', 'Transport', 'Lodging', 'Activities', 'Shopping', 'Misc']).describe('The most logical category for this item'),
+        category: z.enum(['lodging', 'flight', 'food', 'activity', 'transport', 'shopping', 'concert', 'other']).describe('The standardized category ID for this item'),
     })),
 })
 

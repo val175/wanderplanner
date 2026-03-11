@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { getCategory } from '../../constants/categories'
 import Card from '../shared/Card'
 import Button from '../shared/Button'
 import { useTripContext } from '../../context/TripContext'
@@ -12,14 +13,6 @@ import IdeaExtractorModal from '../modal/IdeaExtractorModal'
 import TabHeader from '../common/TabHeader'
 
 // ── Category helpers ──
-const CATEGORY_META = {
-    lodging: { label: 'Lodging', emoji: '🏠' },
-    activity: { label: 'Activity', emoji: '🎯' },
-    food: { label: 'Restaurants', emoji: '🍴' },
-    transport: { label: 'Transport', emoji: '🚗' },
-    shopping: { label: 'Shopping', emoji: '🛍️' },
-    other: { label: 'Other', emoji: '✨' },
-}
 
 /**
  * Standardize price display for ideas/options
@@ -53,7 +46,7 @@ function formatIdeaPrice(priceDetails, currency = 'PHP') {
     return { amount, unit }
 }
 function CategoryPill({ type }) {
-    const meta = CATEGORY_META[type] || CATEGORY_META.other
+    const meta = getCategory(type)
     return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-pill)] text-xs font-medium border border-border bg-bg-secondary text-text-secondary hover:bg-bg-hover">
             {meta.emoji} {meta.label}

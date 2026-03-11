@@ -1,3 +1,5 @@
+import { GLOBAL_CATEGORIES } from './categories'
+
 export const TAB_CONFIG = [
   { id: 'overview', label: 'Overview', emoji: '🗺️' },
   { id: 'wandermap', label: 'Map', emoji: '📍' },
@@ -11,14 +13,7 @@ export const TAB_CONFIG = [
   { id: 'concert', label: 'Concert', emoji: '🎵', conditional: true },
 ]
 
-export const BOOKING_CATEGORIES = [
-  { id: 'flight', label: 'Flight', emoji: '✈️' },
-  { id: 'hotel', label: 'Hotel', emoji: '🏨' },
-  { id: 'experience', label: 'Experience', emoji: '🎯' },
-  { id: 'concert', label: 'Concert', emoji: '🎵' },
-  { id: 'transport', label: 'Transport', emoji: '🚕' },
-  { id: 'custom', label: 'Custom', emoji: '📌' },
-]
+export const BOOKING_CATEGORIES = GLOBAL_CATEGORIES
 
 export const BOOKING_STATUSES = [
   { id: 'not_started', label: 'Not Started', color: 'text-muted' },

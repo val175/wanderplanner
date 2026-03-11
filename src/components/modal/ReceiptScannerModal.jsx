@@ -142,10 +142,21 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
 
             const budget = activeTrip.budget || []
             const sanitisedItems = (result.items || []).map(item => {
-                const matched = budget.find(c => c.name.toLowerCase() === item.category.toLowerCase())
+                // Map AI IDs to common budget names if no direct name match
+                const idMap = {
+                    food: 'Restaurants',
+                    flight: 'Flights',
+                    activity: 'Activities',
+                }
+                const targetName = idMap[item.category] || item.category
+
+                const matched = budget.find(c =>
+                    c.name.toLowerCase() === item.category.toLowerCase() ||
+                    c.name.toLowerCase() === targetName.toLowerCase()
+                )
                 return {
                     ...item,
-                    category: matched ? matched.name : (budget[0]?.name || 'Misc'),
+                    category: matched ? matched.name : (budget[0]?.name || 'Other'),
                     originalAmount: item.amount,
                     originalCurrency: originalCurrency,
                     amountPHP: Number((item.amount * rate).toFixed(2))

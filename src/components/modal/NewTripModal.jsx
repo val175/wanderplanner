@@ -17,13 +17,13 @@ import { auth } from '../../firebase/config'
 const TOTAL_STEPS = 4
 
 const DEFAULT_BUDGET_CATEGORIES = [
+  { name: 'Lodging', emoji: '🏠' },
   { name: 'Flights', emoji: '✈️' },
-  { name: 'Accommodation', emoji: '🏨' },
-  { name: 'Food & Dining', emoji: '🍜' },
+  { name: 'Restaurants', emoji: '🍴' },
   { name: 'Activities', emoji: '🎯' },
   { name: 'Transport', emoji: '🚕' },
   { name: 'Shopping', emoji: '🛍️' },
-  { name: 'Other', emoji: '📌' },
+  { name: 'Other', emoji: '✨' },
 ]
 
 /* ─────────────────── Step Indicator ─────────────────── */

@@ -200,7 +200,7 @@ export const DEFAULT_TRIP = {
     {
       id: 'b5',
       name: 'Singapore hotel, 2 nights',
-      category: 'hotel',
+      category: 'lodging',
       status: 'not_started',
       confirmationNumber: '',
       amountPaid: 0,
@@ -211,7 +211,7 @@ export const DEFAULT_TRIP = {
     {
       id: 'b6',
       name: 'Karma Resort, Koh Samui, 3 nights',
-      category: 'hotel',
+      category: 'lodging',
       status: 'not_started',
       confirmationNumber: '',
       amountPaid: 0,
@@ -222,7 +222,7 @@ export const DEFAULT_TRIP = {
     {
       id: 'b7',
       name: 'KL hotel near Stadium Merdeka, 3 nights',
-      category: 'hotel',
+      category: 'lodging',
       status: 'not_started',
       confirmationNumber: '',
       amountPaid: 0,
@@ -233,7 +233,7 @@ export const DEFAULT_TRIP = {
     {
       id: 'b8',
       name: 'Four Seasons day pass, 2 pax',
-      category: 'experience',
+      category: 'activity',
       status: 'not_started',
       confirmationNumber: '',
       amountPaid: 0,
@@ -269,11 +269,12 @@ export const DEFAULT_TRIP = {
 
   budget: [
     { id: 'bg1', name: 'Flights', emoji: '✈️', min: 44200, max: 55600, actual: 0 },
-    { id: 'bg2', name: 'Accommodation', emoji: '🏨', min: 39000, max: 71000, actual: 0 },
-    { id: 'bg3', name: 'Four Seasons Day Pass', emoji: '💆', min: 11200, max: 16800, actual: 0 },
-    { id: 'bg4', name: 'MCR Concert Tickets', emoji: '🎸', min: 15000, max: 30000, actual: 0 },
-    { id: 'bg5', name: 'Other Expenses', emoji: '🌏', min: 47000, max: 61000, actual: 0 },
+    { id: 'bg2', name: 'Lodging', emoji: '🏠', min: 39000, max: 71000, actual: 0 },
+    { id: 'bg3', name: 'Activity', emoji: '🎯', min: 11200, max: 16800, actual: 0 },
+    { id: 'bg4', name: 'Concert', emoji: '🎵', min: 15000, max: 30000, actual: 0 },
+    { id: 'bg5', name: 'Other', emoji: '✨', min: 47000, max: 61000, actual: 0 },
   ],
+ pocketMoney: 0, // for legacy if needed
 
   spendingLog: [],
 
