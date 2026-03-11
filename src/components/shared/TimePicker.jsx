@@ -76,7 +76,7 @@ export default function TimePicker({
     : `text-xs font-mono tabular-nums cursor-pointer select-none hover:text-text-secondary transition-colors ${className}`
 
   return (
-    <Popover.Root open={open} onOpenChange={disabled ? undefined : setOpen}>
+    <Popover.Root open={open} onOpenChange={disabled ? undefined : setOpen} modal={false}>
       <Popover.Trigger asChild>
         <button
           type="button"
@@ -102,8 +102,7 @@ export default function TimePicker({
           align="start"
           sideOffset={6}
           avoidCollisions
-          className="z-[9999] animate-scale-in focus:outline-none flex overflow-hidden"
-          onOpenAutoFocus={e => e.preventDefault()}
+          className="z-[9999] animate-scale-in focus:outline-none flex overflow-hidden pointer-events-auto"
           style={{
             background: 'var(--color-bg-card)',
             border: '1px solid var(--color-border)',
@@ -112,7 +111,11 @@ export default function TimePicker({
           }}
         >
           {/* Hours */}
-          <div ref={hourRef} style={{ maxHeight: 220, overflowY: 'auto', paddingBlock: 4 }} className="scrollbar-hide flex-1">
+          <div 
+            ref={hourRef} 
+            className="scrollbar-hide flex-1 touch-pan-y"
+            style={{ maxHeight: 220, overflowY: 'auto', paddingBlock: 4 }}
+          >
             {HOURS.map(hr => (
               <button
                 key={hr}
@@ -126,8 +129,7 @@ export default function TimePicker({
                   fontWeight: hr === selH ? 600 : 400,
                   background: 'transparent', border: 'none', transition: 'background 100ms',
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-bg-hover)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                className="hover:bg-bg-hover"
               >{hr}</button>
             ))}
           </div>
@@ -135,7 +137,11 @@ export default function TimePicker({
           <div style={{ width: 1, background: 'var(--color-border)' }} />
 
           {/* Minutes */}
-          <div ref={minRef} style={{ maxHeight: 220, overflowY: 'auto', paddingBlock: 4 }} className="scrollbar-hide flex-1">
+          <div 
+            ref={minRef} 
+            className="scrollbar-hide flex-1 touch-pan-y"
+            style={{ maxHeight: 220, overflowY: 'auto', paddingBlock: 4 }}
+          >
             {MINUTES.map(mn => (
               <button
                 key={mn}
@@ -149,8 +155,7 @@ export default function TimePicker({
                   fontWeight: mn === selM ? 600 : 400,
                   background: 'transparent', border: 'none', transition: 'background 100ms',
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-bg-hover)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                className="hover:bg-bg-hover"
               >{String(mn).padStart(2, '0')}</button>
             ))}
           </div>
@@ -171,8 +176,7 @@ export default function TimePicker({
                   fontWeight: p === selPeriod ? 600 : 400,
                   background: 'transparent', border: 'none', transition: 'background 100ms',
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-bg-hover)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                className="hover:bg-bg-hover"
               >{p}</button>
             ))}
           </div>
