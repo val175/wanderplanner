@@ -84,7 +84,7 @@ function TodayAtAGlance({ trip }) {
             .reduce((acc, chunk) => {
               try {
                 const parsed = JSON.parse(chunk)
-                return acc + (parsed.choices?.[0]?.delta?.content || parsed.choices?.[0]?.message?.content || '')
+                return acc + (parsed.textDelta || parsed.choices?.[0]?.delta?.content || parsed.choices?.[0]?.message?.content || '')
               } catch { return acc }
             }, '')
         } else {
@@ -233,10 +233,10 @@ function DestinationsCell({ trip, onTabSwitch }) {
   const extraCount = dests.length - 4
 
   return (
-    <Card padding="p-0">
+    <Card padding="p-0" className="overflow-hidden">
       <div className="px-4 py-3 flex items-center justify-between">
         <Label>DESTINATIONS</Label>
-        <Button variant="ghost" size="sm" onClick={() => onTabSwitch?.('map')}>View Map →</Button>
+        <Button variant="ghost" size="sm" onClick={() => onTabSwitch?.('wandermap')}>View Map →</Button>
       </div>
       {dests.length === 0 ? (
         <div className="px-4 pb-4">
