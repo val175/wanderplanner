@@ -32,3 +32,6 @@ yarn-error.log*
 
 .vercel
 .env*.local
+
+# Add this to your .gitignore
+everything-claude-code/
