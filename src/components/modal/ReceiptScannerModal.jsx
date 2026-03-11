@@ -283,7 +283,7 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
                                             <input
                                                 value={item.description}
                                                 onChange={e => updateItem(idx, 'description', e.target.value)}
-                                                className={inputCls + ' !py-1'}
+                                                className={inputCls}
                                                 placeholder="Description"
                                             />
                                             <div className="flex gap-2">
@@ -298,7 +298,7 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
                                                         type="number"
                                                         value={item.amountPHP}
                                                         onChange={e => updateItem(idx, 'amountPHP', Number(e.target.value))}
-                                                        className={inputCls + ' !py-1 !pl-6 !text-xs text-right font-mono'}
+                                                        className={inputCls + ' !pl-6 text-right font-mono'}
                                                     />
                                                 </div>
                                             </div>

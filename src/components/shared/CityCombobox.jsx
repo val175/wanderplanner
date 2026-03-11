@@ -554,8 +554,8 @@ export default function CityCombobox({
             width: 'max-content',
             maxWidth: '340px',
           }}
-          className="z-[10001] bg-bg-primary border border-border rounded-[var(--radius-md)]
-                     max-h-52 overflow-y-auto pointer-events-auto shadow-xl"
+          className="z-[10001] bg-bg-card border border-border rounded-[var(--radius-md)]
+                     max-h-52 overflow-y-auto pointer-events-auto"
         >
           {suggestions.map((entry, i) => (
             <li key={i}>

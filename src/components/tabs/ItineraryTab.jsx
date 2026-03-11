@@ -35,7 +35,18 @@ function getActivityAccent(emoji) {
 }
 
 function AddActivityModal({ isOpen, onClose, itinerary, onAdd }) {
-  const [activityData, setActivityData] = useState({ name: '', time: '', dayId: itinerary[0]?.id || '' })
+  const [activityData, setActivityData] = useState({ name: '', time: '', dayId: '' })
+
+  // Reset/Initialize state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setActivityData({
+        name: '',
+        time: '',
+        dayId: itinerary[0]?.id || ''
+      })
+    }
+  }, [isOpen, itinerary])
 
   const handleSubmit = (e) => {
     e?.preventDefault()
@@ -44,13 +55,12 @@ function AddActivityModal({ isOpen, onClose, itinerary, onAdd }) {
       dayId: activityData.dayId,
       activity: { name: activityData.name.trim(), time: activityData.time }
     })
-    setActivityData(prev => ({ ...prev, name: '', time: '' }))
     onClose()
   }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="📅 Add New Activity">
-      <div className="p-6 space-y-4">
+      <form onSubmit={handleSubmit} className="p-6 space-y-4">
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Target Day</label>
           <select
@@ -79,23 +89,23 @@ function AddActivityModal({ isOpen, onClose, itinerary, onAdd }) {
 
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Time (Optional)</label>
-          <input
-            type="time"
+          <TimePicker
+            variant="input"
             value={activityData.time}
-            onChange={e => setActivityData(prev => ({ ...prev, time: e.target.value }))}
-            className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors"
+            onChange={time => setActivityData(prev => ({ ...prev, time }))}
+            placeholder="+ time"
           />
         </div>
 
         <div className="pt-4 flex justify-end gap-3 border-t border-border mt-6">
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="secondary" onClick={onClose} type="button">
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!activityData.name.trim() || !activityData.dayId}>
+          <Button type="submit" disabled={!activityData.name.trim() || !activityData.dayId}>
             Add Activity
           </Button>
         </div>
-      </div>
+      </form>
     </Modal>
   )
 }

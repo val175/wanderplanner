@@ -14,7 +14,7 @@ export default function Modal({ isOpen, onClose, children, className = '', maxWi
           onPointerDownOutside={onClose}
           className={`
             fixed z-[9999] w-full ${maxWidth}
-            bg-bg-primary border border-border
+            bg-bg-card border border-border
             rounded-t-[var(--radius-xl)] md:rounded-[var(--radius-xl)]
             max-h-[95vh] md:max-h-[90vh] overflow-y-auto
             animate-slide-up md:animate-scale-in

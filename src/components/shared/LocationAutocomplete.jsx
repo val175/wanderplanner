@@ -90,7 +90,7 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
             </div>
 
             {showSuggestions && suggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-bg-card border border-border rounded-[var(--radius-md)] z-50 overflow-hidden shadow-none">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-bg-card border border-border rounded-[var(--radius-md)] z-50 overflow-hidden">
                     {suggestions.map((suggestion) => (
                         <button
                             key={suggestion.id}

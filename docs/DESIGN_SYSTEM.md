@@ -196,3 +196,14 @@ When a tab offers multiple layouts (e.g. Table vs Board, Grid vs Table), the sta
 #### Portal Dropdowns
 All portal-based dropdowns (category pickers, assignee pickers, traveler pickers) must **never** use shadow classes (`shadow-sm`, `shadow-md`, `shadow-lg`). Rely on `border border-border` for separation per the No Shadows rule in section 3.
 
+## Inconsistency Checklist (Pre-Merge Audit)
+Before submitting a new component or UI refactor, ensure it passes this "AI Aesthetic Cleanliness" check:
+
+1. **Primitive Alignment**: Does the component use `Radix UI` primitives for popovers, selects, and modals? (No manual `getBoundingClientRect` positioning).
+2. **Token Compliance**: Are all colors using `bg-bg-*` or `text-text-*` tokens? Ensure no hardcoded `bg-blue-500` or `text-gray-400` classes exist.
+3. **Shadow Ban**: Is there **zero** usage of `shadow-*` classes? (Exceptions: standard Radix `shadow-sm` on active view toggles only).
+4. **Radii Consistency**: Are border radii using `var(--radius-*)`? Buttons/Inputs should be `md`, Modals `xl`.
+5. **Interactive Symmetry**: Do hover/focus states match the "Gold Standard" (`DatePicker`, `Button`)?
+6. **Focus Rings**: Are you using `focus:border-accent`? Avoid adding `focus:ring` unless absolutely necessary for accessibility.
+7. **Pills & Badges**: Are status/category labels using the neutral `bg-bg-secondary` style instead of vibrant colored backgrounds?
+

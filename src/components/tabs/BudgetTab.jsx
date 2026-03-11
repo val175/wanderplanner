@@ -14,6 +14,7 @@ import { calculateBalances, simplifyDebts, buildSplits } from '../../utils/split
 import { useTripTravelers } from '../../hooks/useTripTravelers'
 import Select, { SelectItem } from '../shared/Select'
 import { hapticImpact } from '../../utils/haptics'
+import { Plus, Check, X } from 'lucide-react'
 
 function AddExpenseModal({ isOpen, onClose, onAdd, travelers, categories }) {
   const [expenseData, setExpenseData] = useState({
@@ -121,25 +122,38 @@ function BudgetHealthCard({ budget, totals, currency, isReadOnly }) {
   const isOver = totals.actual > totals.max && totals.max > 0
   const remaining = Math.max(0, totals.max - totals.actual)
 
+  const [isAdding, setIsAdding] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newMax, setNewMax] = useState('')
+
+  const handleAdd = () => {
+    if (newName.trim()) {
+      dispatch({
+        type: ACTIONS.ADD_BUDGET_CATEGORY,
+        payload: {
+          name: newName.trim(),
+          emoji: '📌',
+          max: newMax ? Number(newMax.replace(/[^0-9.]/g, '')) : 0
+        }
+      })
+      setIsAdding(false)
+      setNewName('')
+      setNewMax('')
+      hapticImpact('light')
+    }
+  }
+
   return (
     <Card className="p-4 border-border bg-bg-card">
       <div className="flex items-center justify-between mb-2">
         <h3 className="font-heading font-semibold text-sm text-text-primary">Overall Budget</h3>
-        {!isReadOnly && (
+        {!isReadOnly && !isAdding && (
           <button
-            onClick={() => {
-              const name = prompt('Category name?')
-              const max = prompt('Max budget?')
-              if (name) {
-                dispatch({
-                  type: ACTIONS.ADD_BUDGET_CATEGORY,
-                  payload: { name, emoji: '📌', max: max ? Number(max) : 0 }
-                })
-              }
-            }}
-            className="text-[10px] font-bold uppercase tracking-wider text-accent hover:text-accent-hover transition-colors"
+            onClick={() => setIsAdding(true)}
+            className="text-[10px] font-bold uppercase tracking-wider text-accent hover:text-accent-hover transition-colors flex items-center gap-1"
           >
-            + Add Category
+            <Plus size={10} strokeWidth={3} />
+            Add Category
           </button>
         )}
       </div>
@@ -223,9 +237,58 @@ function BudgetHealthCard({ budget, totals, currency, isReadOnly }) {
             </div>
           )
         })}
+
+        {isAdding && (
+          <div className="group pt-2 animate-in fade-in slide-in-from-top-1">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="flex-1 flex items-center gap-2">
+                <span className="text-sm">📌</span>
+                <input
+                  autoFocus
+                  value={newName}
+                  onChange={e => setNewName(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') handleAdd()
+                    if (e.key === 'Escape') setIsAdding(false)
+                  }}
+                  placeholder="Category..."
+                  className="w-full text-xs font-medium text-text-primary bg-bg-input border border-border rounded-[var(--radius-sm)] px-2 py-1 focus:outline-none focus:border-accent"
+                />
+              </div>
+              <div className="flex items-center gap-1">
+                <input
+                  value={newMax}
+                  onChange={e => setNewMax(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') handleAdd()
+                    if (e.key === 'Escape') setIsAdding(false)
+                  }}
+                  placeholder="Limit"
+                  className="w-16 text-xs font-medium text-text-primary bg-bg-input border border-border rounded-[var(--radius-sm)] px-2 py-1 focus:outline-none focus:border-accent font-mono"
+                />
+                <button
+                  onClick={handleAdd}
+                  disabled={!newName.trim()}
+                  className="p-1 text-accent hover:bg-accent/10 rounded transition-colors disabled:opacity-30"
+                >
+                  <Check size={14} strokeWidth={2.5} />
+                </button>
+                <button
+                  onClick={() => setIsAdding(false)}
+                  className="p-1 text-text-muted hover:bg-bg-secondary rounded transition-colors"
+                >
+                  <X size={14} strokeWidth={2.5} />
+                </button>
+              </div>
+            </div>
+            <div className="h-1.5 bg-bg-secondary rounded-full overflow-hidden opacity-50 border border-border/20">
+              <div className="h-full bg-border/20 w-0" />
+            </div>
+          </div>
+        )}
       </div>
 
-      {budget.length === 0 && (
+      {budget.length === 0 && !isAdding && (
         <p className="text-[11px] text-text-muted text-center py-4 italic">No budget limits defined</p>
       )}
     </Card>

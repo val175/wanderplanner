@@ -90,7 +90,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
                                 className="font-heading text-lg font-semibold text-text-primary block"
                                 readOnly={isReadOnly}
                             />
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold border ${statusConfig.colors}`}>
+                            <span className="text-[10px] px-2 py-0.5 rounded-[var(--radius-pill)] uppercase tracking-wider font-semibold border border-border bg-bg-secondary text-text-secondary">
                                 {statusConfig.label}
                             </span>
                         </div>

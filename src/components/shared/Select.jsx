@@ -22,7 +22,7 @@ const baseTriggerCls = `
   w-full flex items-center justify-between gap-2
   text-sm bg-bg-input border border-border rounded-[var(--radius-md)]
   text-text-primary
-  focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/20
+  focus:border-accent focus:outline-none
   transition-colors cursor-pointer
   disabled:opacity-60 disabled:cursor-default
 `
