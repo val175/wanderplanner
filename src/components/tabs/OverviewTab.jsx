@@ -39,8 +39,22 @@ function wmoToDescription(code) {
   return { emoji: '🌡️', label: 'Unknown' }
 }
 
+function extractMessageText(message) {
+  if (!message) return ''
+  if (typeof message.content === 'string' && message.content) return message.content
+  if (Array.isArray(message.content)) {
+    const textPart = message.content.find(p => p.type === 'text')
+    if (textPart?.text) return textPart.text
+  }
+  if (Array.isArray(message.parts)) {
+    const textPart = message.parts.find(p => p.type === 'text')
+    if (textPart?.text) return textPart.text
+  }
+  return ''
+}
+
 /* ─────────────────────────────────────────────────────────────
-   Today at a Glance — Gemini AI summary for ongoing trips
+   Today at a Glance — AI summary for the current trip day
 ───────────────────────────────────────────────────────────── */
 function TodayAtAGlance({ trip }) {
   const today = new Date().toISOString().slice(0, 10)
@@ -68,25 +82,11 @@ function TodayAtAGlance({ trip }) {
 
   const { messages, sendMessage, status } = useChat({ transport })
 
-  const streamingSummary = messages.findLast(m => m.role === 'assistant')?.content ?? ''
-
-  // DEBUG
-  console.log('[Wanda] RENDER', {
-    status,
-    messagesCount: messages?.length,
-    cachedSummary,
-    streamingSummary: messages?.findLast?.(m => m.role === 'assistant')?.content?.slice(0, 50),
-    sessionStorageValue: sessionStorage.getItem(cacheKey)?.slice(0, 50) ?? null
-  })
+  const streamingSummary = extractMessageText(messages.findLast(m => m.role === 'assistant'))
 
   // Once streaming completes, persist and update local state
   useEffect(() => {
-    console.log('[Wanda] PERSIST EFFECT fired', {
-      streamingSummary: streamingSummary?.slice(0, 50),
-      status
-    })
-    if (streamingSummary && status !== 'streaming' && status !== 'submitted') {
-      console.log('[Wanda] PERSISTING to sessionStorage')
+    if (streamingSummary && streamingSummary.trim().length > 0 && status !== 'streaming' && status !== 'submitted') {
       sessionStorage.setItem(cacheKey, streamingSummary)
       setCachedSummary(streamingSummary)
     }
@@ -95,25 +95,12 @@ function TodayAtAGlance({ trip }) {
   // Fire the prompt once per day / trip — guard read inside effect so it's fresh at fire time
   useEffect(() => {
     const cached = sessionStorage.getItem(cacheKey)
-    console.log('[Wanda] SEND EFFECT fired', {
-      todayDayNumber: todayDay?.dayNumber,
-      tripId: trip.id,
-      cached: cached?.slice(0, 50) ?? null,
-      willSend: !cached && !!todayDay
-    })
     if (!todayDay) return
-    if (cached) return
+    if (cached && cached.trim().length > 0) return
     const prompt = `In 1-2 upbeat sentences, summarize today's travel plan for Day ${todayDay.dayNumber} in ${todayDay.location}. Activities: ${(todayDay.activities || []).map(a => a.name).join(', ') || 'free day'}.`
-    console.log('[Wanda] CALLING sendMessage')
     sendMessage({ text: prompt })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [todayDay?.dayNumber, trip.id])
-
-  // Mount/unmount tracker
-  useEffect(() => {
-    console.log('[Wanda] TodayAtAGlance MOUNTED', { tripId: trip.id, today, cacheKey })
-    return () => console.log('[Wanda] TodayAtAGlance UNMOUNTED')
-  }, [])
 
   if (!todayDay) return null
 
