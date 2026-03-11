@@ -700,7 +700,7 @@ export default function ItineraryTab() {
         onClose={() => setActiveSearchActivity(null)}
         title="📍 Update Location"
       >
-        <div className="p-6">
+        <div className="p-6 min-h-[380px]">
           <p className="text-sm text-text-secondary mb-4">
             Search for a specific place to get accurate map data and photos.
           </p>
