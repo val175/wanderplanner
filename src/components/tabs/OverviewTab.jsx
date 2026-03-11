@@ -92,6 +92,12 @@ function TodayAtAGlance({ trip }) {
     }
   }, [streamingSummary, status])
 
+  // Sync cachedSummary when the trip or date changes (cacheKey changes on re-render, not remount)
+  useEffect(() => {
+    const cached = sessionStorage.getItem(cacheKey)
+    setCachedSummary(cached && cached.trim().length > 0 ? cached : '')
+  }, [cacheKey])
+
   // Fire the prompt once per day / trip — guard read inside effect so it's fresh at fire time
   useEffect(() => {
     const cached = sessionStorage.getItem(cacheKey)
