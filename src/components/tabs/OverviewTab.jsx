@@ -67,34 +67,41 @@ function TodayAtAGlance({ trip }) {
             'Content-Type': 'application/json',
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           },
+          mode: 'cors',
+          credentials: 'omit',
           body: JSON.stringify({
             messages: [{ role: 'user', content: prompt }]
           })
         })
-        
-        const rawText = await response.text()
-        let text = ''
-        if (rawText.trimStart().startsWith('data:')) {
-          // SSE stream — parse each data: chunk and join delta content
-          text = rawText
-            .split('\n')
-            .filter(line => line.startsWith('data:'))
-            .map(line => line.slice(5).trim())
-            .filter(chunk => chunk && chunk !== '[DONE]')
-            .reduce((acc, chunk) => {
-              try {
-                const parsed = JSON.parse(chunk)
-                return acc + (parsed.textDelta || parsed.choices?.[0]?.delta?.content || parsed.choices?.[0]?.message?.content || '')
-              } catch { return acc }
-            }, '')
-        } else {
-          // Plain JSON fallback
-          try {
-            const data = JSON.parse(rawText)
-            text = data.choices?.[0]?.message?.content || data.message || ''
-          } catch { /* silently ignore malformed response */ }
+
+        if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}`)
+
+        // ai-sdk Data Stream Protocol: each line is `<type>:<json>`
+        // type 0 = text delta, e.g.  0:"Hello"
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        let buf = ''
+        let result = ''
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buf += decoder.decode(value, { stream: true })
+          const lines = buf.split('\n')
+          buf = lines.pop() // keep incomplete line in buffer
+          for (const line of lines) {
+            if (line.startsWith('0:')) {
+              try { result += JSON.parse(line.slice(2)) } catch { /* skip malformed chunk */ }
+            }
+          }
         }
-        if (active) setSummary(text)
+        // flush any remaining buffer
+        if (buf.startsWith('0:')) {
+          try { result += JSON.parse(buf.slice(2)) } catch { /* skip */ }
+        }
+
+        if (active) setSummary(result)
+
       } catch (err) {
         console.error("Wanda Summary failed:", err)
       } finally {
