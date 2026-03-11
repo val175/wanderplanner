@@ -797,7 +797,7 @@ export default function TodoTab() {
         data.todos.forEach(t => {
           dispatch({ type: ACTIONS.ADD_TODO, payload: { text: t.text, phase: t.category || 'planning', note: t.note } })
         })
-        showToast('Checklist generated successfully! ✨')
+        showToast('Checklist generated successfully! 🪄')
       }
     } catch (err) {
       console.error(err)
@@ -954,7 +954,7 @@ export default function TodoTab() {
               disabled={isGenerating}
               className="shrink-0"
             >
-              {isGenerating ? 'Generating...' : '✨ Generate with Wanda'}
+              {isGenerating ? 'Generating...' : '🪄 Generate with Wanda'}
             </Button>
           </div>
 

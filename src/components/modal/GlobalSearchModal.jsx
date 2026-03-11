@@ -8,15 +8,18 @@ import { formatDate } from '../../utils/helpers'
 
 const TABS = {
   itinerary: { label: 'Itinerary', emoji: '📅' },
-  bookings: { label: 'Bookings', emoji: '🎟️' },
+  bookings: { label: 'Bookings', emoji: '🎫' },
   todos: { label: 'To Do', emoji: '✅' },
-  budget: { label: 'Budget', emoji: '💸' }
+  budget: { label: 'Budget', emoji: '💰' },
+  voting: { label: 'Voting', emoji: '🗳️' }
 }
 
 export default function GlobalSearchModal({ isOpen, onClose }) {
   const { activeTrip, dispatch } = useTripContext()
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
+  const [isSearchingAI, setIsSearchingAI] = useState(false)
+  const [aiResults, setAiResults] = useState([])
   const inputRef = useRef(null)
 
   // Reset state on open
@@ -24,6 +27,7 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
     if (isOpen) {
       setQuery('')
       setSelectedIndex(0)
+      setAiResults([])
       setTimeout(() => inputRef.current?.focus(), 50)
     }
   }, [isOpen])
@@ -102,7 +106,7 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
       }
     })
 
-    // 4. Budget search (spending log)
+    // 4. Budget search (spendingLog)
     ;(activeTrip.spendingLog || []).forEach(exp => {
       if (safeStr(exp, ['description', 'category']).includes(q)) {
         r.push({
@@ -115,11 +119,80 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
       }
     })
 
-    return r
-  }, [activeTrip, query])
+    // 5. Voting search (ideas & polls)
+    ;(activeTrip.ideas || []).forEach(idea => {
+      if (safeStr(idea, ['title', 'description', 'sourceName']).includes(q)) {
+        r.push({
+          id: idea.id,
+          tab: 'voting',
+          title: idea.title || 'Unnamed Idea',
+          subtitle: `Idea pool • ${idea.priceDetails || 'TBD'}`,
+          data: idea
+        })
+      }
+    })
+    ;(activeTrip.polls || []).forEach(poll => {
+      (poll.options || []).forEach(opt => {
+        if (safeStr(opt, ['title', 'description', 'sourceName']).includes(q)) {
+          r.push({
+            id: poll.id, // Highlight the poll itself
+            tab: 'voting',
+            title: opt.title || 'Unnamed Option',
+            subtitle: `In poll: ${poll.title}`,
+            data: opt
+          })
+        }
+      })
+      if (safeStr(poll, ['title', 'notes']).includes(q)) {
+          r.push({
+            id: poll.id,
+            tab: 'voting',
+            title: poll.title || 'Unnamed Poll',
+            subtitle: `Poll • ${poll.status}`,
+            data: poll
+          })
+      }
+    })
+
+    // 6. Append AI results if any
+    return [...r, ...aiResults]
+  }, [activeTrip, query, aiResults])
 
   // Reset selection when results change
   useEffect(() => setSelectedIndex(0), [results.length])
+
+  const handleAISearch = async () => {
+    if (!activeTrip || !query.trim() || isSearchingAI) return
+    setIsSearchingAI(true)
+    hapticImpact('light')
+    try {
+      // Send a simplified version of the trip to save tokens
+      const tripSummary = {
+        itinerary: activeTrip.itinerary || [],
+        bookings: activeTrip.bookings || [],
+        todos: activeTrip.todos || [],
+        spendingLog: activeTrip.spendingLog || [],
+        ideas: activeTrip.ideas || [],
+        polls: activeTrip.polls || []
+      }
+      
+      const res = await fetch('https://wanderplan-rust.vercel.app/api/semantic-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, trip: tripSummary })
+      })
+      if (!res.ok) throw new Error('Failed AI search')
+      const data = await res.json()
+      
+      if (data && data.results) {
+         setAiResults(data.results.map(r => ({ ...r, subtitle: `✨ AI: ${r.subtitle}` })))
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsSearchingAI(false)
+    }
+  }
 
   const handleSelect = (result) => {
     hapticSelection()
@@ -198,14 +271,26 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
                 ))}
               </div>
             </div>
-          ) : results.length === 0 ? (
-             <div className="px-6 py-12 text-center">
-               <p className="text-sm text-text-muted mb-2">No local results for "{query}"</p>
-               <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/10 border border-accent/20 rounded-[var(--radius-sm)] text-accent text-xs font-medium cursor-pointer hover:bg-accent/20 transition-colors">
-                 ✨ Ask Gemini to search semantically
-               </div>
+          ) : results.length === 0 && !isSearchingAI ? (
+           <div className="px-6 py-12 text-center">
+             <p className="text-sm text-text-muted mb-2">No local results for "{query}"</p>
+             <button 
+               onClick={handleAISearch}
+               className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/10 border border-accent/20 rounded-[var(--radius-sm)] text-accent text-xs font-medium cursor-pointer hover:bg-accent/20 transition-colors"
+             >
+               🪄 Ask Wanda to search semantically
+             </button>
+           </div>
+        ) : results.length === 0 && isSearchingAI ? (
+           <div className="px-6 py-12 flex flex-col items-center justify-center">
+             <div className="flex gap-1.5 mb-3">
+               {[0, 1, 2].map(i => (
+                 <div key={i} className="w-2 h-2 rounded-full bg-accent animate-pulse" style={{ animationDelay: `${i * 150}ms` }} />
+               ))}
              </div>
-          ) : (
+             <p className="text-sm text-text-muted">Wanda is searching your trip...</p>
+           </div>
+        ) : (
             <div className="flex flex-col px-2 pb-2">
               {results.map((res, idx) => {
                 const isSelected = idx === selectedIndex

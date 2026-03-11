@@ -218,7 +218,7 @@ function CityRow({ city }) {
             className="w-full flex items-center justify-center gap-1 px-1.5 py-1.5 rounded bg-accent/10 text-accent font-semibold hover:bg-accent/20 transition-colors text-[10px] uppercase tracking-widest disabled:opacity-50"
             title="Generate city guide with Wanda"
           >
-            {loading ? '...' : '✨ Auto-fill'}
+            {loading ? '...' : '🪄 Auto-fill'}
           </button>
         )}
       </td>
@@ -305,7 +305,7 @@ function CityMobileCard({ city }) {
               disabled={loading}
               className="mt-2 flex items-center gap-1 px-2 py-1 rounded bg-accent/10 text-accent font-semibold hover:bg-accent/20 transition-colors text-[10px] uppercase tracking-widest disabled:opacity-50"
             >
-              {loading ? '...' : '✨ Auto-fill with Wanda'}
+              {loading ? '...' : '🪄 Auto-fill'}
             </button>
           )}
         </div>

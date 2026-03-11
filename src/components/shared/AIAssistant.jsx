@@ -93,9 +93,22 @@ export default function AIAssistant() {
     setInput('');
   };
 
-  const handlePillClick = (text) => {
+  const handlePillClick = (label) => {
     if (isLoading) return;
-    sendMessage({ text });
+    
+    // Convert generic pill clicks into explicit, tool-forcing prompts for the AI,
+    // but the displayed text in the chat bubble remains just the label.
+    let systemInstruction = label;
+    if (label.includes('Food spots')) {
+      systemInstruction = `${label}\nPlease recommend 3 specific food spots in our destination. IMPORTANT: For EACH spot, you MUST call the "add_idea_to_voting_room" tool. Do not just list them in text.`;
+    } else if (label.includes('Hotel tips')) {
+      systemInstruction = `${label}\nPlease recommend 3 specific hotels/lodging options. IMPORTANT: For EACH option, you MUST call the "add_idea_to_voting_room" tool. Do not just list them in text.`;
+    } else if (label.includes('Packing list')) {
+      systemInstruction = `${label}\nPlease recommend 3 specific packing items based on our destination/dates. IMPORTANT: For EACH item, you MUST call the "add_to_packing_list" tool. Do not just list them in text.`;
+    }
+    
+    // Send the detailed prompt to the API, but keep the UI clean
+    sendMessage({ text: systemInstruction });
     setInput('');
   };
 
@@ -117,7 +130,7 @@ export default function AIAssistant() {
       const newId = generateId()
       onConfirm(newId)
       try { addToolResult({ tool: toolName, toolCallId: inv.toolCallId, output: 'added' }) } catch { }
-      showToast(`${emoji || '✨'} ${label} ${toastLabel}`, {
+      showToast(`${emoji || '🪄'} ${label} ${toastLabel}`, {
         undo: () => onUndo(newId),
       })
       setLocalDone(true)
@@ -146,7 +159,7 @@ export default function AIAssistant() {
           letterSpacing: '-0.01em',
         }}
       >
-        <span style={{ fontSize: '14px' }}>{done ? '✅' : (emoji || '✨')}</span>
+        <span style={{ fontSize: '14px' }}>{done ? '✅' : (emoji || '🪄')}</span>
         <span>{done ? 'Added' : `Add ${label}`}</span>
         {!done && <span style={{ opacity: 0.6, fontSize: '11px', marginLeft: '2px' }}>+</span>}
       </button>
@@ -188,7 +201,7 @@ export default function AIAssistant() {
             title,
             type: type || 'other',
             description: description || '',
-            emoji: emoji || '✨',
+            emoji: emoji || '🪄',
             priceDetails: priceDetails || 'TBD',
             sourceName: 'Wanda AI',
             proposerId: auth.currentUser?.uid || null,
@@ -314,7 +327,7 @@ export default function AIAssistant() {
           >
             {messages.length === 0 && !error && (
               <div style={{ textAlign: 'center', padding: '20px 8px 12px' }}>
-                <div style={{ fontSize: '28px', marginBottom: '8px' }}>✨</div>
+                <div style={{ fontSize: '28px', marginBottom: '8px' }}>🪄</div>
                 <p style={{ color: 'var(--color-text-secondary)', fontSize: '13px', lineHeight: 1.6, margin: 0 }}>
                   {activeTrip
                     ? <>Hi! I know all about your <strong>{activeTrip.name}</strong> trip — ask me anything!</>
@@ -360,7 +373,15 @@ export default function AIAssistant() {
                   >
                     {(() => {
                       const textParts = m.parts?.filter(p => p.type === 'text') ?? []
-                      const textContent = textParts.map(p => p.text).join('').trim()
+                      let textContent = textParts.map(p => p.text).join('').trim()
+                      
+                      // Hide system instructions from the UI for pill clicks
+                      if (m.role === 'user' && textContent.includes('\\nMenu Instruction:')) {
+                         textContent = textContent.split('\\n')[0];
+                      } else if (m.role === 'user' && textContent.includes('\nPlease recommend')) {
+                         textContent = textContent.split('\n')[0];
+                      }
+
                       if (m.parts && !textContent) {
                         // Gemini sometimes omits text when calling tools — build context from tool inputs
                         const votingParts = m.parts.filter(p => p.type === 'tool-add_idea_to_voting_room' && p.input?.title)

@@ -27,6 +27,9 @@ Wanderplan uses custom Anthropic fonts to match the brand identity:
 ## Colors & Theming
 Wanderplan uses a semantic color system that supports Light and Dark mode automatically through CSS variables.
 
+**Emoji/Iconography:**
+- **Wanda AI Features**: Always use the Magic Wand (`🪄`) emoji for any AI features associated with the assistant "Wanda" (e.g., "🪄 Ask Wanda", "🪄 Auto-fill with Wanda", "🪄 Generate with Wanda"). Do not use sparkles (`✨`).
+
 **Backgrounds**
 - `bg-bg-primary`: The main canvas color (light grège).
 - `bg-bg-secondary`: Used for borders, inset areas, tight panels, and subtle callouts.
