@@ -48,7 +48,7 @@ function TodayAtAGlance({ trip }) {
   const todayDay = trip.itinerary?.find(d => d.dayNumber === currentDayNumber)
 
   const cacheKey = `wanda_summary_${trip.id}_${today}`
-  const cached = typeof window !== 'undefined' ? sessionStorage.getItem(cacheKey) : null
+  const [cachedSummary, setCachedSummary] = useState(() => sessionStorage.getItem(cacheKey) ?? '')
 
   // Build a transport per trip (memoised so it's stable across renders)
   const transport = useMemo(() => new DefaultChatTransport({
@@ -68,18 +68,21 @@ function TodayAtAGlance({ trip }) {
 
   const { messages, sendMessage, status } = useChat({ transport })
 
-  const aiSummary = messages.find(m => m.role === 'assistant')?.content || ''
+  const streamingSummary = messages.findLast(m => m.role === 'assistant')?.content ?? ''
 
-  // Persist result to sessionStorage once streaming is done
+  // Once streaming completes, persist and update local state
   useEffect(() => {
-    if (aiSummary && status !== 'submitted' && status !== 'streaming') {
-      sessionStorage.setItem(cacheKey, aiSummary)
+    if (streamingSummary && status !== 'streaming' && status !== 'submitted') {
+      sessionStorage.setItem(cacheKey, streamingSummary)
+      setCachedSummary(streamingSummary)
     }
-  }, [aiSummary, status, cacheKey])
+  }, [streamingSummary, status])
 
-  // Fire the prompt once per day / trip (skip if cached)
+  // Fire the prompt once per day / trip — guard read inside effect so it's fresh at fire time
   useEffect(() => {
-    if (!todayDay || cached) return
+    if (!todayDay) return
+    const cached = sessionStorage.getItem(cacheKey)
+    if (cached) return
     const prompt = `In 1-2 upbeat sentences, summarize today's travel plan for Day ${todayDay.dayNumber} in ${todayDay.location}. Activities: ${(todayDay.activities || []).map(a => a.name).join(', ') || 'free day'}.`
     sendMessage({ text: prompt })
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -87,8 +90,8 @@ function TodayAtAGlance({ trip }) {
 
   if (!todayDay) return null
 
-  const displaySummary = cached || aiSummary
-  const loading = !cached && (status === 'streaming' || (status === 'submitted' && !aiSummary))
+  const displaySummary = cachedSummary || streamingSummary
+  const loading = !cachedSummary && (status === 'streaming' || status === 'submitted')
 
   return (
     <Card>
