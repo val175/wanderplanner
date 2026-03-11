@@ -47,7 +47,8 @@ export async function multimodalIngest(fileBuffer, mimeType) {
     const parsedData = JSON.parse(textResult)
 
     // 2. Embedding with Gemini Embedding 2 (MRL)
-    const embeddingUrl = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${geminiKey}`
+    // Note: text-embedding-004 is available in v1
+    const embeddingUrl = `https://generativelanguage.googleapis.com/v1/models/text-embedding-004:embedContent?key=${geminiKey}`
     
     // Create a string representation for embedding
     const embeddingInput = `${parsedData.type} ${parsedData.title} ${parsedData.date} ${parsedData.location}`
@@ -55,7 +56,7 @@ export async function multimodalIngest(fileBuffer, mimeType) {
     const embeddingBody = {
         model: "models/text-embedding-004",
         content: { parts: [{ text: embeddingInput }] },
-        output_dimensionality: 256
+        outputDimensionality: 256
     }
 
     const embeddingResponse = await fetch(embeddingUrl, {
