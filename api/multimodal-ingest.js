@@ -15,19 +15,17 @@ export async function multimodalIngest(fileBuffer, mimeType) {
     const extractionBody = {
         contents: [{
             parts: [
-                { text: "Extract structured data from this booking document (Image/PDF/Text). Return ONLY a valid JSON object with: type (must be one of: lodging, flight, activity, transport, other), title, date (ISO 8601), location. If information is missing, use null." },
                 {
                     inline_data: {
                         mime_type: mimeType,
                         data: base64Content
                     }
-                }
+                },
+                { text: "Analyze this booking document (Image, PDF, or Text). Extract the following details into a JSON object: 'type' (lodging, flight, activity, transport, or other), 'title' (a clear name for the booking), 'date' (ISO 8601 format for the start date/time), 'location' (address or venue name), 'confirmationNumber' (if found), 'amountPaid' (numeric value of total cost). Return ONLY the JSON object. Use null for missing fields." }
             ]
         }],
         generationConfig: {
-            response_mime_type: "application/json",
-            // Matched to user requirement for minimal thinking / high speed
-            thinking_config: { include_thoughts: false }
+            response_mime_type: "application/json"
         }
     }
 

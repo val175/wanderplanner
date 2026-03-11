@@ -73,6 +73,8 @@ export function useSnapToAdd() {
                     category: data.type || 'other',
                     startDate: data.date || '',
                     location: data.location || '',
+                    confirmationNumber: data.confirmationNumber || '',
+                    amountPaid: Number(data.amountPaid) || 0,
                     vector: vector // Matryoshka Embedding (256-dim)
                 }
             })
