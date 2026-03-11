@@ -13,18 +13,14 @@ import { formatDate } from '../../utils/helpers'
 import AvatarCircle from '../shared/AvatarCircle'
 import Button from '../shared/Button'
 import { auth } from '../../firebase/config'
+import { GLOBAL_CATEGORIES } from '../../constants/categories'
 
 const TOTAL_STEPS = 4
 
-const DEFAULT_BUDGET_CATEGORIES = [
-  { name: 'Lodging', emoji: '🏠' },
-  { name: 'Flights', emoji: '✈️' },
-  { name: 'Restaurants', emoji: '🍴' },
-  { name: 'Activities', emoji: '🎯' },
-  { name: 'Transport', emoji: '🚕' },
-  { name: 'Shopping', emoji: '🛍️' },
-  { name: 'Other', emoji: '✨' },
-]
+const DEFAULT_BUDGET_CATEGORIES = GLOBAL_CATEGORIES.map(c => ({
+  name: c.label,
+  emoji: c.emoji
+}))
 
 /* ─────────────────── Step Indicator ─────────────────── */
 function StepIndicator({ currentStep }) {
@@ -482,7 +478,7 @@ function StepBudget({ form, setForm }) {
                   <input type="number" min="0" value={cat.min || ''}
                     onChange={e => handleCategoryUpdate(i, 'min', e.target.value)}
                     placeholder="Min"
-                    className="w-full pl-7 pr-2 py-1.5 bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary text-sm text-right focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
+                    className="w-full pl-7 pr-2 py-1.5 bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary text-sm text-right focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
                   />
                 </div>
                 <div className="relative">
@@ -490,7 +486,7 @@ function StepBudget({ form, setForm }) {
                   <input type="number" min="0" value={cat.max || ''}
                     onChange={e => handleCategoryUpdate(i, 'max', e.target.value)}
                     placeholder="Max"
-                    className="w-full pl-7 pr-2 py-1.5 bg-bg-input border border-border rounded-[var(--radius-sm)] text-text-primary text-sm text-right focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
+                    className="w-full pl-7 pr-2 py-1.5 bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary text-sm text-right focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
                   />
                 </div>
                 {(cat.max > 0) && (

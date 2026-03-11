@@ -122,7 +122,6 @@ export default function WanderMapTab() {
                                     'line-color': '#D97757',
                                     'line-width': isMicroView ? 4 : 3,
                                     'line-dasharray': [2, 2],
-                                    'line-dash-offset': lineDashOffset,
                                     'line-opacity': isMicroView ? 0.4 : 1
                                 }}
                             />

@@ -13,6 +13,11 @@ export default function LocationDrawer({ isOpen, onClose, data }) {
 
     if (!isOpen || !data) return null;
 
+    const { type } = data;
+    const title = type === 'dest' ? data.city : (type === 'activity' ? data.activity?.name : data.idea?.title);
+    const subtitle = type === 'dest' ? data.country : (type === 'activity' ? 'Activity' : 'Community Idea');
+    const locationObj = type === 'dest' ? data.coords : (type === 'activity' ? data.activity?.location : data.idea?.location);
+
     return (
         <div className="bg-bg-card border border-border rounded-[var(--radius-lg)] overflow-hidden w-[260px] animate-scale-in">
             <div className="p-4 flex flex-col gap-3">

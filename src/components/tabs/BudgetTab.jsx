@@ -15,6 +15,7 @@ import { useTripTravelers } from '../../hooks/useTripTravelers'
 import Select, { SelectItem } from '../shared/Select'
 import { hapticImpact } from '../../utils/haptics'
 import { Plus, Check, X } from 'lucide-react'
+import { GLOBAL_CATEGORIES, CATEGORY_MAP } from '../../constants/categories'
 
 function AddExpenseModal({ isOpen, onClose, onAdd, travelers, categories }) {
   const [expenseData, setExpenseData] = useState({
@@ -123,21 +124,25 @@ function BudgetHealthCard({ budget, totals, currency, isReadOnly }) {
   const remaining = Math.max(0, totals.max - totals.actual)
 
   const [isAdding, setIsAdding] = useState(false)
-  const [newName, setNewName] = useState('')
+  const [newCategoryId, setNewCategoryId] = useState('')
   const [newMax, setNewMax] = useState('')
 
   const handleAdd = () => {
-    if (newName.trim()) {
+    if (newCategoryId) {
+      const cat = CATEGORY_MAP[newCategoryId]
+      if (!cat) return
+      
       dispatch({
         type: ACTIONS.ADD_BUDGET_CATEGORY,
         payload: {
-          name: newName.trim(),
-          emoji: '📌',
+          id: cat.id,
+          name: cat.label,
+          emoji: cat.emoji,
           max: newMax ? Number(newMax.replace(/[^0-9.]/g, '')) : 0
         }
       })
       setIsAdding(false)
-      setNewName('')
+      setNewCategoryId('')
       setNewMax('')
       hapticImpact('light')
     }
@@ -216,7 +221,7 @@ function BudgetHealthCard({ budget, totals, currency, isReadOnly }) {
                     }}
                     placeholder="0"
                     className="text-[10px] text-text-muted/60 font-medium"
-                    inputClassName="w-16 py-0 px-1 text-xs"
+                    inputClassName="w-20"
                     readOnly={isReadOnly}
                     displayValue={cat.max > 0 ? `/${formatCurrency(Math.round(cat.max), currency)}` : '/Set limit'}
                   />
@@ -239,50 +244,48 @@ function BudgetHealthCard({ budget, totals, currency, isReadOnly }) {
         })}
 
         {isAdding && (
-          <div className="group pt-2 animate-in fade-in slide-in-from-top-1">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <div className="flex-1 flex items-center gap-2">
-                <span className="text-sm">📌</span>
-                <input
-                  autoFocus
-                  value={newName}
-                  onChange={e => setNewName(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') handleAdd()
-                    if (e.key === 'Escape') setIsAdding(false)
-                  }}
-                  placeholder="Category..."
-                  className="w-full text-xs font-medium text-text-primary bg-bg-input border border-border rounded-[var(--radius-sm)] px-2 py-1 focus:outline-none focus:border-accent"
-                />
+          <div className="group pt-2 animate-in fade-in slide-in-from-top-1 border-t border-border/20 mt-2">
+            <div className="flex flex-col gap-2.5 mb-2">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Pick Category</label>
+                <Select value={newCategoryId} onValueChange={setNewCategoryId}>
+                  <SelectItem value="">Select a category...</SelectItem>
+                  {GLOBAL_CATEGORIES.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.emoji} {c.label}</SelectItem>
+                  ))}
+                </Select>
               </div>
-              <div className="flex items-center gap-1">
-                <input
-                  value={newMax}
-                  onChange={e => setNewMax(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') handleAdd()
-                    if (e.key === 'Escape') setIsAdding(false)
-                  }}
-                  placeholder="Limit"
-                  className="w-16 text-xs font-medium text-text-primary bg-bg-input border border-border rounded-[var(--radius-sm)] px-2 py-1 focus:outline-none focus:border-accent font-mono"
-                />
-                <button
-                  onClick={handleAdd}
-                  disabled={!newName.trim()}
-                  className="p-1 text-accent hover:bg-accent/10 rounded transition-colors disabled:opacity-30"
-                >
-                  <Check size={14} strokeWidth={2.5} />
-                </button>
-                <button
-                  onClick={() => setIsAdding(false)}
-                  className="p-1 text-text-muted hover:bg-bg-secondary rounded transition-colors"
-                >
-                  <X size={14} strokeWidth={2.5} />
-                </button>
+              
+              <div className="flex items-end gap-2">
+                <div className="flex-1 flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Limit ({currency})</label>
+                  <input
+                    value={newMax}
+                    onChange={e => setNewMax(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleAdd()
+                      if (e.key === 'Escape') setIsAdding(false)
+                    }}
+                    placeholder="e.g. 5000"
+                    className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] px-3 py-2 text-text-primary focus:outline-none focus:border-accent font-mono"
+                  />
+                </div>
+                <div className="flex gap-1 pb-1">
+                  <button
+                    onClick={handleAdd}
+                    disabled={!newCategoryId}
+                    className="h-9 px-3 bg-accent hover:bg-accent-hover text-white rounded-[var(--radius-md)] transition-colors disabled:opacity-30"
+                  >
+                    <Check size={16} strokeWidth={3} />
+                  </button>
+                  <button
+                    onClick={() => setIsAdding(false)}
+                    className="h-9 px-3 bg-bg-secondary hover:bg-bg-hover text-text-muted rounded-[var(--radius-md)] transition-colors"
+                  >
+                    <X size={16} strokeWidth={2.5} />
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="h-1.5 bg-bg-secondary rounded-full overflow-hidden opacity-50 border border-border/20">
-              <div className="h-full bg-border/20 w-0" />
             </div>
           </div>
         )}
