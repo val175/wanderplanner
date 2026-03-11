@@ -43,12 +43,6 @@ function MyProfileCard() {
     setEditingName(false)
   }
 
-  // customPhoto takes priority over the Google photo
-  const displayProfile = {
-    ...currentUserProfile,
-    photo: currentUserProfile.customPhoto || currentUserProfile.photo,
-  }
-
   return (
     <div className="mb-5">
       <p className="text-xs font-medium text-text-muted uppercase tracking-widest mb-3">Your Profile</p>
@@ -60,7 +54,7 @@ function MyProfileCard() {
           className="relative shrink-0 group"
           title="Click to change your photo"
         >
-          <AvatarCircle profile={displayProfile} size={52} />
+          <AvatarCircle profile={currentUserProfile} size={52} />
           <span className="absolute inset-0 flex items-center justify-center rounded-full
                            bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity
                            text-white text-[10px] font-medium leading-tight text-center px-1">

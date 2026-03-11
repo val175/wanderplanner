@@ -178,7 +178,7 @@ function StepBasics({ form, setForm }) {
 
   // All selectable travelers: current user first, then shared profiles
   const allTravelers = [
-    ...(currentUserProfile ? [{ ...currentUserProfile, id: currentUserProfile.uid, photo: currentUserProfile.customPhoto || currentUserProfile.photo, isMe: true }] : []),
+    ...(currentUserProfile ? [{ ...currentUserProfile, id: currentUserProfile.uid, isMe: true }] : []),
     ...profiles,
   ]
 
@@ -781,7 +781,7 @@ export default function NewTripModal({ isOpen, onClose }) {
     const travelersSnapshot = (form.travelerIds || [])
       .map(tid => allAvailableProfiles.find(p => p.id === tid || p.uid === tid))
       .filter(Boolean)
-      .map(p => ({ id: p.id || p.uid, uid: p.uid || p.id, name: p.name, photo: p.customPhoto || p.photo || null }))
+      .map(p => ({ id: p.id || p.uid, uid: p.uid || p.id, name: p.name, photo: p.photo || null, customPhoto: p.customPhoto || null }))
 
     const newTrip = createEmptyTrip({
       name: form.name.trim() || 'New Trip',

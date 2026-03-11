@@ -3,7 +3,9 @@ import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { TAB_CONFIG } from '../../constants/tabs'
 import ProfileManager from '../shared/ProfileManager'
+import AvatarCircle from '../shared/AvatarCircle'
 import { useAuth } from '../../hooks/useAuth'
+import { useProfiles } from '../../context/ProfileContext'
 import { getEffectiveStatus } from '../../utils/tripStatus'
 
 const THE_PLAN_IDS = ['overview', 'wandermap', 'itinerary', 'cities', 'bookings']
@@ -119,6 +121,7 @@ function NavLink({ tabId, label, emoji, isActive, onClick, hasNotification }) {
 export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
   const { state, dispatch, activeTrip, sortedTrips } = useTripContext()
   const { user, signOutUser } = useAuth()
+  const { currentUserProfile } = useProfiles()
   const [showProfiles, setShowProfiles] = useState(false)
 
   const handleToggleDarkMode = () => {
@@ -246,13 +249,9 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
           onClick={signOutUser}
           className="w-full flex items-center gap-2.5 text-left px-2 py-1.5 text-xs font-medium text-text-muted hover:text-text-danger hover:bg-bg-hover rounded-[var(--radius-sm)] transition-colors group"
         >
-          {user?.photoURL ? (
-            <img src={user.photoURL} alt={user.displayName || 'User'} className="w-5 h-5 rounded-full object-cover grayscale group-hover:grayscale-0 transition-all" />
-          ) : (
-            <div className="w-5 h-5 rounded-full bg-bg-hover flex items-center justify-center text-[10px]">
-              {user?.displayName ? user.displayName.charAt(0).toUpperCase() : '?'}
-            </div>
-          )}
+          <div className="grayscale group-hover:grayscale-0 transition-all">
+            <AvatarCircle profile={currentUserProfile || { name: user?.displayName, photo: user?.photoURL }} size={20} />
+          </div>
           Sign out
         </button>
       </div>

@@ -8,6 +8,8 @@ export default function AvatarCircle({ profile, size = 28, className = '', ring 
     fontSize: size * 0.38,
   }
 
+  const photo = profile?.customPhoto || profile?.photo
+
   return (
     <div
       className={`
@@ -19,8 +21,8 @@ export default function AvatarCircle({ profile, size = 28, className = '', ring 
       style={style}
       title={profile?.name}
     >
-      {profile?.photo
-        ? <img src={profile.photo} alt={profile.name} className="w-full h-full object-cover" />
+      {photo
+        ? <img src={photo} alt={profile.name} className="w-full h-full object-cover" />
         : <span style={{ fontSize: size * 0.38 }}>{initial}</span>
       }
     </div>
