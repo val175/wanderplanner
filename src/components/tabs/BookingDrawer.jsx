@@ -45,6 +45,21 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
         return () => window.removeEventListener('keydown', handleEsc)
     }, [onClose])
 
+    const viewAttachment = async (file) => {
+        try {
+            // Browsers block top-level navigation to data: URIs for security.
+            // By converting to a Blob and using an Object URL, we bypass this.
+            const response = await fetch(file.url)
+            const blob = await response.blob()
+            const objectUrl = URL.createObjectURL(blob)
+            window.open(objectUrl, '_blank')
+            // Note: In high-scale apps we'd revoke the URL, but here it's fine
+        } catch (err) {
+            console.error("Failed to view attachment:", err)
+            window.open(file.url, '_blank') // Fallback
+        }
+    }
+
     if (!booking || !mounted) return null
 
     const categoryConfig = BOOKING_CATEGORIES.find(c => c.id === booking.category) || BOOKING_CATEGORIES[0]
@@ -190,15 +205,13 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <a 
-                                                href={file.url} 
-                                                target="_blank" 
-                                                rel="noopener noreferrer"
+                                            <button 
+                                                onClick={(e) => { e.preventDefault(); viewAttachment(file) }}
                                                 className="p-1.5 text-text-muted hover:text-accent rounded hover:bg-bg-hover"
                                                 title="View Attachment"
                                             >
                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                                            </a>
+                                            </button>
                                             {!isReadOnly && (
                                                 <button 
                                                     onClick={() => {
