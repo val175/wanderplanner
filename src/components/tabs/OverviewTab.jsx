@@ -5,6 +5,9 @@ import { auth } from '../../firebase/config'
 import { calculateReadiness, getReadinessBreakdown } from '../../utils/readiness'
 import { formatCurrency, daysUntil, formatDate, daysBetween } from '../../utils/helpers'
 import { getEffectiveStatus } from '../../utils/tripStatus'
+import { useChat } from '@ai-sdk/react'
+import { DefaultChatTransport } from 'ai'
+import { buildTripSystemPrompt } from '../../hooks/useAI'
 
 import Card from '../shared/Card'
 import Button from '../shared/Button'
@@ -40,89 +43,52 @@ function wmoToDescription(code) {
    Today at a Glance — Gemini AI summary for ongoing trips
 ───────────────────────────────────────────────────────────── */
 function TodayAtAGlance({ trip }) {
-  const [summary, setSummary] = useState('')
-  const [loading, setLoading] = useState(false)
-  
   const today = new Date().toISOString().slice(0, 10)
   const currentDayNumber = daysBetween(trip.startDate, today) + 1
   const todayDay = trip.itinerary?.find(d => d.dayNumber === currentDayNumber)
-  
-  useEffect(() => {
-    if (!todayDay) return
-    
-    let active = true
-    async function getSummary() {
-      const cacheKey = `wanda_summary_${trip.id}_${today}`
-      const cached = sessionStorage.getItem(cacheKey)
-      if (cached) {
-        setSummary(cached)
-        return
+
+  const cacheKey = `wanda_summary_${trip.id}_${today}`
+  const cached = typeof window !== 'undefined' ? sessionStorage.getItem(cacheKey) : null
+
+  // Build a transport per trip (memoised so it's stable across renders)
+  const transport = useMemo(() => new DefaultChatTransport({
+    api: 'https://wanderplan-rust.vercel.app/api/chat',
+    body: () => ({ systemPrompt: buildTripSystemPrompt(trip) }),
+    fetch: async (url, options) => {
+      let token = ''
+      if (auth.currentUser) {
+        try { token = await auth.currentUser.getIdToken() } catch {}
       }
-
-      setLoading(true)
-      try {
-        const prompt = `Summarize this travel itinerary day in 1-2 upbeat sentences for the traveler: ${JSON.stringify(todayDay)}`
-        
-        let token = ''
-        if (auth.currentUser) {
-          try { token = await auth.currentUser.getIdToken() } catch (e) { }
-        }
-
-        const response = await fetch('https://wanderplan-rust.vercel.app/api/chat', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-          },
-          mode: 'cors',
-          credentials: 'omit',
-          body: JSON.stringify({
-            messages: [{ role: 'user', content: prompt }]
-          })
-        })
-
-        if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}`)
-
-        // ai-sdk Data Stream Protocol: each line is `<type>:<json>`
-        // type 0 = text delta, e.g.  0:"Hello"
-        const reader = response.body.getReader()
-        const decoder = new TextDecoder()
-        let buf = ''
-        let result = ''
-
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          buf += decoder.decode(value, { stream: true })
-          const lines = buf.split('\n')
-          buf = lines.pop() // keep incomplete line in buffer
-          for (const line of lines) {
-            if (line.startsWith('0:')) {
-              try { result += JSON.parse(line.slice(2)) } catch { /* skip malformed chunk */ }
-            }
-          }
-        }
-        // flush any remaining buffer
-        if (buf.startsWith('0:')) {
-          try { result += JSON.parse(buf.slice(2)) } catch { /* skip */ }
-        }
-
-        if (active) {
-          setSummary(result)
-          sessionStorage.setItem(cacheKey, result)
-        }
-
-      } catch (err) {
-        console.error("Wanda Summary failed:", err)
-      } finally {
-        if (active) setLoading(false)
-      }
+      const headers = new Headers(options.headers || {})
+      headers.set('Content-Type', 'application/json')
+      if (token) headers.set('Authorization', `Bearer ${token}`)
+      return fetch(url, { ...options, headers, mode: 'cors', credentials: 'omit' })
     }
-    getSummary()
-    return () => { active = false }
+  }), [trip.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const { messages, sendMessage, status } = useChat({ transport })
+
+  const aiSummary = messages.find(m => m.role === 'assistant')?.content || ''
+
+  // Persist result to sessionStorage once we have a full response
+  useEffect(() => {
+    if (aiSummary && status === 'ready') {
+      sessionStorage.setItem(cacheKey, aiSummary)
+    }
+  }, [aiSummary, status, cacheKey])
+
+  // Fire the prompt once per day / trip (skip if cached)
+  useEffect(() => {
+    if (!todayDay || cached) return
+    const prompt = `In 1-2 upbeat sentences, summarize today's travel plan for Day ${todayDay.dayNumber} in ${todayDay.location}. Activities: ${(todayDay.activities || []).map(a => a.name).join(', ') || 'free day'}.`
+    sendMessage({ role: 'user', content: prompt })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [todayDay?.dayNumber, trip.id])
 
   if (!todayDay) return null
+
+  const displaySummary = cached || aiSummary
+  const loading = !cached && (status === 'streaming' || (status === 'submitted' && !aiSummary))
 
   return (
     <Card>
@@ -147,7 +113,7 @@ function TodayAtAGlance({ trip }) {
               </div>
             ) : (
               <p className="mt-1.5 text-sm text-text-secondary leading-relaxed font-body">
-                {summary || "Your adventure continues! Check your itinerary below for today's activities."}
+                {displaySummary}
               </p>
             )}
           </div>
@@ -156,6 +122,7 @@ function TodayAtAGlance({ trip }) {
     </Card>
   )
 }
+
 
 /* ─────────────────────────────────────────────────────────────
    Quick Itinerary Cell — Next 2 days snapshot
