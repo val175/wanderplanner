@@ -52,6 +52,13 @@ function TodayAtAGlance({ trip }) {
     
     let active = true
     async function getSummary() {
+      const cacheKey = `wanda_summary_${trip.id}_${today}`
+      const cached = sessionStorage.getItem(cacheKey)
+      if (cached) {
+        setSummary(cached)
+        return
+      }
+
       setLoading(true)
       try {
         const prompt = `Summarize this travel itinerary day in 1-2 upbeat sentences for the traveler: ${JSON.stringify(todayDay)}`
@@ -100,7 +107,10 @@ function TodayAtAGlance({ trip }) {
           try { result += JSON.parse(buf.slice(2)) } catch { /* skip */ }
         }
 
-        if (active) setSummary(result)
+        if (active) {
+          setSummary(result)
+          sessionStorage.setItem(cacheKey, result)
+        }
 
       } catch (err) {
         console.error("Wanda Summary failed:", err)
