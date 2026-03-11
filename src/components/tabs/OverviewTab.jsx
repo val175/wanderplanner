@@ -1,12 +1,10 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import ProgressBar from '../shared/ProgressBar'
 import { useTripContext } from '../../context/TripContext'
 import { auth } from '../../firebase/config'
 import { calculateReadiness, getReadinessBreakdown } from '../../utils/readiness'
-import { formatCurrency, daysUntil, formatDate, daysBetween, geocodeCity, haversineDistance } from '../../utils/helpers'
+import { formatCurrency, daysUntil, formatDate, daysBetween } from '../../utils/helpers'
 import { getEffectiveStatus } from '../../utils/tripStatus'
-import Map, { Marker, Source, Layer, NavigationControl } from 'react-map-gl'
-import 'mapbox-gl/dist/mapbox-gl.css'
 
 import Card from '../shared/Card'
 import Button from '../shared/Button'
@@ -187,30 +185,35 @@ function QuickItineraryCell({ trip, status, onTabSwitch }) {
                 </div>
 
                 {/* Day Activities / Flight Blocks */}
-                <div className="space-y-3">
-                  {(day.activities || []).slice(0, 1).map((act, aIdx) => {
-                    const isFlight = act.type === 'flight' || act.name.toLowerCase().includes('flight')
-                    const isCar = act.type === 'car' || act.name.toLowerCase().includes('car') || act.name.toLowerCase().includes('rent')
-                    
-                    return (
-                      <div key={aIdx} className="flex items-center gap-4 py-1">
-                        <div className="text-xl w-7 h-7 flex items-center justify-center shrink-0">
-                          {isFlight ? '✈️' : isCar ? '🚗' : (act.emoji || '📍')}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold text-text-primary truncate font-heading">
-                            {act.name}
-                          </p>
-                          {act.remark && <p className="text-[10px] text-text-muted truncate">{act.remark}</p>}
-                        </div>
-                        {act.time && (
-                          <div className="text-[10px] font-mono text-text-muted px-2 py-0.5 border border-border rounded-[var(--radius-sm)] bg-bg-secondary">
-                            {act.time}
+                <div className="relative">
+                  <div className="space-y-3">
+                    {(day.activities || []).slice(0, 3).map((act, aIdx) => {
+                      const isFlight = act.type === 'flight' || act.name.toLowerCase().includes('flight')
+                      const isCar = act.type === 'car' || act.name.toLowerCase().includes('car') || act.name.toLowerCase().includes('rent')
+                      
+                      return (
+                        <div key={aIdx} className="flex items-center gap-4 py-1">
+                          <div className="text-xl w-7 h-7 flex items-center justify-center shrink-0">
+                            {isFlight ? '✈️' : isCar ? '🚗' : (act.emoji || '📍')}
                           </div>
-                        )}
-                      </div>
-                    )
-                  })}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-text-primary truncate font-heading">
+                              {act.name}
+                            </p>
+                            {act.remark && <p className="text-[10px] text-text-muted truncate">{act.remark}</p>}
+                          </div>
+                          {act.time && (
+                            <div className="text-[10px] font-mono text-text-muted px-2 py-0.5 border border-border rounded-[var(--radius-sm)] bg-bg-secondary">
+                              {act.time}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {(day.activities?.length || 0) > 3 && (
+                    <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-bg-card to-transparent pointer-events-none" />
+                  )}
                 </div>
               </div>
             </div>
@@ -221,270 +224,47 @@ function QuickItineraryCell({ trip, status, onTabSwitch }) {
   )
 }
 
-function WeatherCell({ destinations }) {
-  const [weather, setWeather] = useState(null)
-  const [status, setStatus] = useState('loading')
-  const firstDest = destinations?.[0]
-
-  useEffect(() => {
-    if (!firstDest) { setStatus('error'); return }
-    let cancelled = false
-    setStatus('loading'); setWeather(null)
-
-    async function fetch_() {
-      try {
-        const g = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(firstDest.city)}&count=1&language=en&format=json`)
-        const gd = await g.json()
-        if (!gd.results?.length) throw new Error('not found')
-        const { latitude, longitude } = gd.results[0]
-        const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,weathercode&temperature_unit=celsius&timezone=auto`)
-        const wd = await w.json()
-        const c = wd.current
-        if (!cancelled) { setWeather({ temp: Math.round(c.temperature_2m), feelsLike: Math.round(c.apparent_temperature), wmo: c.weathercode, city: firstDest.city, flag: firstDest.flag }); setStatus('ok') }
-      } catch { if (!cancelled) setStatus('error') }
-    }
-    fetch_()
-    return () => { cancelled = true }
-  }, [firstDest?.city])
-
-  return (
-    <Card padding="p-4">
-      <div className="flex flex-col h-full">
-        <Label>Right Now</Label>
-        {status === 'loading' && (
-          <div className="flex-1 flex items-center gap-3 animate-pulse mt-3">
-            <div className="w-10 h-10 rounded-full bg-bg-secondary shrink-0" />
-            <div className="space-y-1.5 flex-1">
-              <div className="h-3 bg-bg-secondary rounded w-16" />
-              <div className="h-2 bg-bg-secondary rounded w-12" />
-            </div>
-          </div>
-        )}
-        {status === 'ok' && weather && (() => {
-          const { emoji, label } = wmoToDescription(weather.wmo)
-          return (
-            <div className="flex-1 flex flex-col justify-center mt-3">
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col">
-                  <div className="text-4xl leading-none mb-2">{emoji}</div>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="font-heading font-semibold text-2xl text-text-primary">{weather.temp}°</span>
-                    <span className="text-xs text-text-muted">feels {weather.feelsLike}°</span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs text-text-muted font-heading uppercase tracking-wider">{label}</div>
-                  <div className="text-[10px] text-text-muted mt-1 opacity-50">{weather.flag} {weather.city}</div>
-                </div>
-              </div>
-            </div>
-          )
-        })()}
-        {status === 'error' && (
-          <div className="flex-1 flex items-center justify-center mt-3">
-            <span className="text-xs text-text-muted">Unavailable</span>
-          </div>
-        )}
-      </div>
-    </Card>
-  )
-}
-
-function RouteMapCell({ trip }) {
+/* ─────────────────────────────────────────────────────────────
+   DestinationsCell — Replaces RouteMapCell
+───────────────────────────────────────────────────────────── */
+function DestinationsCell({ trip, onTabSwitch }) {
   const dests = trip.destinations || []
-  const [coords, setCoords] = useState([])
-  const [mappedDests, setMappedDests] = useState([])
-  const [totalDist, setTotalDist] = useState(0)
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [coordsLoading, setCoordsLoading] = useState(false)
-  const [isMapLoaded, setIsMapLoaded] = useState(false)
-  const [isMapVisible, setIsMapVisible] = useState(false)
-  const mapRef = useRef(null)
-
-  const destDaysCount = useMemo(() => {
-    const map = {}
-    dests.forEach(d => {
-      if (d && d.city) map[d.city] = 0
-    })
-      ; (trip.itinerary || []).forEach(day => {
-        const loc = (day.location || '').toLowerCase()
-        dests.forEach(d => {
-          if (d && d.city && loc.includes(d.city.toLowerCase())) {
-            map[d.city] += 1
-          }
-        })
-      })
-    return map
-  }, [trip.itinerary, dests])
-
-  useEffect(() => {
-    let active = true
-    async function loadCoords() {
-      if (active) { setCoords([]); setMappedDests([]); setCoordsLoading(true) }
-      const validDests = dests.filter(d => Boolean(d && d.city))
-      if (validDests.length < 2) {
-        if (active) { setCoords([]); setCoordsLoading(false) }
-        return
-      }
-      const promises = validDests.map(d => geocodeCity(d.city, d.country || null))
-      const results = await Promise.all(promises)
-      if (!active) return
-      const validCoords = []
-      const validDestinations = []
-      results.forEach((c, i) => {
-        if (c !== null) {
-          validCoords.push(c)
-          validDestinations.push(validDests[i])
-        }
-      })
-      setCoords(validCoords)
-      setMappedDests(validDestinations)
-      let dist = 0
-      for (let i = 0; i < validCoords.length - 1; i++) {
-        dist += haversineDistance(
-          validCoords[i][1], validCoords[i][0],
-          validCoords[i + 1][1], validCoords[i + 1][0]
-        )
-      }
-      setTotalDist(Math.round(dist))
-      setCoordsLoading(false)
-    }
-    loadCoords()
-    return () => { active = false }
-  }, [dests])
-
-  useEffect(() => {
-    if (!mapRef.current || !isMapLoaded || coords.length < 2) return
-    const lons = coords.map(c => c[0])
-    const lats = coords.map(c => c[1])
-    try {
-      mapRef.current.fitBounds(
-        [[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]],
-        { padding: { top: 90, bottom: 90, left: 260, right: 90 }, maxZoom: 12, duration: 800 }
-      )
-    } catch (e) {
-      console.warn("Mapbox fitBounds failed:", e)
-    }
-  }, [coords])
-
-  useEffect(() => {
-    if (!mapRef.current || !isMapLoaded) return
-    const safeResize = () => {
-      try {
-        if (mapRef.current) mapRef.current.resize()
-      } catch (e) { }
-    }
-    setTimeout(safeResize, 10)
-    setTimeout(safeResize, 150)
-    setTimeout(safeResize, 300)
-    if (!isExpanded) return
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') setIsExpanded(false)
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isExpanded])
-
-  const pk = ["pk", "eyJ"].join(".");
-  const mapboxToken = import.meta.env.VITE_MAPBOX_PART2 ? `${pk}${import.meta.env.VITE_MAPBOX_PART2}` : null;
-
-  if (!mapboxToken) {
-    return (
-      <Card>
-        <div className="p-4 flex flex-col h-full bg-warning/5 border border-warning rounded-[var(--radius-lg)]">
-          <Label>Route Map Error</Label>
-          <div className="flex-1 flex flex-col items-center justify-center text-center gap-2 max-w-sm mx-auto p-4">
-            <span className="text-2xl">🔑</span>
-            <span className="text-sm font-semibold text-warning">Mapbox Integration Required</span>
-            <span className="text-xs text-text-secondary">Please add <code>VITE_MAPBOX_PART2</code> to your <code>.env.local</code> file.</span>
-          </div>
-        </div>
-      </Card>
-    )
-  }
-
-  if (coords.length < 2) {
-    return (
-      <Card padding="p-0">
-        <div className="p-4 flex flex-col h-full bg-bg-secondary">
-          <Label>Route</Label>
-          <div className="flex-1 flex items-center justify-center">
-            {coordsLoading ? (
-              <span className="text-sm font-medium text-text-muted animate-pulse">Mapping your route…</span>
-            ) : (
-              <span className="text-sm font-medium text-text-muted text-center px-4">Add at least two destinations to see your route map</span>
-            )}
-          </div>
-        </div>
-      </Card>
-    )
-  }
-
-  const bounds = [
-    [Math.min(...coords.map(c => c[0])), Math.min(...coords.map(c => c[1]))],
-    [Math.max(...coords.map(c => c[0])), Math.max(...coords.map(c => c[1]))]
-  ]
-
-  const routeGeoJSON = { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } }
-  const lineLayer = {
-    id: 'route-line', type: 'line', source: 'route',
-    layout: { 'line-join': 'round', 'line-cap': 'round' },
-    paint: { 'line-color': '#D97757', 'line-width': 2.5, 'line-dasharray': [2, 3] }
-  }
-
-  const content = (
-    <div className={`relative w-full h-full ${isExpanded ? 'rounded-[var(--radius-xl)] overflow-hidden border border-border' : ''}`}>
-      <Map
-        ref={mapRef}
-        mapboxAccessToken={mapboxToken}
-        onLoad={() => setIsMapLoaded(true)}
-        fog={null}
-        initialViewState={{ bounds, fitBoundsOptions: { padding: 90, maxZoom: 12 } }}
-        mapStyle="mapbox://styles/mapbox/light-v11"
-        scrollZoom={isExpanded}
-        doubleClickZoom={isExpanded}
-        dragPan={true}
-        style={{ width: '100%', height: '100%' }}
-      >
-        <Source id="route" type="geojson" data={routeGeoJSON}>
-          <Layer {...lineLayer} />
-        </Source>
-        {coords.map((c, i) => (
-          <Marker key={i} longitude={c[0]} latitude={c[1]} anchor="bottom">
-            <div className="flex flex-col items-center pb-2">
-              <div className={`w-9 h-9 rounded-full border-2 flex items-center justify-center bg-bg-card z-10 relative
-                ${i === 0 ? 'border-[#7CA2CE]' : i === coords.length-1 ? 'border-[#E58F76]' : 'border-[#89A88F]'}`}>
-                <div className="text-base leading-none">{mappedDests[i]?.flag}</div>
-              </div>
-              <div className="mt-1.5 bg-[#0F172A] text-white text-[10px] font-semibold px-2.5 py-1 rounded-[6px] whitespace-nowrap z-20">
-                {mappedDests[i]?.city}
-              </div>
-            </div>
-          </Marker>
-        ))}
-        {isExpanded && <NavigationControl position="bottom-right" showCompass={false} />}
-      </Map>
-      <div className="absolute top-5 right-5 z-10">
-        <button onClick={() => setIsExpanded(!isExpanded)} className="bg-bg-card border border-border w-10 h-10 rounded-full flex items-center justify-center text-text-secondary hover:bg-bg-hover">
-          {isExpanded ? '✕' : '⛶'}
-        </button>
-      </div>
-    </div>
-  )
+  const showScroll = dests.length > 4
+  const extraCount = dests.length - 4
 
   return (
-    <Card className={`relative overflow-hidden group ${isMapVisible || isExpanded ? 'min-h-[340px]' : 'min-h-[60px]'}`} padding="p-0">
-      <div className={isExpanded ? "fixed inset-0 z-[9999] bg-bg-primary p-4 md:p-8" : "absolute inset-0 w-full h-full"}>
-        {!isMapVisible && !isExpanded ? (
-          <button onClick={() => setIsMapVisible(true)} className="w-full h-full flex items-center justify-between px-4 hover:bg-bg-hover transition-colors">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🗺️</span>
-              <Label>View Route Map</Label>
-            </div>
-            <span className="text-text-muted">→</span>
-          </button>
-        ) : content}
+    <Card padding="p-0">
+      <div className="px-4 py-3 flex items-center justify-between">
+        <Label>DESTINATIONS</Label>
+        <Button variant="ghost" size="sm" onClick={() => onTabSwitch?.('map')}>View Map →</Button>
       </div>
+      {dests.length === 0 ? (
+        <div className="px-4 pb-4">
+          <span className="text-xs text-text-muted">No destinations added yet</span>
+        </div>
+      ) : (
+        <>
+          <div className={showScroll ? 'max-h-[232px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent' : ''}>
+            {dests.map((dest, i) => (
+              <div key={dest.city || i} className="flex items-center gap-3 px-4 py-3 border-t border-border/40">
+                <span className="text-xl">{dest.flag || '📍'}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-text-primary font-heading truncate">{dest.city}</p>
+                  {dest.country && <p className="text-[10px] text-text-muted truncate">{dest.country}</p>}
+                </div>
+                {dest.nights && (
+                  <span className="text-[10px] text-text-muted font-heading shrink-0">{dest.nights}n</span>
+                )}
+              </div>
+            ))}
+          </div>
+          {showScroll && (
+            <div className="border-t border-border/40 bg-gradient-to-t from-bg-card to-transparent text-[10px] text-text-muted font-heading text-center py-1.5">
+              +{extraCount} more {extraCount === 1 ? 'destination' : 'destinations'}
+            </div>
+          )}
+        </>
+      )}
     </Card>
   )
 }
@@ -599,71 +379,152 @@ function AttentionCell({ trip, onTabSwitch }) {
   )
 }
 
-function ReadinessCell({ trip, onTabSwitch }) {
+/* ─────────────────────────────────────────────────────────────
+   TripHealthCard — Consolidated Weather + Readiness + Budget
+───────────────────────────────────────────────────────────── */
+function TripHealthCard({ trip, onTabSwitch }) {
+  // === Weather (Change 4: multi-destination cycling) ===
+  const destinations = trip.destinations || []
+  const [weather, setWeather] = useState(null)
+  const [weatherStatus, setWeatherStatus] = useState('loading')
+  const [destIndex, setDestIndex] = useState(0)
+  const currentDest = destinations[destIndex]
+
+  useEffect(() => { setDestIndex(0) }, [destinations])
+
+  useEffect(() => {
+    if (!currentDest) { setWeatherStatus('error'); return }
+    let cancelled = false
+    setWeatherStatus('loading'); setWeather(null)
+    async function fetch_() {
+      try {
+        const g = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(currentDest.city)}&count=1&language=en&format=json`)
+        const gd = await g.json()
+        if (!gd.results?.length) throw new Error('not found')
+        const { latitude, longitude } = gd.results[0]
+        const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,weathercode&temperature_unit=celsius&timezone=auto`)
+        const wd = await w.json()
+        const c = wd.current
+        if (!cancelled) { setWeather({ temp: Math.round(c.temperature_2m), feelsLike: Math.round(c.apparent_temperature), wmo: c.weathercode, city: currentDest.city, flag: currentDest.flag }); setWeatherStatus('ok') }
+      } catch { if (!cancelled) setWeatherStatus('error') }
+    }
+    fetch_()
+    return () => { cancelled = true }
+  }, [currentDest?.city])
+
+  // === Readiness ===
   const readiness = calculateReadiness(trip)
   const breakdown = getReadinessBreakdown(trip)
 
-  const msg = readiness === 100
-    ? "You're all set! Enjoy your adventure."
-    : readiness >= 80 ? "Almost ready — just a few loose ends."
-      : "Still planning... but making progress!"
-
-  return (
-    <Card onClick={() => onTabSwitch('todo')} hover>
-      <div className="flex flex-col h-full gap-6">
-        <div className="flex flex-col gap-1">
-          <Label>TRIP READINESS</Label>
-          <div className="text-2xl font-heading font-bold text-text-primary">
-            {readiness}% Complete
-          </div>
-        </div>
-
-        <div className="space-y-5">
-          <ProgressBar value={breakdown.bookings.done} max={breakdown.bookings.total}
-            label="Bookings" showLabel height="h-1.5" colorClass="bg-info" />
-          <ProgressBar value={breakdown.todos.done} max={breakdown.todos.total}
-            label="To-Dos" showLabel height="h-1.5" colorClass="bg-success" />
-          <ProgressBar value={breakdown.packing.done} max={breakdown.packing.total}
-            label="Packing" showLabel height="h-1.5" colorClass="bg-border-strong" />
-        </div>
-      </div>
-    </Card>
-  )
-}
-
-function BudgetCell({ trip }) {
-  const budgetMin = trip.budget?.reduce((s, b) => s + (b.min || 0), 0) || 0
+  // === Budget ===
   const budgetMax = trip.budget?.reduce((s, b) => s + (b.max || 0), 0) || 0
   const totalSpent = trip.budget?.reduce((s, b) => s + (b.actual || 0), 0) || 0
   const hasBudget = budgetMax > 0
   const overBudget = totalSpent > budgetMax
 
   return (
-    <Card padding="p-4">
-      <div className="flex flex-col h-full">
-        <Label>Budget</Label>
-        {!hasBudget ? (
-          <div className="flex-1 flex items-center justify-center py-4">
-            <span className="text-xs text-text-muted">No budget set</span>
+    <Card padding="p-0">
+      <div className="flex flex-col divide-y divide-border/40">
+
+        {/* ── Weather ── */}
+        <div className="px-4 py-4">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <Label>Right Now</Label>
+              {currentDest && <span className="text-[10px] text-text-muted font-heading">{currentDest.city}</span>}
+            </div>
+            {destinations.length > 1 && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setDestIndex(i => Math.max(0, i - 1))}
+                  disabled={destIndex === 0}
+                  className="w-6 h-6 flex items-center justify-center rounded-[var(--radius-sm)] bg-bg-secondary hover:bg-bg-hover text-text-muted text-xs transition-colors disabled:opacity-40"
+                >‹</button>
+                <button
+                  onClick={() => setDestIndex(i => Math.min(destinations.length - 1, i + 1))}
+                  disabled={destIndex === destinations.length - 1}
+                  className="w-6 h-6 flex items-center justify-center rounded-[var(--radius-sm)] bg-bg-secondary hover:bg-bg-hover text-text-muted text-xs transition-colors disabled:opacity-40"
+                >›</button>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="flex-1 flex flex-col justify-between mt-3 gap-6">
-            <div>
+          {weatherStatus === 'loading' && (
+            <div className="flex items-center gap-3 animate-pulse mt-3">
+              <div className="w-10 h-10 rounded-full bg-bg-secondary shrink-0" />
+              <div className="space-y-1.5 flex-1">
+                <div className="h-3 bg-bg-secondary rounded w-16" />
+                <div className="h-2 bg-bg-secondary rounded w-12" />
+              </div>
+            </div>
+          )}
+          {weatherStatus === 'ok' && weather && (() => {
+            const { emoji, label } = wmoToDescription(weather.wmo)
+            return (
+              <div className="flex items-center justify-between mt-2">
+                <div className="flex flex-col">
+                  <div className="text-4xl leading-none mb-2">{emoji}</div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="font-heading font-semibold text-2xl text-text-primary">{weather.temp}°</span>
+                    <span className="text-xs text-text-muted">feels {weather.feelsLike}°</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-text-muted font-heading uppercase tracking-wider">{label}</div>
+                  <div className="text-[10px] text-text-muted mt-1 opacity-50">{weather.flag} {weather.city}</div>
+                </div>
+              </div>
+            )
+          })()}
+          {weatherStatus === 'error' && (
+            <div className="flex items-center justify-center mt-3">
+              <span className="text-xs text-text-muted">Unavailable</span>
+            </div>
+          )}
+        </div>
+
+        {/* ── Readiness ── */}
+        <div
+          className="px-4 py-4 cursor-pointer hover:bg-bg-hover transition-colors rounded-[var(--radius-md)]"
+          onClick={() => onTabSwitch('todo')}
+        >
+          <Label>TRIP READINESS</Label>
+          <div className="text-2xl font-heading font-bold text-text-primary mt-1">
+            {readiness}% Complete
+          </div>
+          <div className="space-y-5 mt-4">
+            <ProgressBar value={breakdown.bookings.done} max={breakdown.bookings.total}
+              label="Bookings" showLabel height="h-1.5" colorClass="bg-info" />
+            <ProgressBar value={breakdown.todos.done} max={breakdown.todos.total}
+              label="To-Dos" showLabel height="h-1.5" colorClass="bg-success" />
+            <ProgressBar value={breakdown.packing.done} max={breakdown.packing.total}
+              label="Packing" showLabel height="h-1.5" colorClass="bg-border-strong" />
+          </div>
+        </div>
+
+        {/* ── Budget ── */}
+        <div className="px-4 py-4">
+          <Label>Budget</Label>
+          {!hasBudget ? (
+            <div className="flex items-center justify-center py-4">
+              <span className="text-xs text-text-muted">No budget set</span>
+            </div>
+          ) : (
+            <div className="flex flex-col mt-3 gap-6">
               <div className="text-2xl font-heading font-bold text-text-primary">
                 ₱{Math.round(totalSpent).toLocaleString()} Spent
               </div>
-            </div>
-            
-            <div className="space-y-2">
-              <ProgressBar value={totalSpent} max={budgetMax}
-                colorClass={overBudget ? 'bg-danger' : 'bg-accent'} height="h-1.5" />
-              <div className="flex justify-between text-[10px] text-text-muted font-bold uppercase tracking-tighter">
-                <span>₱0</span>
-                <span>₱{Math.round(budgetMax).toLocaleString()}</span>
+              <div className="space-y-2">
+                <ProgressBar value={totalSpent} max={budgetMax}
+                  colorClass={overBudget ? 'bg-danger' : 'bg-accent'} height="h-1.5" />
+                <div className="flex justify-between text-[10px] text-text-muted font-bold uppercase tracking-tighter">
+                  <span>₱0</span>
+                  <span>₱{Math.round(budgetMax).toLocaleString()}</span>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+
       </div>
     </Card>
   )
@@ -716,10 +577,8 @@ export default function OverviewTab({ onTabSwitch }) {
 
       {/* ── Right Column: Status & Context (4-col) ── */}
       <div className="lg:col-span-4 flex flex-col gap-5">
-        <WeatherCell destinations={trip.destinations} />
-        <ReadinessCell trip={trip} onTabSwitch={onTabSwitch} />
-        <BudgetCell trip={trip} />
-        <RouteMapCell trip={trip} />
+        <TripHealthCard trip={trip} onTabSwitch={onTabSwitch} />
+        <DestinationsCell trip={trip} onTabSwitch={onTabSwitch} />
       </div>
     </div>
   )
