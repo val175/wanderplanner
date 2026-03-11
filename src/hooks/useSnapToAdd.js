@@ -66,13 +66,16 @@ export function useSnapToAdd() {
             const { data, vector } = await response.json()
             console.log('[useSnapToAdd] Received extracted data:', data)
 
+            // Sanitize date to YYYY-MM-DD for stability
+            const sanitizedDate = data.date ? data.date.split('T')[0] : ''
+
             // Push to local state (tripReducer ADD_BOOKING generates an ID and syncs to Firestore)
             dispatch({
                 type: ACTIONS.ADD_BOOKING,
                 payload: {
                     name: data.title || (file.name ? `Booking: ${file.name}` : 'New Booking'),
                     category: data.type || 'other',
-                    startDate: data.date || '',
+                    startDate: sanitizedDate,
                     location: data.location || '',
                     confirmationNumber: data.confirmationNumber || '',
                     amountPaid: typeof data.amountPaid === 'number' ? data.amountPaid : (Number(data.amountPaid) || 0),

@@ -6,8 +6,8 @@ export async function multimodalIngest(fileBuffer, mimeType) {
     const geminiKey = process.env.GEMINI_API_KEY
     if (!geminiKey) throw new Error('GEMINI_API_KEY is not configured')
 
-    // 1. Extraction with Gemini 3.1 Flash-Lite
-    const extractionUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${geminiKey}`
+    // 1. Extraction with Gemini 2.0 Flash (Higher intelligence for complex categorization)
+    const extractionUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent?key=${geminiKey}`
     
     // Convert buffer to base64
     const base64Content = fileBuffer.toString('base64')
@@ -21,7 +21,7 @@ export async function multimodalIngest(fileBuffer, mimeType) {
                         data: base64Content
                     }
                 },
-                { text: "You are an expert travel data extraction engine for a premium trip planner. Analyze this booking document (Image, PDF, or Text). Extract the details into the strict JSON format defined in the response schema.\n\n### GUIDELINES:\n1. **TITLE**: Create a clear, human-readable name (e.g., 'AirAsia Flight Z2 123' or 'The Peninsula Hotel'). If it's a receipt, name it after the merchant.\n2. **TYPE**: Map to the most relevant category: [lodging, flight, activity, transport, other].\n3. **DATE**: Use ISO 8601 format (YYYY-MM-DDTHH:mm:ssZ). For lodging, use Check-In. For flights, use Departure time.\n4. **LOCATION**: Provide the address, venue name, or route (e.g., 'Manila to Cebu').\n5. **AMOUNT**: Extract the pure numeric value of the total cost (remove currency symbols like $, ₱, €, or commas).\n6. **NOTES**: Summarize key details like passengers, check-in instructions, or cancellation policies.\n7. **CONFIRMATION**: Find the PNR, Booking ID, or Reference Code.\n8. **STATUS**: Set to 'confirmed' for receipts/confirmed bookings, 'requested' for pending, 'to_book' for quotes, and 'idea' for general info.\n\nDO NOT hallucinate. If a value is absolutely not present, return null for that field." }
+                { text: "You are an expert travel data extraction engine for a premium trip planner. Analyze this booking document (Image, PDF, or Text). Extract the details into the strict JSON format defined in the response schema.\n\n### CATEGORIZATION GUIDELINES:\n- **LODGING**: Hotels, Resorts, Airbnbs, Hostels. Keywords: Check-in, Check-out, Night, Room, Bed.\n- **FLIGHT**: Airline tickets, boarding passes, flight receipts. Keywords: PNR, Seat, Terminal, Gate, Flight Number, Class.\n- **TRANSPORT**: Rental cars, trains, buses, ferries. Keywords: Rental, Drop-off, Station.\n- **ACTIVITY**: Tours, museum tickets, restaurant reservations, events.\n- **OTHER**: Generic travel receipts or miscellaneous docs.\n\n### DATA FORMATTING GUIDELINES:\n1. **TITLE**: A concise name (e.g., 'AirAsia Z2 123' or 'Marriott Cebu').\n2. **DATE**: Return only the date part in ISO 8601 format (YYYY-MM-DD). For lodging, use Check-In. For flights, use Departure date.\n3. **LOCATION**: Use 'Origin to Destination' for flights/transport. For lodging, use the property address.\n4. **AMOUNT**: Pure number (no currency symbols).\n\n### EXAMPLES:\n- Input: Marriott Receipt with Check-in Mar 12 -> Output: { \"type\": \"lodging\", \"title\": \"Marriott\", \"date\": \"2026-03-12\", ... }\n- Input: E-Ticket CEB to MNL -> Output: { \"type\": \"flight\", \"title\": \"Cebu Pacific\", \"location\": \"Cebu (CEB) to Manila (MNL)\", ... }" }
             ]
         }],
         generationConfig: {

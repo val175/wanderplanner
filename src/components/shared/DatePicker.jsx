@@ -20,7 +20,10 @@ const DOW = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
 function toDate(iso) {
   if (!iso) return null
-  const [y, m, d] = iso.split('-').map(Number)
+  // Strip time component if present (e.g. "2026-03-12T00:00:00Z" -> "2026-03-12")
+  const datePart = iso.split('T')[0]
+  const [y, m, d] = datePart.split('-').map(Number)
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return null
   return new Date(y, m - 1, d)
 }
 
