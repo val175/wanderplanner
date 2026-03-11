@@ -70,9 +70,9 @@ function TodayAtAGlance({ trip }) {
 
   const aiSummary = messages.find(m => m.role === 'assistant')?.content || ''
 
-  // Persist result to sessionStorage once we have a full response
+  // Persist result to sessionStorage once streaming is done
   useEffect(() => {
-    if (aiSummary && status === 'ready') {
+    if (aiSummary && status !== 'submitted' && status !== 'streaming') {
       sessionStorage.setItem(cacheKey, aiSummary)
     }
   }, [aiSummary, status, cacheKey])
@@ -81,7 +81,7 @@ function TodayAtAGlance({ trip }) {
   useEffect(() => {
     if (!todayDay || cached) return
     const prompt = `In 1-2 upbeat sentences, summarize today's travel plan for Day ${todayDay.dayNumber} in ${todayDay.location}. Activities: ${(todayDay.activities || []).map(a => a.name).join(', ') || 'free day'}.`
-    sendMessage({ role: 'user', content: prompt })
+    sendMessage({ text: prompt })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [todayDay?.dayNumber, trip.id])
 
