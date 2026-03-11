@@ -700,7 +700,7 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
             {/* Search */}
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('open-global-search'))}
-              className="flex items-center gap-1.5 p-2 rounded-[var(--radius-md)] text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors border border-border bg-bg-secondary shadow-sm"
+              className="flex items-center gap-1.5 p-2 rounded-[var(--radius-md)] text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors border border-border bg-bg-secondary"
               title="Search (⌘K)"
               aria-label="Search"
             >

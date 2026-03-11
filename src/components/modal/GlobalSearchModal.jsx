@@ -233,7 +233,7 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
       
       <div 
-        className="relative w-full max-w-2xl bg-bg-card border border-border shadow-soft-xl rounded-2xl overflow-hidden animate-scale-in"
+        className="relative w-full max-w-2xl bg-bg-card border border-border rounded-2xl overflow-hidden animate-scale-in"
         onClick={e => e.stopPropagation()}
       >
         {/* Search Header */}
@@ -301,10 +301,10 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
                     onClick={() => handleSelect(res)}
                     onMouseEnter={() => setSelectedIndex(idx)}
                     className={`flex items-center gap-4 w-full text-left px-4 py-3 rounded-xl transition-all ${
-                      isSelected ? 'bg-bg-hover shadow-sm border border-border/50' : 'bg-transparent border border-transparent'
+                      isSelected ? 'bg-bg-hover border border-border/50' : 'bg-transparent border border-transparent'
                     }`}
                   >
-                    <div className="p-2 rounded-lg bg-bg-input shrink-0 border border-border/50 shadow-sm flex items-center justify-center text-lg w-9 h-9">
+                    <div className="p-2 rounded-lg bg-bg-input shrink-0 border border-border/50 flex items-center justify-center text-lg w-9 h-9">
                       {TABS[res.tab].emoji}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -324,8 +324,8 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
         {/* Footer */}
         <div className="px-4 py-2.5 bg-bg-sidebar border-t border-border flex items-center justify-between text-[11px] text-text-muted">
           <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5"><kbd className="font-sans px-1 py-0.5 rounded bg-bg-input border border-border shadow-sm">↑↓</kbd> to navigate</span>
-            <span className="flex items-center gap-1.5"><kbd className="font-sans px-1 py-0.5 rounded bg-bg-input border border-border shadow-sm">↵</kbd> to jump</span>
+            <span className="flex items-center gap-1.5"><kbd className="font-sans px-1 py-0.5 rounded bg-bg-input border border-border">↑↓</kbd> to navigate</span>
+            <span className="flex items-center gap-1.5"><kbd className="font-sans px-1 py-0.5 rounded bg-bg-input border border-border">↵</kbd> to jump</span>
           </div>
           <span className="font-medium flex items-center gap-1">Powered by <span className="text-accent">Wanda</span></span>
         </div>

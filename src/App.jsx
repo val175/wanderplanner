@@ -189,6 +189,28 @@ function AuthenticatedApp({ user, signOutUser }) {
     })
   }, [activeTrip?.travelerIds, profiles, user?.uid, addProfile])
 
+  // Sync current user's latest name/photo to the shared travelersSnapshot for others to see
+  const { currentUserProfile } = useProfiles()
+  useEffect(() => {
+    if (!activeTrip || !currentUserProfile) return
+    const myId = currentUserProfile.uid || currentUserProfile.id
+    const snapshotEntry = activeTrip.travelersSnapshot?.find(s => s.id === myId)
+    
+    const latestName = currentUserProfile.name || 'Traveler'
+    const latestPhoto = currentUserProfile.customPhoto || currentUserProfile.photo || null
+    
+    const needsRefresh = !snapshotEntry || 
+                        snapshotEntry.name !== latestName || 
+                        snapshotEntry.photo !== latestPhoto
+                        
+    if (needsRefresh) {
+      dispatch({ 
+        type: ACTIONS.REFRESH_TRAVELER_SNAPSHOT, 
+        payload: { travelerId: myId, name: latestName, photo: latestPhoto } 
+      })
+    }
+  }, [activeTrip?.id, currentUserProfile, dispatch])
+
   if (firestoreLoading) {
     return <LoadingScreen message="Loading your trips…" />
   }

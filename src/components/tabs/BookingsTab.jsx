@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import Card from '../shared/Card'
 import ProgressBar from '../shared/ProgressBar'
@@ -6,6 +6,7 @@ import Button from '../shared/Button'
 import Modal from '../shared/Modal'
 import TabHeader from '../common/TabHeader'
 import { useTripContext } from '../../context/TripContext'
+import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { BOOKING_CATEGORIES } from '../../constants/tabs'
 import { hapticImpact } from '../../utils/haptics'
@@ -101,7 +102,9 @@ const TOGGLEABLE_COLUMNS = [
 
 export default function BookingsTab() {
   const { activeTrip, dispatch, showToast, isReadOnly } = useTripContext()
+  const { currentUserProfile } = useProfiles()
   const [filter, setFilter] = useState('all')
+  const actorId = currentUserProfile?.uid || currentUserProfile?.id
   const [viewMode, setViewMode] = useState('table') // 'table' | 'board'
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
@@ -160,8 +163,8 @@ export default function BookingsTab() {
     ).map(c => ({ id: c.id, label: `${c.emoji} ${c.label}` })),
   ]
 
-  const handleUpdate = (id, updates) => {
-    dispatch({ type: ACTIONS.UPDATE_BOOKING, payload: { id, updates } })
+  const handleUpdate = (id, updates, overrideActorId = null) => {
+    dispatch({ type: ACTIONS.UPDATE_BOOKING, payload: { id, updates, actorId: overrideActorId || actorId } })
   }
 
   const handleDelete = (id) => {
@@ -170,7 +173,7 @@ export default function BookingsTab() {
   }
 
   const handleAdd = (data) => {
-    dispatch({ type: ACTIONS.ADD_BOOKING, payload: data })
+    dispatch({ type: ACTIONS.ADD_BOOKING, payload: { ...data, actorId } })
   }
 
   const handleExport = () => {

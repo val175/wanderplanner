@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { Send, X, Sparkles } from 'lucide-react';
+import { Send, X } from 'lucide-react';
 import { auth } from '../../firebase/config';
 import { TripContext } from '../../context/TripContext';
 import { buildTripSystemPrompt } from '../../hooks/useAI';
@@ -537,7 +537,7 @@ export default function AIAssistant() {
             e.currentTarget.style.transform = 'translateY(0)';
           }}
         >
-          <Sparkles size={15} />
+          <span style={{ fontSize: '15px' }}>🪄</span>
           Ask Wanda
         </button>
       )}

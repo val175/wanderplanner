@@ -5,6 +5,7 @@ import { BOOKING_CATEGORIES } from '../../constants/tabs'
 import EditableText from '../shared/EditableText'
 import Button from '../shared/Button'
 import DatePicker from '../shared/DatePicker'
+import { useProfiles } from '../../context/ProfileContext'
 import { formatCurrency } from '../../utils/helpers'
 
 // ── Cost Input ─────────────────────────────────────────────────────────────────
@@ -33,7 +34,9 @@ function CostInput({ value, currency, onChange, disabled }) {
 }
 
 export default function BookingDrawer({ booking, currency, onUpdate, onClose, isReadOnly }) {
+    const { currentUserProfile } = useProfiles()
     const [mounted, setMounted] = useState(false)
+    const actorId = currentUserProfile?.uid || currentUserProfile?.id
 
 
     useEffect(() => {
@@ -86,7 +89,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
                         <div>
                             <EditableText
                                 value={booking.name}
-                                onSave={val => onUpdate(booking.id, { name: val })}
+                                onSave={val => onUpdate(booking.id, { name: val }, actorId)}
                                 className="font-heading text-lg font-semibold text-text-primary block"
                                 readOnly={isReadOnly}
                             />
@@ -113,7 +116,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
                             <div className="pt-1">
                                 <DatePicker
                                     value={booking.bookByDate || booking.startDate || ''}
-                                    onChange={val => onUpdate(booking.id, { bookByDate: val })}
+                                    onChange={val => onUpdate(booking.id, { bookByDate: val }, actorId)}
                                     className={`text-text-primary text-sm block ${isReadOnly ? 'cursor-default' : 'cursor-pointer hover:underline'}`}
                                     placeholder="Add date..."
                                     disabled={isReadOnly}
@@ -125,7 +128,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
                             <CostInput
                                 value={booking.amountPaid}
                                 currency={currency}
-                                onChange={val => onUpdate(booking.id, { amountPaid: val })}
+                                onChange={val => onUpdate(booking.id, { amountPaid: val }, actorId)}
                                 disabled={isReadOnly}
                             />
                         </div>
@@ -133,7 +136,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
                             <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Conf #</span>
                             <EditableText
                                 value={booking.confirmationNumber}
-                                onSave={val => onUpdate(booking.id, { confirmationNumber: val })}
+                                onSave={val => onUpdate(booking.id, { confirmationNumber: val }, actorId)}
                                 className="text-accent font-mono text-sm block"
                                 placeholder="Add confirmation..."
                                 readOnly={isReadOnly}
@@ -143,7 +146,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
                             <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Link</span>
                             <EditableText
                                 value={booking.providerLink || ''}
-                                onSave={val => onUpdate(booking.id, { providerLink: val })}
+                                onSave={val => onUpdate(booking.id, { providerLink: val }, actorId)}
                                 className="text-accent text-sm block hover:underline"
                                 placeholder="Add URL..."
                                 readOnly={isReadOnly}
@@ -155,7 +158,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
                         <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Location</span>
                         <EditableText
                             value={booking.location || ''}
-                            onSave={val => onUpdate(booking.id, { location: val })}
+                            onSave={val => onUpdate(booking.id, { location: val }, actorId)}
                             className="text-text-primary text-sm block"
                             placeholder="e.g. 1-2-3 Shinjuku, Tokyo"
                             readOnly={isReadOnly}
@@ -169,7 +172,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
                         <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Notes & Policies</span>
                         <EditableText
                             value={booking.notes || ''}
-                            onSave={val => onUpdate(booking.id, { notes: val })}
+                            onSave={val => onUpdate(booking.id, { notes: val }, actorId)}
                             multiline
                             className="text-text-secondary text-sm block w-full bg-transparent"
                             inputClassName="min-h-[120px]"
@@ -216,7 +219,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
                                                 <button 
                                                     onClick={() => {
                                                         const remaining = booking.attachments.filter(a => a.id !== file.id)
-                                                        onUpdate(booking.id, { attachments: remaining })
+                                                        onUpdate(booking.id, { attachments: remaining }, actorId)
                                                     }}
                                                     className="p-1.5 text-text-muted hover:text-danger rounded hover:bg-bg-hover"
                                                     title="Remove"

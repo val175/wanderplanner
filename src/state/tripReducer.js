@@ -8,6 +8,7 @@ export const ACTIONS = {
   UPDATE_TRIP: 'UPDATE_TRIP',
   DELETE_TRIP: 'DELETE_TRIP',
   DUPLICATE_TRIP: 'DUPLICATE_TRIP',
+  REFRESH_TRAVELER_SNAPSHOT: 'REFRESH_TRAVELER_SNAPSHOT',
   RENAME_TRIP: 'RENAME_TRIP',
 
   // Navigation
@@ -116,7 +117,7 @@ function updateTrip(state, tripId, updater) {
  * Handles adding/removing expenses based on booking status transitions.
  * Modifies nextBooking (if needed) and returns updated trip fields.
  */
-function syncBookingBudget(trip, prev, next) {
+function syncBookingBudget(trip, prev, next, actorId = null) {
   let spendingLog = trip.spendingLog || []
   let budget = trip.budget || []
 
@@ -153,7 +154,7 @@ function syncBookingBudget(trip, prev, next) {
       description: next.name || 'Booking',
       amount: cost,
       category: catName,
-      paidBy: trip.travelerIds?.[0] || '',
+      paidBy: actorId || trip.travelerIds?.[0] || '',
       splitBetween: trip.travelerIds || [],
       splits: {},
       splitMode: 'equal',
@@ -216,6 +217,24 @@ export function tripReducer(state, action) {
 
     case ACTIONS.RENAME_TRIP:
       return updateTrip(state, payload.id, { name: payload.name })
+
+    case ACTIONS.REFRESH_TRAVELER_SNAPSHOT:
+      return updateTrip(state, state.activeTripId, trip => {
+        const { travelerId, name, photo } = payload
+        const snapshot = trip.travelersSnapshot || []
+        const exists = snapshot.some(s => s.id === travelerId)
+        
+        const newEntry = { id: travelerId, name, photo }
+        
+        let nextSnapshot
+        if (exists) {
+          nextSnapshot = snapshot.map(s => s.id === travelerId ? { ...s, ...newEntry } : s)
+        } else {
+          nextSnapshot = [...snapshot, newEntry]
+        }
+        
+        return { ...trip, travelersSnapshot: nextSnapshot }
+      })
 
     // ─── Navigation ───
     case ACTIONS.SET_TAB:
@@ -393,7 +412,7 @@ export function tripReducer(state, action) {
           currency: trip.currency,
           ...payload
         }
-        const { spendingLog, budget } = syncBookingBudget(trip, null, next)
+        const { spendingLog, budget } = syncBookingBudget(trip, null, next, payload.actorId)
         return {
           ...trip,
           bookings: [next, ...trip.bookings],
@@ -407,7 +426,7 @@ export function tripReducer(state, action) {
         const prev = trip.bookings.find(b => b.id === payload.id)
         if (!prev) return trip
         const next = { ...prev, ...payload.updates }
-        const { spendingLog, budget } = syncBookingBudget(trip, prev, next)
+        const { spendingLog, budget } = syncBookingBudget(trip, prev, next, payload.actorId)
         const bookings = trip.bookings.map(b => b.id === payload.id ? next : b)
         return { ...trip, bookings, spendingLog, budget }
       })
@@ -421,13 +440,13 @@ export function tripReducer(state, action) {
 
     case ACTIONS.CYCLE_BOOKING_STATUS:
       return updateTrip(state, activeTripId, trip => {
-        const prev = trip.bookings.find(b => b.id === payload)
+        const prev = trip.bookings.find(b => b.id === payload.id)
         if (!prev) return trip
         const currentIndex = STATUS_CYCLE.indexOf(prev.status)
         const nextStatus = STATUS_CYCLE[(currentIndex + 1) % STATUS_CYCLE.length]
         const next = { ...prev, status: nextStatus }
-        const { spendingLog, budget } = syncBookingBudget(trip, prev, next)
-        const bookings = trip.bookings.map(b => b.id === payload ? next : b)
+        const { spendingLog, budget } = syncBookingBudget(trip, prev, next, payload.actorId)
+        const bookings = trip.bookings.map(b => b.id === payload.id ? next : b)
         return { ...trip, bookings, spendingLog, budget }
       })
 
@@ -436,7 +455,7 @@ export function tripReducer(state, action) {
         const prev = trip.bookings.find(b => b.id === payload.id)
         if (!prev) return trip
         const next = { ...prev, status: payload.status }
-        const { spendingLog, budget } = syncBookingBudget(trip, prev, next)
+        const { spendingLog, budget } = syncBookingBudget(trip, prev, next, payload.actorId)
         const bookings = trip.bookings.map(b => b.id === payload.id ? next : b)
         return { ...trip, bookings, spendingLog, budget }
       })
