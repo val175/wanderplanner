@@ -9,7 +9,7 @@ const mapboxToken = import.meta.env.VITE_MAPBOX_PART2 ? `${mapboxPrefix}${import
  * LocationAutocomplete
  * Simple search interface for Mapbox locations.
  */
-export default function LocationAutocomplete({ onSelect, cityHint = '', initialValue = '' }) {
+export default function LocationAutocomplete({ onSelect, proximity = '', initialValue = '' }) {
     const [query, setQuery] = useState(initialValue)
     const [suggestions, setSuggestions] = useState([])
     const [isLoading, setIsLoading] = useState(false)
@@ -25,7 +25,17 @@ export default function LocationAutocomplete({ onSelect, cityHint = '', initialV
         const delayDebounceFn = setTimeout(async () => {
             setIsLoading(true)
             try {
-                const res = await fetch(`https://api.mapbox.com/search/geocode/v6/forward?q=${encodeURIComponent(query)}&access_token=${mapboxToken}&limit=5&proximity=ip${cityHint ? `&bbox=${cityHint}` : ''}`)
+                // Use Searchbox API (forward) for better POI/restaurant results
+                const endpoint = `https://api.mapbox.com/search/searchbox/v1/forward`
+                const params = new URLSearchParams({
+                    q: query,
+                    access_token: mapboxToken,
+                    limit: '10',
+                    types: 'poi,address',
+                    proximity: proximity || 'ip'
+                })
+                
+                const res = await fetch(`${endpoint}?${params.toString()}`)
                 if (res.ok) {
                     const data = await res.json()
                     setSuggestions(data.features || [])
@@ -39,7 +49,7 @@ export default function LocationAutocomplete({ onSelect, cityHint = '', initialV
         }, 300)
 
         return () => clearTimeout(delayDebounceFn)
-    }, [query, cityHint])
+    }, [query, proximity])
 
     const handleSelect = (feature) => {
         const [lng, lat] = feature.geometry.coordinates

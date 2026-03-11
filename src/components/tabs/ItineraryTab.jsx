@@ -704,21 +704,33 @@ export default function ItineraryTab() {
           <p className="text-sm text-text-secondary mb-4">
             Search for a specific place to get accurate map data and photos.
           </p>
-          <LocationAutocomplete
-            initialValue={activeSearchActivity?.initialValue || ''}
-            onSelect={(locationData) => {
-              dispatch({
-                type: ACTIONS.UPDATE_ACTIVITY,
-                payload: {
-                  dayId: activeSearchActivity.dayId,
-                  activityId: activeSearchActivity.activityId,
-                  updates: { location: locationData }
-                }
-              })
-              setActiveSearchActivity(null)
-              triggerHaptic('medium')
-            }}
-          />
+          {(() => {
+            const currentDay = trip.itinerary.find(d => d.id === activeSearchActivity?.dayId)
+            const cityContext = currentDay ? trip.cities.find(c =>
+              currentDay.location && c.city && currentDay.location.toLowerCase().includes(c.city.toLowerCase())
+            ) || (trip.cities?.length > 0 ? trip.cities[0] : null) : null
+
+            const proximity = cityContext?.lat && cityContext?.lng ? `${cityContext.lng},${cityContext.lat}` : ''
+
+            return (
+              <LocationAutocomplete
+                initialValue={activeSearchActivity?.initialValue || ''}
+                proximity={proximity}
+                onSelect={(locationData) => {
+                  dispatch({
+                    type: ACTIONS.UPDATE_ACTIVITY,
+                    payload: {
+                      dayId: activeSearchActivity.dayId,
+                      activityId: activeSearchActivity.activityId,
+                      updates: { location: locationData }
+                    }
+                  })
+                  setActiveSearchActivity(null)
+                  triggerHaptic('medium')
+                }}
+              />
+            )
+          })()}
         </div>
       </Modal>
 

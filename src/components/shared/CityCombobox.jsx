@@ -397,6 +397,8 @@ export default function CityCombobox({
                 city: r.name,
                 country: displaySub ? `${baseC}, ${displaySub}` : baseC,
                 iso: r.country_code || '',
+                lat: r.latitude,
+                lng: r.longitude,
                 _regionPool: regionPool, // extra metadata — never sent to onChange
               }
             })
@@ -465,7 +467,7 @@ export default function CityCombobox({
     setOpen(false)
 
     // Notify parent
-    onChange({ city: cityName, country: entry.country, flag: derivedFlag })
+    onChange({ city: cityName, country: entry.country, flag: derivedFlag, lat: entry.lat, lng: entry.lng })
 
     // Re-focus input to allow continued typing/navigation
     inputRef.current?.focus()
