@@ -719,7 +719,7 @@ export default function ItineraryTab() {
     <div className="space-y-6 animate-fade-in flex flex-col h-full min-h-[calc(100vh-120px)]">
       <TabHeader
         leftSlot={
-          <span className="text-[11px] font-bold font-heading px-3 py-1 rounded-[var(--radius-pill)] bg-bg-secondary border border-border text-text-secondary">
+          <span className="text-[11px] font-semibold font-heading text-text-muted">
             {trip.itinerary?.reduce((acc, d) => acc + (d.activities?.length || 0), 0) || 0} activities · {trip.itinerary?.length || 0} days
           </span>
         }

@@ -611,13 +611,15 @@ export default function PackingTab() {
       <TabHeader
         leftSlot={
           <div className="flex items-center gap-3">
-            <span className="text-[11px] font-bold font-heading px-3 py-1 rounded-[var(--radius-pill)] bg-bg-secondary border border-border text-text-secondary">
+            <div className="w-20 h-1.5 rounded-[var(--radius-pill)] bg-bg-secondary overflow-hidden hidden md:block shrink-0">
+              <div
+                className="h-full rounded-[var(--radius-pill)] bg-accent transition-all duration-300"
+                style={{ width: `${total > 0 ? (packed / total) * 100 : 0}%` }}
+              />
+            </div>
+            <span className="text-[11px] font-semibold font-heading text-text-muted">
               {packed}/{total} packed
             </span>
-            <div className="w-24 h-1.5 rounded-[var(--radius-pill)] bg-bg-secondary overflow-hidden hidden md:block">
-              <div className="h-full bg-accent rounded-[var(--radius-pill)]"
-                style={{ width: `${total ? (packed/total)*100 : 0}%` }} />
-            </div>
           </div>
         }
         rightSlot={

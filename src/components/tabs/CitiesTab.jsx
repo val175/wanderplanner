@@ -325,7 +325,7 @@ export default function CitiesTab() {
     <div className="space-y-6 pb-24 animate-fade-in w-full">
       <TabHeader
         leftSlot={
-          <span className="text-[11px] font-bold font-heading px-3 py-1 rounded-[var(--radius-pill)] bg-bg-secondary border border-border text-text-secondary">
+          <span className="text-[11px] font-semibold font-heading text-text-muted">
             {cities.length} {cities.length === 1 ? 'destination' : 'destinations'}
           </span>
         }

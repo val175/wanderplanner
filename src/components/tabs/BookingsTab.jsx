@@ -217,9 +217,17 @@ export default function BookingsTab() {
 
       <TabHeader
         leftSlot={
-          <span className="text-[11px] font-bold font-heading px-3 py-1 rounded-[var(--radius-pill)] bg-bg-secondary border border-border text-text-secondary">
-            {confirmedCount} of {totalCount} confirmed
-          </span>
+          <div className="flex items-center gap-3">
+            <div className="w-20 h-1.5 rounded-[var(--radius-pill)] bg-bg-secondary overflow-hidden hidden md:block shrink-0">
+              <div
+                className="h-full rounded-[var(--radius-pill)] bg-accent transition-all duration-300"
+                style={{ width: `${totalCount > 0 ? (confirmedCount / totalCount) * 100 : 0}%` }}
+              />
+            </div>
+            <span className="text-[11px] font-semibold font-heading text-text-muted">
+              {confirmedCount}/{totalCount} confirmed
+            </span>
+          </div>
         }
         rightSlot={
           <>
