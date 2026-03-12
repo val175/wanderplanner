@@ -124,12 +124,12 @@ function TodayAtAGlance({ trip }) {
           </span>
         </div>
         
-        <div className="flex items-start gap-4">
-          <div className="text-4xl bg-bg-secondary border border-border/50 w-14 h-14 rounded-[var(--radius-lg)] flex items-center justify-center shrink-0">
+        <div className="flex items-start gap-3">
+          <div className="text-2xl bg-bg-secondary border border-border/50 w-10 h-10 rounded-[var(--radius-md)] flex items-center justify-center shrink-0">
             {todayDay.emoji || '📍'}
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-heading text-xl font-bold text-text-primary leading-tight truncate text-balance">
+            <h3 className="font-heading text-base font-semibold text-text-primary leading-tight truncate text-balance">
               Day {todayDay.dayNumber}: {todayDay.location}
             </h3>
 
@@ -501,9 +501,11 @@ function TripHealthCard({ trip, onTabSwitch }) {
           className="px-4 py-4 cursor-pointer hover:bg-bg-hover transition-colors rounded-[var(--radius-md)]"
           onClick={() => onTabSwitch('todo')}
         >
-          <Label>TRIP READINESS</Label>
-          <div className="text-2xl font-heading font-bold text-text-primary mt-1">
-            {readiness}% Complete
+          <div className="flex items-center justify-between">
+            <Label>TRIP READINESS</Label>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-[var(--radius-pill)] bg-accent/10 text-accent border border-accent/20 font-heading tabular-nums">
+              {readiness}% complete
+            </span>
           </div>
 
           <div className="space-y-5 mt-4">
@@ -518,24 +520,29 @@ function TripHealthCard({ trip, onTabSwitch }) {
 
         {/* ── Budget ── */}
         <div className="px-4 py-4">
-          <Label>Budget</Label>
+          <div className="flex items-center justify-between">
+            <Label>Budget</Label>
+            {hasBudget && (
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-[var(--radius-pill)] font-heading tabular-nums border ${
+                overBudget
+                  ? 'bg-danger/10 text-danger border-danger/20'
+                  : 'bg-accent/10 text-accent border-accent/20'
+              }`}>
+                ₱{Math.round(totalSpent).toLocaleString()} spent
+              </span>
+            )}
+          </div>
           {!hasBudget ? (
             <div className="flex items-center justify-center py-4">
               <span className="text-xs text-text-muted">No budget set</span>
             </div>
           ) : (
-            <div className="flex flex-col mt-3 gap-6">
-              <div className="text-2xl font-heading font-bold text-text-primary">
-                ₱{Math.round(totalSpent).toLocaleString()} Spent
-              </div>
-
-              <div className="space-y-2">
-                <ProgressBar value={totalSpent} max={budgetMax}
-                  colorClass={overBudget ? 'bg-danger' : 'bg-accent'} height="h-1.5" />
-                <div className="flex justify-between text-[10px] text-text-muted font-bold uppercase tracking-tighter">
-                  <span>₱0</span>
-                  <span>₱{Math.round(budgetMax).toLocaleString()}</span>
-                </div>
+            <div className="flex flex-col mt-4 gap-3">
+              <ProgressBar value={totalSpent} max={budgetMax}
+                colorClass={overBudget ? 'bg-danger' : 'bg-accent'} height="h-1.5" />
+              <div className="flex justify-between text-[10px] text-text-muted font-bold uppercase tracking-tighter">
+                <span>₱0</span>
+                <span>₱{Math.round(budgetMax).toLocaleString()}</span>
               </div>
             </div>
           )}
