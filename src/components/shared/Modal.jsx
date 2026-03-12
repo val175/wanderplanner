@@ -33,9 +33,10 @@ export default function Modal({ isOpen, onClose, children, className = '', maxWi
           {/* Optional title header */}
           {title && (
             <div className="flex items-center justify-between px-6 pt-5 pb-1">
-              <Dialog.Title className="font-heading font-semibold text-lg text-text-primary">
+              <Dialog.Title className="font-heading font-semibold text-lg text-text-primary text-balance">
                 {title}
               </Dialog.Title>
+
               <Dialog.Close
                 onClick={onClose}
                 className="p-1.5 rounded-[var(--radius-sm)] text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"

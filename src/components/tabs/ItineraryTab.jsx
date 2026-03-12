@@ -238,10 +238,10 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
 
           <div className="flex flex-col ml-2">
             <div className="flex items-center gap-2">
-              <span className="font-heading font-semibold text-text-primary text-base whitespace-nowrap">
+              <span className="font-heading font-semibold text-text-primary text-base whitespace-nowrap text-balance">
                 Day {day.dayNumber}:
               </span>
-              <span className="font-heading font-semibold text-text-primary text-base whitespace-nowrap">
+              <span className="font-heading font-semibold text-text-primary text-base whitespace-nowrap text-balance">
                 {day.date ? formatDate(day.date, 'weekday') : ''}
               </span>
               <EditableText
@@ -716,7 +716,8 @@ export default function ItineraryTab() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in flex flex-col h-full min-h-[calc(100vh-120px)]">
+    <div className="space-y-6 animate-tab-enter stagger-1 flex flex-col h-full min-h-[calc(100vh-120px)]">
+
       <TabHeader
         leftSlot={
           <span className="text-[11px] font-semibold font-heading text-text-muted tabular-nums">
@@ -824,20 +825,23 @@ export default function ItineraryTab() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
             Activity
           </button>
-          <button
-            onClick={() => { hapticImpact('medium'); handleAddDay() }}
-            className="shadow-lg bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2 text-sm"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
-            New Day
-          </button>
+          <div className="animate-tab-enter stagger-2">
+            <button
+              onClick={() => { hapticImpact('medium'); handleAddDay() }}
+              className="shadow-lg bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2 text-sm"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+              New Day
+            </button>
+          </div>
         </div>,
         document.body
       )}
 
       {/* Content Area */}
       {trip.itinerary && trip.itinerary.length > 0 ? (
-        <div className="flex-1 w-full relative">
+        <div className="flex-1 w-full relative animate-tab-enter stagger-3">
+
           {viewMode === 'table' ? (
             <div className="w-full pb-20 overflow-hidden">
               {isMobile ? (
@@ -922,8 +926,8 @@ export default function ItineraryTab() {
           <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mb-5 text-3xl">
             🗺️
           </div>
-          <h3 className="text-2xl font-heading font-semibold text-text-primary mb-2">Build your perfect trip</h3>
-          <p className="text-text-muted mb-8 text-sm leading-relaxed">
+          <h3 className="text-2xl font-heading font-semibold text-text-primary mb-2 text-balance">Build your perfect trip</h3>
+          <p className="text-text-muted mb-8 text-sm leading-relaxed text-balance">
             Start outlining your days and dragging activities around until your schedule is air-tight.
           </p>
           <Button variant="primary" size="lg" onClick={handleAddDay}>

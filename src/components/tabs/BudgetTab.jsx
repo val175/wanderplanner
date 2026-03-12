@@ -152,7 +152,8 @@ function BudgetHealthCard({ budget, totals, currency, isReadOnly }) {
   return (
     <Card className="p-4 border-border bg-bg-card">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="font-heading font-semibold text-sm text-text-primary">Overall Budget</h3>
+        <h3 className="font-heading font-semibold text-sm text-text-primary text-balance">Overall Budget</h3>
+
         {!isReadOnly && !isAdding && (
           <button
             onClick={() => setIsAdding(true)}
@@ -325,7 +326,8 @@ function GroupBalancesCard({ spendingLog, travelers, currency }) {
   return (
     <Card className="border-border bg-bg-card p-4">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-heading font-semibold text-sm text-text-primary">Group Spend</h3>
+        <h3 className="font-heading font-semibold text-sm text-text-primary text-balance">Group Spend</h3>
+
         {transactions.length > 0 && (
           <button
             onClick={() => setShowSettle(p => !p)}
@@ -433,9 +435,10 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
       {/* ── Mobile card view ── */}
       <div className="flex flex-col gap-3 p-3 md:hidden">
         {filtered.length === 0 && (
-          <p className="text-center text-[13px] text-text-muted py-6">
+          <p className="text-center text-[13px] text-text-muted py-6 text-balance">
             {search ? `No results for "${search}"` : 'No expenses yet — tap + Log Expense to add one'}
           </p>
+
         )}
         {filtered.map(entry => {
           const catIndex = budget.findIndex(c => c.name === entry.category)
@@ -652,7 +655,8 @@ export default function BudgetTab() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in pb-24 w-full">
+    <div className="space-y-6 animate-tab-enter stagger-1 pb-24 w-full">
+
 
 
       <AddExpenseModal
@@ -720,7 +724,8 @@ export default function BudgetTab() {
       />
 
       {/* 2:1 Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start animate-tab-enter stagger-2">
+
         {/* Left Column (2/3 width) - Spending Log */}
         <div className="lg:col-span-2">
           <SpendingLogTable

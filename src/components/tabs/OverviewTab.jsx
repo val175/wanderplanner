@@ -129,18 +129,20 @@ function TodayAtAGlance({ trip }) {
             {todayDay.emoji || '📍'}
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-heading text-xl font-bold text-text-primary leading-tight truncate">
+            <h3 className="font-heading text-xl font-bold text-text-primary leading-tight truncate text-balance">
               Day {todayDay.dayNumber}: {todayDay.location}
             </h3>
+
             {loading ? (
               <div className="mt-2 space-y-2">
                 <div className="h-3 bg-bg-hover rounded w-full animate-pulse" />
                 <div className="h-3 bg-bg-hover rounded w-3/4 animate-pulse" />
               </div>
             ) : (
-              <p className="mt-1.5 text-sm text-text-secondary leading-relaxed font-heading font-normal">
+              <p className="mt-1.5 text-sm text-text-secondary leading-relaxed font-heading font-normal text-balance">
                 {displaySummary}
               </p>
+
             )}
           </div>
         </div>
@@ -168,7 +170,8 @@ function QuickItineraryCell({ trip, status, onTabSwitch }) {
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
             <Label className="text-info">UP NEXT</Label>
-            <h3 className="font-heading text-lg font-bold text-text-primary mt-1">First 48 Hours</h3>
+            <h3 className="font-heading text-lg font-bold text-text-primary mt-1 text-balance">First 48 Hours</h3>
+
           </div>
           <Button variant="ghost" onClick={() => onTabSwitch?.('itinerary')} className="text-[11px]">
             View Full Itinerary →
@@ -259,7 +262,8 @@ function DestinationsCell({ trip, onTabSwitch }) {
               <div key={dest.city || i} className="flex items-center gap-3 px-4 py-3 border-t border-border/40">
                 <span className="text-xl">{dest.flag || '📍'}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-text-primary font-heading truncate">{dest.city}</p>
+                  <p className="text-sm font-semibold text-text-primary font-heading truncate text-balance">{dest.city}</p>
+
                   {dest.country && <p className="text-[10px] text-text-muted truncate">{dest.country}</p>}
                 </div>
                 {dest.nights && (
@@ -358,8 +362,8 @@ function AttentionCell({ trip, onTabSwitch }) {
         {items.length === 0 ? (
           <div className="py-12 flex flex-col items-center justify-center text-center px-5">
             <span className="text-3xl mb-2">🎉</span>
-            <p className="text-sm font-bold text-text-primary font-heading">All clear</p>
-            <p className="text-xs text-text-muted mt-0.5">Nothing urgent right now</p>
+            <p className="text-sm font-bold text-text-primary font-heading text-balance">All clear</p>
+            <p className="text-xs text-text-muted mt-0.5 text-balance">Nothing urgent right now</p>
           </div>
         ) : items.map(item => (
           <button
@@ -501,6 +505,7 @@ function TripHealthCard({ trip, onTabSwitch }) {
           <div className="text-2xl font-heading font-bold text-text-primary mt-1">
             {readiness}% Complete
           </div>
+
           <div className="space-y-5 mt-4">
             <ProgressBar value={breakdown.bookings.done} max={breakdown.bookings.total}
               label="Bookings" showLabel height="h-1.5" colorClass="bg-info" />
@@ -523,6 +528,7 @@ function TripHealthCard({ trip, onTabSwitch }) {
               <div className="text-2xl font-heading font-bold text-text-primary">
                 ₱{Math.round(totalSpent).toLocaleString()} Spent
               </div>
+
               <div className="space-y-2">
                 <ProgressBar value={totalSpent} max={budgetMax}
                   colorClass={overBudget ? 'bg-danger' : 'bg-accent'} height="h-1.5" />
@@ -553,8 +559,8 @@ function QuickStartRow({ onTabSwitch }) {
         <Card key={item.tab} onClick={() => onTabSwitch?.(item.tab)} hover padding="p-4">
           <div className="flex flex-col h-full">
             <div className="text-2xl mb-3">{item.emoji}</div>
-            <p className="text-xs font-bold text-text-primary font-heading uppercase tracking-wide">{item.title}</p>
-            <p className="text-[10px] text-text-muted mt-1">{item.desc}</p>
+            <p className="text-xs font-bold text-text-primary font-heading uppercase tracking-wide text-balance">{item.title}</p>
+            <p className="text-[10px] text-text-muted mt-1 text-balance">{item.desc}</p>
           </div>
         </Card>
       ))}
@@ -571,9 +577,10 @@ export default function OverviewTab({ onTabSwitch }) {
   const isZeroReadiness = calculateReadiness(trip) === 0
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 animate-fade-in font-heading pb-24">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 animate-tab-enter stagger-1 font-heading pb-24">
       {/* ── Left Column: Action & Itinerary (8-col) ── */}
-      <div className="lg:col-span-8 flex flex-col gap-5">
+      <div className="lg:col-span-8 flex flex-col gap-5 animate-tab-enter stagger-2">
+
         {status === 'ongoing' && <TodayAtAGlance trip={trip} />}
         
         <AttentionCell trip={trip} onTabSwitch={onTabSwitch} />
@@ -586,7 +593,8 @@ export default function OverviewTab({ onTabSwitch }) {
       </div>
 
       {/* ── Right Column: Status & Context (4-col) ── */}
-      <div className="lg:col-span-4 flex flex-col gap-5">
+      <div className="lg:col-span-4 flex flex-col gap-5 animate-tab-enter stagger-3">
+
         <TripHealthCard trip={trip} onTabSwitch={onTabSwitch} />
         <DestinationsCell trip={trip} onTabSwitch={onTabSwitch} />
       </div>

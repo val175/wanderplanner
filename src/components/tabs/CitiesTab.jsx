@@ -322,7 +322,8 @@ export default function CitiesTab() {
   const cities = activeTrip.cities || []
 
   return (
-    <div className="space-y-6 pb-24 animate-fade-in w-full">
+    <div className="space-y-6 pb-24 animate-tab-enter stagger-1 w-full">
+
       <TabHeader
         leftSlot={
           <span className="text-[11px] font-semibold font-heading text-text-muted tabular-nums">
@@ -371,7 +372,9 @@ export default function CitiesTab() {
       </div>
 
       {/* ── Desktop table view ── */}
+      <div className="animate-tab-enter stagger-2">
       <Card className="hidden md:block border border-border/50 p-0 overflow-hidden w-full max-w-full">
+
         <div className="w-full overflow-x-auto overflow-y-visible scrollbar-thin">
           <table className="w-full text-left border-collapse table-fixed min-w-[850px] text-sm">
             <thead>
@@ -398,12 +401,14 @@ export default function CitiesTab() {
           </table>
         </div>
       </Card>
+      </div>
+
 
       {cities.length === 0 && (
         <div className="text-center py-12">
           <p className="text-4xl mb-3">🏙️</p>
-          <p className="text-text-muted">No cities added yet.</p>
-          {!isReadOnly && <p className="text-text-muted text-sm mt-1">Click "+ New City" to add a destination.</p>}
+          <p className="text-text-muted text-balance">No cities added yet.</p>
+          {!isReadOnly && <p className="text-text-muted text-sm mt-1 text-balance">Click "+ New City" to add a destination.</p>}
         </div>
       )}
     </div>

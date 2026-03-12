@@ -598,7 +598,8 @@ export default function PackingTab() {
   })
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-5 animate-tab-enter stagger-1">
+
       <CelebrationEffect trigger={celebration} />
 
       <AddPackingModal
@@ -671,6 +672,9 @@ export default function PackingTab() {
           </>
         }
       />
+
+      <div className="animate-tab-enter stagger-2">
+
 
       {/* FAB — mobile only */}
       {!isReadOnly && createPortal(
@@ -754,9 +758,13 @@ export default function PackingTab() {
           )
         })}
       </div>
+      </div>
+
 
       {/* ── Desktop table view ── */}
+      <div className="animate-tab-enter stagger-3">
       <Card className="hidden md:block overflow-hidden">
+
         <div className="overflow-x-auto scrollbar-thin">
           <table className="w-full text-left border-collapse table-fixed min-w-[600px]">
             <thead>
@@ -794,11 +802,13 @@ export default function PackingTab() {
           </table>
         </div>
       </Card>
+      </div>
+
 
       {total === 0 && (
         <div className="text-center py-12 text-text-muted">
           <div className="text-4xl mb-3">🧳</div>
-          <p className="text-sm">No items yet. Add your first item or use the starter list.</p>
+          <p className="text-sm text-balance">No items yet. Add your first item or use the starter list.</p>
         </div>
       )}
     </div>

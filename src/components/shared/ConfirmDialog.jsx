@@ -23,12 +23,14 @@ export default function ConfirmDialog({
             focus:outline-none
           "
         >
-          <AlertDialog.Title className="font-heading font-semibold text-xl text-text-primary mb-2">
+          <AlertDialog.Title className="font-heading font-semibold text-xl text-text-primary mb-2 text-balance">
             {title}
           </AlertDialog.Title>
-          <AlertDialog.Description className="text-text-secondary text-sm mb-6">
+
+          <AlertDialog.Description className="text-text-secondary text-sm mb-6 text-balance">
             {message}
           </AlertDialog.Description>
+
           <div className="flex gap-3 justify-end">
             <AlertDialog.Cancel asChild>
               <Button variant="ghost" size="md" onClick={onClose}>

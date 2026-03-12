@@ -867,7 +867,8 @@ export default function TodoTab() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12 w-full">
+    <div className="space-y-6 animate-tab-enter stagger-1 pb-12 w-full">
+
       <CelebrationEffect trigger={celebration} />
 
       {/* ── Layer 1: Header ── */}
@@ -978,10 +979,11 @@ export default function TodoTab() {
         onDragStart={canDrag && !isReadOnly ? handleDragStart : undefined}
         onDragEnd={handleDragEnd}
       >
-        <div className={viewMode === 'board'
+        <div className={`animate-tab-enter stagger-2 ${viewMode === 'board'
           ? 'flex gap-4 overflow-x-auto pb-4 scrollbar-thin items-start h-[calc(100vh-320px)] min-h-[400px]'
           : 'space-y-4'
-        }>
+        }`}>
+
           {TODO_PHASES.map((phase, index) => (
             <TodoPhaseGroup
               key={phase.id}
