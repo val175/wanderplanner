@@ -221,19 +221,21 @@ function QtyStepper({ value, onChange, disabled }) {
     <div className="flex items-center gap-1 sm:gap-2 justify-center">
       <button
         onClick={() => !disabled && onChange(Math.max(1, value - 1))}
-        className={`w-11 h-11 sm:w-5 sm:h-5 flex items-center justify-center rounded-[var(--radius-md)] sm:rounded-[var(--radius-sm)] bg-bg-secondary text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors ${disabled ? 'opacity-50 cursor-default' : ''}`}
+        className={`w-11 h-11 sm:w-5 sm:h-5 flex items-center justify-center rounded-[var(--radius-md)] sm:rounded-[var(--radius-sm)] bg-bg-secondary text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors touch-target ${disabled ? 'opacity-50 cursor-default' : ''}`}
         disabled={value <= 1 || disabled}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="sm:w-[10px] sm:h-[10px]"><path d="M5 12h14" /></svg>
       </button>
+
       <span className="text-base sm:text-sm font-medium tabular-nums min-w-[1.5rem] sm:min-w-[1.25rem] text-center">{value}</span>
       <button
         onClick={() => !disabled && onChange(value + 1)}
-        className={`w-11 h-11 sm:w-5 sm:h-5 flex items-center justify-center rounded-[var(--radius-md)] sm:rounded-[var(--radius-sm)] bg-bg-secondary text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors ${disabled ? 'opacity-50 cursor-default' : ''}`}
+        className={`w-11 h-11 sm:w-5 sm:h-5 flex items-center justify-center rounded-[var(--radius-md)] sm:rounded-[var(--radius-sm)] bg-bg-secondary text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors touch-target ${disabled ? 'opacity-50 cursor-default' : ''}`}
         disabled={disabled}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="sm:w-[10px] sm:h-[10px]"><path d="M12 5v14M5 12h14" /></svg>
       </button>
+
     </div>
   )
 }
@@ -582,7 +584,8 @@ export default function PackingTab() {
             e.stopPropagation()
             onDelete(info.row.original.id)
           }}
-          className="opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out p-1 text-text-muted hover:text-danger"
+          className="opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out p-1 text-text-muted hover:text-danger touch-target"
+
           title="Delete"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
@@ -747,7 +750,8 @@ export default function PackingTab() {
                 {!isReadOnly && (
                   <button
                     onClick={() => onDelete(item.id)}
-                    className="p-1 text-text-muted hover:text-danger transition-colors shrink-0"
+                    className="p-1 text-text-muted hover:text-danger transition-colors shrink-0 touch-target"
+
                     title="Delete"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>

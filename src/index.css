@@ -470,3 +470,13 @@ body {
 .stagger-3 { animation-delay: 140ms; }
 .stagger-4 { animation-delay: 210ms; }
 .stagger-5 { animation-delay: 280ms; }
+
+/* Touch target expansion — visually unchanged, tap area enlarged */
+.touch-target {
+  position: relative;
+}
+.touch-target::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}

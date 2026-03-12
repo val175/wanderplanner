@@ -78,7 +78,8 @@ export default function TimePicker({
 
   const triggerClass = variant === 'input'
     ? `w-full px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-left flex items-center justify-between gap-1 hover:border-accent transition-colors ${className}`
-    : `text-xs font-mono tabular-nums cursor-pointer select-none hover:text-text-secondary transition-colors ${className}`
+    : `text-xs font-mono tabular-nums cursor-pointer select-none hover:text-text-secondary transition-colors touch-target ${className}`
+
 
   return (
     <Popover.Root open={open} onOpenChange={disabled ? undefined : setOpen} modal={false}>
@@ -118,10 +119,11 @@ export default function TimePicker({
           {/* Hours */}
           <div 
             ref={hourRef} 
-            className="flex-1 touch-pan-y"
-            style={{ maxHeight: 220, overflowY: 'scroll', paddingBlock: 4 }}
+            className="flex-1 touch-pan-y scrollbar-hide"
+            style={{ maxHeight: 220, overflowY: 'auto', paddingBlock: 4, scrollSnapType: 'y mandatory' }}
             onWheel={handleWheel(hourRef)}
           >
+
             {HOURS.map(hr => (
               <button
                 key={hr}
@@ -134,7 +136,9 @@ export default function TimePicker({
                   color: hr === selH ? 'var(--color-accent)' : 'var(--color-text-secondary)',
                   fontWeight: hr === selH ? 600 : 400,
                   background: 'transparent', border: 'none', transition: 'background 100ms',
+                  scrollSnapAlign: 'center',
                 }}
+
                 className="hover:bg-bg-hover"
               >{hr}</button>
             ))}
@@ -145,10 +149,11 @@ export default function TimePicker({
           {/* Minutes */}
           <div 
             ref={minRef} 
-            className="flex-1 touch-pan-y"
-            style={{ maxHeight: 220, overflowY: 'scroll', paddingBlock: 4 }}
+            className="flex-1 touch-pan-y scrollbar-hide"
+            style={{ maxHeight: 220, overflowY: 'auto', paddingBlock: 4, scrollSnapType: 'y mandatory' }}
             onWheel={handleWheel(minRef)}
           >
+
             {MINUTES.map(mn => (
               <button
                 key={mn}
@@ -161,7 +166,9 @@ export default function TimePicker({
                   color: mn === selM ? 'var(--color-accent)' : 'var(--color-text-secondary)',
                   fontWeight: mn === selM ? 600 : 400,
                   background: 'transparent', border: 'none', transition: 'background 100ms',
+                  scrollSnapAlign: 'center',
                 }}
+
                 className="hover:bg-bg-hover"
               >{String(mn).padStart(2, '0')}</button>
             ))}

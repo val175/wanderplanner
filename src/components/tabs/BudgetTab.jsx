@@ -464,7 +464,8 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                     {formatCurrency(entry.amount, currency)}
                   </span>
                   {onDelete && (
-                    <button onClick={() => onDelete(entry.id)} className="p-1.5 text-text-muted hover:text-danger">
+                    <button onClick={() => onDelete(entry.id)} className="p-1.5 text-text-muted hover:text-danger touch-target">
+
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                     </button>
                   )}
@@ -551,8 +552,9 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                     </td>
                     <td className="py-2 px-3">
                       <div className="flex gap-1">
-                        <button onClick={commitEdit} className="p-1 text-success hover:text-success/80"><Check size={14} /></button>
-                        <button onClick={() => setEditId(null)} className="p-1 text-text-muted hover:text-danger"><X size={14} /></button>
+                        <button onClick={commitEdit} className="p-1 text-success hover:text-success/80 touch-target"><Check size={14} /></button>
+                        <button onClick={() => setEditId(null)} className="p-1 text-text-muted hover:text-danger touch-target"><X size={14} /></button>
+
                       </div>
                     </td>
                   </tr>
@@ -598,16 +600,18 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                   <td className="py-3 px-3">
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out">
                       {onEdit && !entry.source && (
-                        <button onClick={() => startEdit(entry)} className="p-1.5 text-text-muted hover:text-accent" title="Edit">
+                        <button onClick={() => startEdit(entry)} className="p-1.5 text-text-muted hover:text-accent touch-target" title="Edit">
+
                           <Pencil size={13} />
                         </button>
                       )}
                       {onDelete && (
                         <button
                           onClick={() => onDelete(entry.id)}
-                          className="p-2 flex items-center justify-center text-text-muted hover:text-danger"
+                          className="p-2 flex items-center justify-center text-text-muted hover:text-danger touch-target"
                           title="Delete log"
                         >
+
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                         </button>
                       )}
