@@ -217,7 +217,7 @@ function AuthenticatedApp({ user, signOutUser }) {
 
   return (
     <TripContext.Provider value={{ state, dispatch, activeTrip, sortedTrips, showToast, signOutUser, isReadOnly, effectiveStatus }}>
-      <div className="flex h-screen overflow-hidden bg-bg-primary text-text-secondary">
+      <div className="flex h-screen overflow-hidden bg-bg-primary text-text-secondary antialiased">
 
         <Sidebar
           isMobile={isMobile}

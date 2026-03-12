@@ -166,11 +166,11 @@ function BudgetHealthCard({ budget, totals, currency, isReadOnly }) {
 
       <div className="mb-4">
         <p className="text-[13px] text-text-secondary font-medium">
-          <span className={isOver ? 'text-danger' : 'text-text-primary'}>
+          <span className={`tabular-nums ${isOver ? 'text-danger' : 'text-text-primary'}`}>
             {formatCurrency(Math.round(totals.actual), currency)}
           </span>
           <span className="text-text-muted"> spent of </span>
-          <span className="text-text-primary">{formatCurrency(Math.round(totals.max), currency)}</span>
+          <span className="text-text-primary tabular-nums">{formatCurrency(Math.round(totals.max), currency)}</span>
         </p>
       </div>
 
@@ -211,7 +211,7 @@ function BudgetHealthCard({ budget, totals, currency, isReadOnly }) {
                   />
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className={`text-[11px] font-mono font-bold ${catIsOver ? 'text-danger' : 'text-text-primary'}`}>
+                  <span className={`text-[11px] font-mono font-bold tabular-nums ${catIsOver ? 'text-danger' : 'text-text-primary'}`}>
                     {formatCurrency(Math.round(cat.actual || 0), currency)}
                   </span>
                   <EditableText
@@ -229,7 +229,7 @@ function BudgetHealthCard({ budget, totals, currency, isReadOnly }) {
                   {!isReadOnly && (
                     <button
                       onClick={() => dispatch({ type: ACTIONS.DELETE_BUDGET_CATEGORY, payload: cat.id })}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-text-muted hover:text-danger transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out p-1 text-text-muted hover:text-danger"
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                     </button>
@@ -593,7 +593,7 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                     </span>
                   </td>
                   <td className="py-3 px-3">
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out">
                       {onEdit && !entry.source && (
                         <button onClick={() => startEdit(entry)} className="p-1.5 text-text-muted hover:text-accent" title="Edit">
                           <Pencil size={13} />

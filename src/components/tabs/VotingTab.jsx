@@ -169,7 +169,7 @@ function IdeaTableRow({ idea, resolveProfile, onDelete, isSelectable, isSelected
                     <div className="relative">
                         <button
                             onClick={() => setMenuOpen(v => !v)}
-                            className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-bg-secondary transition-colors opacity-0 group-hover:opacity-100"
+                            className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-bg-secondary transition-all opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none duration-150 ease-out"
                         >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></svg>
                         </button>
@@ -652,7 +652,7 @@ function IdeaCard({ idea, resolveProfile, onDelete, isSelectable, isSelected, on
             {onDelete && !isSelectable && (
                 <button
                     onClick={(e) => { e.stopPropagation(); onDelete(idea.id) }}
-                    className="absolute top-2 right-2 z-30 p-1.5 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 hover:bg-danger transition-all duration-150 backdrop-blur-sm"
+                    className="absolute top-2 right-2 z-30 p-1.5 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 backdrop-blur-sm hover:bg-danger ease-out"
                     aria-label="Delete idea"
                 >
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

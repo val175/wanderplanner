@@ -427,6 +427,7 @@ body {
 }
 
 /* ─── Concert Theme Override ─── */
+
 .concert-theme {
   --color-bg-primary: #141413;
   --color-bg-secondary: #1C1C1A;
@@ -434,4 +435,14 @@ body {
   --color-text-secondary: #D4D1C7;
   --color-accent: #DC2626;
   --color-border: #2A2A28;
+}
+
+/* Image outline — adds subtle depth without a hard border */
+.img-border {
+  outline: 1px solid rgba(0, 0, 0, 0.1);
+  outline-offset: -1px;
+}
+
+.dark .img-border {
+  outline-color: rgba(255, 255, 255, 0.1);
 }

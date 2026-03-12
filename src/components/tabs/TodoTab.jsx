@@ -381,7 +381,7 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
         {!isReadOnly && (
           <button
             onClick={(e) => { e.stopPropagation(); triggerHaptic('medium'); onDelete() }}
-            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-text-muted hover:text-danger rounded-[var(--radius-sm)]"
+            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out p-1 text-text-muted hover:text-danger rounded-[var(--radius-sm)]"
             title="Delete task"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
@@ -457,7 +457,7 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
           {!editing && deepLink && !todo.done && (
             <button
               onClick={() => onDeepLink(deepLink)}
-              className="hidden sm:flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-accent/10 text-accent hover:bg-accent hover:text-white transition-all opacity-0 group-hover:opacity-100"
+              className="hidden sm:flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-accent/10 text-accent hover:bg-accent hover:text-white transition-all scale-90 group-hover:scale-100 blur-sm group-hover:blur-none opacity-0 group-hover:opacity-100 duration-150 ease-out"
               title={`Go to ${deepLink} tab`}
             >
               <svg className="w-3 h-3 transform -rotate-45" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
@@ -512,7 +512,7 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
                 triggerHaptic('medium')
                 onDelete()
               }}
-              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-text-muted hover:text-danger rounded-[var(--radius-sm)] shrink-0"
+              className="opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out p-1 text-text-muted hover:text-danger rounded-[var(--radius-sm)] shrink-0"
               title="Delete task"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
@@ -880,7 +880,7 @@ export default function TodoTab() {
                 style={{ width: `${safeTodos.length > 0 ? (safeTodos.filter(t => t.done).length / safeTodos.length) * 100 : 0}%` }}
               />
             </div>
-            <span className="text-[11px] font-semibold font-heading text-text-muted">
+            <span className="text-[11px] font-semibold font-heading text-text-muted tabular-nums">
               {safeTodos.filter(t => t.done).length}/{safeTodos.length} completed
             </span>
           </div>

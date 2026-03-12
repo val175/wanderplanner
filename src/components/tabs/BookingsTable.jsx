@@ -114,7 +114,7 @@ export default function BookingsTable({
                         readOnly={isReadOnly}
                     />
                     <button
-                        className="opacity-0 group-hover:opacity-100 p-1 text-text-muted hover:text-accent transition-opacity rounded hover:bg-bg-hover"
+                        className="opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out p-1 text-text-muted hover:text-accent rounded hover:bg-bg-hover"
                         title="Open Details"
                         onClick={(e) => { e.stopPropagation(); onRowClick?.(info.row.original) }}
                     >
@@ -180,7 +180,7 @@ export default function BookingsTable({
                                     e.stopPropagation()
                                     navigator.clipboard.writeText(val)
                                 }}
-                                className="opacity-0 group-hover:opacity-100 p-1 text-text-muted hover:text-accent transition-opacity rounded"
+                                className="opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out p-1 text-text-muted hover:text-accent rounded"
                                 title="Copy to clipboard"
                             >
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
@@ -235,7 +235,7 @@ export default function BookingsTable({
                         triggerHaptic('medium')
                         onDelete(info.row.original.id)
                     }}
-                    className="text-text-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity p-2"
+                    className="text-text-muted hover:text-danger opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out p-2"
                     title="Delete Booking"
                 >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>

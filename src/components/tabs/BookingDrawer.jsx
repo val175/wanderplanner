@@ -197,7 +197,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
                                         <div className="flex items-center gap-3 min-w-0">
                                             <div className="w-10 h-10 flex-shrink-0 bg-bg-card border border-border/30 rounded flex items-center justify-center text-xl overflow-hidden">
                                                 {file.type?.startsWith('image/') ? (
-                                                    <img src={file.url} alt="" className="w-full h-full object-cover" />
+                                                    <img src={file.url} alt="" className="w-full h-full object-cover img-border" />
                                                 ) : (
                                                     '📄'
                                                 )}
