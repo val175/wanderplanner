@@ -173,7 +173,7 @@ function QuickItineraryCell({ trip, status, onTabSwitch }) {
             <h3 className="font-heading text-lg font-bold text-text-primary mt-1 text-balance">First 48 Hours</h3>
 
           </div>
-          <Button variant="ghost" onClick={() => onTabSwitch?.('itinerary')} className="text-[11px]">
+          <Button variant="ghost" size="sm" onClick={() => onTabSwitch?.('itinerary')}>
             View Full Itinerary →
           </Button>
         </div>
