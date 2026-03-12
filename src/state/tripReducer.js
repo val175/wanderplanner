@@ -1,4 +1,4 @@
-import { generateId, cloneDeep } from '../utils/helpers'
+import { generateId, cloneDeep, addMinutesToTime, calculateDuration } from '../utils/helpers'
 
 // Action Types
 export const ACTIONS = {
@@ -298,22 +298,22 @@ export function tripReducer(state, action) {
         itinerary: trip.itinerary.map(d => {
           if (d.id !== payload.dayId) return d
           const newActivity = {
-            id: generateId(),
-            time: '',
-            name: '',
-            notes: '',
-            location: '',
-            estCost: '',
-            transit: '',
-            transitEmoji: '🚕',
-            ...payload.activity
-          }
+          id: `act-${Date.now()}`,
+          time: '09:00 AM',
+          duration: 60,
+          endTime: '10:00 AM',
+          category: 'other',
+          name: 'New Activity',
+          location: '',
+          notes: ''
+        }
           const newActivities = [...(d.activities || [])]
           if (typeof payload.index === 'number') {
             newActivities.splice(payload.index, 0, newActivity)
           } else {
             newActivities.push(newActivity)
           }
+          console.log('[REDUCE] Adding Activity with Schema:', newActivity);
           return { ...d, activities: newActivities }
         }),
       }))
@@ -323,7 +323,43 @@ export function tripReducer(state, action) {
         ...trip,
         itinerary: trip.itinerary.map(d =>
           d.id === payload.dayId
-            ? { ...d, activities: d.activities.map(a => a.id === payload.activityId ? { ...a, ...payload.updates } : a) }
+            ? {
+              ...d,
+              activities: d.activities.map(a => {
+                if (a.id !== payload.activityId) return a
+                
+                const updates = { ...payload.updates }
+                const curr = { ...a, ...updates }
+                const startTime = curr.time
+                const duration = curr.duration !== undefined ? curr.duration : (a.duration || 60)
+                const endTime = curr.endTime
+
+                console.log('[REDUCE] Updating Activity Time-sync:', { 
+                  id: payload.activityId, 
+                  prev: a, 
+                  updates: payload.updates, 
+                  next: { ...a, ...payload.updates } 
+                });
+
+                // Auto-Sync Logic
+                if (payload.updates.time !== undefined && payload.updates.time !== '') {
+                  // Time (start time) updated -> sync endTime
+                  updates.endTime = addMinutesToTime(payload.updates.time, duration)
+                } else if (payload.updates.duration !== undefined) {
+                  // Duration updated -> sync endTime
+                  if (startTime) {
+                    updates.endTime = addMinutesToTime(startTime, payload.updates.duration)
+                  }
+                } else if (payload.updates.endTime !== undefined && payload.updates.endTime !== '') {
+                  // EndTime updated -> sync duration
+                  if (startTime) {
+                    updates.duration = calculateDuration(startTime, payload.updates.endTime)
+                  }
+                }
+
+                return { ...a, ...updates }
+              })
+            }
             : d
         ),
       }))

@@ -49,6 +49,7 @@ export default function TimePicker({
   placeholder = '+ time',
   variant = 'inline',   // 'inline' | 'input'
   disabled = false,
+  minTime = null,      // "HH:mm" format
 }) {
   const [open, setOpen] = useState(false)
   const hourRef = useRef(null)
@@ -67,7 +68,9 @@ export default function TimePicker({
   }, [open])
 
   const pick = (h, m, period) => {
-    onChange(to24h(h, m, period))
+    const val = to24h(h, m, period)
+    if (minTime && val < minTime) return
+    onChange(val)
   }
   const display = fmt12h(value)
 
@@ -124,24 +127,29 @@ export default function TimePicker({
             onWheel={handleWheel(hourRef)}
           >
 
-            {HOURS.map(hr => (
-              <button
-                key={hr}
-                type="button"
-                data-sel={hr === selH || undefined}
-                onClick={() => pick(hr, selM, selPeriod)}
-                style={{
-                  display: 'block', width: '100%', padding: '7px 0', textAlign: 'center',
-                  fontSize: 14, cursor: 'pointer',
-                  color: hr === selH ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-                  fontWeight: hr === selH ? 600 : 400,
-                  background: 'transparent', border: 'none', transition: 'background 100ms',
-                  scrollSnapAlign: 'center',
-                }}
+            {HOURS.map(hr => {
+              const isDimmed = minTime && to24h(hr, selM, selPeriod) < minTime
+              return (
+                <button
+                  key={hr}
+                  type="button"
+                  data-sel={hr === selH || undefined}
+                  onClick={() => pick(hr, selM, selPeriod)}
+                  style={{
+                    display: 'block', width: '100%', padding: '7px 0', textAlign: 'center',
+                    fontSize: 14, cursor: isDimmed ? 'default' : 'pointer',
+                    color: hr === selH ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                    fontWeight: hr === selH ? 600 : 400,
+                    background: 'transparent', border: 'none', transition: 'background 100ms',
+                    scrollSnapAlign: 'center',
+                    opacity: isDimmed ? 0.3 : 1,
+                    pointerEvents: isDimmed ? 'none' : 'auto',
+                  }}
 
-                className="hover:bg-bg-hover"
-              >{hr}</button>
-            ))}
+                  className="hover:bg-bg-hover"
+                >{hr}</button>
+              )
+            })}
           </div>
 
           <div style={{ width: 1, background: 'var(--color-border)' }} />
@@ -154,45 +162,55 @@ export default function TimePicker({
             onWheel={handleWheel(minRef)}
           >
 
-            {MINUTES.map(mn => (
-              <button
-                key={mn}
-                type="button"
-                data-sel={mn === selM || undefined}
-                onClick={() => pick(selH, mn, selPeriod)}
-                style={{
-                  display: 'block', width: '100%', padding: '7px 0', textAlign: 'center',
-                  fontSize: 14, cursor: 'pointer',
-                  color: mn === selM ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-                  fontWeight: mn === selM ? 600 : 400,
-                  background: 'transparent', border: 'none', transition: 'background 100ms',
-                  scrollSnapAlign: 'center',
-                }}
+            {MINUTES.map(mn => {
+              const isDimmed = minTime && to24h(selH, mn, selPeriod) < minTime
+              return (
+                <button
+                  key={mn}
+                  type="button"
+                  data-sel={mn === selM || undefined}
+                  onClick={() => pick(selH, mn, selPeriod)}
+                  style={{
+                    display: 'block', width: '100%', padding: '7px 0', textAlign: 'center',
+                    fontSize: 14, cursor: isDimmed ? 'default' : 'pointer',
+                    color: mn === selM ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                    fontWeight: mn === selM ? 600 : 400,
+                    background: 'transparent', border: 'none', transition: 'background 100ms',
+                    scrollSnapAlign: 'center',
+                    opacity: isDimmed ? 0.3 : 1,
+                    pointerEvents: isDimmed ? 'none' : 'auto',
+                  }}
 
-                className="hover:bg-bg-hover"
-              >{String(mn).padStart(2, '0')}</button>
-            ))}
+                  className="hover:bg-bg-hover"
+                >{String(mn).padStart(2, '0')}</button>
+              )
+            })}
           </div>
 
           <div style={{ width: 1, background: 'var(--color-border)' }} />
 
           {/* AM / PM */}
           <div style={{ paddingBlock: 4 }} className="flex-1">
-            {['AM', 'PM'].map(p => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => pick(selH, selM, p)}
-                style={{
-                  display: 'block', width: '100%', padding: '7px 0', textAlign: 'center',
-                  fontSize: 14, cursor: 'pointer',
-                  color: p === selPeriod ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-                  fontWeight: p === selPeriod ? 600 : 400,
-                  background: 'transparent', border: 'none', transition: 'background 100ms',
-                }}
-                className="hover:bg-bg-hover"
-              >{p}</button>
-            ))}
+            {['AM', 'PM'].map(p => {
+              const isDimmed = minTime && to24h(selH, selM, p) < minTime
+              return (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => pick(selH, selM, p)}
+                  style={{
+                    display: 'block', width: '100%', padding: '7px 0', textAlign: 'center',
+                    fontSize: 14, cursor: isDimmed ? 'default' : 'pointer',
+                    color: p === selPeriod ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                    fontWeight: p === selPeriod ? 600 : 400,
+                    background: 'transparent', border: 'none', transition: 'background 100ms',
+                    opacity: isDimmed ? 0.3 : 1,
+                    pointerEvents: isDimmed ? 'none' : 'auto',
+                  }}
+                  className="hover:bg-bg-hover"
+                >{p}</button>
+              )
+            })}
           </div>
         </Popover.Content>
       </Popover.Portal>

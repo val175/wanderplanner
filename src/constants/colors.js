@@ -19,3 +19,5 @@ export const GRADIENT_COLORS = [
   '#D97757', '#6A9BCC', '#788C5D', '#D4A72C',
   '#C15F3C', '#9B7DCF', '#E07BA0', '#5BB5A2',
 ]
+
+export const DAY_COLORS = GRADIENT_COLORS

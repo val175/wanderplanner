@@ -2,7 +2,7 @@ import React from 'react'
 
 export default function TabHeader({ leftSlot, rightSlot }) {
   return (
-    <div className="flex items-center justify-between border-b border-border pb-4 mb-6 gap-2">
+    <div className="flex items-center justify-between pb-4 mb-6 gap-2">
       <div className="flex items-center gap-3 shrink-0">
         {leftSlot}
       </div>

@@ -10,10 +10,14 @@ import DatePicker from '../shared/DatePicker'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
-import { formatDate, formatCurrency } from '../../utils/helpers'
+import { formatDate, formatCurrency, addMinutesToTime } from '../../utils/helpers'
 import { ACTIVITY_EMOJIS } from '../../constants/emojis'
 import { COUNTRY_TIMEZONE, getUTCOffsetHours, applyTimezoneOffset, FLIGHT_ACTIVITY_PATTERNS, FLIGHT_EMOJIS } from '../../utils/timezones'
 import { triggerHaptic, hapticImpact } from '../../utils/haptics'
+import { DAY_COLORS } from '../../constants/colors'
+import { GLOBAL_CATEGORIES } from '../../constants/categories'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
+import Select, { SelectItem } from '../shared/Select'
 import { useDrag } from '@use-gesture/react'
 import { useEffect } from 'react'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
@@ -34,8 +38,73 @@ function getActivityAccent(emoji) {
   return map[emoji] || 'border-l-border text-border-strong'
 }
 
+function getCategoryTheme(categoryId) {
+  const cat = GLOBAL_CATEGORIES.find(c => c.id === categoryId) || GLOBAL_CATEGORIES[7]
+  return cat
+}
+
+const CAT_THEME_CLASSES = {
+  emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+  sky: { bg: 'bg-sky-500/10', border: 'border-sky-500/20' },
+  amber: { bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+  indigo: { bg: 'bg-indigo-500/10', border: 'border-indigo-500/20' },
+  slate: { bg: 'bg-slate-500/10', border: 'border-slate-500/20' },
+  pink: { bg: 'bg-pink-500/10', border: 'border-pink-500/20' },
+  violet: { bg: 'bg-violet-500/10', border: 'border-violet-500/20' },
+  rose: { bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
+}
+
+function CategoryPill({ value, onChange, disabled }) {
+  const cat = GLOBAL_CATEGORIES.find(c => c.id === value) || GLOBAL_CATEGORIES[7]
+
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild disabled={disabled}>
+        <button
+          className={`inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 px-3 sm:px-2 py-1 sm:py-0.5 rounded-[var(--radius-pill)] text-xs font-medium border border-border bg-bg-secondary text-text-secondary transition-colors ${disabled ? 'cursor-default' : 'hover:bg-bg-hover'}`}
+        >
+          <span className="text-lg sm:text-base">{cat.emoji}</span>
+          <span className="hidden sm:inline">{cat.label}</span>
+        </button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          align="start"
+          sideOffset={4}
+          className="z-[9999] rounded-[var(--radius-md)] border border-border bg-bg-card min-w-[140px] py-1 animate-scale-in focus:outline-none"
+        >
+          {GLOBAL_CATEGORIES.map(c => (
+            <DropdownMenu.Item
+              key={c.id}
+              onSelect={() => onChange(c.id)}
+              className={`flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer select-none outline-none transition-colors
+                ${c.id === value
+                  ? 'text-accent font-semibold data-[highlighted]:bg-accent/15'
+                  : 'text-text-secondary data-[highlighted]:bg-bg-hover data-[highlighted]:text-text-primary'
+                }`}
+            >
+              <div className={`w-2.5 h-2.5 rounded-full border ${CAT_THEME_CLASSES[c.color]?.bg || 'bg-bg-card'} ${CAT_THEME_CLASSES[c.color]?.border || 'border-border'}`} />
+              <span>{c.emoji}</span>
+              <span>{c.label}</span>
+            </DropdownMenu.Item>
+          ))}
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
 function AddActivityModal({ isOpen, onClose, itinerary, onAdd }) {
-  const [activityData, setActivityData] = useState({ name: '', time: '', dayId: '' })
+  const [activityData, setActivityData] = useState({ name: '', time: '', dayId: '', duration: 60, endTime: '' })
+
+  // Sync endTime when time or duration changes
+  useEffect(() => {
+    if (activityData.time && activityData.duration) {
+      const newEndTime = addMinutesToTime(activityData.time, activityData.duration)
+      if (newEndTime !== activityData.endTime) {
+        setActivityData(prev => ({ ...prev, endTime: newEndTime }))
+      }
+    }
+  }, [activityData.time, activityData.duration, activityData.endTime])
 
   // Reset/Initialize state when modal opens
   useEffect(() => {
@@ -43,7 +112,9 @@ function AddActivityModal({ isOpen, onClose, itinerary, onAdd }) {
       setActivityData({
         name: '',
         time: '',
-        dayId: itinerary[0]?.id || ''
+        dayId: itinerary[0]?.id || '',
+        duration: 60,
+        endTime: ''
       })
     }
   }, [isOpen, itinerary])
@@ -53,7 +124,13 @@ function AddActivityModal({ isOpen, onClose, itinerary, onAdd }) {
     if (!activityData.name.trim() || !activityData.dayId) return
     onAdd({
       dayId: activityData.dayId,
-      activity: { name: activityData.name.trim(), time: activityData.time }
+      activity: { 
+        name: activityData.name.trim(), 
+        time: activityData.time,
+        duration: activityData.duration,
+        endTime: activityData.endTime,
+        category: activityData.category || 'other'
+      }
     })
     onClose()
   }
@@ -88,12 +165,51 @@ function AddActivityModal({ isOpen, onClose, itinerary, onAdd }) {
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Time (Optional)</label>
-          <TimePicker
-            variant="input"
-            value={activityData.time}
-            onChange={time => setActivityData(prev => ({ ...prev, time }))}
-            placeholder="+ time"
+          <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Category</label>
+          <Select
+            value={activityData.category || 'other'}
+            onValueChange={val => setActivityData(prev => ({ ...prev, category: val }))}
+          >
+            {GLOBAL_CATEGORIES.map(c => (
+              <SelectItem key={c.id} value={c.id}>
+                <span className="flex items-center gap-2">
+                  <span>{c.emoji}</span>
+                  <span>{c.label}</span>
+                </span>
+              </SelectItem>
+            ))}
+          </Select>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Start Time</label>
+            <TimePicker
+              variant="input"
+              value={activityData.time}
+              onChange={time => setActivityData(prev => ({ ...prev, time }))}
+              placeholder="Start"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">End Time</label>
+            <TimePicker
+              variant="input"
+              value={activityData.endTime}
+              onChange={endTime => setActivityData(prev => ({ ...prev, endTime }))}
+              minTime={activityData.time}
+              placeholder="End"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Duration (minutes)</label>
+          <input
+            type="number"
+            value={activityData.duration}
+            onChange={e => setActivityData(prev => ({ ...prev, duration: parseInt(e.target.value) || 0 }))}
+            className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors"
           />
         </div>
 
@@ -232,7 +348,7 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
       <div className="group/day relative flex items-center justify-between py-2 mb-2">
         <div className="flex items-center gap-2">
           <div className="group-drag-handle cursor-grab active:cursor-grabbing text-text-muted opacity-20 hover:opacity-100 transition-opacity mr-2">⠿</div>
-          <button onClick={() => setExpanded(!expanded)} className="text-text-muted hover:text-text-primary transition-colors text-lg w-5 flex justify-center bg-bg-card border border-border rounded">
+          <button onClick={() => setExpanded(!expanded)} className="text-text-muted hover:text-text-primary transition-colors text-lg w-5 flex justify-center bg-bg-card border border-border/20 rounded">
             <span className={`transform transition-transform ${expanded ? 'rotate-90' : ''}`}>›</span>
           </button>
 
@@ -299,15 +415,16 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
 
       {/* Group Grid Content */}
       {expanded && (
-        <Card className="border border-border/50 p-0 overflow-hidden">
+        <Card className="border border-border/10 p-0 overflow-hidden shadow-none">
           <div className="w-full overflow-x-auto overflow-y-visible scrollbar-thin">
             <table className="w-full text-left border-collapse table-fixed min-w-[600px] text-sm">
               <thead>
-                <tr className="border-b border-border/50 bg-bg-secondary/10">
+                <tr className="border-b border-border/10 bg-bg-secondary/10">
                   <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[30px] overflow-hidden"></th>
                   <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[100px] overflow-hidden">TIME</th>
                   <th className="px-0 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[30px] text-center overflow-hidden"></th>
                   <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-auto text-left overflow-hidden">ACTIVITY</th>
+                  <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[140px] text-left overflow-hidden">CATEGORY</th>
                   <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[25%] text-left overflow-hidden">LOCATION</th>
                   <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[40px] overflow-hidden"></th>
                 </tr>
@@ -334,15 +451,24 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
                           <div className="cursor-grab active:cursor-grabbing text-text-muted opacity-0 group-hover/row:opacity-100 text-center w-full pt-0.5">⠿</div>
                         </td>
 
-                        {/* Time */}
-                        <td className="px-2 pt-4 pb-2 align-top font-mono text-[13px] text-text-primary font-semibold">
-                          <TimePicker
-                            value={activity.time}
-                            onChange={time => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { time } } })}
-                            className="border-transparent hover:border-border text-inherit w-full !px-1 bg-transparent text-left"
-                            placeholder="-:-"
-                            disabled={isReadOnly}
-                          />
+                        {/* Time Column (Stacked) */}
+                        <td className="px-2 pt-4 pb-2 align-top w-[100px]">
+                          <div className="flex flex-col gap-1">
+                            <TimePicker
+                              value={activity.time}
+                              onChange={time => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { time } } })}
+                              className="border-transparent hover:border-border text-text-primary font-mono text-[13px] font-semibold w-full !px-1 bg-transparent text-left"
+                              placeholder="-:-"
+                              disabled={isReadOnly}
+                            />
+                            <TimePicker
+                              value={activity.endTime}
+                              onChange={endTime => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { endTime } } })}
+                              className="text-[10px] text-text-muted font-mono bg-transparent border-transparent hover:border-border h-auto py-0 w-full !px-1"
+                              placeholder="-:-"
+                              disabled={isReadOnly}
+                            />
+                          </div>
                         </td>
 
                         {/* Timeline */}
@@ -374,6 +500,14 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
                                 placeholder="Activity name"
                                 readOnly={isReadOnly}
                               />
+                              <div className="flex flex-col gap-0.5 mt-0.5">
+                                <span className="text-[11px] text-text-muted font-medium truncate uppercase tracking-tight">
+                                  {(activity.location?.placeName || activity.location || 'Unknown')}
+                                </span>
+                                <span className="text-[10px] text-text-muted/60 font-medium">
+                                  {activity.duration || 60} mins
+                                </span>
+                              </div>
                               {/* Body Clock ghost-text */}
                               {bodyClockOffsetHours !== null && activity.time && (
                                 FLIGHT_EMOJIS.has(activity.emoji) || FLIGHT_ACTIVITY_PATTERNS.test(activity.name || '')
@@ -398,6 +532,15 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
                               )}
                             </div>
                           </div>
+                        </td>
+
+                        {/* Category Column */}
+                        <td className="px-2 pt-4 pb-2 align-top">
+                          <CategoryPill
+                            value={activity.category || 'other'}
+                            onChange={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { category: val } } })}
+                            disabled={isReadOnly}
+                          />
                         </td>
 
                         <td className="px-2 pt-4 pb-2 align-top">
@@ -432,7 +575,7 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
                           <td></td>
                           <td></td>
                           <td className="relative px-0 w-[30px] group/timeline">
-                            <div className="absolute left-1/2 top-0 bottom-0 -ml-[1px] w-[2px] border-l-[2px] border-dashed border-border z-0"></div>
+                            <div className="absolute left-1/2 top-0 bottom-0 -ml-[1px] w-[2px] border-l-[2px] border-dashed border-border/30 z-0"></div>
                             {!isReadOnly && (
                               <button
                                 onClick={() => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: {}, index: index + 1 } })}
@@ -534,7 +677,7 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
 
   return (
     <div
-      className={`flex flex-col flex-shrink-0 w-72 bg-bg-secondary/20 border rounded-[var(--radius-lg)] p-2 transition-colors ${dragOverCol && !isReadOnly ? 'border-accent/50 bg-accent/5' : 'border-border/50'}`}
+      className={`flex flex-col flex-shrink-0 w-72 bg-white border rounded-[var(--radius-lg)] p-2 transition-colors ${dragOverCol && !isReadOnly ? 'border-accent/50 bg-accent/5' : 'border-border/10'} h-[calc(100vh-250px)] shadow-none`}
       onDragOver={e => {
         if (isReadOnly) return
         e.preventDefault()
@@ -543,7 +686,7 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
       onDragLeave={() => setDragOverCol(false)}
       onDrop={handleDrop}
     >
-      <div className="px-3 py-2 mb-2 flex items-center justify-between border-b border-border/30">
+      <div className="px-3 py-2 mb-2 flex items-center justify-between border-b border-border/10">
         <h3 className="font-semibold text-sm text-text-primary flex items-center gap-2">
           <span>{day.emoji}</span> Day {day.dayNumber}
         </h3>
@@ -566,7 +709,7 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
               </span>
             );
           })()}
-          <span className="text-xs font-medium text-text-muted bg-bg-card px-2 py-0.5 rounded-full border border-border/50">
+          <span className="text-xs font-medium text-text-muted bg-bg-card px-2 py-0.5 rounded-full border border-border/20">
             {day.activities?.length || 0}
           </span>
         </div>
@@ -586,13 +729,17 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
               e.stopPropagation()
               e.dataTransfer.setData('application/json', JSON.stringify({ type: 'activity', sourceDayId: day.id, activityId: activity.id, sourceIndex: i }))
             }}
-            className={`group bg-bg-card border rounded-[var(--radius-md)] p-3 transition-colors block text-left ${
+            className={`group rounded-[var(--radius-md)] p-3 transition-colors block text-left relative border ${
               highlightedActivityId === activity.id 
-                ? 'ring-2 ring-accent border-accent/50'
-                : isReadOnly 
-                  ? 'border-border/50' 
-                  : 'cursor-grab active:cursor-grabbing border-border/50 hover:border-accent/40 active:border-accent'
-            } relative`}
+                ? 'ring-2 ring-accent border-accent/20'
+                : activity.category 
+                  ? CAT_THEME_CLASSES[getCategoryTheme(activity.category).color]?.border || 'border-border/10'
+                  : 'border-border/10'
+            } ${
+              activity.category 
+                ? CAT_THEME_CLASSES[getCategoryTheme(activity.category).color]?.bg || 'bg-bg-card'
+                : 'bg-bg-card'
+            } shadow-none`}
           >
             <div className="flex items-start gap-2 mb-2 w-full">
               <div className="flex-1 min-w-0 pr-6">
@@ -606,9 +753,11 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
                     }
                   }}
                   className="font-semibold text-sm text-text-primary leading-tight truncate w-full"
-                  inputClassName="w-full text-sm font-semibold p-0 h-auto"
                   readOnly={isReadOnly}
                 />
+                <div className="text-[11px] text-text-muted font-medium mt-0.5 truncate uppercase tracking-tight">
+                  {(activity.location?.placeName || activity.location || 'Unknown')} • {getCategoryTheme(activity.category).label} • {activity.duration || 60}m
+                </div>
               </div>
               {!isReadOnly && (
                 <button
@@ -625,29 +774,29 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
             </div>
 
             {/* Bottom Row */}
-            <div className="flex items-center justify-between pt-2 border-t border-border/30 mt-2 gap-2">
+            <div className="flex items-center justify-between pt-2 border-t border-border/10 mt-2 gap-2">
               <div className="flex-1 min-w-0">
-                <LocationPill
-                  location={activity.location}
-                  isResolving={isResolving}
-                  readOnly={isReadOnly}
-                  onClick={() => setActiveSearchActivity({
-                    dayId: day.id,
-                    activityId: activity.id,
-                    initialValue: typeof activity.location === 'string' ? activity.location : (activity.location?.placeName || activity.name)
-                  })}
+                <span className="text-[14px]">{activity.emoji || '📍'}</span>
+              </div>
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                <TimePicker
+                  value={activity.time}
+                  onChange={time => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { time } } })}
+                  className="text-[10px] font-mono font-medium text-text-secondary bg-bg-secondary rounded px-2 py-0.5 w-[60px] border-none text-right"
+                  placeholder="Time"
+                  disabled={isReadOnly}
+                />
+                <TimePicker
+                  value={activity.endTime}
+                  onChange={endTime => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { endTime } } })}
+                  className="text-[9px] font-mono text-text-muted bg-transparent border-transparent hover:border-border h-auto py-0 w-[60px] text-right !px-2"
+                  placeholder="-:-"
+                  disabled={isReadOnly}
                 />
               </div>
-              <TimePicker
-                value={activity.time}
-                onChange={time => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { time } } })}
-                className="text-[10px] font-mono font-medium text-text-secondary bg-bg-secondary rounded px-2 py-0.5 w-[60px] shrink-0 border-none"
-                placeholder="Time"
-                disabled={isReadOnly}
-              />
             </div>
             {(activity.notes || activity.notes === '') && (
-              <div className="mt-2 pt-2 border-t border-border/30">
+              <div className="mt-2 pt-2 border-t border-border/10">
                 <EditableText
                   value={activity.notes || ''}
                   onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { notes: val } } })}
@@ -672,11 +821,275 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
   )
 }
 
+function CalendarActivityBlock({ activity, day, startOfDayMinutes, hourHeight, timeToMinutes, isReadOnly }) {
+  const { dispatch } = useTripContext()
+  const minutes = timeToMinutes(activity.time)
+  
+  const initialTop = (minutes - startOfDayMinutes) * (hourHeight / 60)
+  const initialHeight = (activity.duration || 60) * (hourHeight / 60)
+
+  const [localTop, setLocalTop] = useState(initialTop)
+  const [localHeight, setLocalHeight] = useState(initialHeight)
+  const [isDragging, setIsDragging] = useState(false)
+  const [isResizing, setIsResizing] = useState(false)
+
+  // Keep synced with external state changes (if not dragging)
+  useEffect(() => {
+    if (!isDragging && !isResizing) {
+      setLocalTop(initialTop)
+      setLocalHeight(initialHeight)
+    }
+  }, [initialTop, initialHeight, isDragging, isResizing])
+
+  const catColor = activity.category ? getCategoryTheme(activity.category).color : 'border'
+
+  // Helper to convert pixels to 15-minute snapped minutes
+  const pixelsToMinutes = (px) => {
+    const rawMins = (px / hourHeight) * 60
+    return Math.round(rawMins / 15) * 15
+  }
+
+  const minutesToTimeString = (totalMins) => {
+    const h = Math.floor(totalMins / 60) % 24
+    const m = Math.round(totalMins % 60)
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+  }
+
+  // Bind drag for moving the whole block
+  const bindDrag = useDrag(({ movement: [, my], first, last, memo = localTop }) => {
+    if (isReadOnly) return memo
+    if (first) setIsDragging(true)
+    
+    let newTop = memo + my
+    if (newTop < 0) newTop = 0 // Don't drag above the calendar start
+
+    // Snap physically
+    const snappedMins = pixelsToMinutes(newTop)
+    const snappedTop = (snappedMins / 60) * hourHeight
+    setLocalTop(snappedTop)
+
+    if (last) {
+      setIsDragging(false)
+      const absMins = startOfDayMinutes + snappedMins
+      const newTimeStr = minutesToTimeString(absMins)
+      if (newTimeStr !== activity.time) {
+        dispatch({
+          type: ACTIONS.UPDATE_ACTIVITY,
+          payload: { dayId: day.id, activityId: activity.id, updates: { time: newTimeStr } }
+        })
+      }
+    }
+    return memo
+  }, { filterTaps: true })
+
+  // Bind drag for resizing the bottom edge
+  const bindResize = useDrag(({ movement: [, my], first, last, event, memo = localHeight }) => {
+    if (isReadOnly) return memo
+    event.stopPropagation() // Don't trigger block drag
+    if (first) setIsResizing(true)
+
+    let newHeight = memo + my
+    if (newHeight < (hourHeight / 4)) newHeight = (hourHeight / 4) // minimum 15 mins
+
+    // Snap physically
+    const snappedMinsDelta = pixelsToMinutes(newHeight)
+    const snappedHeight = (snappedMinsDelta / 60) * hourHeight
+    setLocalHeight(snappedHeight)
+
+    if (last) {
+      setIsResizing(false)
+      if (snappedMinsDelta !== (activity.duration || 60)) {
+        dispatch({
+          type: ACTIONS.UPDATE_ACTIVITY,
+          payload: { dayId: day.id, activityId: activity.id, updates: { duration: Math.max(15, snappedMinsDelta) } }
+        })
+      }
+    }
+    return memo
+  }, { filterTaps: true })
+
+  const theme = getCategoryTheme(activity.category)
+  
+  const currentStartMins = startOfDayMinutes + pixelsToMinutes(localTop)
+  const currentDurationMins = pixelsToMinutes(localHeight)
+  
+  const displayTime = isDragging || isResizing 
+    ? `${minutesToTimeString(currentStartMins)} - ${minutesToTimeString(currentStartMins + currentDurationMins)}`
+    : activity.time
+
+  return (
+    <div
+      {...bindDrag()}
+      className={`absolute left-2 right-2 rounded-[var(--radius-md)] transition-[background,border,opacity] z-0 hover:z-50 flex flex-col group overflow-hidden border ${
+        activity.category 
+          ? `${CAT_THEME_CLASSES[catColor]?.bg || 'bg-bg-card'} ${CAT_THEME_CLASSES[catColor]?.border || 'border-border/10'}`
+          : 'bg-bg-card border-border/10'
+      } shadow-none ${isDragging || (isResizing && false) ? 'opacity-80 scale-[0.98] ring-2 ring-accent/30' : ''} ${!isReadOnly ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
+      style={{ top: localTop + 4, height: localHeight - 8, touchAction: 'none' }}
+    >
+      <div className="flex flex-col h-full relative z-10 p-3 pointer-events-none">
+        <div className="flex items-start justify-between gap-2">
+          <h4 className="text-[12px] font-extra-bold leading-tight text-text-primary transition-colors truncate">
+            {activity.name}
+          </h4>
+          <span className={`text-[10px] font-mono font-bold shrink-0 ${isDragging || isResizing ? 'text-accent' : 'text-text-muted/80'}`}>
+            {displayTime}
+          </span>
+        </div>
+        
+        <div className="text-[11px] text-text-muted font-medium mt-1 truncate uppercase tracking-tight">
+          {(activity.location?.placeName || activity.location || 'Unknown')} • {theme.label}
+        </div>
+
+        {localHeight > 100 && (
+          <div className="mt-auto flex items-center justify-between">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-text-muted/30">
+              {activity.category || 'activity'}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {!isReadOnly && (
+        <div 
+          {...bindResize()}
+          className="absolute bottom-0 left-0 right-0 h-4 cursor-ns-resize flex items-end justify-center pb-1 opacity-0 group-hover:opacity-100 hover:bg-border/20 transition-colors z-20"
+          style={{ touchAction: 'none' }}
+        >
+          <div className="w-8 h-1 rounded-full bg-border-strong/50 pointer-events-none" />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CalendarView({ trip, isMobile, activeDayIndex }) {
+  const timeToMinutes = (timeStr) => {
+    if (!timeStr) return null
+    let hours, mins
+    const trimmed = timeStr.trim()
+    if (trimmed.toUpperCase().includes('AM') || trimmed.toUpperCase().includes('PM')) {
+      const parts = trimmed.split(' ')
+      const timePart = parts[0]
+      const modifier = parts[1]
+      let [h, m] = timePart.split(':').map(Number)
+      if (modifier?.toUpperCase() === 'PM' && h < 12) h += 12
+      if (modifier?.toUpperCase() === 'AM' && h === 12) h = 0
+      hours = h
+      mins = m
+    } else {
+      const [h, m] = trimmed.split(':').map(Number)
+      hours = h
+      mins = m
+    }
+    return hours * 60 + mins
+  }
+
+  const { isReadOnly } = useTripContext()
+
+  const itinerary = isMobile 
+    ? [trip.itinerary[activeDayIndex]].filter(Boolean)
+    : (trip.itinerary || [])
+
+  let earliestHour = 8;
+  let latestHour = 22;
+
+  itinerary.forEach(day => {
+    day.activities?.forEach(act => {
+      const startMins = timeToMinutes(act.time);
+      if (startMins !== null) {
+        const startH = Math.floor(startMins / 60);
+        if (startH < earliestHour && startH >= 0) earliestHour = startH;
+        
+        const endMins = startMins + (act.duration || 60);
+        const endH = Math.ceil(endMins / 60);
+        if (endH > latestHour && endH <= 24) latestHour = endH;
+      }
+    });
+  });
+
+  const numHours = latestHour - earliestHour + 1;
+  const hours = Array.from({ length: numHours }, (_, i) => i + earliestHour);
+  const startOfDayMinutes = earliestHour * 60;
+  const hourHeight = 84;
+  const totalMinHeight = Math.max(600, (numHours + 1) * hourHeight);
+
+  return (
+    <div className="flex-1 overflow-y-auto bg-white rounded-[var(--radius-lg)] border border-border/20 relative select-none custom-scrollbar h-[calc(100vh-250px)] shadow-none">
+      <div className="flex min-w-fit relative" style={{ minHeight: totalMinHeight }}>
+        {/* Time Axis */}
+        <div className="w-16 sticky left-0 z-20 bg-white/95 backdrop-blur-md border-r border-border/10 shrink-0">
+          <div className="h-14" /> {/* Header spacer */}
+          {hours.map(hr => (
+            <div key={hr} className="relative" style={{ height: hourHeight }}>
+              <span className="absolute -top-2.5 left-3 text-[10px] font-mono text-text-muted/60 font-bold uppercase tracking-tight">
+                {hr % 12 || 12} {hr < 12 ? 'AM' : 'PM'}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Columns */}
+        <div className="flex-1 flex min-w-0">
+          {itinerary.map((day, idx) => {
+            const dayColor = DAY_COLORS[idx % DAY_COLORS.length]
+            return (
+              <div 
+                key={day.id} 
+                className="flex-1 min-w-[320px] border-r border-border/10 relative transition-colors bg-white"
+              >
+                {/* Day Header */}
+                <div 
+                  className="h-14 border-b border-border/10 flex flex-col items-center justify-center sticky top-0 z-10 px-4 transition-all bg-white"
+                >
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted opacity-60">
+                    Day {day.dayNumber}
+                  </span>
+                  <span className="text-xs font-extra-bold text-text-primary truncate max-w-full">
+                    {day.location || 'Untitled'}
+                  </span>
+                </div>
+                
+                {/* Grid Lines */}
+                <div className="absolute inset-0 pt-14 pointer-events-none">
+                  {hours.map(hr => (
+                    <div key={hr} className="border-b border-dashed border-border/10 w-full" style={{ height: hourHeight }} />
+                  ))}
+                </div>
+
+                {/* Activity Blocks */}
+                <div className="relative pt-14 h-full px-2">
+                  {day.activities?.map(activity => {
+                    const minutes = timeToMinutes(activity.time)
+                    if (minutes === null || minutes < startOfDayMinutes) return null
+                    
+                    return (
+                      <CalendarActivityBlock
+                        key={activity.id}
+                        activity={activity}
+                        day={day}
+                        startOfDayMinutes={startOfDayMinutes}
+                        hourHeight={hourHeight}
+                        timeToMinutes={timeToMinutes}
+                        isReadOnly={isReadOnly}
+                      />
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Itinerary Tab ─────────────────────────────────────────────────────
 export default function ItineraryTab() {
   const { activeTrip, dispatch, isReadOnly } = useTripContext()
   const isMobile = useMediaQuery('(max-width: 767px)')
-  const [viewMode, setViewMode] = useState('table') // 'table' | 'kanban'
+  const [viewMode, setViewMode] = useState('table') // 'table' | 'kanban' | 'calendar'
   const [activeDayIndex, setActiveDayIndex] = useState(0) // For mobile swipe view context
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [activeSearchActivity, setActiveSearchActivity] = useState(null) // { dayId, activityId, initialValue }
@@ -726,7 +1139,7 @@ export default function ItineraryTab() {
         }
         rightSlot={
           <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center justify-end gap-2">
-            <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
+            <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border/20 shrink-0">
               <button
                 onClick={() => setViewMode('table')}
                 className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'table' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
@@ -740,6 +1153,13 @@ export default function ItineraryTab() {
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
                 Board
+              </button>
+              <button
+                onClick={() => setViewMode('calendar')}
+                className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'calendar' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                Calendar
               </button>
             </div>
 
@@ -843,7 +1263,7 @@ export default function ItineraryTab() {
         <div className="flex-1 w-full relative animate-tab-enter stagger-3">
 
           {viewMode === 'table' ? (
-            <div className="w-full pb-20 overflow-hidden">
+            <div className="w-full pb-20 overflow-hidden rounded-[var(--radius-lg)] border border-border/10">
               {isMobile ? (
                 <div
                   {...bind()}
@@ -895,7 +1315,7 @@ export default function ItineraryTab() {
                 </>
               )}
             </div>
-          ) : (
+          ) : viewMode === 'kanban' ? (
             <div className="absolute inset-0 right-[-24px] pr-6 pb-6 overflow-x-auto overflow-y-hidden custom-scrollbar">
               <div className="flex gap-4 min-fit-content h-full items-start">
                 {trip.itinerary.map(day => (
@@ -919,6 +1339,12 @@ export default function ItineraryTab() {
                 )}
               </div>
             </div>
+          ) : (
+            <CalendarView 
+              trip={trip} 
+              isMobile={isMobile} 
+              activeDayIndex={activeDayIndex} 
+            />
           )}
         </div>
       ) : (

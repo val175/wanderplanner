@@ -689,10 +689,7 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
               </div>
             </div>
 
-            {/* Divider */}
-            <div className="w-px h-8 bg-border"></div>
-
-            {/* Avatars */}
+            {/* Divider removed */}
             <div className="flex items-center">
               <TravelerPicker trip={trip} travelerProfiles={travelerProfiles} dispatch={dispatch} isReadOnly={isReadOnly} />
             </div>

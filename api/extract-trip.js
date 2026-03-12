@@ -126,7 +126,11 @@ Requirements:
    - If the article mentions specific expected costs, use those.
    - CRITICAL: If costs are not mentioned, use your world knowledge to infer realistic estimates for a middle-class traveler in PHP (Philippine Pesos) for the full trip duration.
    - ALL COSTS MUST BE IN PHP. Convert from USD/EUR/AUD/etc. using current approximate exchange rates.
-6. The exact output MUST be a valid JSON matching this schema:
+6. CRITICAL: Every activity MUST have a "duration" (Integer, in minutes) and "endTime" (String, HH:mm). 
+   - Estimate durations based on the activity type (e.g., 90m for meals, 120m for museums, 120m-240m for flights, 30m for quick stops) if the source text doesn't specify.
+   - Calculate "endTime" based on "time" + "duration".
+   - If "time" is missing for an activity, still provide a "duration" and "endTime" based on your best guess of when the activity would likely happen.
+7. The exact output MUST be a valid JSON matching this schema:
 
 {
   "name": "String (Suggested Name)",
@@ -157,6 +161,9 @@ Requirements:
         "activities": [
            {
               "time": "String (e.g. 09:00 AM or empty)",
+              "duration": 60,
+              "endTime": "String (HH:mm)",
+              "category": "String (lodging, flight, food, activity, transport, shopping, concert, other)",
               "name": "String (Activity name)",
               "emoji": "String (Single semantic emoji)",
               "location": "String (Specific venue or address)",
@@ -169,6 +176,8 @@ Requirements:
      }
   ]
 }
+
+- For categories: Choose the closest fit from the list based on the name/context. Use 'other' if unsure.
 
 DO NOT wrap the response in markdown blocks (no \`\`\`json). Output RAW JSON only.
 

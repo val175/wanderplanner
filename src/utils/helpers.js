@@ -187,3 +187,74 @@ export async function geocodeCity(cityStr, countryHint = null) {
   }
   return null
 }
+
+/**
+ * Adds minutes to a time string and returns the result in 24-hour format (HH:mm).
+ * Handles both "HH:mm" and "HH:mm AM/PM" formats.
+ * Handles day-wrapping (e.g., "23:30" + 60 = "00:30").
+ */
+export function addMinutesToTime(timeStr, minutes) {
+  if (!timeStr || typeof timeStr !== 'string') return ''
+  
+  const trimmed = timeStr.trim().toUpperCase()
+  if (!trimmed) return ''
+
+  // Normalize time string to [hours, minutes]
+  let hours, mins
+  if (trimmed.includes('AM') || trimmed.includes('PM')) {
+    const parts = trimmed.split(/\s+/)
+    const time = parts[0]
+    const modifier = parts[1] || (trimmed.endsWith('AM') ? 'AM' : 'PM')
+    const [h, m] = time.split(':').map(Number)
+    hours = h
+    mins = m
+    if (modifier === 'PM' && hours < 12) hours += 12
+    if (modifier === 'AM' && hours === 12) hours = 0
+  } else {
+    const [h, m] = trimmed.split(':').map(Number)
+    hours = h
+    mins = m
+  }
+
+  const date = new Date()
+  date.setHours(hours, mins + minutes, 0, 0)
+
+  const h = String(date.getHours()).padStart(2, '0')
+  const m = String(date.getMinutes()).padStart(2, '0')
+  return `${h}:${m}`
+}
+
+/**
+ * Calculates the difference in minutes between two time strings.
+ * Returns an integer. Assumes same-day or handles forward-only delta.
+ */
+export function calculateDuration(startTime, endTime) {
+  if (!startTime || !endTime) return 0
+
+  const parseToMins = (str) => {
+    let hours, mins
+    if (str.toUpperCase().includes('AM') || str.toUpperCase().includes('PM')) {
+      const [time, modifier] = str.split(' ')
+      const [h, m] = time.split(':').map(Number)
+      hours = h
+      mins = m
+      if (modifier.toUpperCase() === 'PM' && hours < 12) hours += 12
+      if (modifier.toUpperCase() === 'AM' && hours === 12) hours = 0
+    } else {
+      const [h, m] = str.split(':').map(Number)
+      hours = h
+      mins = m
+    }
+    return hours * 60 + mins
+  }
+
+  const startTotal = parseToMins(startTime)
+  let endTotal = parseToMins(endTime)
+
+  // Handle day wrap if end is before start
+  if (endTotal < startTotal) {
+    endTotal += 24 * 60
+  }
+
+  return endTotal - startTotal
+}
