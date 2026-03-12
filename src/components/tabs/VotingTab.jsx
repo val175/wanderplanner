@@ -987,18 +987,32 @@ export default function VotingTab() {
 
                     <div className={`transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-2 relative gap-2 ${isCreatingPoll ? '-mt-2' : ''}`}>
                         <div className="flex-1">
-                            <select
-                                value={filter}
-                                onChange={e => setFilter(e.target.value)}
-                                className="text-sm bg-bg-secondary border border-border rounded-[var(--radius-md)] px-3 py-1.5 text-text-primary focus:outline-none focus:border-accent w-auto min-w-[140px] cursor-pointer"
-                            >
-                                <option value="all">All Categories</option>
-                                {GLOBAL_CATEGORIES.map(cat => (
-                                    <option key={cat.id} value={cat.id}>
-                                        {cat.emoji} {cat.label}
-                                    </option>
-                                ))}
-                            </select>
+                            <div className="relative inline-flex">
+                                <select
+                                    value={filter}
+                                    onChange={e => setFilter(e.target.value)}
+                                    className="h-7 text-xs bg-bg-secondary border border-border rounded-[var(--radius-md)] px-3 pr-9 text-text-primary focus:outline-none focus:border-accent w-auto min-w-[140px] cursor-pointer appearance-none"
+                                >
+                                    <option value="all">All Categories</option>
+                                    {GLOBAL_CATEGORIES.map(cat => (
+                                        <option key={cat.id} value={cat.id}>
+                                            {cat.emoji} {cat.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                <svg
+                                    viewBox="0 0 20 20"
+                                    className="pointer-events-none absolute right-3 top-1/2 h-3 w-3 -translate-y-1/2 text-text-muted"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    aria-hidden="true"
+                                >
+                                    <polyline points="6 8 10 12 14 8" />
+                                </svg>
+                            </div>
                         </div>
 
                         <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
@@ -1034,7 +1048,7 @@ export default function VotingTab() {
                     {createPortal(
                         <button
                             onClick={() => { hapticImpact('medium'); setShowIdeaExtractor(true) }}
-                            className="fixed bottom-24 right-4 z-40 block md:hidden shadow-lg bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2"
+                            className="fixed bottom-24 right-4 z-40 block md:hidden bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2"
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
                             Extract Idea

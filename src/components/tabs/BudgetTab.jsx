@@ -659,9 +659,7 @@ export default function BudgetTab() {
   }
 
   return (
-    <div className="space-y-6 animate-tab-enter stagger-1 pb-24 w-full">
-
-
+    <div className="space-y-5 animate-tab-enter stagger-1 pb-24 w-full">
 
       <AddExpenseModal
         isOpen={isAddModalOpen}
@@ -672,7 +670,7 @@ export default function BudgetTab() {
       />
 
       {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-6 gap-2">
+      <div className="flex flex-col md:flex-row md:items-center justify-between pb-3 mb-4 gap-2">
         {/* Left: Search */}
         <div className="flex-1 md:max-w-sm">
           <input
@@ -714,7 +712,7 @@ export default function BudgetTab() {
       {!isReadOnly && createPortal(
         <button
           onClick={() => { hapticImpact('medium'); setIsAddModalOpen(true) }}
-          className="fixed bottom-24 right-4 z-40 block md:hidden shadow-lg bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2"
+          className="fixed bottom-24 right-4 z-40 block md:hidden bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
           Log Expense
@@ -747,7 +745,7 @@ export default function BudgetTab() {
         </div>
 
         {/* Right Column (1/3 width) - Analytics & Health */}
-        <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-[88px]">
+        <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-0">
           <GroupBalancesCard
             spendingLog={trip.spendingLog || []}
             travelers={travelers}

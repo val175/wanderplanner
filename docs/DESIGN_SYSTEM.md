@@ -103,11 +103,13 @@ All tables (e.g., Budget Spending Log, Bookings Table, Packing Table) must follo
 ### 6. Tab Layouts
 When building a top-level Tab component (e.g., `BookingsTab`, `TodoTab`, `PackingTab`):
 - **Layer 1: Tab Header (`TabHeader`)**: The `rightSlot` is STRICTLY for passive, read-only statistics (e.g., Progress Bars, "X of Y packed", "X items"). **Never** put primary or secondary action CTAs (like "+ New Item" or "Export") in the `rightSlot`.
+- **TabHeader Spacing**: Use `pb-3 mb-4` on the TabHeader wrapper to keep the header-to-content gap aligned with the tighter spacing standard used in `OverviewTab`.
 - **Layer 2: The Toolbar**: This layer sits below the TabHeader.
     - **Outer wrapper**: `<div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-6 gap-2">` — stacks vertically on mobile, horizontal on desktop.
     - **Left Side (Filters/Search)**: `<div className="flex-1">` — stacks above the right side on mobile. If a tab uses category filters, use a standard `<select>` dropdown.
         - The first option must always be "All Categories" followed by specific categories.
-        - **Classes**: `text-sm bg-bg-secondary border border-border rounded-[var(--radius-md)] px-3 py-1.5 text-text-primary focus:outline-none focus:border-accent w-auto min-w-[140px] cursor-pointer`.
+        - **Classes**: `h-7 text-xs bg-bg-secondary border border-border rounded-[var(--radius-md)] px-3 pr-9 text-text-primary focus:outline-none focus:border-accent w-auto min-w-[140px] cursor-pointer appearance-none`.
+        - **Chevron**: Wrap the `<select>` in `relative inline-flex` and place a `pointer-events-none` chevron icon at `right-3 top-1/2 -translate-y-1/2` with `text-text-muted` to ensure consistent spacing.
     - **Right Side (Toggles & CTAs)**: Use `<div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">` — horizontally scrollable on mobile. All internal buttons must have `shrink-0`. The EXACT horizontal order from left to right:
         1. **Scope Toggles** (e.g., "Everyone / Just Me") — always `shrink-0`
         2. **View Toggles** (e.g., "Table / Board") — always `shrink-0`
@@ -193,6 +195,8 @@ Increment/decrement icon buttons (e.g. in packing qty, seat counts) must use:
 Inline category labels (e.g. packing category, booking type) use a **single neutral style** — do not apply per-category hardcoded colors (avoid `bg-cyan-500/10 text-cyan-600` etc.).
 - **Classes**: `inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-pill)] text-xs font-medium border border-border bg-bg-secondary text-text-secondary hover:bg-bg-hover`
 - The emoji + label inside provides sufficient visual distinction without color coding.
+
+**Exception — ItineraryTab Only:** Activity cards/blocks in the Itinerary tab (table rows, kanban cards, and calendar blocks) may use per-category tinted backgrounds and borders for fast scanning. This exception does **not** apply to generic category/tag pills elsewhere in the app.
 
 #### View Toggles
 When a tab offers multiple layouts (e.g. Table vs Board, Grid vs Table), the standard toggle control must look like this:

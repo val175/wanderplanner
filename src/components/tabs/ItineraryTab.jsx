@@ -677,7 +677,7 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
 
   return (
     <div
-      className={`flex flex-col flex-shrink-0 w-72 bg-white border rounded-[var(--radius-lg)] p-2 transition-colors ${dragOverCol && !isReadOnly ? 'border-accent/50 bg-accent/5' : 'border-border/10'} h-[calc(100vh-250px)] shadow-none`}
+      className={`flex flex-col flex-shrink-0 w-72 bg-bg-card border rounded-[var(--radius-lg)] p-2 transition-colors ${dragOverCol && !isReadOnly ? 'border-accent/50 bg-accent/5' : 'border-border'} h-[calc(100vh-250px)]`}
       onDragOver={e => {
         if (isReadOnly) return
         e.preventDefault()
@@ -693,23 +693,24 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
         <div className="flex items-center gap-1.5">
           {(() => {
             const count = day.activities?.length || 0;
+            const pillClass = "inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-pill)] text-xs font-medium border border-border bg-bg-secondary text-text-secondary whitespace-nowrap";
             if (count < 5) return (
-              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-success/10 text-success whitespace-nowrap">
+              <span className={pillClass}>
                 🔋 Chill
               </span>
             );
             if (count <= 8) return (
-              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-info/10 text-info whitespace-nowrap">
+              <span className={pillClass}>
                 ⚡ Active
               </span>
             );
             return (
-              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#E27D60]/10 text-[#E27D60] whitespace-nowrap">
+              <span className={pillClass}>
                 🪫 Packed
               </span>
             );
           })()}
-          <span className="text-xs font-medium text-text-muted bg-bg-card px-2 py-0.5 rounded-full border border-border/20">
+          <span className="text-xs font-medium text-text-secondary bg-bg-secondary px-2 py-0.5 rounded-[var(--radius-pill)] border border-border">
             {day.activities?.length || 0}
           </span>
         </div>
@@ -733,13 +734,13 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
               highlightedActivityId === activity.id 
                 ? 'ring-2 ring-accent border-accent/20'
                 : activity.category 
-                  ? CAT_THEME_CLASSES[getCategoryTheme(activity.category).color]?.border || 'border-border/10'
-                  : 'border-border/10'
+                  ? CAT_THEME_CLASSES[getCategoryTheme(activity.category).color]?.border || 'border-border'
+                  : 'border-border'
             } ${
               activity.category 
                 ? CAT_THEME_CLASSES[getCategoryTheme(activity.category).color]?.bg || 'bg-bg-card'
                 : 'bg-bg-card'
-            } shadow-none`}
+            }`}
           >
             <div className="flex items-start gap-2 mb-2 w-full">
               <div className="flex-1 min-w-0 pr-6">
@@ -922,41 +923,35 @@ function CalendarActivityBlock({ activity, day, startOfDayMinutes, hourHeight, t
       {...bindDrag()}
       className={`absolute left-2 right-2 rounded-[var(--radius-md)] transition-[background,border,opacity] z-0 hover:z-50 flex flex-col group overflow-hidden border ${
         activity.category 
-          ? `${CAT_THEME_CLASSES[catColor]?.bg || 'bg-bg-card'} ${CAT_THEME_CLASSES[catColor]?.border || 'border-border/10'}`
-          : 'bg-bg-card border-border/10'
-      } shadow-none ${isDragging || (isResizing && false) ? 'opacity-80 scale-[0.98] ring-2 ring-accent/30' : ''} ${!isReadOnly ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
+          ? `${CAT_THEME_CLASSES[catColor]?.bg || 'bg-bg-card'} ${CAT_THEME_CLASSES[catColor]?.border || 'border-border'}`
+          : 'bg-bg-card border-border'
+      } ${isDragging || (isResizing && false) ? 'opacity-80 scale-[0.98] ring-2 ring-accent/30' : ''} ${!isReadOnly ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
       style={{ top: localTop + 4, height: localHeight - 8, touchAction: 'none' }}
     >
       <div className="flex flex-col h-full relative z-10 p-3 pointer-events-none">
         <div className="flex items-start justify-between gap-2">
-          <h4 className="text-[12px] font-extra-bold leading-tight text-text-primary transition-colors truncate">
+          <h4 className="text-sm font-semibold font-heading leading-tight text-text-primary transition-colors truncate">
             {activity.name}
           </h4>
-          <span className={`text-[10px] font-mono font-bold shrink-0 ${isDragging || isResizing ? 'text-accent' : 'text-text-muted/80'}`}>
+          <span className={`text-[10px] font-mono font-semibold shrink-0 ${isDragging || isResizing ? 'text-accent' : 'text-text-muted/80'}`}>
             {displayTime}
           </span>
         </div>
         
-        <div className="text-[11px] text-text-muted font-medium mt-1 truncate uppercase tracking-tight">
+        <div className="text-xs text-text-muted font-medium mt-1 truncate uppercase tracking-wide">
           {(activity.location?.placeName || activity.location || 'Unknown')} • {theme.label}
         </div>
 
-        {localHeight > 100 && (
-          <div className="mt-auto flex items-center justify-between">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-text-muted/30">
-              {activity.category || 'activity'}
-            </span>
-          </div>
-        )}
+        {localHeight > 100 && <div className="mt-auto" />}
       </div>
 
       {!isReadOnly && (
         <div 
           {...bindResize()}
-          className="absolute bottom-0 left-0 right-0 h-4 cursor-ns-resize flex items-end justify-center pb-1 opacity-0 group-hover:opacity-100 hover:bg-border/20 transition-colors z-20"
+          className="absolute bottom-0 left-0 right-0 h-4 cursor-ns-resize flex items-end justify-center pb-1 opacity-0 group-hover:opacity-100 hover:bg-bg-hover transition-colors z-20"
           style={{ touchAction: 'none' }}
         >
-          <div className="w-8 h-1 rounded-full bg-border-strong/50 pointer-events-none" />
+          <div className="w-8 h-1 rounded-full bg-border opacity-60 pointer-events-none" />
         </div>
       )}
     </div>
@@ -1015,14 +1010,14 @@ function CalendarView({ trip, isMobile, activeDayIndex }) {
   const totalMinHeight = Math.max(600, (numHours + 1) * hourHeight);
 
   return (
-    <div className="flex-1 overflow-y-auto bg-white rounded-[var(--radius-lg)] border border-border/20 relative select-none custom-scrollbar h-[calc(100vh-250px)] shadow-none">
+    <div className="flex-1 overflow-y-auto bg-bg-card rounded-[var(--radius-lg)] border border-border relative select-none custom-scrollbar h-[calc(100vh-250px)]">
       <div className="flex min-w-fit relative" style={{ minHeight: totalMinHeight }}>
         {/* Time Axis */}
-        <div className="w-16 sticky left-0 z-20 bg-white/95 backdrop-blur-md border-r border-border/10 shrink-0">
+        <div className="w-16 sticky left-0 z-20 bg-bg-card/95 border-r border-border/20 shrink-0">
           <div className="h-14" /> {/* Header spacer */}
           {hours.map(hr => (
             <div key={hr} className="relative" style={{ height: hourHeight }}>
-              <span className="absolute -top-2.5 left-3 text-[10px] font-mono text-text-muted/60 font-bold uppercase tracking-tight">
+              <span className="absolute -top-2.5 left-3 text-[10px] font-mono text-text-muted font-semibold uppercase tracking-widest">
                 {hr % 12 || 12} {hr < 12 ? 'AM' : 'PM'}
               </span>
             </div>
@@ -1036,16 +1031,16 @@ function CalendarView({ trip, isMobile, activeDayIndex }) {
             return (
               <div 
                 key={day.id} 
-                className="flex-1 min-w-[320px] border-r border-border/10 relative transition-colors bg-white"
+                className="flex-1 min-w-[320px] border-r border-border/20 relative transition-colors bg-bg-card"
               >
                 {/* Day Header */}
                 <div 
-                  className="h-14 border-b border-border/10 flex flex-col items-center justify-center sticky top-0 z-10 px-4 transition-all bg-white"
+                  className="h-14 border-b border-border/20 flex flex-col items-center justify-center sticky top-0 z-10 px-4 transition-all bg-bg-card"
                 >
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted opacity-60">
+                  <span className="text-[10px] font-semibold font-heading uppercase tracking-widest text-text-muted">
                     Day {day.dayNumber}
                   </span>
-                  <span className="text-xs font-extra-bold text-text-primary truncate max-w-full">
+                  <span className="text-sm font-semibold font-heading text-text-primary truncate max-w-full">
                     {day.location || 'Untitled'}
                   </span>
                 </div>
@@ -1053,7 +1048,7 @@ function CalendarView({ trip, isMobile, activeDayIndex }) {
                 {/* Grid Lines */}
                 <div className="absolute inset-0 pt-14 pointer-events-none">
                   {hours.map(hr => (
-                    <div key={hr} className="border-b border-dashed border-border/10 w-full" style={{ height: hourHeight }} />
+                    <div key={hr} className="border-b border-dashed border-border/20 w-full" style={{ height: hourHeight }} />
                   ))}
                 </div>
 
@@ -1129,7 +1124,7 @@ export default function ItineraryTab() {
   }
 
   return (
-    <div className="space-y-6 animate-tab-enter stagger-1 flex flex-col h-full min-h-[calc(100vh-120px)]">
+    <div className="space-y-6 animate-fade-in pb-12 flex flex-col h-full min-h-[calc(100vh-120px)]">
 
       <TabHeader
         leftSlot={
@@ -1139,24 +1134,24 @@ export default function ItineraryTab() {
         }
         rightSlot={
           <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center justify-end gap-2">
-            <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border/20 shrink-0">
+            <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
               <button
                 onClick={() => setViewMode('table')}
-                className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'table' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+                className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'table' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
                 Table
               </button>
               <button
                 onClick={() => setViewMode('kanban')}
-                className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'kanban' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+                className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'kanban' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
                 Board
               </button>
               <button
                 onClick={() => setViewMode('calendar')}
-                className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'calendar' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+                className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'calendar' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
                 Calendar
@@ -1240,7 +1235,7 @@ export default function ItineraryTab() {
         <div className="fixed bottom-24 right-4 z-40 flex flex-col gap-2 md:hidden">
           <button
             onClick={() => { hapticImpact('medium'); setIsAddModalOpen(true) }}
-            className="shadow-lg bg-bg-card border border-border text-text-primary rounded-full px-4 py-3 font-semibold flex items-center gap-2 text-sm"
+            className="bg-bg-card border border-border text-text-primary rounded-full px-4 py-3 font-semibold flex items-center gap-2 text-sm"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
             Activity
@@ -1248,7 +1243,7 @@ export default function ItineraryTab() {
           <div className="animate-tab-enter stagger-2">
             <button
               onClick={() => { hapticImpact('medium'); handleAddDay() }}
-              className="shadow-lg bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2 text-sm"
+              className="bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2 text-sm"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
               New Day

@@ -79,7 +79,7 @@ export default function LocationDrawer({ isOpen, onClose, data }) {
                             href={locationObj.mapUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="w-full h-8 rounded-[var(--radius-md)] bg-accent text-white font-bold text-[10px] hover:opacity-90 transition-opacity flex items-center justify-center gap-1.5 shadow-sm"
+                            className="w-full h-8 rounded-[var(--radius-md)] bg-accent text-white font-bold text-[10px] hover:opacity-90 transition-opacity flex items-center justify-center gap-1.5"
                         >
                             <ExternalLink size={12} strokeWidth={2.5} />
                             Google Maps

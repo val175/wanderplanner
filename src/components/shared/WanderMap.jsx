@@ -116,10 +116,10 @@ export default function WanderMap({ trip, className = '' }) {
                             onClick={() => setSelectedPoint({ type: 'dest', ...d })}
                             className="cursor-pointer group flex flex-col items-center pb-2"
                         >
-                            <div className="w-8 h-8 rounded-full border-2 border-white bg-accent shadow-lg flex items-center justify-center text-white ring-2 ring-accent/20 group-hover:scale-110 transition-transform">
+                            <div className="w-9 h-9 rounded-full border-2 border-border bg-bg-card flex items-center justify-center text-text-primary ring-2 ring-accent/20 group-hover:scale-110 transition-transform">
                                 <Navigation2 size={14} className="fill-current" />
                             </div>
-                            <div className="mt-1.5 px-2 py-0.5 bg-slate-900/90 backdrop-blur-sm text-white text-[10px] font-medium rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                            <div className="mt-1.5 px-2 py-0.5 bg-[#0F172A] text-white text-[10px] font-medium rounded-[var(--radius-sm)] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                                 {d.city}
                             </div>
                         </motion.div>
@@ -136,8 +136,8 @@ export default function WanderMap({ trip, className = '' }) {
                             onClick={() => setSelectedPoint({ type: 'idea', ...ic })}
                             className="cursor-pointer group flex flex-col items-center pb-2"
                         >
-                            <div className="w-6 h-6 rounded-full border-2 border-white bg-indigo-500 shadow-md flex items-center justify-center text-white group-hover:bg-indigo-600 transition-colors">
-                                <span className="text-[10px]">{ic.idea.emoji || '✨'}</span>
+                            <div className="w-9 h-9 rounded-[var(--radius-md)] border border-border bg-bg-card flex items-center justify-center text-text-primary transition-colors">
+                                <span className="text-[12px]">{ic.idea.emoji || '✨'}</span>
                             </div>
                         </motion.div>
                     </Marker>
@@ -160,7 +160,7 @@ export default function WanderMap({ trip, className = '' }) {
 function LayerToggle({ layers, onToggle }) {
     return (
         <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
-            <div className="bg-bg-card/80 backdrop-blur-md border border-border p-1.5 rounded-2xl flex flex-col gap-1 shadow-lg">
+            <div className="bg-bg-card/80 backdrop-blur-md border border-border p-1.5 rounded-2xl flex flex-col gap-1">
                 <ToggleButton
                     active={layers.itinerary}
                     onClick={() => onToggle('itinerary')}
@@ -192,7 +192,7 @@ function ToggleButton({ active, onClick, icon, label }) {
             className={`
         flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all
         ${active
-                    ? 'bg-accent text-white shadow-sm'
+                    ? 'bg-accent text-white'
                     : 'text-text-secondary hover:bg-bg-hover'}
       `}
         >

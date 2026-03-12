@@ -232,31 +232,45 @@ export default function BookingsTab() {
         rightSlot={
           <>
             <div className="flex-1">
-              <select
-                value={filter}
-                onChange={e => setFilter(e.target.value)}
-                className="text-sm bg-bg-secondary border border-border rounded-[var(--radius-md)] px-3 py-1.5 text-text-primary focus:outline-none focus:border-accent w-auto min-w-[140px] cursor-pointer"
-              >
-                {filters.map(f => (
-                  <option key={f.id} value={f.id}>
-                    {f.label === 'All' ? 'All Bookings' : f.label}
-                  </option>
-                ))}
-              </select>
+              <div className="relative inline-flex">
+                <select
+                  value={filter}
+                  onChange={e => setFilter(e.target.value)}
+                  className="h-7 text-xs bg-bg-secondary border border-border rounded-[var(--radius-md)] px-3 pr-9 text-text-primary focus:outline-none focus:border-accent w-auto min-w-[140px] cursor-pointer appearance-none"
+                >
+                  {filters.map(f => (
+                    <option key={f.id} value={f.id}>
+                      {f.label === 'All' ? 'All Bookings' : f.label}
+                    </option>
+                  ))}
+                </select>
+                <svg
+                  viewBox="0 0 20 20"
+                  className="pointer-events-none absolute right-3 top-1/2 h-3 w-3 -translate-y-1/2 text-text-muted"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="6 8 10 12 14 8" />
+                </svg>
+              </div>
             </div>
 
             <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
               <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
                 <button
                   onClick={() => setViewMode('table')}
-                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'table' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'table' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
                   Table
                 </button>
                 <button
                   onClick={() => setViewMode('board')}
-                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'board' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'board' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
                   Board
@@ -306,7 +320,7 @@ export default function BookingsTab() {
       {!isReadOnly && createPortal(
         <button
           onClick={() => { hapticImpact('medium'); setIsAddModalOpen(true) }}
-          className="fixed bottom-24 right-4 z-40 block md:hidden shadow-lg bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2"
+          className="fixed bottom-24 right-4 z-40 block md:hidden bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
           New Booking
