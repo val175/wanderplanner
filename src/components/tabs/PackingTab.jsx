@@ -490,7 +490,7 @@ export default function PackingTab() {
             <EditableText
               value={info.getValue()}
               onSave={val => onUpdate(info.row.original.id, { name: val })}
-              className={`font-medium transition-colors ${info.row.original.packed ? 'text-text-muted line-through' : 'text-text-primary'}`}
+              className={`text-sm font-medium transition-colors ${info.row.original.packed ? 'text-text-muted line-through' : 'text-text-primary'}`}
               inputClassName="w-full"
               readOnly={isReadOnly}
             />  {badges && !info.row.original.packed && (
