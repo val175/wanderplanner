@@ -305,7 +305,8 @@ export function tripReducer(state, action) {
           category: 'other',
           name: 'New Activity',
           location: '',
-          notes: ''
+          notes: '',
+          ...(payload.activity || {})
         }
           const newActivities = [...(d.activities || [])]
           if (typeof payload.index === 'number') {
