@@ -76,11 +76,11 @@ function IdeaTableRow({ idea, resolveProfile, onDelete, isSelectable, isSelected
 
     return (
         <tr
-            className={`group border-b border-border transition-colors ${isBooked ? 'opacity-40 grayscale' : 'hover:bg-bg-hover'
+            className={`group border-t border-border/20 transition-colors ${isBooked ? 'opacity-40 grayscale' : 'hover:bg-bg-hover'
                 } ${isSelected ? 'bg-accent/5' : ''}`}
         >
             {/* Checkbox */}
-            <td className="pl-4 pr-2 py-3 w-10">
+            <td className="px-2 py-3 w-10">
                 {isSelectable && !isBooked ? (
                     <input
                         type="checkbox"
@@ -94,7 +94,7 @@ function IdeaTableRow({ idea, resolveProfile, onDelete, isSelectable, isSelected
             </td>
 
             {/* Thumbnail */}
-            <td className="pr-3 py-3 w-12">
+            <td className="px-2 py-3 w-12">
                 <div className="w-10 h-10 rounded-lg overflow-hidden bg-bg-secondary flex items-center justify-center shrink-0">
                     {idea.imageUrl && !imgError ? (
                         <img
@@ -111,7 +111,7 @@ function IdeaTableRow({ idea, resolveProfile, onDelete, isSelectable, isSelected
             </td>
 
             {/* Name & source */}
-            <td className="py-3 pr-4 min-w-0">
+            <td className="px-2 py-3 min-w-0">
                 <a
                     href={idea.url}
                     target="_blank"
@@ -130,12 +130,12 @@ function IdeaTableRow({ idea, resolveProfile, onDelete, isSelectable, isSelected
             </td>
 
             {/* Category */}
-            <td className="py-3 pr-4 whitespace-nowrap">
+            <td className="px-2 py-3 whitespace-nowrap">
                 <CategoryPill type={idea.type || 'other'} />
             </td>
 
             {/* Est. Cost */}
-            <td className="py-3 pr-4 whitespace-nowrap">
+            <td className="px-2 py-3 whitespace-nowrap">
                 {(() => {
                     const { amount, unit } = formatIdeaPrice(idea.priceDetails)
                     if (amount === 'TBD') return <span className="text-text-muted text-xs">—</span>
@@ -151,7 +151,7 @@ function IdeaTableRow({ idea, resolveProfile, onDelete, isSelectable, isSelected
             </td>
 
             {/* Proposed by */}
-            <td className="py-3 pr-4 whitespace-nowrap">
+            <td className="px-2 py-3 whitespace-nowrap">
                 {proposer ? (
                     <div className="flex items-center gap-1.5">
                         <AvatarCircle profile={proposer} size={22} />
@@ -161,10 +161,10 @@ function IdeaTableRow({ idea, resolveProfile, onDelete, isSelectable, isSelected
             </td>
 
             {/* Date */}
-            <td className="py-3 pr-4 text-[12px] text-text-muted whitespace-nowrap">{date}</td>
+            <td className="px-2 py-3 text-[12px] text-text-muted whitespace-nowrap">{date}</td>
 
             {/* Actions */}
-            <td className="py-3 pr-3 w-10 relative">
+            <td className="px-2 py-3 w-10 relative">
                 {onDelete && (
                     <div className="relative">
                         <button
@@ -231,15 +231,16 @@ function IdeaTableView({ ideas, resolveProfile, onDelete, isSelectable, selected
             : <svg className="w-3 h-3 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12l7 7 7-7" /></svg>
     }
 
-    const thClass = "px-0 pb-3 text-xs font-bold uppercase tracking-wider text-text-muted text-left select-none"
+    const thClass = "px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted text-left select-none"
     const sortable = "cursor-pointer hover:text-text-primary transition-colors"
 
     return (
-        <div className="border border-border rounded-[var(--radius-lg)] bg-bg-card overflow-hidden animate-fade-in">
-            <table className="w-full border-collapse">
+        <Card className="rounded-[var(--radius-lg)] overflow-hidden animate-fade-in">
+            <div className="w-full overflow-x-auto">
+            <table className="w-full text-left border-collapse table-fixed min-w-[900px] text-sm">
                 <thead>
-                    <tr className="border-b border-border">
-                        <th className="pl-4 pr-2 pb-3 pt-3 w-10">
+                    <tr className="border-b border-border/50">
+                        <th className="px-2 py-2 w-10">
                             {isSelectable && (
                                 <input
                                     type="checkbox"
@@ -249,26 +250,26 @@ function IdeaTableView({ ideas, resolveProfile, onDelete, isSelectable, selected
                                 />
                             )}
                         </th>
-                        <th className="pr-3 pb-3 pt-3 w-12" />
-                        <th className={`${thClass} ${sortable} pt-3`} onClick={() => toggleSort('name')}>
+                        <th className="px-2 py-2 w-12" />
+                        <th className={`${thClass} ${sortable}`} onClick={() => toggleSort('name')}>
                             <div className="flex items-center gap-1">NAME <SortIcon col="name" /></div>
                         </th>
-                        <th className={`${thClass} ${sortable} pt-3`} onClick={() => toggleSort('category')}>
+                        <th className={`${thClass} ${sortable}`} onClick={() => toggleSort('category')}>
                             <div className="flex items-center gap-1">CATEGORY <SortIcon col="category" /></div>
                         </th>
-                        <th className={`${thClass} ${sortable} pt-3`} onClick={() => toggleSort('cost')}>
+                        <th className={`${thClass} ${sortable}`} onClick={() => toggleSort('cost')}>
                             <div className="flex items-center gap-1">EST. COST <SortIcon col="cost" /></div>
                         </th>
-                        <th className={`${thClass} pt-3`}>ADDED BY</th>
-                        <th className={`${thClass} ${sortable} pt-3`} onClick={() => toggleSort('date')}>
+                        <th className={`${thClass}`}>ADDED BY</th>
+                        <th className={`${thClass} ${sortable}`} onClick={() => toggleSort('date')}>
                             <div className="flex items-center gap-1">DATE <SortIcon col="date" /></div>
                         </th>
-                        <th className="w-10 pb-3 pt-3 pr-3" />
+                        <th className="px-2 py-2 w-10" />
                     </tr>
                 </thead>
                 <tbody>
                     {isExtracting && (
-                        <tr className="border-b border-border animate-pulse">
+                        <tr className="border-b border-border/50 animate-pulse">
                             <td colSpan={8} className="py-3 px-4">
                                 <div className="h-4 bg-bg-secondary rounded w-2/3" />
                             </td>
@@ -290,7 +291,8 @@ function IdeaTableView({ ideas, resolveProfile, onDelete, isSelectable, selected
                     )}
                 </tbody>
             </table>
-        </div>
+            </div>
+        </Card>
     )
 }
 

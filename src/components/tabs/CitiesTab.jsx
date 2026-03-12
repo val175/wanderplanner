@@ -373,7 +373,7 @@ export default function CitiesTab() {
 
       {/* ── Desktop table view ── */}
       <div className="animate-tab-enter stagger-2">
-      <Card className="hidden md:block border border-border/50 p-0 overflow-hidden w-full max-w-full">
+      <Card className="hidden md:block border border-border overflow-hidden w-full max-w-full">
 
         <div className="w-full overflow-x-auto overflow-y-visible scrollbar-thin">
           <table className="w-full text-left border-collapse table-fixed min-w-[850px] text-sm">

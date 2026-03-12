@@ -48,7 +48,7 @@ function KanbanColumn({ id, title, bookings, currency, onRowClick, isMobile, isE
         return (
             <div
                 ref={setNodeRef}
-                className={`flex flex-col w-full bg-bg-secondary/20 border rounded-[var(--radius-lg)] transition-colors overflow-hidden ${isOver ? 'border-accent/50 bg-accent/5' : 'border-border/50'}`}
+                className={`flex flex-col w-full bg-bg-secondary/20 border rounded-[var(--radius-lg)] transition-colors overflow-hidden ${isOver ? 'border-accent/50 bg-accent/5' : 'border-border'}`}
             >
                 <div
                     className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-bg-hover active:bg-bg-hover/80 transition-colors"
@@ -95,7 +95,7 @@ function KanbanColumn({ id, title, bookings, currency, onRowClick, isMobile, isE
     return (
         <div
             ref={setNodeRef}
-            className={`flex flex-col flex-shrink-0 w-72 bg-bg-secondary/20 border rounded-[var(--radius-lg)] p-2 transition-colors ${isOver ? 'border-accent/50 bg-accent/5' : 'border-border/50'}`}
+            className={`flex flex-col flex-shrink-0 w-72 bg-bg-secondary/20 border rounded-[var(--radius-lg)] p-2 transition-colors ${isOver ? 'border-accent/50 bg-accent/5' : 'border-border'}`}
         >
             <div className="px-3 py-2 mb-2 flex items-center justify-between border-b border-border/30">
                 <h3 className="font-semibold text-sm text-text-primary">{title}</h3>
@@ -165,8 +165,8 @@ function BookingCardContent({ booking, currency, onRowClick, isOverlay, isReadOn
             onClick={(e) => {
                 onRowClick?.(booking)
             }}
-            className={`bg-bg-card border rounded-[var(--radius-md)] p-3 transition-colors block text-left ${isOverlay ? 'border-accent ring-2 ring-accent/30 rotate-2 cursor-grabbing' : `border-border/50 ${isReadOnly ? '' : 'hover:border-accent/40 active:border-accent'}`
-                }`}
+            className={`bg-bg-card border rounded-[var(--radius-md)] p-3 transition-colors block text-left ${isOverlay ? 'border-accent ring-2 ring-accent/30 rotate-2 cursor-grabbing' : `border-border ${isReadOnly ? '' : 'hover:border-accent/40 active:border-accent'}`
+              }`}
         >
             <div className="flex items-start gap-2 mb-2">
                 <span className="text-xl leading-none pt-0.5">{categoryConfig.emoji}</span>

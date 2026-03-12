@@ -318,7 +318,7 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
   // ── Board (card) layout — mirrors BookingsKanban's BookingCardContent ──
   if (isBoard) {
     return (
-      <div className={`relative group bg-bg-card border border-border/50 rounded-[var(--radius-md)] p-3 transition-all duration-200 hover:border-accent/40 ${todo.done ? 'opacity-60' : ''} ${isReadOnly ? '' : 'cursor-default'}`}>
+      <div className={`relative group bg-bg-card border border-border rounded-[var(--radius-md)] p-3 transition-all duration-200 hover:border-accent/40 ${todo.done ? 'opacity-60' : ''} ${isReadOnly ? '' : 'cursor-default'}`}>
         <div className="flex items-start gap-2">
           {/* Drag handle — left side to avoid overlapping absolute top-right delete button */}
           {canDrag && !isReadOnly && (
@@ -559,7 +559,7 @@ function BoardPhaseColumn({ phase, index, phaseTodos, canDrag, isReadOnly, dispa
   const phaseTotal = phaseTodos.length
 
   return (
-    <div ref={setNodeRef} className={`flex flex-col flex-shrink-0 w-72 bg-bg-secondary/20 border rounded-[var(--radius-lg)] p-2 transition-colors ${isOver ? 'border-accent/50 bg-accent/5' : 'border-border/50'}`}>
+    <div ref={setNodeRef} className={`flex flex-col flex-shrink-0 w-72 bg-bg-secondary/20 border rounded-[var(--radius-lg)] p-2 transition-colors ${isOver ? 'border-accent/50 bg-accent/5' : 'border-border'}`}>
       {/* Column header — identical structure to BookingsKanban KanbanColumn */}
       <div className="px-3 py-2 mb-2 flex items-center justify-between border-b border-border/30">
         <h3 className="font-semibold text-sm text-text-primary">
@@ -663,7 +663,7 @@ function TodoPhaseGroup({
       </div>
 
       {expanded && (
-        <Card className="p-0 overflow-hidden border border-border/50">
+        <Card className="overflow-hidden border border-border">
           <DropPhaseBoard phase={phase}>
             <div className="flex items-center gap-2 px-0 py-2 border-b border-border/40 bg-bg-secondary/10">
               <div className="w-[30px] shrink-0"></div>

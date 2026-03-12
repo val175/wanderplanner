@@ -415,11 +415,11 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
 
       {/* Group Grid Content */}
       {expanded && (
-        <Card className="border border-border/10 p-0 overflow-hidden shadow-none">
+        <Card className="border border-border overflow-hidden shadow-none">
           <div className="w-full overflow-x-auto overflow-y-visible scrollbar-thin">
             <table className="w-full text-left border-collapse table-fixed min-w-[600px] text-sm">
               <thead>
-                <tr className="border-b border-border/10 bg-bg-secondary/10">
+                <tr className="border-b border-border/50">
                   <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[30px] overflow-hidden"></th>
                   <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[100px] overflow-hidden">TIME</th>
                   <th className="px-0 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[30px] text-center overflow-hidden"></th>
@@ -444,7 +444,7 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
                         }}
                         onDragOver={e => e.preventDefault()}
                         onDrop={e => handleDropActivity(e, index)}
-                        className="group/row hover:bg-bg-hover transition-colors relative cursor-pointer"
+                        className="group/row hover:bg-bg-hover transition-colors relative cursor-pointer border-t border-border/20"
                       >
                         {/* Drag Handle */}
                         <td className="px-2 pt-4 pb-2 align-top">
@@ -571,7 +571,7 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
 
                       {/* Transit Row between activities */}
                       {index < arr.length - 1 && (
-                        <tr className="group/transit hover:bg-bg-hover/50 transition-colors">
+                        <tr className="group/transit hover:bg-bg-hover/50 transition-colors border-t border-border/20">
                           <td></td>
                           <td></td>
                           <td className="relative px-0 w-[30px] group/timeline">
@@ -1258,7 +1258,7 @@ export default function ItineraryTab() {
         <div className="flex-1 w-full relative animate-tab-enter stagger-3">
 
           {viewMode === 'table' ? (
-            <div className="w-full pb-20 overflow-hidden rounded-[var(--radius-lg)] border border-border/10">
+            <div className="w-full pb-20">
               {isMobile ? (
                 <div
                   {...bind()}

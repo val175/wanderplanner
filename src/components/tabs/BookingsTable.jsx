@@ -269,7 +269,7 @@ export default function BookingsTable({
                 {data.map(booking => {
                     const categoryConfig = BOOKING_CATEGORIES.find(c => c.id === booking.category) || BOOKING_CATEGORIES[0]
                     return (
-                        <Card key={booking.id} className="p-3 border border-border/50 flex flex-col gap-3 relative cursor-pointer" onClick={() => onRowClick?.(booking)}>
+                        <Card key={booking.id} className="p-3 border border-border flex flex-col gap-3 relative cursor-pointer" onClick={() => onRowClick?.(booking)}>
                             <div className="absolute top-3 right-3 flex items-center gap-2">
                                 <StatusPill
                                     value={migrateStatus(booking.status)}
@@ -341,7 +341,7 @@ export default function BookingsTable({
 
     // Fixed table layout to allow truncation and defined widths
     return (
-        <Card className="border border-border/50 p-0 overflow-hidden">
+        <Card className="border border-border overflow-hidden">
             <div className="w-full overflow-x-auto overflow-y-visible scrollbar-thin">
                 <table className="w-full text-left border-collapse table-fixed min-w-[900px] text-sm">
                     <thead>
