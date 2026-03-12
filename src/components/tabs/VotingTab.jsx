@@ -906,26 +906,23 @@ export default function VotingTab() {
 
     return (
         <div className="space-y-8 animate-fade-in pb-16 w-full">
-            {/* ── Layer 1: Header ── */}
-            <TabHeader
-                leftSlot={null}
-                rightSlot={
-                    <Card className="px-5 py-2.5 rounded-full flex items-center gap-4 border border-border">
-                        <div className="flex gap-1.5 items-center">
-                            <span className="text-xs font-semibold text-text-secondary mr-1">Your Bank:</span>
-                            <div className="flex gap-1">
-                                {Array.from({ length: 3 }).map((_, i) => (
-                                    <div key={i} className={`w-3.5 h-3.5 rounded-full ${i < globalTokensRemaining ? 'bg-amber-400' : 'bg-border'}`} />
-                                ))}
-                            </div>
+            {/* ── Layer 1: Header (Token Bank) ── */}
+            <div className="flex justify-end">
+                <Card className="px-5 py-2.5 rounded-full flex items-center gap-4 border border-border">
+                    <div className="flex gap-1.5 items-center">
+                        <span className="text-xs font-semibold text-text-secondary mr-1">Your Bank:</span>
+                        <div className="flex gap-1">
+                            {Array.from({ length: 3 }).map((_, i) => (
+                                <div key={i} className={`w-3.5 h-3.5 rounded-full ${i < globalTokensRemaining ? 'bg-amber-400' : 'bg-border'}`} />
+                            ))}
                         </div>
-                        <div className="w-px h-4 bg-border"></div>
-                        <div className={`flex items-center gap-1.5 text-xs font-semibold ${globalVetoesRemaining === 0 ? 'text-text-muted opacity-50 grayscale' : 'text-danger'}`}>
-                            <span>🧨</span> {globalVetoesRemaining} Veto
-                        </div>
-                    </Card>
-                }
-            />
+                    </div>
+                    <div className="w-px h-4 bg-border"></div>
+                    <div className={`flex items-center gap-1.5 text-xs font-semibold ${globalVetoesRemaining === 0 ? 'text-text-muted opacity-50 grayscale' : 'text-danger'}`}>
+                        <span>🧨</span> {globalVetoesRemaining} Veto
+                    </div>
+                </Card>
+            </div>
 
             {/* ── Polls / Proposals Section (Convergent Phase) ── */}
             <div className="space-y-5 animate-fade-in mt-2 pb-8">

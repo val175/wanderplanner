@@ -653,11 +653,7 @@ export default function BudgetTab() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-24 w-full">
-      {/* ── Layer 1: Header ── */}
-      <TabHeader
-        title="💰 Budget"
-        subtitle="Track expenses and manage trip funds."
-      />
+
 
       <AddExpenseModal
         isOpen={isAddModalOpen}
