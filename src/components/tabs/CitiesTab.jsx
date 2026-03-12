@@ -324,15 +324,24 @@ export default function CitiesTab() {
   return (
     <div className="space-y-6 pb-24 animate-fade-in w-full">
       <TabHeader
-        title={<span>🏙️ Cities</span>}
-        subtitle="Research destinations, weather, and local vibes."
+        leftSlot={
+          <span className="text-[11px] font-bold font-heading px-3 py-1 rounded-[var(--radius-pill)] bg-bg-secondary border border-border text-text-secondary">
+            {cities.length} {cities.length === 1 ? 'destination' : 'destinations'}
+          </span>
+        }
         rightSlot={
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Destinations</span>
-            <span className="text-xs font-semibold text-text-secondary">
-              {cities.length} {cities.length === 1 ? 'city' : 'cities'}
-            </span>
-          </div>
+          <>
+            <div className="flex-1">
+              {/* No category filters for Cities yet */}
+            </div>
+            <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
+              {!isReadOnly && (
+                <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="hidden md:inline-flex shrink-0">
+                  🏙️ New City
+                </Button>
+              )}
+            </div>
+          </>
         }
       />
 
@@ -341,20 +350,6 @@ export default function CitiesTab() {
         onClose={() => setIsAddModalOpen(false)}
         onAdd={data => dispatch({ type: ACTIONS.ADD_CITY, payload: data })}
       />
-
-      {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-6 gap-2">
-        <div className="flex-1">
-          {/* No category filters for Cities yet */}
-        </div>
-        <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
-          {!isReadOnly && (
-            <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="hidden md:inline-flex shrink-0">
-              🏙️ New City
-            </Button>
-          )}
-        </div>
-      </div>
 
       {/* FAB — mobile only */}
       {!isReadOnly && createPortal(

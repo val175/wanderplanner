@@ -872,102 +872,83 @@ export default function TodoTab() {
 
       {/* ── Layer 1: Header ── */}
       <TabHeader
-        title={<span>✅ To Do</span>}
-        subtitle="Track milestones, visas, and administrative tasks."
+        leftSlot={
+          <span className="text-[11px] font-bold font-heading px-3 py-1 rounded-[var(--radius-pill)] bg-bg-secondary border border-border text-text-secondary">
+            {safeTodos.filter(t => t.done).length}/{safeTodos.length} completed
+          </span>
+        }
         rightSlot={
-          <div className="flex flex-col items-end gap-2">
-            <div className="flex flex-col items-end min-w-[120px]">
-              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
-                {safeTodos.filter(t => t.done).length}/{safeTodos.length} completed
-              </span>
-              <div className="w-32">
-                <ProgressBar
-                  value={safeTodos.filter(t => t.done).length}
-                  max={safeTodos.length}
-                  colorClass="bg-accent"
-                  height="h-1.5"
-                />
-              </div>
+          <>
+            <div className="flex-1">
+              {/* No category filters for Todo */}
             </div>
 
-            <button
-              onClick={() => setHideCompleted(prev => !prev)}
-              className={`text-[11px] font-semibold px-2 py-1 rounded-[var(--radius-sm)] border transition-colors flex items-center gap-1.5 ${hideCompleted ? 'bg-bg-card border-border text-text-primary' : 'bg-transparent border-transparent text-text-muted hover:text-text-secondary hover:bg-bg-secondary'}`}
-            >
-              <div className={`w-2.5 h-2.5 rounded-sm border flex items-center justify-center shrink-0 transition-colors ${hideCompleted ? 'bg-accent border-accent text-white' : 'border-text-muted'}`}>
-                {hideCompleted && <svg viewBox="0 0 14 14" fill="none" className="w-2 h-2"><path d="M3 7.5L5.5 10L11 4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+            <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
+              <button
+                onClick={() => setHideCompleted(prev => !prev)}
+                className={`text-[11px] font-semibold px-2 py-1 rounded-[var(--radius-sm)] border transition-colors flex items-center gap-1.5 shrink-0 ${hideCompleted ? 'bg-bg-card border-border text-text-primary' : 'bg-transparent border-transparent text-text-muted hover:text-text-secondary hover:bg-bg-secondary'}`}
+              >
+                <div className={`w-2.5 h-2.5 rounded-sm border flex items-center justify-center shrink-0 transition-colors ${hideCompleted ? 'bg-accent border-accent text-white' : 'border-text-muted'}`}>
+                  {hideCompleted && <svg viewBox="0 0 14 14" fill="none" className="w-2 h-2"><path d="M3 7.5L5.5 10L11 4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                </div>
+                Hide Done
+              </button>
+
+              <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
+                <button
+                  onClick={() => setFilter('all')}
+                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${filter === 'all' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+                >
+                  Everyone
+                </button>
+                <button
+                  onClick={() => setFilter('mine')}
+                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${filter === 'mine' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+                >
+                  Just Me
+                </button>
               </div>
-              Hide Done
-            </button>
-          </div>
+
+              <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'list' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+                  List
+                </button>
+                <button
+                  onClick={() => setViewMode('board')}
+                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'board' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
+                  Board
+                </button>
+              </div>
+
+              <div className="hidden md:block shrink-0">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleGenerateChecklist}
+                  disabled={isGenerating}
+                  className="shrink-0"
+                >
+                  {isGenerating ? 'Generating...' : '🪄 Generate with Wanda'}
+                </Button>
+              </div>
+
+              {!isReadOnly && (
+                <div className="hidden md:block shrink-0">
+                  <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="shrink-0">
+                    ✅ New Task
+                  </Button>
+                </div>
+              )}
+            </div>
+          </>
         }
       />
-
-      {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-6 gap-2">
-        <div className="flex-1">
-          {/* No category filters for Todo */}
-        </div>
-
-        {/* Right: Toggles & Actions — horizontally scrollable on mobile */}
-        <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
-          {/* Scope Toggles: Everyone / Just Me */}
-          <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
-            <button
-              onClick={() => setFilter('all')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${filter === 'all' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
-            >
-              Everyone
-            </button>
-            <button
-              onClick={() => setFilter('mine')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${filter === 'mine' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
-            >
-              Just Me
-            </button>
-          </div>
-
-          {/* View Toggles */}
-          <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
-            <button
-              onClick={() => setViewMode('list')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'list' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
-              List
-            </button>
-            <button
-              onClick={() => setViewMode('board')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'board' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
-              Board
-            </button>
-          </div>
-
-          {/* Secondary Actions — hidden on mobile */}
-          <div className="hidden md:block shrink-0">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleGenerateChecklist}
-              disabled={isGenerating}
-              className="shrink-0"
-            >
-              {isGenerating ? 'Generating...' : '🪄 Generate with Wanda'}
-            </Button>
-          </div>
-
-          {/* Primary Actions — hidden on mobile (shown as FAB) */}
-          {!isReadOnly && (
-            <div className="hidden md:block shrink-0">
-              <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="shrink-0">
-                ✅ New Task
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* FAB — mobile only */}
       {!isReadOnly && createPortal(

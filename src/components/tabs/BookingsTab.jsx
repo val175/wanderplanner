@@ -213,97 +213,86 @@ export default function BookingsTab() {
         onAdd={handleAdd}
       />
 
-      <TabHeader
-        title={<span>🎫 Bookings</span>}
-        subtitle="Manage flights, accommodations, and reservations."
-        rightSlot={
-          <div className="flex flex-col items-end min-w-[120px]">
-            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
-              {confirmedCount} of {totalCount} confirmed
-            </span>
-            <div className="w-32">
-              <ProgressBar value={confirmedCount} max={totalCount} colorClass="bg-success" height="h-1.5" />
-            </div>
-          </div>
-        }
-      />
-
       {!isReadOnly && <SnapToAddZone />}
 
-      {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-6 gap-2">
-        {/* Left: Category Filters */}
-        <div className="flex-1">
-          <select
-            value={filter}
-            onChange={e => setFilter(e.target.value)}
-            className="text-sm bg-bg-secondary border border-border rounded-[var(--radius-md)] px-3 py-1.5 text-text-primary focus:outline-none focus:border-accent w-auto min-w-[140px] cursor-pointer"
-          >
-            {filters.map(f => (
-              <option key={f.id} value={f.id}>
-                {f.label === 'All' ? 'All Bookings' : f.label}
-              </option>
-            ))}
-          </select>
-        </div>
+      <TabHeader
+        leftSlot={
+          <span className="text-[11px] font-bold font-heading px-3 py-1 rounded-[var(--radius-pill)] bg-bg-secondary border border-border text-text-secondary">
+            {confirmedCount} of {totalCount} confirmed
+          </span>
+        }
+        rightSlot={
+          <>
+            <div className="flex-1">
+              <select
+                value={filter}
+                onChange={e => setFilter(e.target.value)}
+                className="text-sm bg-bg-secondary border border-border rounded-[var(--radius-md)] px-3 py-1.5 text-text-primary focus:outline-none focus:border-accent w-auto min-w-[140px] cursor-pointer"
+              >
+                {filters.map(f => (
+                  <option key={f.id} value={f.id}>
+                    {f.label === 'All' ? 'All Bookings' : f.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        {/* Right: Toggles & Actions — horizontally scrollable on mobile */}
-        <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
-          {/* View Toggle */}
-          <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
-            <button
-              onClick={() => setViewMode('table')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'table' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
-              Table
-            </button>
-            <button
-              onClick={() => setViewMode('board')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'board' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
-              Board
-            </button>
-          </div>
-
-          {/* Column Visibility — desktop only */}
-          {viewMode === 'table' && (
-            <div className="relative group hidden md:block shrink-0">
-              <Button variant="secondary" size="sm">
-                Columns ▾
-              </Button>
-              <div className="absolute right-0 top-full mt-1 w-48 bg-bg-card border border-border rounded-[var(--radius-md)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20">
-                <div className="p-2 space-y-1">
-                  {TOGGLEABLE_COLUMNS.map(col => (
-                    <label key={col.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-bg-hover rounded cursor-pointer text-sm">
-                      <input
-                        type="checkbox"
-                        className="rounded border-border text-accent focus:ring-accent"
-                        checked={!hiddenColumns.includes(col.id)}
-                        onChange={() => toggleColumn(col.id)}
-                      />
-                      <span className="text-text-secondary">{col.label}</span>
-                    </label>
-                  ))}
-                </div>
+            <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
+              <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
+                <button
+                  onClick={() => setViewMode('table')}
+                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'table' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+                  Table
+                </button>
+                <button
+                  onClick={() => setViewMode('board')}
+                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'board' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
+                  Board
+                </button>
               </div>
-            </div>
-          )}
 
-          {!isReadOnly && (
-            <div className="hidden md:flex items-center gap-2 shrink-0">
-              <Button variant="secondary" size="sm" onClick={handleExport} className="shrink-0">
-                Export
-              </Button>
+              {viewMode === 'table' && (
+                <div className="relative group hidden md:block shrink-0">
+                  <Button variant="secondary" size="sm">
+                    Columns ▾
+                  </Button>
+                  <div className="absolute right-0 top-full mt-1 w-48 bg-bg-card border border-border rounded-[var(--radius-md)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20">
+                    <div className="p-2 space-y-1">
+                      {TOGGLEABLE_COLUMNS.map(col => (
+                        <label key={col.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-bg-hover rounded cursor-pointer text-sm">
+                          <input
+                            type="checkbox"
+                            className="rounded border-border text-accent focus:ring-accent"
+                            checked={!hiddenColumns.includes(col.id)}
+                            onChange={() => toggleColumn(col.id)}
+                          />
+                          <span className="text-text-secondary">{col.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
 
-              <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="shrink-0">
-                🎫 New Booking
-              </Button>
+              {!isReadOnly && (
+                <div className="hidden md:flex items-center gap-2 shrink-0">
+                  <Button variant="secondary" size="sm" onClick={handleExport} className="shrink-0">
+                    Export
+                  </Button>
+
+                  <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="shrink-0">
+                    🎫 New Booking
+                  </Button>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* FAB — mobile only */}
       {!isReadOnly && createPortal(

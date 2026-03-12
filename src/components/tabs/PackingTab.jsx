@@ -609,70 +609,66 @@ export default function PackingTab() {
       />
 
       <TabHeader
-        title={<span>🧳 Packing List</span>}
-        subtitle="Essential gear and shared items for the group."
-        rightSlot={
-          <div className="flex flex-col items-end min-w-[120px]">
-            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+        leftSlot={
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] font-bold font-heading px-3 py-1 rounded-[var(--radius-pill)] bg-bg-secondary border border-border text-text-secondary">
               {packed}/{total} packed
             </span>
-            <div className="w-32">
-              <ProgressBar value={packed} max={total} colorClass="bg-accent" height="h-1.5" />
+            <div className="w-24 h-1.5 rounded-[var(--radius-pill)] bg-bg-secondary overflow-hidden hidden md:block">
+              <div className="h-full bg-accent rounded-[var(--radius-pill)]"
+                style={{ width: `${total ? (packed/total)*100 : 0}%` }} />
             </div>
           </div>
         }
-      />
+        rightSlot={
+          <>
+            <div className="flex-1">
+              <select
+                value={categoryFilter}
+                onChange={e => setCategoryFilter(e.target.value)}
+                className="text-sm bg-bg-secondary border border-border rounded-[var(--radius-md)] px-3 py-1.5 text-text-primary focus:outline-none focus:border-accent w-auto min-w-[140px] cursor-pointer"
+              >
+                {filters.map(f => (
+                  <option key={f.id} value={f.id}>
+                    {f.label === 'All' ? 'All Items' : f.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-      {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-6 gap-2">
-        {/* Left: Category Filters */}
-        <div className="flex-1">
-          <select
-            value={categoryFilter}
-            onChange={e => setCategoryFilter(e.target.value)}
-            className="text-sm bg-bg-secondary border border-border rounded-[var(--radius-md)] px-3 py-1.5 text-text-primary focus:outline-none focus:border-accent w-auto min-w-[140px] cursor-pointer"
-          >
-            {filters.map(f => (
-              <option key={f.id} value={f.id}>
-                {f.label === 'All' ? 'All Items' : f.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Right: Toggles & Actions — horizontally scrollable on mobile */}
-        <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
-          {/* Scope Toggles: Everyone / Just Me */}
-          <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
-            <button
-              onClick={() => setViewMode('group')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${viewMode === 'group' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
-            >
-              Everyone
-            </button>
-            <button
-              onClick={() => setViewMode('me')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${viewMode === 'me' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
-            >
-              Just Me
-            </button>
-          </div>
-
-          {!isReadOnly && (
-            <>
-              <Button variant="secondary" size="sm" onClick={handleStarterList} className="shrink-0">
-                Starter List
-              </Button>
-
-              <div className="hidden md:block shrink-0">
-                <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="shrink-0">
-                  🧳 New Item
-                </Button>
+            <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
+              <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
+                <button
+                  onClick={() => setViewMode('group')}
+                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${viewMode === 'group' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+                >
+                  Everyone
+                </button>
+                <button
+                  onClick={() => setViewMode('me')}
+                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${viewMode === 'me' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+                >
+                  Just Me
+                </button>
               </div>
-            </>
-          )}
-        </div>
-      </div>
+
+              {!isReadOnly && (
+                <>
+                  <Button variant="secondary" size="sm" onClick={handleStarterList} className="shrink-0">
+                    Starter List
+                  </Button>
+
+                  <div className="hidden md:block shrink-0">
+                    <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="shrink-0">
+                      🧳 New Item
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          </>
+        }
+      />
 
       {/* FAB — mobile only */}
       {!isReadOnly && createPortal(

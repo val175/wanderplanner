@@ -718,14 +718,40 @@ export default function ItineraryTab() {
   return (
     <div className="space-y-6 animate-fade-in flex flex-col h-full min-h-[calc(100vh-120px)]">
       <TabHeader
-        title={<span>🗓️ Itinerary</span>}
-        subtitle="Plan your days and map out your adventures."
+        leftSlot={
+          <span className="text-[11px] font-bold font-heading px-3 py-1 rounded-[var(--radius-pill)] bg-bg-secondary border border-border text-text-secondary">
+            {trip.itinerary?.reduce((acc, d) => acc + (d.activities?.length || 0), 0) || 0} activities · {trip.itinerary?.length || 0} days
+          </span>
+        }
         rightSlot={
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Trip Stats</span>
-            <span className="text-xs font-semibold text-text-secondary">
-              {trip.itinerary?.reduce((acc, d) => acc + (d.activities?.length || 0), 0) || 0} activities · {trip.itinerary?.length || 0} days
-            </span>
+          <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center justify-end gap-2">
+            <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
+              <button
+                onClick={() => setViewMode('table')}
+                className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'table' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+                Table
+              </button>
+              <button
+                onClick={() => setViewMode('kanban')}
+                className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'kanban' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
+                Board
+              </button>
+            </div>
+
+            {!isReadOnly && (
+              <div className="hidden md:flex items-center gap-2 shrink-0">
+                <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="shrink-0">
+                  📍 New Activity
+                </Button>
+                <Button size="sm" onClick={handleAddDay} className="shrink-0">
+                  ✨ New Day
+                </Button>
+              </div>
+            )}
           </div>
         }
       />
@@ -787,44 +813,6 @@ export default function ItineraryTab() {
         </div>
       </Modal>
 
-      {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-6 gap-2">
-        <div className="flex-1">
-          {/* No category filters for Itinerary */}
-        </div>
-
-        {/* Right: Toggles & Actions — horizontally scrollable on mobile */}
-        <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
-          {/* View Toggles */}
-          <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
-            <button
-              onClick={() => setViewMode('table')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'table' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
-              Table
-            </button>
-            <button
-              onClick={() => setViewMode('kanban')}
-              className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'kanban' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
-              Board
-            </button>
-          </div>
-
-          {!isReadOnly && (
-            <div className="hidden md:flex items-center gap-2 shrink-0">
-              <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="shrink-0">
-                📍 New Activity
-              </Button>
-              <Button size="sm" onClick={handleAddDay} className="shrink-0">
-                ✨ New Day
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* FABs — mobile only, 2 CTAs grouped */}
       {!isReadOnly && createPortal(

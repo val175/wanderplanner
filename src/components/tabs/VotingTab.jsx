@@ -908,8 +908,7 @@ export default function VotingTab() {
         <div className="space-y-8 animate-fade-in pb-16 w-full">
             {/* ── Layer 1: Header ── */}
             <TabHeader
-                title={<span>🗳️ The Voting Room</span>}
-                subtitle="Allocate your tokens, track group consensus, and build the trip."
+                leftSlot={null}
                 rightSlot={
                     <Card className="px-5 py-2.5 rounded-full flex items-center gap-4 border border-border">
                         <div className="flex gap-1.5 items-center">
