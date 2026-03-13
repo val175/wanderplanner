@@ -9,12 +9,12 @@ import EditableText from '../shared/EditableText'
 import DatePicker from '../shared/DatePicker'
 import { BOOKING_CATEGORIES } from '../../constants/tabs'
 import Card from '../shared/Card'
+import Select, { SelectItem } from '../shared/Select'
 import { formatCurrency } from '../../utils/helpers'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { triggerHaptic } from '../../utils/haptics'
 
 export const MONDAY_STATUSES = [
-    { value: 'idea', label: 'Idea', colors: 'bg-text-muted/10 text-text-muted border-text-muted/20' },
     { value: 'to_book', label: 'To Book', colors: 'bg-warning/10 text-warning border-warning/20' },
     { value: 'requested', label: 'Requested', colors: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
     { value: 'confirmed', label: 'Confirmed ✓', colors: 'bg-success/10 text-success border-success/20' },
@@ -33,20 +33,21 @@ function StatusPill({ value, onChange, disabled }) {
     const current = MONDAY_STATUSES.find(s => s.value === value) || MONDAY_STATUSES[0]
 
     return (
-        <div className="relative inline-block w-full">
-            <select
-                value={value}
-                onChange={e => onChange(e.target.value)}
-                disabled={disabled}
-                className={`appearance-none w-full text-center px-2 py-1.5 min-h-[44px] sm:min-h-0 text-[14px] sm:text-xs font-semibold rounded-[var(--radius-sm)]
-          border transition-all focus:ring-2 focus:ring-accent/50 ${current.colors} ${disabled ? 'cursor-default opacity-90' : 'cursor-pointer hover:opacity-80'}`}
-            >
-                {MONDAY_STATUSES.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-            </select>
-            {!disabled && <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] opacity-60">▾</span>}
-        </div>
+        <Select
+            value={value}
+            onValueChange={onChange}
+            disabled={disabled}
+            className={`text-left min-h-[44px] sm:min-h-0 text-[14px] sm:text-xs font-semibold min-w-[150px] ${current.colors}`}
+        >
+            {MONDAY_STATUSES.map(opt => (
+                <SelectItem key={opt.value} value={opt.value}>
+                    <span className="inline-flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${opt.value === 'confirmed' ? 'bg-success' : opt.value === 'cancelled' ? 'bg-danger' : opt.value === 'requested' ? 'bg-blue-500' : 'bg-warning'}`} />
+                        {opt.label}
+                    </span>
+                </SelectItem>
+            ))}
+        </Select>
     )
 }
 
@@ -54,20 +55,16 @@ function TypeDropdown({ value, onChange, disabled }) {
     const current = BOOKING_CATEGORIES.find(c => c.id === value) || BOOKING_CATEGORIES[0]
 
     return (
-        <div className="relative inline-block">
-            <select
-                value={value}
-                onChange={e => onChange(e.target.value)}
-                disabled={disabled}
-                className={`appearance-none bg-transparent text-2xl sm:text-xl pl-1 pr-4 py-2 sm:py-1 min-h-[44px] sm:min-h-0 sm:min-w-0 min-w-[44px] rounded transition-colors ${disabled ? 'cursor-default' : 'cursor-pointer hover:bg-bg-hover'}`}
-                title={current.label}
-            >
-                {BOOKING_CATEGORIES.map(c => (
-                    <option key={c.id} value={c.id}>{c.emoji}</option>
-                ))}
-            </select>
-            {!disabled && <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-[10px] opacity-40">▾</span>}
-        </div>
+        <Select
+            value={value}
+            onValueChange={onChange}
+            disabled={disabled}
+            className={`bg-transparent border-transparent text-2xl sm:text-xl px-1 py-1 min-h-[44px] sm:min-h-0 min-w-[44px] ${disabled ? 'cursor-default' : 'hover:bg-bg-hover'}`}
+        >
+            {BOOKING_CATEGORIES.map(c => (
+                <SelectItem key={c.id} value={c.id}>{c.emoji}</SelectItem>
+            ))}
+        </Select>
     )
 }
 

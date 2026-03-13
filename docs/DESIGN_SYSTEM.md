@@ -90,6 +90,11 @@ When building raw inputs (if not using EditableText or DatePicker):
 - **Base classes**: `w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary`
 - **Focus states**: `focus:outline-none focus:border-accent`
 - **Padding**: Usually `px-3 py-2` or `px-4 py-3` for larger search bars.
+For dropdowns:
+- **Use the shared Select**: `src/components/shared/Select.jsx` (Radix Select). Do not use native `<select>`.
+- **Popover styling**: Must match `DatePicker` (bg-bg-card, border-border, radius-md, no shadows).
+- **Trigger styling**: Same input tone as DatePicker (bg-bg-card, border-border, rounded-md, hover bg-bg-hover/50).
+- **Status menus**: Use inline color dots in items for quick scanning; no section headers.
 
 ### 5. Tables
 All tables (e.g., Budget Spending Log, Bookings Table, Packing Table) must follow these strict style rules to maintain a lightweight, spreadsheet-like feel:
@@ -107,7 +112,7 @@ When building a top-level Tab component (e.g., `BookingsTab`, `TodoTab`, `Packin
 - **TabHeader Spacing**: Use `pb-3 mb-4` on the TabHeader wrapper to keep the header-to-content gap aligned with the tighter spacing standard used in `OverviewTab`.
 - **Layer 2: The Toolbar**: This layer sits below the TabHeader.
     - **Outer wrapper**: `<div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-6 gap-2">` — stacks vertically on mobile, horizontal on desktop.
-    - **Left Side (Filters/Search)**: `<div className="flex-1">` — stacks above the right side on mobile. If a tab uses category filters, use a standard `<select>` dropdown.
+    - **Left Side (Filters/Search)**: `<div className="flex-1">` — stacks above the right side on mobile. If a tab uses category filters, use the shared `Select` component.
         - The first option must always be "All Categories" followed by specific categories.
         - **Classes**: `h-7 text-xs bg-bg-secondary border border-border rounded-[var(--radius-md)] px-3 pr-9 text-text-primary focus:outline-none focus:border-accent w-auto min-w-[140px] cursor-pointer appearance-none`.
         - **Chevron**: Wrap the `<select>` in `relative inline-flex` and place a `pointer-events-none` chevron icon at `right-3 top-1/2 -translate-y-1/2` with `text-text-muted` to ensure consistent spacing.

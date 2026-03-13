@@ -534,13 +534,15 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                       />
                     </td>
                     <td className="py-2 px-2">
-                      <select
+                      <Select
                         value={editData.category}
-                        onChange={e => setEditData(p => ({ ...p, category: e.target.value }))}
-                        className="w-full text-xs bg-bg-input border border-border rounded-[var(--radius-sm)] px-2 py-1 text-text-primary focus:outline-none"
+                        onValueChange={v => setEditData(p => ({ ...p, category: v }))}
+                        size="sm"
                       >
-                        {budget.map(c => <option key={c.id} value={c.name}>{c.emoji} {c.name}</option>)}
-                      </select>
+                        {budget.map(c => (
+                          <SelectItem key={c.id} value={c.name}>{c.emoji} {c.name}</SelectItem>
+                        ))}
+                      </Select>
                     </td>
                     <td className="py-2 px-2 text-right">
                       <input

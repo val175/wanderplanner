@@ -140,17 +140,16 @@ function AddActivityModal({ isOpen, onClose, itinerary, onAdd }) {
       <form onSubmit={handleSubmit} className="p-6 space-y-4">
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Target Day</label>
-          <select
+          <Select
             value={activityData.dayId}
-            onChange={e => setActivityData(prev => ({ ...prev, dayId: e.target.value }))}
-            className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors"
+            onValueChange={v => setActivityData(prev => ({ ...prev, dayId: v }))}
           >
             {itinerary.map(day => (
-              <option key={day.id} value={day.id}>
+              <SelectItem key={day.id} value={day.id}>
                 Day {day.dayNumber}: {day.location || 'Untitled Location'} ({day.date ? formatDate(day.date, 'short') : 'No date'})
-              </option>
+              </SelectItem>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div className="space-y-1.5">
@@ -585,27 +584,24 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
                             )}
                           </td>
                           <td colSpan={3} className="py-2 pl-2">
-                            <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-text-muted bg-bg-secondary/30 border border-border/50 rounded-full px-2.5 py-0.5 hover:border-text-primary transition-colors relative z-10 cursor-pointer">
-                              <span className="opacity-70 relative">
-                                {activity.transitEmoji || '🚕'}
-                                <select
-                                  className={`absolute inset-0 opacity-0 w-full h-full ${isReadOnly ? 'cursor-default' : 'cursor-pointer'}`}
-                                  value={activity.transitEmoji || '🚕'}
-                                  onChange={e => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { transitEmoji: e.target.value } } })}
-                                  title="Change transit type"
-                                  disabled={isReadOnly}
-                                >
-                                  <option value="🚕">🚕 Taxi / Rideshare</option>
-                                  <option value="🚶">🚶 Walking</option>
-                                  <option value="🚇">🚇 Subway / Metro</option>
-                                  <option value="🚌">🚌 Bus</option>
-                                  <option value="🚆">🚆 Train</option>
-                                  <option value="🚲">🚲 Bicycle</option>
-                                  <option value="✈️">✈️ Flight</option>
-                                  <option value="⛴️">⛴️ Ferry / Boat</option>
-                                  <option value="🚗">🚗 Rental Car</option>
-                                </select>
-                              </span>
+                            <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-text-muted bg-bg-secondary/30 border border-border/50 rounded-full px-2.5 py-0.5 hover:border-text-primary transition-colors relative z-10">
+                              <Select
+                                value={activity.transitEmoji || '🚕'}
+                                onValueChange={v => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { transitEmoji: v } } })}
+                                disabled={isReadOnly}
+                                className="bg-transparent border-transparent px-0 py-0 text-[11px] font-medium text-text-muted hover:bg-transparent"
+                              >
+                                <SelectItem value="🚕">🚕</SelectItem>
+                                <SelectItem value="🚶">🚶</SelectItem>
+                                <SelectItem value="🚇">🚇</SelectItem>
+                                <SelectItem value="🚌">🚌</SelectItem>
+                                <SelectItem value="🚆">🚆</SelectItem>
+                                <SelectItem value="🚲">🚲</SelectItem>
+                                <SelectItem value="✈️">✈️</SelectItem>
+                                <SelectItem value="⛴️">⛴️</SelectItem>
+                                <SelectItem value="🚗">🚗</SelectItem>
+                              </Select>
+                              <span className="sr-only">Transit type</span>
                               <EditableText
                                 value={activity.transit || ''}
                                 onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { transit: val } } })}

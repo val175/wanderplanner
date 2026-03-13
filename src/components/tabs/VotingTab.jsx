@@ -11,6 +11,7 @@ import AvatarCircle from '../shared/AvatarCircle'
 import { triggerHaptic, hapticImpact } from '../../utils/haptics'
 import IdeaExtractorModal from '../modal/IdeaExtractorModal'
 import TabHeader from '../common/TabHeader'
+import Select, { SelectItem } from '../shared/Select'
 
 // ── Category helpers ──
 
@@ -989,32 +990,14 @@ export default function VotingTab() {
 
                     <div className={`transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-2 relative gap-2 ${isCreatingPoll ? '-mt-2' : ''}`}>
                         <div className="flex-1">
-                            <div className="relative inline-flex">
-                                <select
-                                    value={filter}
-                                    onChange={e => setFilter(e.target.value)}
-                                    className="h-7 text-xs bg-bg-secondary border border-border rounded-[var(--radius-md)] px-3 pr-9 text-text-primary focus:outline-none focus:border-accent w-auto min-w-[140px] cursor-pointer appearance-none"
-                                >
-                                    <option value="all">All Categories</option>
-                                    {GLOBAL_CATEGORIES.map(cat => (
-                                        <option key={cat.id} value={cat.id}>
-                                            {cat.emoji} {cat.label}
-                                        </option>
-                                    ))}
-                                </select>
-                                <svg
-                                    viewBox="0 0 20 20"
-                                    className="pointer-events-none absolute right-3 top-1/2 h-3 w-3 -translate-y-1/2 text-text-muted"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    aria-hidden="true"
-                                >
-                                    <polyline points="6 8 10 12 14 8" />
-                                </svg>
-                            </div>
+                            <Select value={filter} onValueChange={setFilter} className="min-w-[140px]">
+                                <SelectItem value="all">All Categories</SelectItem>
+                                {GLOBAL_CATEGORIES.map(cat => (
+                                    <SelectItem key={cat.id} value={cat.id}>
+                                        {cat.emoji} {cat.label}
+                                    </SelectItem>
+                                ))}
+                            </Select>
                         </div>
 
                         <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">

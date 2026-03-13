@@ -573,13 +573,18 @@ export function tripReducer(state, action) {
     case ACTIONS.ADD_TODO:
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
-        todos: [...trip.todos, { id: generateId(), done: false, priority: 'normal', dueDate: '', phase: 'planning', assigneeId: null, ...payload }],
+        todos: [...trip.todos, { id: generateId(), status: 'not_started', done: false, priority: 'normal', dueDate: '', assigneeId: null, ...payload }],
       }))
 
     case ACTIONS.TOGGLE_TODO:
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
-        todos: trip.todos.map(t => t.id === payload ? { ...t, done: !t.done } : t),
+        todos: trip.todos.map(t => {
+          if (t.id !== payload) return t
+          const currentStatus = t.status || (t.done ? 'done' : 'not_started')
+          const nextStatus = currentStatus === 'not_started' ? 'in_progress' : currentStatus === 'in_progress' ? 'done' : 'not_started'
+          return { ...t, status: nextStatus, done: nextStatus === 'done' }
+        }),
       }))
 
     case ACTIONS.UPDATE_TODO:

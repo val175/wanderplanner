@@ -28,4 +28,10 @@ export const TODO_PHASES = [
   { id: 'post_trip', label: 'Post-Trip', subtitle: 'After returning home', color: 'bg-accent', textClass: 'text-text-primary' }
 ]
 
+export const TODO_STATUSES = [
+  { id: 'not_started', label: 'Not Started', colors: 'bg-text-muted/10 text-text-muted border-text-muted/20' },
+  { id: 'in_progress', label: 'In Progress', colors: 'bg-warning/10 text-warning border-warning/20' },
+  { id: 'done', label: 'Done', colors: 'bg-success/10 text-success border-success/20' },
+]
+
 export const PACKING_SECTIONS = ['Documents', 'Clothing', 'Tech', 'Concert Essentials', 'Toiletries', 'Misc']

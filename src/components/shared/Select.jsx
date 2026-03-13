@@ -20,10 +20,11 @@ const sizeClasses = {
 
 const baseTriggerCls = `
   w-full flex items-center justify-between gap-2
-  text-sm bg-bg-input border border-border rounded-[var(--radius-md)]
+  text-sm bg-bg-card border border-border rounded-[var(--radius-md)]
   text-text-primary
   focus:border-accent focus:outline-none
   transition-colors cursor-pointer
+  hover:bg-bg-hover/50
   disabled:opacity-60 disabled:cursor-default
 `
 
@@ -52,9 +53,9 @@ export default function Select({
       <RadixSelect.Portal>
         <RadixSelect.Content
           position="popper"
-          sideOffset={4}
+          sideOffset={6}
           avoidCollisions
-          className="z-[9999] min-w-[var(--radix-select-trigger-width)] max-h-72 bg-bg-input border border-border rounded-[var(--radius-md)] overflow-hidden animate-scale-in"
+          className="z-[9999] min-w-[var(--radix-select-trigger-width)] max-h-72 bg-bg-card border border-border rounded-[var(--radius-md)] overflow-hidden animate-scale-in"
         >
           <RadixSelect.ScrollUpButton className="flex items-center justify-center h-6 bg-bg-input text-text-muted">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -83,7 +84,7 @@ export function SelectItem({ value, children }) {
         flex items-center gap-2 px-3 py-2 text-sm cursor-pointer select-none outline-none
         rounded-[var(--radius-sm)] text-text-secondary
         data-[highlighted]:bg-bg-hover data-[highlighted]:text-text-primary
-        data-[state=checked]:text-text-primary
+        data-[state=checked]:bg-bg-secondary data-[state=checked]:text-text-primary
       "
     >
       <RadixSelect.ItemText>{children}</RadixSelect.ItemText>
@@ -95,4 +96,16 @@ export function SelectItem({ value, children }) {
       </RadixSelect.ItemIndicator>
     </RadixSelect.Item>
   )
+}
+
+export function SelectGroup({ children }) {
+  return (
+    <RadixSelect.Group className="py-1">
+      {children}
+    </RadixSelect.Group>
+  )
+}
+
+export function SelectSeparator() {
+  return <RadixSelect.Separator className="my-1 h-px bg-border/60" />
 }

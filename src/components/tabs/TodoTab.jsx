@@ -9,23 +9,23 @@ import Button from '../shared/Button'
 import { useTripContext } from '../../context/TripContext'
 import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
-import { TODO_PHASES } from '../../constants/tabs'
+import { TODO_STATUSES } from '../../constants/tabs'
 import AvatarCircle from '../shared/AvatarCircle'
 import DatePicker from '../shared/DatePicker'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
 import { triggerHaptic, hapticImpact } from '../../utils/haptics'
+import { formatDate } from '../../utils/helpers'
 import { auth } from '../../firebase/config'
 import TabHeader from '../common/TabHeader'
-import ProgressBar from '../shared/ProgressBar'
 import Modal from '../shared/Modal'
 import Select, { SelectItem } from '../shared/Select'
 
-function AddTodoModal({ isOpen, onClose, onAdd, travelers, phases }) {
+function AddTodoModal({ isOpen, onClose, onAdd, travelers, statuses }) {
   const [todoData, setTodoData] = useState({
     text: '',
-    assigneeId: '',
+    assigneeId: 'unassigned',
     dueDate: '',
-    phase: phases[0]?.id || 'planning'
+    status: statuses[0]?.id || 'not_started'
   })
 
   // Reset state when opening
@@ -33,22 +33,22 @@ function AddTodoModal({ isOpen, onClose, onAdd, travelers, phases }) {
     if (isOpen) {
       setTodoData({
         text: '',
-        assigneeId: '',
+        assigneeId: 'unassigned',
         dueDate: '',
-        phase: phases[0]?.id || 'planning'
+        status: statuses[0]?.id || 'not_started'
       })
     }
-  }, [isOpen, phases])
+  }, [isOpen, statuses])
 
   const handleSubmit = (e) => {
     e?.preventDefault()
     if (!todoData.text.trim()) return
     onAdd({
       text: todoData.text.trim(),
-      assigneeId: todoData.assigneeId || null,
+      assigneeId: todoData.assigneeId === 'unassigned' ? null : todoData.assigneeId,
       dueDate: todoData.dueDate || '',
-      phase: todoData.phase,
-      done: false
+      status: todoData.status,
+      done: todoData.status === 'done'
     })
     onClose()
   }
@@ -71,18 +71,33 @@ function AddTodoModal({ isOpen, onClose, onAdd, travelers, phases }) {
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Assignee</label>
             <Select value={todoData.assigneeId} onValueChange={v => setTodoData(prev => ({ ...prev, assigneeId: v }))}>
-              <SelectItem value="">Unassigned</SelectItem>
+              <SelectItem value="unassigned">Unassigned</SelectItem>
               {travelers.map(t => (
                 <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
               ))}
             </Select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Target Phase</label>
-            <Select value={todoData.phase} onValueChange={v => setTodoData(prev => ({ ...prev, phase: v }))}>
-              {phases.map(p => (
-                <SelectItem key={p.id} value={p.id}>{p.label.split(' & ')[0]}</SelectItem>
-              ))}
+            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Status</label>
+            <Select value={todoData.status} onValueChange={v => setTodoData(prev => ({ ...prev, status: v }))}>
+              <SelectItem value="not_started">
+                <span className="inline-flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-text-muted/60" />
+                  Not Started
+                </span>
+              </SelectItem>
+              <SelectItem value="in_progress">
+                <span className="inline-flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-warning" />
+                  In Progress
+                </span>
+              </SelectItem>
+              <SelectItem value="done">
+                <span className="inline-flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-success" />
+                  Done ✅
+                </span>
+              </SelectItem>
             </Select>
           </div>
         </div>
@@ -130,6 +145,51 @@ function isPastDue(isoDateStr) {
   const [y, m, d] = isoDateStr.split('-').map(Number);
   const due = new Date(y, m - 1, d);
   return due < today;
+}
+
+const TODO_STATUS_ORDER = ['not_started', 'in_progress', 'done']
+const getTodoStatus = (todo) => todo.status || (todo.done ? 'done' : 'not_started')
+
+function TodoStatusSelect({ value, onChange, disabled }) {
+  const current = TODO_STATUSES.find(s => s.id === value) || TODO_STATUSES[0]
+
+  return (
+    <Select
+      value={value}
+      onValueChange={v => { triggerHaptic('light'); onChange(v) }}
+      disabled={disabled}
+      className={`text-left min-h-[44px] sm:min-h-0 text-[14px] sm:text-xs font-semibold ${current.colors}`}
+    >
+      <SelectItem value="not_started">
+        <span className="inline-flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-text-muted/60" />
+          Not Started
+        </span>
+      </SelectItem>
+      <SelectItem value="in_progress">
+        <span className="inline-flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-warning" />
+          In Progress
+        </span>
+      </SelectItem>
+      <SelectItem value="done">
+        <span className="inline-flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-success" />
+          Done ✅
+        </span>
+      </SelectItem>
+    </Select>
+  )
+}
+
+function TodoStatusBadge({ value }) {
+  const current = TODO_STATUSES.find(s => s.id === value) || TODO_STATUSES[0]
+  const label = value === 'done' ? `${current.label} ✅` : current.label
+  return (
+    <span className={`inline-flex items-center text-xs font-semibold rounded-[var(--radius-sm)] border px-2 py-1 ${current.colors}`}>
+      {label}
+    </span>
+  )
 }
 
 // Helper for Assignee Pill
@@ -293,7 +353,7 @@ function SortableTodoItem(props) {
 }
 
 // Task 4: Progressive disclosure — date/notes/deeplink hide until hover when no value
-function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfile, tripTravelers, currentUserProfile, isReadOnly, dragAttributes, dragListeners, canDrag, isBoard }) {
+function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfile, tripTravelers, currentUserProfile, isReadOnly, dragAttributes, dragListeners, canDrag, isBoard, onStatusChange }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(todo.text)
   const [expanded, setExpanded] = useState(false)
@@ -313,12 +373,13 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
   }
 
   const deepLink = getDeepLinkTarget(todo.text)
-  const pastDue = !todo.done && isPastDue(todo.dueDate);
+  const status = getTodoStatus(todo)
+  const pastDue = status !== 'done' && isPastDue(todo.dueDate);
 
   // ── Board (card) layout — mirrors BookingsKanban's BookingCardContent ──
   if (isBoard) {
     return (
-      <div className={`relative group bg-bg-card border border-border rounded-[var(--radius-md)] p-3 transition-all duration-200 hover:border-accent/40 ${todo.done ? 'opacity-60' : ''} ${isReadOnly ? '' : 'cursor-default'}`}>
+      <div className={`relative group bg-bg-card border border-border rounded-[var(--radius-md)] p-3 transition-all duration-200 hover:border-accent/40 ${status === 'done' ? 'opacity-60' : ''} ${isReadOnly ? '' : 'cursor-default'}`}>
         <div className="flex items-start gap-2">
           {/* Drag handle — left side to avoid overlapping absolute top-right delete button */}
           {canDrag && !isReadOnly && (
@@ -335,23 +396,12 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
             </div>
           )}
 
-          {/* Checkbox */}
-          <button
-            onClick={() => !isReadOnly && onToggle()}
-            className={`flex-shrink-0 w-[16px] h-[16px] mt-0.5 rounded-[var(--radius-sm)] border-2 transition-all flex items-center justify-center
-              ${todo.done ? 'bg-success border-success text-white animate-check-pop' : 'border-border-strong hover:border-accent'}
-              ${isReadOnly ? 'cursor-default opacity-80' : ''}`}
-          >
-            {todo.done && (
-              <svg width="8" height="8" viewBox="0 0 12 12" fill="none">
-                <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            )}
-          </button>
+          {/* Status badge (board uses drag to update) */}
+          <TodoStatusBadge value={status} />
 
           {/* Task text */}
           <span className={`text-[13px] font-medium leading-snug flex-1 transition-all duration-200
-            ${todo.done ? 'line-through text-text-muted' : 'text-text-primary'}`}>
+            ${status === 'done' ? 'line-through text-text-muted' : 'text-text-primary'}`}>
             {todo.text}
           </span>
         </div>
@@ -393,10 +443,10 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
 
   return (
     // Task 6: duration-200 for smoother fade on completion
-    <div className={`flex flex-col group transition-opacity duration-200 ${todo.done ? 'opacity-60' : ''}`}>
+    <div className={`flex flex-col group transition-opacity duration-200 ${status === 'done' ? 'opacity-60' : ''}`}>
       <div className="flex items-center gap-2 py-3">
-        {/* Drag Handle */}
-        <div className="w-[30px] flex justify-center shrink-0">
+        {/* Task */}
+        <div className="flex-1 min-w-0 flex items-center gap-2 px-2">
           {canDrag && !isReadOnly && !editing && (
             <div
               {...dragAttributes}
@@ -410,28 +460,6 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
               </svg>
             </div>
           )}
-        </div>
-
-        {/* Checkbox */}
-        <div className="w-[30px] flex justify-center shrink-0 pt-0.5">
-          <button
-            onClick={() => !isReadOnly && onToggle()}
-            className={`flex-shrink-0 w-[18px] h-[18px] rounded-[var(--radius-sm)] border-2 transition-all flex items-center justify-center
-              ${todo.done
-                ? 'bg-success border-success text-white animate-check-pop'
-                : 'border-border-strong hover:border-accent'
-              } ${isReadOnly ? 'cursor-default opacity-80' : ''}`}
-          >
-            {todo.done && (
-              <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            )}
-          </button>
-        </div>
-
-        {/* Task Text */}
-        <div className="flex-1 min-w-0 flex items-center gap-2 px-2">
           {editing ? (
             <input
               value={draft}
@@ -447,14 +475,14 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
               onClick={() => { if (!isReadOnly) { setDraft(todo.text); setEditing(true) } }}
               className={`text-[14px] font-medium transition-all duration-200
                 ${isReadOnly ? 'cursor-default' : 'cursor-pointer hover:border-b hover:border-accent/30'}
-                ${todo.done ? 'line-through text-text-muted' : 'text-text-primary'}`}
+                ${status === 'done' ? 'line-through text-text-muted' : 'text-text-primary'}`}
             >
               {todo.text}
             </span>
           )}
 
           {/* Task 4: deep-link always hover-only (auto-inferred, so never "explicitly set") */}
-          {!editing && deepLink && !todo.done && (
+          {!editing && deepLink && status !== 'done' && (
             <button
               onClick={() => onDeepLink(deepLink)}
               className="hidden sm:flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-accent/10 text-accent hover:bg-accent hover:text-white transition-all scale-90 group-hover:scale-100 blur-sm group-hover:blur-none opacity-0 group-hover:opacity-100 duration-150 ease-out"
@@ -465,8 +493,17 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
           )}
         </div>
 
+        {/* Status */}
+        <div className="w-[140px] flex justify-start shrink-0 pt-0.5">
+          <TodoStatusSelect
+            value={status}
+            onChange={next => (onStatusChange ? onStatusChange(next) : onUpdate({ status: next, done: next === 'done' }))}
+            disabled={isReadOnly}
+          />
+        </div>
+
         {/* Task 4: Date — hide when no value, show on hover */}
-        <div className={`w-[140px] shrink-0 flex justify-end px-2 transition-opacity duration-150
+        <div className={`w-[140px] shrink-0 flex justify-start px-2 transition-opacity duration-150
           ${!todo.dueDate ? 'opacity-0 group-hover:opacity-100' : ''}`}>
           <DatePicker
             value={todo.dueDate}
@@ -478,7 +515,7 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
         </div>
 
         {/* Assignee */}
-        <div className="w-[40px] shrink-0 flex justify-center">
+        <div className="w-[40px] shrink-0 flex justify-start">
           <AssigneePill
             value={todo.assigneeId}
             onChange={(v) => onUpdate({ assigneeId: v })}
@@ -544,38 +581,30 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
 }
 
 
-function DropPhaseBoard({ phase, children }) {
-  const { setNodeRef } = useDroppable({
-    id: phase.id,
-    data: { type: 'Phase', phase }
-  })
-  return <div ref={setNodeRef} className="flex-1 w-full">{children}</div>
-}
-
 // Board-mode column — mirrors BookingsKanban's KanbanColumn exactly
-function BoardPhaseColumn({ phase, index, phaseTodos, canDrag, isReadOnly, dispatch, handleToggle, handleDeepLink, resolveProfile, tripTravelers, currentUserProfile }) {
-  const { setNodeRef, isOver } = useDroppable({ id: phase.id, data: { type: 'Phase', phase } })
-  const phaseDone = phaseTodos.filter(t => t.done).length
-  const phaseTotal = phaseTodos.length
+function BoardStatusColumn({ status, index, statusTodos, canDrag, isReadOnly, dispatch, handleToggle, handleStatusChange, handleDeepLink, resolveProfile, tripTravelers, currentUserProfile }) {
+  const { setNodeRef, isOver } = useDroppable({ id: status.id, data: { type: 'Status', status } })
 
   return (
     <div ref={setNodeRef} className={`flex flex-col flex-shrink-0 w-72 bg-bg-secondary/20 border rounded-[var(--radius-lg)] p-2 transition-colors ${isOver ? 'border-accent/50 bg-accent/5' : 'border-border'}`}>
       {/* Column header — identical structure to BookingsKanban KanbanColumn */}
       <div className="px-3 py-2 mb-2 flex items-center justify-between border-b border-border/30">
         <h3 className="font-semibold text-sm text-text-primary">
-          {phase.label.split(' & ')[0]}
+          {status.label}
         </h3>
+        <span className="text-xs text-text-muted">{statusTodos.length}</span>
       </div>
 
       {/* Scrollable card area */}
       <div className="flex-1 overflow-y-auto space-y-2 min-h-[150px] scrollbar-hide">
-        <SortableContext id={phase.id} items={phaseTodos.map(t => t.id)} strategy={verticalListSortingStrategy}>
-          {phaseTodos.map(todo => (
+        <SortableContext id={status.id} items={statusTodos.map(t => t.id)} strategy={verticalListSortingStrategy}>
+          {statusTodos.map(todo => (
             <SortableTodoItem
               key={todo.id}
               todo={todo}
               isBoard={true}
               onToggle={() => handleToggle(todo.id)}
+              onStatusChange={(next) => handleStatusChange(todo.id, next)}
               onUpdate={(updates) => dispatch({ type: ACTIONS.UPDATE_TODO, payload: { id: todo.id, updates } })}
               onDelete={() => dispatch({ type: ACTIONS.DELETE_TODO, payload: todo.id })}
               onDeepLink={handleDeepLink}
@@ -587,7 +616,7 @@ function BoardPhaseColumn({ phase, index, phaseTodos, canDrag, isReadOnly, dispa
             />
           ))}
         </SortableContext>
-        {phaseTodos.length === 0 && (
+        {statusTodos.length === 0 && (
           <div className="h-full min-h-[100px] flex items-center justify-center border-2 border-dashed border-border/40 rounded-[var(--radius-md)] text-xs text-text-muted/60 italic">
             Drop here
           </div>
@@ -598,114 +627,6 @@ function BoardPhaseColumn({ phase, index, phaseTodos, canDrag, isReadOnly, dispa
 }
 
 
-/* ─────────────────────────────────────────────────────────────
-   TodoPhaseGroup — Task 2: accepts viewMode for board layout
-───────────────────────────────────────────────────────────── */
-function TodoPhaseGroup({
-  phase,
-  index,
-  phaseTodos,
-  canDrag,
-  isReadOnly,
-  dispatch,
-  handleToggle,
-  handleDeepLink,
-  resolveProfile,
-  tripTravelers,
-  currentUserProfile,
-  viewMode,
-}) {
-  const [expanded, setExpanded] = useState(true)
-  const phaseDone = phaseTodos.filter(t => t.done).length
-  const phaseTotal = phaseTodos.length
-  const progressPercent = phaseTotal > 0 ? (phaseDone / phaseTotal) * 100 : 0
-  const isBoard = viewMode === 'board'
-
-  // Board mode: delegate entirely to BoardPhaseColumn
-  if (isBoard) {
-    return (
-      <BoardPhaseColumn
-        phase={phase}
-        index={index}
-        phaseTodos={phaseTodos}
-        canDrag={canDrag}
-        isReadOnly={isReadOnly}
-        dispatch={dispatch}
-        handleToggle={handleToggle}
-        handleDeepLink={handleDeepLink}
-        resolveProfile={resolveProfile}
-        tripTravelers={tripTravelers}
-        currentUserProfile={currentUserProfile}
-      />
-    )
-  }
-
-  // List mode: original table layout
-  return (
-    <div className="mb-8 animate-fade-in">
-      {/* Group Header */}
-      <div className="group/phase relative flex items-center justify-between py-2 mb-2">
-        <div className="flex items-center gap-2">
-          <div className="text-text-muted opacity-0 hover:opacity-100 transition-opacity mr-2 select-none">⠿</div>
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="text-text-muted hover:text-text-primary transition-colors text-lg w-5 flex justify-center bg-bg-card border border-border rounded"
-          >
-            <span className={`transform transition-transform ${expanded ? 'rotate-90' : ''}`}>›</span>
-          </button>
-          <div className="flex flex-col ml-2">
-            <h3 className={`font-heading text-lg font-semibold leading-tight flex items-center gap-2 ${phase.textClass}`}>
-              <span>{index + 1}.</span> {phase.label}
-            </h3>
-            <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-widest text-text-muted mt-0.5">{phase.subtitle}</p>
-          </div>
-        </div>
-      </div>
-
-      {expanded && (
-        <Card className="overflow-hidden border border-border">
-          <DropPhaseBoard phase={phase}>
-            <div className="flex items-center gap-2 px-0 py-2 border-b border-border/40 bg-bg-secondary/10">
-              <div className="w-[30px] shrink-0"></div>
-              <div className="w-[30px] shrink-0"></div>
-              <div className="flex-1 px-2 text-xs font-bold uppercase tracking-wider text-text-muted">TASK</div>
-              <div className="w-[140px] text-right px-2 text-xs font-bold uppercase tracking-wider text-text-muted">DUE DATE</div>
-              <div className="w-[40px] text-center text-xs font-bold uppercase tracking-wider text-text-muted">WHO</div>
-              <div className="w-[30px]"></div>
-              {!isReadOnly && <div className="w-[40px]"></div>}
-            </div>
-
-            <SortableContext items={phaseTodos.map(t => t.id)} strategy={verticalListSortingStrategy}>
-              <div className="divide-y divide-border/30 h-full flex flex-col">
-                {phaseTodos.length === 0 ? (
-                  <div className="py-8 text-center text-sm font-medium text-text-muted bg-bg-secondary/20 italic">
-                    No tasks in this phase yet.
-                  </div>
-                ) : (
-                  phaseTodos.map(todo => (
-                    <SortableTodoItem
-                      key={todo.id}
-                      todo={todo}
-                      onToggle={() => handleToggle(todo.id)}
-                      onUpdate={(updates) => dispatch({ type: ACTIONS.UPDATE_TODO, payload: { id: todo.id, updates } })}
-                      onDelete={() => dispatch({ type: ACTIONS.DELETE_TODO, payload: todo.id })}
-                      onDeepLink={handleDeepLink}
-                      resolveProfile={resolveProfile}
-                      tripTravelers={tripTravelers}
-                      currentUserProfile={currentUserProfile}
-                      isReadOnly={isReadOnly}
-                      canDrag={canDrag}
-                    />
-                  ))
-                )}
-              </div>
-            </SortableContext>
-          </DropPhaseBoard>
-        </Card>
-      )}
-    </div>
-  )
-}
 
 export default function TodoTab() {
   const { activeTrip, dispatch, showToast, isReadOnly } = useTripContext()
@@ -724,11 +645,12 @@ export default function TodoTab() {
   const travelers = useTripTravelers()
   const tripTravelers = travelers.map(t => t.id)
 
-  // Ensure tasks without matching phase fall into Planning
+  // Normalize status for legacy todos
   const safeTodos = todos.map(t => {
-    const p = t.phase || t.category || 'planning'
-    const phaseExists = TODO_PHASES.some(phase => phase.id === p)
-    return { ...t, phase: phaseExists ? p : 'planning' }
+    const status = getTodoStatus(t)
+    const statusExists = TODO_STATUSES.some(s => s.id === status)
+    const normalizedStatus = statusExists ? status : 'not_started'
+    return { ...t, status: normalizedStatus, done: normalizedStatus === 'done' }
   })
 
   const filteredTodos = useMemo(() => {
@@ -737,34 +659,47 @@ export default function TodoTab() {
       result = result.filter(t => t.assigneeId === currentUserProfile?.id)
     }
     if (hideCompleted) {
-      result = result.filter(t => !t.done)
+      result = result.filter(t => getTodoStatus(t) !== 'done')
     }
     return result
   }, [safeTodos, filter, hideCompleted, currentUserProfile])
 
   const grouped = useMemo(() => {
     const groups = {}
-    TODO_PHASES.forEach(p => { groups[p.id] = [] })
+    TODO_STATUSES.forEach(s => { groups[s.id] = [] })
     filteredTodos.forEach(todo => {
-      groups[todo.phase].push(todo)
+      const status = getTodoStatus(todo)
+      if (!groups[status]) groups[status] = []
+      groups[status].push(todo)
     })
     return groups
   }, [filteredTodos])
 
-  const completedCount = safeTodos.filter(t => t.done).length
+  const completedCount = safeTodos.filter(t => getTodoStatus(t) === 'done').length
   const totalCount = safeTodos.length
 
-  const handleToggle = useCallback((todoId) => {
-    triggerHaptic('light')
-    dispatch({ type: ACTIONS.TOGGLE_TODO, payload: todoId })
+  const handleStatusChange = useCallback((todoId, next) => {
     const todo = todos.find(t => t.id === todoId)
-    if (todo && !todo.done) {
+    if (!todo) return
+    const current = getTodoStatus(todo)
+    dispatch({ type: ACTIONS.UPDATE_TODO, payload: { id: todoId, updates: { status: next, done: next === 'done' } } })
+    if (current !== 'done' && next === 'done') {
       if (completedCount + 1 === totalCount && totalCount > 0) {
         setCelebration(c => c + 1)
         showToast("You're all set! Have an amazing trip 🌟")
       }
     }
   }, [dispatch, todos, completedCount, totalCount, showToast])
+
+  const handleToggle = useCallback((todoId) => {
+    const todo = todos.find(t => t.id === todoId)
+    if (!todo) return
+    const current = getTodoStatus(todo)
+    const idx = TODO_STATUS_ORDER.indexOf(current)
+    const next = TODO_STATUS_ORDER[(idx + 1) % TODO_STATUS_ORDER.length]
+    triggerHaptic('light')
+    handleStatusChange(todoId, next)
+  }, [todos, handleStatusChange])
 
   const handleDeepLink = (targetTab) => {
     dispatch({ type: ACTIONS.SET_TAB, payload: targetTab })
@@ -795,7 +730,7 @@ export default function TodoTab() {
       const data = await res.json()
       if (data.todos) {
         data.todos.forEach(t => {
-          dispatch({ type: ACTIONS.ADD_TODO, payload: { text: t.text, phase: t.category || 'planning', note: t.note } })
+          dispatch({ type: ACTIONS.ADD_TODO, payload: { text: t.text, status: 'not_started', note: t.note } })
         })
         showToast('Checklist generated successfully! 🪄')
       }
@@ -812,7 +747,7 @@ export default function TodoTab() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const canDrag = filter === 'all' && !hideCompleted;
+  const canDrag = viewMode === 'board' && filter === 'all' && !hideCompleted;
 
   const handleDragStart = (event) => {
     const todo = todos.find(t => t.id === event.active.id)
@@ -828,22 +763,22 @@ export default function TodoTab() {
     const activeTodoData = active.data.current?.todo;
     if (!activeTodoData) return;
 
-    const currentPhase = activeTodoData.phase;
+    const currentStatus = getTodoStatus(activeTodoData)
 
     // Use sortable.containerId when dropping on a card (item inside SortableContext),
     // fall back to over.id when dropping directly on the column droppable.
     // This mirrors BookingsKanban's exact pattern.
-    const targetPhaseId = over.data?.current?.sortable?.containerId || over.id;
+    const targetStatusId = over.data?.current?.sortable?.containerId || over.id;
 
-    // Guard: target must be a valid phase
-    if (!TODO_PHASES.find(p => p.id === targetPhaseId)) return;
+    // Guard: target must be a valid status
+    if (!TODO_STATUSES.find(s => s.id === targetStatusId)) return;
 
     let newTodos = [...todos];
     const activeIndex = newTodos.findIndex(t => t.id === todoId);
     if (activeIndex < 0) return;
 
-    if (currentPhase === targetPhaseId) {
-      // Same column — reorder within phase
+    if (currentStatus === targetStatusId) {
+      // Same column — reorder within status
       const overIndex = newTodos.findIndex(t => t.id === over.id);
       if (overIndex < 0) return;
       const [moved] = newTodos.splice(activeIndex, 1);
@@ -851,9 +786,10 @@ export default function TodoTab() {
       const insertAt = activeIndex < overIndex ? overIndex - 1 : overIndex;
       newTodos.splice(insertAt, 0, moved);
     } else {
-      // Cross-column — change phase, insert before target item or append
+      // Cross-column — change status, insert before target item or append
       const [moved] = newTodos.splice(activeIndex, 1);
-      moved.phase = targetPhaseId;
+      moved.status = targetStatusId;
+      moved.done = targetStatusId === 'done';
       if (over.data?.current?.sortable) {
         const overIndex = newTodos.findIndex(t => t.id === over.id);
         newTodos.splice(overIndex >= 0 ? overIndex : newTodos.length, 0, moved);
@@ -878,11 +814,11 @@ export default function TodoTab() {
             <div className="w-20 h-1.5 rounded-[var(--radius-pill)] bg-bg-secondary overflow-hidden hidden md:block shrink-0">
               <div
                 className="h-full rounded-[var(--radius-pill)] bg-accent transition-all duration-300"
-                style={{ width: `${safeTodos.length > 0 ? (safeTodos.filter(t => t.done).length / safeTodos.length) * 100 : 0}%` }}
+                style={{ width: `${safeTodos.length > 0 ? (safeTodos.filter(t => getTodoStatus(t) === 'done').length / safeTodos.length) * 100 : 0}%` }}
               />
             </div>
             <span className="text-[11px] font-semibold font-heading text-text-muted tabular-nums">
-              {safeTodos.filter(t => t.done).length}/{safeTodos.length} completed
+              {safeTodos.filter(t => getTodoStatus(t) === 'done').length}/{safeTodos.length} completed
             </span>
           </div>
         }
@@ -906,13 +842,13 @@ export default function TodoTab() {
               <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
                 <button
                   onClick={() => setFilter('all')}
-                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${filter === 'all' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${filter === 'all' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
                 >
                   Everyone
                 </button>
                 <button
                   onClick={() => setFilter('mine')}
-                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${filter === 'mine' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${filter === 'mine' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
                 >
                   Just Me
                 </button>
@@ -921,14 +857,14 @@ export default function TodoTab() {
               <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'list' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'list' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
                   List
                 </button>
                 <button
                   onClick={() => setViewMode('board')}
-                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'board' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${viewMode === 'board' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
                   Board
@@ -971,67 +907,102 @@ export default function TodoTab() {
         document.body
       )}
 
-      {/* Phase Groups — Task 2: horizontal scroll container in board mode */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        modifiers={[snapCursorToTopLeft]}
-        onDragStart={canDrag && !isReadOnly ? handleDragStart : undefined}
-        onDragEnd={handleDragEnd}
-      >
-        <div className={`animate-tab-enter stagger-2 ${viewMode === 'board'
-          ? 'flex gap-4 overflow-x-auto pb-4 scrollbar-thin items-start h-[calc(100vh-320px)] min-h-[400px]'
-          : 'space-y-4'
-        }`}>
-
-          {TODO_PHASES.map((phase, index) => (
-            <TodoPhaseGroup
-              key={phase.id}
-              phase={phase}
-              index={index}
-              phaseTodos={grouped[phase.id]}
-              canDrag={canDrag}
-              isReadOnly={isReadOnly}
-              dispatch={dispatch}
-              handleToggle={handleToggle}
-              handleDeepLink={handleDeepLink}
-              resolveProfile={resolveProfile}
-              tripTravelers={tripTravelers}
-              currentUserProfile={currentUserProfile}
-              viewMode={viewMode}
-            />
-          ))}
-        </div>
-
-        {/* Drag overlay — board mode only; omitting it in list mode lets dnd-kit
-            apply live pointer transforms to the dragging item itself */}
-        {viewMode === 'board' && <DragOverlay>
-          {activeTodo ? (
-            <div className="w-72 rotate-1 opacity-95">
-              <TodoItem
-                todo={activeTodo}
-                isBoard={true}
-                onToggle={() => { }}
-                onUpdate={() => { }}
-                onDelete={() => { }}
-                onDeepLink={() => { }}
+      {viewMode === 'board' ? (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          modifiers={[snapCursorToTopLeft]}
+          onDragStart={canDrag && !isReadOnly ? handleDragStart : undefined}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="animate-tab-enter stagger-2 flex gap-4 overflow-x-auto pb-4 scrollbar-thin items-start h-[calc(100vh-320px)] min-h-[400px]">
+            {TODO_STATUSES.map((status, index) => (
+              <BoardStatusColumn
+                key={status.id}
+                status={status}
+                index={index}
+                statusTodos={grouped[status.id]}
+                canDrag={canDrag}
+                isReadOnly={isReadOnly}
+                dispatch={dispatch}
+                handleToggle={handleToggle}
+                handleStatusChange={handleStatusChange}
+                handleDeepLink={handleDeepLink}
                 resolveProfile={resolveProfile}
                 tripTravelers={tripTravelers}
                 currentUserProfile={currentUserProfile}
-                isReadOnly={true}
-                canDrag={false}
               />
+            ))}
+          </div>
+
+          <DragOverlay>
+            {activeTodo ? (
+              <div className="w-72 rotate-1 opacity-95">
+                <TodoItem
+                  todo={activeTodo}
+                  isBoard={true}
+                  onToggle={() => { }}
+                  onUpdate={() => { }}
+                  onDelete={() => { }}
+                  onDeepLink={() => { }}
+                  resolveProfile={resolveProfile}
+                  tripTravelers={tripTravelers}
+                  currentUserProfile={currentUserProfile}
+                  isReadOnly={true}
+                  canDrag={false}
+                />
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      ) : (
+        <Card className="overflow-hidden border border-border">
+          <div className="overflow-x-auto">
+            <div className="min-w-[900px]">
+              <div className="flex items-center gap-2 px-0 py-2 border-b border-border/40 bg-bg-secondary/10">
+                <div className="flex-1 px-2 text-xs font-bold uppercase tracking-wider text-text-muted">TASK</div>
+                <div className="w-[140px] shrink-0 text-xs font-bold uppercase tracking-wider text-text-muted text-left">STATUS</div>
+                <div className="w-[140px] text-left px-2 text-xs font-bold uppercase tracking-wider text-text-muted">DUE DATE</div>
+                <div className="w-[40px] text-left text-xs font-bold uppercase tracking-wider text-text-muted">WHO</div>
+                <div className="w-[30px]"></div>
+                {!isReadOnly && <div className="w-[40px]"></div>}
+              </div>
+
+              <div className="divide-y divide-border/30 h-full flex flex-col">
+                {filteredTodos.length === 0 ? (
+                  <div className="py-10 text-center text-sm font-medium text-text-muted bg-bg-secondary/20 italic">
+                    No tasks yet.
+                  </div>
+                ) : (
+                  filteredTodos.map(todo => (
+                    <TodoItem
+                      key={todo.id}
+                      todo={todo}
+                      onToggle={() => handleToggle(todo.id)}
+                      onStatusChange={(next) => handleStatusChange(todo.id, next)}
+                      onUpdate={(updates) => dispatch({ type: ACTIONS.UPDATE_TODO, payload: { id: todo.id, updates } })}
+                      onDelete={() => dispatch({ type: ACTIONS.DELETE_TODO, payload: todo.id })}
+                      onDeepLink={handleDeepLink}
+                      resolveProfile={resolveProfile}
+                      tripTravelers={tripTravelers}
+                      currentUserProfile={currentUserProfile}
+                      isReadOnly={isReadOnly}
+                      canDrag={false}
+                    />
+                  ))
+                )}
+              </div>
             </div>
-          ) : null}
-        </DragOverlay>}
-      </DndContext>
+          </div>
+        </Card>
+      )}
 
       <AddTodoModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAdd={data => dispatch({ type: ACTIONS.ADD_TODO, payload: data })}
         travelers={travelers}
-        phases={TODO_PHASES}
+        statuses={TODO_STATUSES}
       />
     </div>
   )
