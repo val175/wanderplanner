@@ -124,7 +124,7 @@ export default function BookingsTable({
             id: 'status',
             accessorKey: 'status',
             header: 'Status',
-            size: 140,
+            size: 180,
             cell: info => (
                 <StatusPill
                     value={migrateStatus(info.getValue())}
