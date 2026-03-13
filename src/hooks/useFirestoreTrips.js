@@ -23,9 +23,16 @@ const REVERSE_MIGRATION_FLAG = 'wanderplan_root_migrated'
 
 function getInitialState() {
   let darkMode = false
+  let aiViewMode = 'floating'
+  let aiOpen = false
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) darkMode = JSON.parse(saved).darkMode || false
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      darkMode = parsed.darkMode || false
+      aiViewMode = parsed.aiViewMode || 'floating'
+      aiOpen = parsed.aiOpen || false
+    }
   } catch { /* ignore */ }
 
   return {
@@ -33,6 +40,8 @@ function getInitialState() {
     activeTripId: null,
     activeTab: 'overview',
     sidebarOpen: false,
+    aiViewMode,
+    aiOpen,
     darkMode,
     toast: { message: '', type: 'success', visible: false },
   }
@@ -263,13 +272,13 @@ export function useFirestoreTrips(userId) {
   // ── 3. Dark mode ─────────────────────────────────────────────────────────
   useEffect(() => {
     document.documentElement.classList.toggle('dark', state.darkMode)
-    // Persist dark mode pref in localStorage (UI preference, not trip data)
+    // Persist UI prefs in localStorage (not trip data)
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
       const parsed = saved ? JSON.parse(saved) : {}
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, darkMode: state.darkMode }))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, darkMode: state.darkMode, aiViewMode: state.aiViewMode, aiOpen: state.aiOpen }))
     } catch { /* ignore */ }
-  }, [state.darkMode])
+  }, [state.darkMode, state.aiViewMode])
 
   // ── 4. Toast auto-dismiss ────────────────────────────────────────────────
   useEffect(() => {

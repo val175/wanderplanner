@@ -165,6 +165,7 @@ function AuthenticatedApp({ user, signOutUser }) {
   }, [pendingInvite, acceptInvite, addProfile, user.uid])
 
   const isConcertTab = state.activeTab === 'concert'
+  const showSidebarWanda = !isMobile && state.aiViewMode === 'sidebar'
 
   // Auto-heal missing profiles from active trip
   const fetchAttempted = useRef(new Set())
@@ -225,31 +226,44 @@ function AuthenticatedApp({ user, signOutUser }) {
           onNewTrip={handleNewTrip}
         />
 
-        <main
-          className={`
-            flex-1 flex flex-col overflow-hidden bg-bg-primary
-            ${isConcertTab ? 'concert-theme' : ''}
-            transition-colors duration-300
-          `}
-        >
-          {activeTrip ? (
-            <>
-              <TripHeader onOpenSidebar={handleOpenSidebar} isMobile={isMobile} />
-              <div
-                id={`panel-${state.activeTab}`}
-                role="tabpanel"
-                className={`flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)] md:pb-0 mb-14 md:mb-0 ${state.activeTab === 'wandermap' ? '' : 'px-4 sm:px-8 py-5 sm:py-7'}`}
-              >
-                <div className={state.activeTab === 'wandermap' ? 'h-full w-full relative' : 'max-w-[1400px] mx-auto'}>
-                  <TabPanel activeTab={state.activeTab} onTabSwitch={handleTabSwitch} />
+        <div className="flex flex-1 overflow-hidden">
+          <main
+            className={`
+              flex-1 flex flex-col overflow-hidden bg-bg-primary
+              ${isConcertTab ? 'concert-theme' : ''}
+              transition-colors duration-300
+            `}
+          >
+            {activeTrip ? (
+              <>
+                <TripHeader onOpenSidebar={handleOpenSidebar} isMobile={isMobile} />
+                <div
+                  id={`panel-${state.activeTab}`}
+                  role="tabpanel"
+                  className={`flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)] md:pb-0 mb-14 md:mb-0 ${state.activeTab === 'wandermap' ? '' : 'px-4 sm:px-8 py-5 sm:py-7'}`}
+                >
+                  <div className={state.activeTab === 'wandermap' ? 'h-full w-full relative' : 'max-w-[1400px] mx-auto'}>
+                    <TabPanel activeTab={state.activeTab} onTabSwitch={handleTabSwitch} />
+                  </div>
                 </div>
-              </div>
-              <BottomNav />
-            </>
-          ) : (
-            <EmptyState onNewTrip={handleNewTrip} />
+                <BottomNav />
+              </>
+            ) : (
+              <EmptyState onNewTrip={handleNewTrip} />
+            )}
+          </main>
+
+          {!isMobile && (
+            <aside
+              id="wanda-sidebar-slot"
+              className={`hidden md:flex overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.2,0,0,1)] ${
+                showSidebarWanda
+                  ? 'w-[360px] border-l border-border bg-bg-card'
+                  : 'w-0'
+              }`}
+            />
           )}
-        </main>
+        </div>
 
         <NewTripModal isOpen={showNewTripModal} onClose={handleCloseModal} />
 

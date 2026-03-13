@@ -1,13 +1,15 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
+import { createPortal } from 'react-dom';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { Send, X } from 'lucide-react';
+import { PanelRightClose, PanelRightOpen, Send, X } from 'lucide-react';
 import { auth } from '../../firebase/config';
 import { TripContext } from '../../context/TripContext';
 import { buildTripSystemPrompt } from '../../hooks/useAI';
 import { generateId } from '../../utils/helpers';
 import { ACTIONS } from '../../state/tripReducer';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { hapticSelection } from '../../utils/haptics';
 
 let _systemPromptRef = buildTripSystemPrompt(null);
 
@@ -58,7 +60,7 @@ export default function AIAssistant() {
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
 
-  const { activeTrip, dispatch, showToast } = useContext(TripContext);
+  const { state, activeTrip, dispatch, showToast } = useContext(TripContext);
 
   useEffect(() => {
     _systemPromptRef = buildTripSystemPrompt(activeTrip);
@@ -71,18 +73,15 @@ export default function AIAssistant() {
   const isLoading = status === 'submitted' || status === 'streaming';
 
   useEffect(() => {
-    if (isOpen) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isOpen]);
-
-  // Focus input when panel opens
-  useEffect(() => {
-    if (isOpen) setTimeout(() => inputRef.current?.focus(), 120);
-  }, [isOpen]);
-
-  useEffect(() => {
     const handleToggle = () => setIsOpen(prev => !prev);
     window.addEventListener('toggle-wanda-mobile', handleToggle);
     return () => window.removeEventListener('toggle-wanda-mobile', handleToggle);
+  }, []);
+
+  useEffect(() => {
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener('open-wanda', handleOpen);
+    return () => window.removeEventListener('open-wanda', handleOpen);
   }, []);
 
   const handleSubmit = (e) => {
@@ -114,6 +113,19 @@ export default function AIAssistant() {
 
   const showPills = messages.length === 0 && !isLoading;
   const isMobile = useMediaQuery('(max-width: 767px)');
+  const viewMode = state?.aiViewMode || 'floating';
+  const isSidebarMode = !isMobile && viewMode === 'sidebar';
+  const desktopOpen = !!state?.aiOpen;
+  const effectiveOpen = isMobile ? isOpen : (isSidebarMode ? true : desktopOpen);
+
+  useEffect(() => {
+    if (effectiveOpen) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, effectiveOpen]);
+
+  // Focus input when panel opens
+  useEffect(() => {
+    if (effectiveOpen) setTimeout(() => inputRef.current?.focus(), 120);
+  }, [effectiveOpen]);
 
   // ── Generic pill base ────────────────────────────────────────────────────────
   // Handles shared logic: done state, styling, addToolResult, toast + undo.
@@ -141,27 +153,15 @@ export default function AIAssistant() {
         onClick={handleClick}
         disabled={!canAct}
         title={!activeTrip ? 'Select a trip first' : undefined}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '5px 12px',
-          marginTop: '6px',
-          borderRadius: '9999px',
-          border: `1px solid ${done ? 'var(--color-success, #22c55e)' : 'var(--color-accent)'}`,
-          background: done ? 'rgba(34,197,94,0.08)' : 'transparent',
-          color: done ? 'var(--color-success, #22c55e)' : 'var(--color-accent)',
-          fontSize: '12px',
-          fontWeight: 600,
-          cursor: canAct ? 'pointer' : 'default',
-          opacity: !activeTrip ? 0.45 : 1,
-          transition: 'all 0.15s',
-          letterSpacing: '-0.01em',
-        }}
+        className={`mt-1 inline-flex items-center gap-2 rounded-[var(--radius-sm)] px-2.5 py-1 text-xs font-semibold transition-colors ${
+          done
+            ? 'text-success'
+            : 'text-text-secondary hover:text-text-primary'
+        } ${canAct ? 'hover:bg-bg-hover' : 'opacity-50'}`}
       >
-        <span style={{ fontSize: '14px' }}>{done ? '✅' : (emoji || '🪄')}</span>
+        <span className="text-sm">{done ? '✅' : (emoji || '🪄')}</span>
         <span>{done ? 'Added' : `Add ${label}`}</span>
-        {!done && <span style={{ opacity: 0.6, fontSize: '11px', marginLeft: '2px' }}>+</span>}
+        {!done && <span className="text-[11px] opacity-60">+</span>}
       </button>
     )
   }
@@ -215,331 +215,270 @@ export default function AIAssistant() {
     )
   }
 
-  return (
-    <>
-      {/* Chat panel */}
-      {isOpen && (
-        <div
-          className={`${isMobile ? 'fixed inset-0 z-[100] rounded-none' : 'fixed bottom-[80px] right-[24px] w-[360px] max-h-[520px] rounded-[20px] border border-[var(--color-border)]'}`}
-          style={{
-            background: 'var(--color-bg-card)',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            zIndex: 100,
-            animation: 'wanda-pop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
-          }}
-        >
-          <style>{`
-            @keyframes wanda-pop {
-              from { opacity: 0; transform: translateY(10px) scale(0.97); }
-              to   { opacity: 1; transform: translateY(0)   scale(1);    }
-            }
-            .wanda-pill {
-              display: inline-flex;
-              align-items: center;
-              gap: 5px;
-              padding: 5px 12px;
-              font-size: 12px;
-              font-weight: 500;
-              border-radius: 9999px;
-              border: 1px solid var(--color-border);
-              background: var(--color-bg-secondary);
-              color: var(--color-text-secondary);
-              cursor: pointer;
-              transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.1s;
-              white-space: nowrap;
-              line-height: 1.4;
-            }
-            .wanda-pill:hover {
-              background: var(--color-bg-hover);
-              border-color: var(--color-accent);
-              color: var(--color-accent);
-              transform: translateY(-1px);
-            }
-            .wanda-pill:active { transform: scale(0.97); }
-            .wanda-msg-scroll::-webkit-scrollbar { width: 4px; }
-            .wanda-msg-scroll::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }
-          `}</style>
+  const [sidebarSlot, setSidebarSlot] = useState(null);
 
-          {/* Header */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '14px 16px 12px',
-            borderBottom: '1px solid var(--color-border)',
-            background: 'var(--color-bg-secondary)',
-            flexShrink: 0,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{
-                width: 36, height: 36,
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, var(--color-accent) 0%, #e8a87c 100%)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '17px',
-                flexShrink: 0,
-              }}>
-                🪄
-              </div>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-text-primary)', letterSpacing: '-0.01em' }}>
-                  Wanda
-                </div>
-                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '1px' }}>
-                  {activeTrip ? `Knows your ${activeTrip.name} trip` : 'AI travel assistant'}
-                </div>
-              </div>
+  useEffect(() => {
+    if (!isMobile && isSidebarMode) {
+      setSidebarSlot(document.getElementById('wanda-sidebar-slot'));
+    } else {
+      setSidebarSlot(null);
+    }
+  }, [isMobile, isSidebarMode]);
+
+  const panel = effectiveOpen ? (
+    <div
+      className={`${isMobile
+        ? 'fixed inset-0 z-[100] rounded-none'
+        : isSidebarMode
+          ? 'relative h-full w-full rounded-none'
+          : 'fixed bottom-[80px] right-[24px] w-[360px] max-h-[520px] rounded-[var(--radius-xl)] border border-border'
+        } bg-bg-card shadow-none font-heading text-text-primary flex flex-col overflow-hidden`}
+      style={{ zIndex: 100, animation: isSidebarMode ? undefined : 'wanda-pop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+    >
+      <style>{`
+        @keyframes wanda-pop {
+          from { opacity: 0; transform: translateY(10px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0)   scale(1);    }
+        }
+        .wanda-msg-scroll::-webkit-scrollbar { width: 4px; }
+        .wanda-msg-scroll::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }
+      `}</style>
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-bg-card flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-base bg-bg-secondary">
+            🪄
+          </div>
+          <div>
+            <div className="font-semibold text-sm text-text-primary tracking-[-0.01em]">
+              Wanda
             </div>
+            <div className="text-[11px] text-text-muted mt-0.5">
+              {activeTrip ? `Knows your ${activeTrip.name} trip` : 'AI travel assistant'}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {!isMobile && (
             <button
-              onClick={() => setIsOpen(false)}
-              style={{
-                background: 'var(--color-bg-hover)',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--color-text-muted)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 28, height: 28,
-                borderRadius: '8px',
-                transition: 'background 0.12s, color 0.12s',
+              onClick={() => {
+                hapticSelection()
+                const nextMode = viewMode === 'sidebar' ? 'floating' : 'sidebar'
+                dispatch({
+                  type: ACTIONS.SET_AI_VIEW_MODE,
+                  payload: nextMode,
+                })
+                dispatch({
+                  type: ACTIONS.SET_AI_OPEN,
+                  payload: true,
+                })
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-text-primary)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-bg-hover)'; e.currentTarget.style.color = 'var(--color-text-muted)'; }}
+              className="w-7 h-7 rounded-[var(--radius-sm)] border border-border text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors flex items-center justify-center"
+              aria-label={viewMode === 'sidebar' ? 'Switch to floating mode' : 'Switch to sidebar mode'}
+              title={viewMode === 'sidebar' ? 'Floating mode' : 'Sidebar mode'}
+            >
+              {viewMode === 'sidebar' ? <PanelRightClose size={14} /> : <PanelRightOpen size={14} />}
+            </button>
+          )}
+          {!isSidebarMode && (
+            <button
+              onClick={() => {
+                if (isMobile) {
+                  setIsOpen(false)
+                } else {
+                  dispatch({ type: ACTIONS.SET_AI_OPEN, payload: false })
+                }
+              }}
+              className="w-7 h-7 rounded-[var(--radius-sm)] border border-border text-text-muted hover:text-text-primary hover:bg-bg-hover flex items-center justify-center transition-colors"
             >
               <X size={14} />
             </button>
-          </div>
+          )}
+        </div>
+      </div>
 
-          {/* Messages */}
+      {/* Messages */}
+      <div
+        className="wanda-msg-scroll"
+        style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 8px', display: 'flex', flexDirection: 'column', gap: '12px' }}
+      >
+        {messages.length === 0 && !error && (
+          <div className="text-center py-5 px-3">
+            <div className="text-2xl mb-2">🪄</div>
+            <p className="text-text-secondary text-sm leading-relaxed m-0">
+              {activeTrip
+                ? <>Hi! I know all about your <strong>{activeTrip.name}</strong> trip — ask me anything!</>
+                : "Hi! I'm Wanda, your AI travel assistant. Select a trip and I'll know all about it!"}
+            </p>
+          </div>
+        )}
+
+        {error && (
+          <p className="text-danger text-xs text-center px-3 py-2 bg-danger/10 rounded-[var(--radius-sm)]">
+            ⚠️ {error.message || 'Something went wrong. Please try again.'}
+          </p>
+        )}
+
+        {messages.map(m => (
           <div
-            className="wanda-msg-scroll"
-            style={{
-              flex: 1,
-              overflowY: 'auto',
-              padding: '16px 14px 8px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-            }}
+            key={m.id}
+            className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}
           >
-            {messages.length === 0 && !error && (
-              <div style={{ textAlign: 'center', padding: '20px 8px 12px' }}>
-                <div style={{ fontSize: '28px', marginBottom: '8px' }}>🪄</div>
-                <p style={{ color: 'var(--color-text-secondary)', fontSize: '13px', lineHeight: 1.6, margin: 0 }}>
-                  {activeTrip
-                    ? <>Hi! I know all about your <strong>{activeTrip.name}</strong> trip — ask me anything!</>
-                    : "Hi! I'm Wanda, your AI travel assistant. Select a trip and I'll know all about it!"}
-                </p>
-              </div>
-            )}
-
-            {error && (
-              <p style={{ color: 'var(--color-danger)', fontSize: '12px', textAlign: 'center', padding: '8px 12px', background: 'rgba(var(--color-danger-rgb, 220,53,69), 0.06)', borderRadius: '10px' }}>
-                ⚠️ {error.message || 'Something went wrong. Please try again.'}
-              </p>
-            )}
-
-            {messages.map(m => (
+            <div className={`flex w-full ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              {m.role === 'assistant' && (
+                <div className="mr-2 mt-0.5 text-sm">🪄</div>
+              )}
               <div
-                key={m.id}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: m.role === 'user' ? 'flex-end' : 'flex-start',
-                }}
+                className={`text-sm leading-relaxed max-w-[82%] whitespace-pre-wrap ${
+                  m.role === 'user'
+                    ? 'bg-bg-secondary text-text-primary rounded-[var(--radius-md)] px-3 py-2'
+                    : 'text-text-primary'
+                }`}
               >
-                <div style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start', width: '100%' }}>
-                  {m.role === 'assistant' && (
-                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'linear-gradient(135deg, var(--color-accent) 0%, #e8a87c 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', flexShrink: 0, marginRight: '8px', marginTop: '2px' }}>
-                      🪄
-                    </div>
-                  )}
-                  <div
-                    style={{
-                      padding: '9px 13px',
-                      borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '4px 16px 16px 16px',
-                      maxWidth: '82%',
-                      fontSize: '13px',
-                      lineHeight: '1.55',
-                      whiteSpace: 'pre-wrap',
-                      ...(m.role === 'user'
-                        ? { background: 'var(--color-accent)', color: '#fff' }
-                        : { background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }
-                      ),
-                    }}
-                  >
-                    {(() => {
-                      const textParts = m.parts?.filter(p => p.type === 'text') ?? []
-                      let textContent = textParts.map(p => p.text).join('').trim()
-                      
-                      // Hide system instructions from the UI for pill clicks
-                      if (m.role === 'user' && textContent.includes('\\nMenu Instruction:')) {
-                         textContent = textContent.split('\\n')[0];
-                      } else if (m.role === 'user' && textContent.includes('\nPlease recommend')) {
-                         textContent = textContent.split('\n')[0];
-                      }
+                {(() => {
+                  const textParts = m.parts?.filter(p => p.type === 'text') ?? []
+                  let textContent = textParts.map(p => p.text).join('').trim()
 
-                      if (m.parts && !textContent) {
-                        // Gemini sometimes omits text when calling tools — build context from tool inputs
-                        const votingParts = m.parts.filter(p => p.type === 'tool-add_idea_to_voting_room' && p.input?.title)
-                        const packingParts = m.parts.filter(p => p.type === 'tool-add_to_packing_list' && p.input?.item)
-                        if (votingParts.length) {
-                          const names = votingParts.map(p => `${p.input.emoji || '📍'} ${p.input.title}`).join(', ')
-                          return <span>Here are some recommendations: {names}. Tap a pill below to add to your voting room!</span>
-                        }
-                        if (packingParts.length) {
-                          const names = packingParts.map(p => `${p.input.emoji || '🧳'} ${p.input.item}`).join(', ')
-                          return <span>Here are some packing suggestions: {names}. Tap to add!</span>
-                        }
-                      }
-                      return m.parts ? textParts.map((p, i) => <span key={i}>{p.text}</span>) : m.content
-                    })()}
-                  </div>
-                </div>
+                  // Hide system instructions from the UI for pill clicks
+                  if (m.role === 'user' && textContent.includes('\\nMenu Instruction:')) {
+                    textContent = textContent.split('\\n')[0];
+                  } else if (m.role === 'user' && textContent.includes('\nPlease recommend')) {
+                    textContent = textContent.split('\n')[0];
+                  } else if (m.role === 'user' && textContent.includes('\nIMPORTANT:')) {
+                    textContent = textContent.split('\n')[0];
+                  }
 
-                {/* Action pills — both tools handled; type is 'tool-{name}' in ai@6 */}
-                {m.role === 'assistant' && m.parts
-                  ?.filter(p =>
-                    (p.type === 'tool-add_to_packing_list' || p.type === 'tool-add_idea_to_voting_room')
-                    && p.state !== 'input-streaming'
-                  )
-                  .map(p => p.type === 'tool-add_to_packing_list'
-                    ? <PackingPill key={p.toolCallId} inv={p} />
-                    : <VotingPill key={p.toolCallId} inv={p} />
-                  )
-                }
+                  if (m.parts && !textContent) {
+                    // Gemini sometimes omits text when calling tools — build context from tool inputs
+                    const votingParts = m.parts.filter(p => p.type === 'tool-add_idea_to_voting_room' && p.input?.title)
+                    const packingParts = m.parts.filter(p => p.type === 'tool-add_to_packing_list' && p.input?.item)
+                    if (votingParts.length) {
+                      const names = votingParts.map(p => `${p.input.emoji || '📍'} ${p.input.title}`).join(', ')
+                      return <span>Here are some recommendations: {names}. Tap a pill below to add to your voting room!</span>
+                    }
+                    if (packingParts.length) {
+                      const names = packingParts.map(p => `${p.input.emoji || '🧳'} ${p.input.item}`).join(', ')
+                      return <span>Here are some packing suggestions: {names}. Tap to add!</span>
+                    }
+                  }
+                  return m.parts ? textParts.map((p, i) => <span key={i}>{p.text}</span>) : m.content
+                })()}
               </div>
-            ))}
+            </div>
 
-            {isLoading && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'linear-gradient(135deg, var(--color-accent) 0%, #e8a87c 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', flexShrink: 0 }}>🪄</div>
-                <div style={{ padding: '8px 13px', borderRadius: '4px 16px 16px 16px', background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', display: 'flex', gap: '4px', alignItems: 'center' }}>
-                  {[0, 1, 2].map(i => (
-                    <span key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--color-text-muted)', display: 'inline-block', animation: `wanda-dot 1.2s ease-in-out ${i * 0.2}s infinite` }} />
-                  ))}
-                </div>
-                <style>{`@keyframes wanda-dot { 0%,80%,100%{transform:scale(0.6);opacity:0.4} 40%{transform:scale(1);opacity:1} }`}</style>
-              </div>
-            )}
-
-            <div ref={bottomRef} />
+            {/* Action pills — both tools handled; type is 'tool-{name}' in ai@6 */}
+            {m.role === 'assistant' && m.parts
+              ?.filter(p =>
+                (p.type === 'tool-add_to_packing_list' || p.type === 'tool-add_idea_to_voting_room')
+                && p.state !== 'input-streaming'
+              )
+              .map(p => p.type === 'tool-add_to_packing_list'
+                ? <PackingPill key={p.toolCallId} inv={p} />
+                : <VotingPill key={p.toolCallId} inv={p} />
+              )
+            }
           </div>
+        ))}
 
-          {/* Floating pills — only shown when conversation is empty */}
-          {showPills && (
-            <div style={{
-              padding: '4px 14px 10px',
-              flexShrink: 0,
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '6px',
-            }}>
-              {PILLS.map(({ emoji, label }) => (
-                <button
-                  key={label}
-                  type="button"
-                  className="wanda-pill"
-                  onClick={() => handlePillClick(`${emoji} ${label}`)}
-                >
-                  <span>{emoji}</span>
-                  <span>{label}</span>
-                </button>
+        {isLoading && (
+          <div className="flex items-center gap-2 text-sm text-text-secondary">
+            <div className="text-sm">🪄</div>
+            <div className="flex items-center gap-1">
+              {[0, 1, 2].map(i => (
+                <span key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--color-text-muted)', display: 'inline-block', animation: `wanda-dot 1.2s ease-in-out ${i * 0.2}s infinite` }} />
               ))}
             </div>
-          )}
+            <style>{`@keyframes wanda-dot { 0%,80%,100%{transform:scale(0.6);opacity:0.4} 40%{transform:scale(1);opacity:1} }`}</style>
+          </div>
+        )}
 
-          {/* Input */}
-          <form
-            onSubmit={handleSubmit}
-            style={{
-              display: 'flex',
-              gap: '8px',
-              padding: isMobile ? '10px 12px calc(10px + env(safe-area-inset-bottom))' : '10px 12px',
-              borderTop: '1px solid var(--color-border)',
-              background: 'var(--color-bg-card)',
-              flexShrink: 0,
-            }}
-          >
-            <input
-              ref={inputRef}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              placeholder="Ask Wanda..."
-              style={{
-                flex: 1,
-                padding: '9px 14px',
-                borderRadius: '12px',
-                border: '1px solid var(--color-border)',
-                background: 'var(--color-bg-secondary)',
-                color: 'var(--color-text-primary)',
-                fontSize: '13px',
-                outline: 'none',
-                transition: 'border-color 0.15s',
-              }}
-              onFocus={e => e.target.style.borderColor = 'var(--color-accent)'}
-              onBlur={e => e.target.style.borderColor = 'var(--color-border)'}
-            />
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Floating pills — only shown when conversation is empty */}
+      {showPills && (
+        <div className="px-4 pb-3 flex-shrink-0 flex flex-col gap-1">
+          {PILLS.map(({ emoji, label }) => (
             <button
-              type="submit"
-              disabled={isLoading || !input.trim()}
-              style={{
-                padding: '9px 13px',
-                borderRadius: '12px',
-                border: 'none',
-                background: isLoading || !input.trim() ? 'var(--color-bg-hover)' : 'var(--color-accent)',
-                color: isLoading || !input.trim() ? 'var(--color-text-muted)' : '#fff',
-                cursor: isLoading || !input.trim() ? 'default' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minWidth: '40px',
-                flexShrink: 0,
-                transition: 'background 0.15s',
-              }}
+              key={label}
+              type="button"
+              className="text-left text-xs text-text-secondary hover:text-text-primary hover:bg-bg-hover rounded-[var(--radius-sm)] px-2 py-1 transition-colors"
+              onClick={() => handlePillClick(`${emoji} ${label}`)}
             >
-              <Send size={14} />
+              <span className="mr-2">{emoji}</span>
+              {label}
             </button>
-          </form>
+          ))}
         </div>
       )}
 
-      {/* Floating trigger button - Hidden on mobile as it's in BottomNav */}
-      {!isMobile && (
+      {/* Input */}
+      <form
+        onSubmit={handleSubmit}
+        className={`flex gap-2 ${isMobile ? 'px-3 pt-2 pb-[calc(10px+env(safe-area-inset-bottom))]' : 'px-3 py-2'} border-t border-border focus-within:border-accent bg-bg-card flex-shrink-0`}
+      >
+        <input
+          ref={inputRef}
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          placeholder="Ask Wanda..."
+          className="flex-1 bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-muted px-1"
+        />
         <button
-          onClick={() => setIsOpen(o => !o)}
-          style={{
-            position: 'fixed',
-            bottom: '24px',
-            right: '24px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '11px 20px',
-            borderRadius: '9999px',
-            border: 'none',
-            background: 'var(--color-accent)',
-            color: '#fff',
-            fontSize: '14px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            zIndex: 50,
-            transition: 'transform 0.15s, box-shadow 0.15s',
-            letterSpacing: '-0.01em',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.transform = 'translateY(-2px)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.transform = 'translateY(0)';
-          }}
+          type="submit"
+          disabled={isLoading || !input.trim()}
+          className="h-9 w-9 rounded-[var(--radius-sm)] border border-border bg-bg-secondary text-text-primary flex items-center justify-center hover:bg-bg-hover disabled:opacity-50 transition-colors"
         >
-          <span style={{ fontSize: '15px' }}>🪄</span>
-          Ask Wanda
+          <Send size={14} />
         </button>
+      </form>
+    </div>
+  ) : null
+
+  return (
+    <>
+      {/* Chat panel */}
+      {isSidebarMode ? (sidebarSlot ? createPortal(panel, sidebarSlot) : null) : panel}
+
+      {/* Floating trigger button - Hidden on mobile as it's in BottomNav */}
+      {!isMobile && !isSidebarMode && (
+        <div className="fixed bottom-[24px] right-[24px] z-50 group">
+          <style>{`
+            @keyframes wand-wiggle {
+              0% { transform: rotate(0deg); }
+              25% { transform: rotate(10deg); }
+              50% { transform: rotate(-8deg); }
+              75% { transform: rotate(6deg); }
+              100% { transform: rotate(0deg); }
+            }
+            .wanda-wiggle {
+              display: inline-block;
+              transform-origin: 70% 80%;
+            }
+            .group:hover .wanda-wiggle {
+              animation: wand-wiggle 700ms ease-in-out;
+            }
+          `}</style>
+          <div className="pointer-events-none absolute right-full mr-3 top-1/2 -translate-y-1/2 opacity-0 scale-95 transition-all duration-150 ease-out group-hover:opacity-100 group-hover:scale-100">
+            <div className="flex items-center gap-2 rounded-[var(--radius-lg)] border border-border bg-bg-card px-5 py-2 text-sm text-text-primary shadow-none whitespace-nowrap">
+              Chat with Wanda
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              if (isMobile) {
+                setIsOpen(o => !o)
+              } else {
+                dispatch({ type: ACTIONS.SET_AI_OPEN, payload: !desktopOpen })
+              }
+            }}
+            aria-label="Open Wanda"
+            className="h-14 w-14 rounded-full border border-accent bg-accent text-text-inverse flex items-center justify-center text-xl transition-colors hover:bg-accent-hover shadow-none"
+          >
+            <span className="wanda-wiggle">🪄</span>
+          </button>
+        </div>
       )}
     </>
   );

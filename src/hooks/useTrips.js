@@ -15,7 +15,9 @@ function loadInitialState() {
           activeTripId: parsed.activeTripId || Object.keys(parsed.trips)[0],
           activeTab: 'overview',
           sidebarOpen: false,
+          aiOpen: parsed.aiOpen || false,
           darkMode: parsed.darkMode || false,
+          aiViewMode: parsed.aiViewMode || 'floating',
           toast: { message: '', type: 'success', visible: false },
         }
       }
@@ -30,7 +32,9 @@ function loadInitialState() {
     activeTripId: DEFAULT_TRIP.id,
     activeTab: 'overview',
     sidebarOpen: false,
+    aiOpen: false,
     darkMode: false,
+    aiViewMode: 'floating',
     toast: { message: '', type: 'success', visible: false },
   }
 }
@@ -46,13 +50,15 @@ export function useTrips() {
           trips: state.trips,
           activeTripId: state.activeTripId,
           darkMode: state.darkMode,
+          aiViewMode: state.aiViewMode,
+          aiOpen: state.aiOpen,
         }))
       } catch (e) {
         console.warn('Failed to save:', e)
       }
     }, 300)
     return () => clearTimeout(timeout)
-  }, [state.trips, state.activeTripId, state.darkMode])
+  }, [state.trips, state.activeTripId, state.darkMode, state.aiViewMode, state.aiOpen])
 
   // Dark mode class on <html>
   useEffect(() => {

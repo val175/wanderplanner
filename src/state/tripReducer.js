@@ -15,6 +15,9 @@ export const ACTIONS = {
   SET_TAB: 'SET_TAB',
   TOGGLE_SIDEBAR: 'TOGGLE_SIDEBAR',
   SET_SIDEBAR: 'SET_SIDEBAR',
+  SET_AI_VIEW_MODE: 'SET_AI_VIEW_MODE',
+  TOGGLE_AI_SIDEBAR: 'TOGGLE_AI_SIDEBAR',
+  SET_AI_OPEN: 'SET_AI_OPEN',
 
   // Toast
   SHOW_TOAST: 'SHOW_TOAST',
@@ -245,6 +248,15 @@ export function tripReducer(state, action) {
 
     case ACTIONS.SET_SIDEBAR:
       return { ...state, sidebarOpen: payload }
+
+    case ACTIONS.SET_AI_VIEW_MODE:
+      return { ...state, aiViewMode: payload === 'sidebar' ? 'sidebar' : 'floating' }
+
+    case ACTIONS.TOGGLE_AI_SIDEBAR:
+      return { ...state, aiViewMode: state.aiViewMode === 'sidebar' ? 'floating' : 'sidebar' }
+
+    case ACTIONS.SET_AI_OPEN:
+      return { ...state, aiOpen: !!payload }
 
     // ─── Toast ───
     case ACTIONS.SHOW_TOAST:
