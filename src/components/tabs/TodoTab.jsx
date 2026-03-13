@@ -19,6 +19,7 @@ import { auth } from '../../firebase/config'
 import TabHeader from '../common/TabHeader'
 import Modal from '../shared/Modal'
 import Select, { SelectItem } from '../shared/Select'
+import TodoDrawer from './TodoDrawer'
 
 function AddTodoModal({ isOpen, onClose, onAdd, travelers, statuses }) {
   const [todoData, setTodoData] = useState({
@@ -358,39 +359,24 @@ function SortableTodoItem(props) {
 }
 
 // Task 4: Progressive disclosure — date/notes/deeplink hide until hover when no value
-function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfile, tripTravelers, currentUserProfile, isReadOnly, dragAttributes, dragListeners, canDrag, isBoard, onStatusChange }) {
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(todo.text)
-  const [expanded, setExpanded] = useState(false)
-  const [draftNote, setDraftNote] = useState(todo.note || '')
-
-  const handleSave = () => {
-    setEditing(false)
-    if (draft.trim() !== todo.text) {
-      onUpdate({ text: draft.trim() })
-    }
-  }
-
-  const handleSaveNote = () => {
-    if (draftNote.trim() !== (todo.note || '')) {
-      onUpdate({ note: draftNote.trim() })
-    }
-  }
-
+function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfile, tripTravelers, currentUserProfile, isReadOnly, dragAttributes, dragListeners, canDrag, isBoard, onStatusChange, onClick }) {
   const deepLink = getDeepLinkTarget(todo.text)
   const status = getTodoStatus(todo)
   const pastDue = status !== 'done' && isPastDue(todo.dueDate);
 
-  // ── Board (card) layout — mirrors BookingsKanban's BookingCardContent ──
   if (isBoard) {
     return (
-      <div className={`relative group bg-bg-card border border-border rounded-[var(--radius-md)] p-3 transition-all duration-200 hover:border-accent/40 ${status === 'done' ? 'opacity-60' : ''} ${isReadOnly ? '' : 'cursor-default'}`}>
+      <div 
+        onClick={onClick}
+        className={`relative group bg-bg-card border border-border rounded-[var(--radius-md)] p-3 transition-all duration-200 hover:border-accent/40 ${status === 'done' ? 'opacity-60' : ''} cursor-pointer`}
+      >
         <div className="flex items-start gap-2">
-          {/* Drag handle — left side to avoid overlapping absolute top-right delete button */}
+          {/* Drag handle */}
           {canDrag && !isReadOnly && (
             <div
               {...dragAttributes}
               {...dragListeners}
+              onClick={e => e.stopPropagation()}
               className="cursor-grab hover:text-accent text-border transition-colors shrink-0 mt-0.5"
               title="Drag to reorder"
             >
@@ -401,7 +387,7 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
             </div>
           )}
 
-          {/* Status badge (board uses drag to update) */}
+          {/* Status badge */}
           <TodoStatusBadge value={status} />
 
           {/* Task text */}
@@ -411,7 +397,7 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
           </span>
         </div>
 
-        {/* Footer: only rendered when there's something to show */}
+        {/* Footer */}
         {(todo.dueDate || todo.assigneeId) && (
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
             {todo.dueDate ? (
@@ -420,14 +406,16 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
               </span>
             ) : <span />}
             {todo.assigneeId && (
-              <AssigneePill
-                value={todo.assigneeId}
-                onChange={(v) => onUpdate({ assigneeId: v })}
-                tripTravelers={tripTravelers}
-                resolveProfile={resolveProfile}
-                currentUserProfile={currentUserProfile}
-                disabled={isReadOnly}
-              />
+              <div onClick={e => e.stopPropagation()}>
+                <AssigneePill
+                  value={todo.assigneeId}
+                  onChange={(v) => onUpdate({ assigneeId: v })}
+                  tripTravelers={tripTravelers}
+                  resolveProfile={resolveProfile}
+                  currentUserProfile={currentUserProfile}
+                  disabled={isReadOnly}
+                />
+              </div>
             )}
           </div>
         )}
@@ -447,15 +435,18 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
   }
 
   return (
-    // Task 6: duration-200 for smoother fade on completion
-    <div className={`flex flex-col group transition-opacity duration-200 ${status === 'done' ? 'opacity-60' : ''}`}>
+    <div 
+      onClick={onClick}
+      className={`flex flex-col group transition-opacity duration-200 ${status === 'done' ? 'opacity-60' : ''} cursor-pointer hover:bg-bg-hover/50`}
+    >
       <div className="flex items-center gap-2 py-3">
         {/* Task */}
         <div className="flex-1 min-w-0 flex items-center gap-2 px-2">
-          {canDrag && !isReadOnly && !editing && (
+          {canDrag && !isReadOnly && (
             <div
               {...dragAttributes}
               {...dragListeners}
+              onClick={e => e.stopPropagation()}
               className="cursor-grab hover:text-accent text-border transition-colors flex pt-0.5"
               title="Drag to reorder"
             >
@@ -465,31 +456,16 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
               </svg>
             </div>
           )}
-          {editing ? (
-            <input
-              value={draft}
-              onChange={e => setDraft(e.target.value)}
-              onBlur={handleSave}
-              onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') { setDraft(todo.text); setEditing(false) } }}
-              className="w-full px-2 py-0.5 text-sm font-medium bg-bg-input border border-accent/30 rounded-[var(--radius-sm)] text-text-primary outline-none focus:border-accent"
-              autoFocus
-            />
-          ) : (
-            // Task 6: transition-all for smoother line-through + color change
-            <span
-              onClick={() => { if (!isReadOnly) { setDraft(todo.text); setEditing(true) } }}
-              className={`text-[14px] font-medium transition-all duration-200
-                ${isReadOnly ? 'cursor-default' : 'cursor-pointer hover:border-b hover:border-accent/30'}
-                ${status === 'done' ? 'line-through text-text-muted' : 'text-text-primary'}`}
-            >
-              {todo.text}
-            </span>
-          )}
+          <span
+            className={`text-[14px] font-medium transition-all duration-200
+              ${status === 'done' ? 'line-through text-text-muted' : 'text-text-primary'}`}
+          >
+            {todo.text}
+          </span>
 
-          {/* Task 4: deep-link always hover-only (auto-inferred, so never "explicitly set") */}
-          {!editing && deepLink && status !== 'done' && (
+          {!isReadOnly && deepLink && status !== 'done' && (
             <button
-              onClick={() => onDeepLink(deepLink)}
+              onClick={(e) => { e.stopPropagation(); onDeepLink(deepLink) }}
               className="hidden sm:flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-accent/10 text-accent hover:bg-accent hover:text-white transition-all scale-90 group-hover:scale-100 blur-sm group-hover:blur-none opacity-0 group-hover:opacity-100 duration-150 ease-out"
               title={`Go to ${deepLink} tab`}
             >
@@ -499,7 +475,7 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
         </div>
 
         {/* Status */}
-        <div className="w-[140px] flex justify-start shrink-0 pt-0.5">
+        <div className="w-[140px] flex justify-start shrink-0 pt-0.5" onClick={e => e.stopPropagation()}>
           <TodoStatusSelect
             value={status}
             onChange={next => (onStatusChange ? onStatusChange(next) : onUpdate({ status: next, done: next === 'done' }))}
@@ -507,9 +483,9 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
           />
         </div>
 
-        {/* Task 4: Date — hide when no value, show on hover */}
+        {/* Date */}
         <div className={`w-[140px] shrink-0 flex justify-start px-2 transition-opacity duration-150
-          ${!todo.dueDate ? 'opacity-0 group-hover:opacity-100' : ''}`}>
+          ${!todo.dueDate ? 'opacity-0 group-hover:opacity-100' : ''}`} onClick={e => e.stopPropagation()}>
           <DatePicker
             value={todo.dueDate}
             onChange={v => onUpdate({ dueDate: v })}
@@ -520,7 +496,7 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
         </div>
 
         {/* Assignee */}
-        <div className="w-[100px] shrink-0 flex justify-center">
+        <div className="w-[100px] shrink-0 flex justify-center" onClick={e => e.stopPropagation()}>
           <AssigneePill
             value={todo.assigneeId}
             onChange={(v) => onUpdate({ assigneeId: v })}
@@ -531,19 +507,8 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
           />
         </div>
 
-        {/* Task 4: Notes chevron — hide when no note and not expanded */}
-        <div className={`w-[30px] shrink-0 flex justify-center transition-opacity duration-150
-          ${!todo.note && !expanded ? 'opacity-0 group-hover:opacity-100' : ''}`}>
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className={`p-1 text-text-muted hover:text-text-primary transition-colors rounded-[var(--radius-sm)] ${expanded ? 'bg-bg-hover' : ''}`}
-            title="Toggle notes"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${expanded ? 'rotate-180' : ''}`}>
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
-        </div>
+        {/* No chevron needed anymore */}
+        <div className="w-[30px] shrink-0"></div>
 
         {/* Actions (Delete) */}
         {!isReadOnly && (
@@ -562,25 +527,6 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
           </div>
         )}
       </div>
-
-      {expanded && (
-        <div className="pl-[68px] pr-[40px] pb-4" onClick={e => e.stopPropagation()}>
-          {isReadOnly ? (
-            <div className="bg-bg-secondary p-3 rounded-[var(--radius-sm)]">
-              <p className="text-xs text-text-secondary whitespace-pre-wrap">{todo.note || 'No notes added.'}</p>
-            </div>
-          ) : (
-            <textarea
-              value={draftNote}
-              onChange={e => setDraftNote(e.target.value)}
-              onBlur={handleSaveNote}
-              placeholder="Add context, links, or booking details..."
-              className="w-full text-xs bg-bg-secondary p-3 rounded-[var(--radius-sm)] border border-transparent focus:border-accent/30 outline-none text-text-primary placeholder:text-text-muted min-h-[70px] resize-y transition-colors"
-              onClick={e => e.stopPropagation()}
-            />
-          )}
-        </div>
-      )}
     </div>
   )
 }
@@ -608,6 +554,7 @@ function BoardStatusColumn({ status, index, statusTodos, canDrag, isReadOnly, di
               key={todo.id}
               todo={todo}
               isBoard={true}
+              onClick={() => handleTodoClick(todo.id)}
               onToggle={() => handleToggle(todo.id)}
               onStatusChange={(next) => handleStatusChange(todo.id, next)}
               onUpdate={(updates) => dispatch({ type: ACTIONS.UPDATE_TODO, payload: { id: todo.id, updates } })}
@@ -643,6 +590,7 @@ export default function TodoTab() {
   const [viewMode, setViewMode] = useState('list') // 'list' | 'board'
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [activeTodo, setActiveTodo] = useState(null)
+  const [selectedTodoId, setSelectedTodoId] = useState(null)
 
   if (!activeTrip) return null
   const trip = activeTrip
@@ -709,6 +657,11 @@ export default function TodoTab() {
   const handleDeepLink = (targetTab) => {
     dispatch({ type: ACTIONS.SET_TAB, payload: targetTab })
   }
+
+  const handleTodoClick = useCallback((todoId) => {
+    hapticImpact('medium')
+    setSelectedTodoId(todoId)
+  }, [])
 
   const handleGenerateChecklist = async () => {
     if (isGenerating) return;
@@ -983,6 +936,7 @@ export default function TodoTab() {
                     <TodoItem
                       key={todo.id}
                       todo={todo}
+                      onClick={() => handleTodoClick(todo.id)}
                       onToggle={() => handleToggle(todo.id)}
                       onStatusChange={(next) => handleStatusChange(todo.id, next)}
                       onUpdate={(updates) => dispatch({ type: ACTIONS.UPDATE_TODO, payload: { id: todo.id, updates } })}
@@ -1008,6 +962,15 @@ export default function TodoTab() {
         onAdd={data => dispatch({ type: ACTIONS.ADD_TODO, payload: data })}
         travelers={travelers}
         statuses={TODO_STATUSES}
+      />
+
+      <TodoDrawer
+        todo={todos.find(t => t.id === selectedTodoId)}
+        travelers={tripTravelers}
+        onUpdate={(id, updates) => dispatch({ type: ACTIONS.UPDATE_TODO, payload: { id, updates } })}
+        onClose={() => setSelectedTodoId(null)}
+        resolveProfile={resolveProfile}
+        isReadOnly={isReadOnly}
       />
     </div>
   )

@@ -81,7 +81,7 @@
      Headings / UI / buttons → Anthropic Sans (sans-serif)
      Body copy / paragraphs  → Anthropic Serif (serif)            */
   --font-heading: "Anthropic Sans", Arial, sans-serif;
-  --font-body: "Anthropic Serif", Georgia, serif;
+  --font-body: "Anthropic Sans", Arial, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
 
   /* Subtle card shadow — gives lift without being heavy */

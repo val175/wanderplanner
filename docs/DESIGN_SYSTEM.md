@@ -5,11 +5,11 @@ This document is the single source of truth for all styling, spacing, typography
 ## Typography
 Wanderplan uses custom Anthropic fonts to match the brand identity:
 - **UI & Headings**: `Anthropic Sans`
-- **Body Copy**: `Anthropic Serif`
+- **Body Copy**: `Anthropic Sans` (Serif fonts are strictly forbidden)
 
 **Font Families:**
 - `font-heading`: Use for all titles, buttons, UI elements, and navigation.
-- `font-body`: Use **only** for long-form prose or editorial paragraphs.
+- `font-body`: Use `font-heading` instead. **Anthropic Serif is banned.**
 
 **Font Sizing (Tailwind standards mapped to specific usages):**
 - `text-xs` (12px): Utility text, dense metadata, table headers, small badges.
