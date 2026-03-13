@@ -130,7 +130,6 @@ async function callProxy(messages, opts = {}) {
       temperature: opts.temperature ?? 0.8,
       max_tokens: opts.max_tokens ?? 512,
       ...(opts.jsonMode && { response_format: { type: 'json_object' } }),
-      credentials: 'include',
     }),
   })
 
@@ -174,7 +173,6 @@ export async function generateCityGuide(city, trip) {
         ...(token && { 'Authorization': `Bearer ${token}` })
       },
       body: JSON.stringify({ city: city.city, country: city.country }),
-      credentials: 'include',
     });
 
     if (!res.ok) {

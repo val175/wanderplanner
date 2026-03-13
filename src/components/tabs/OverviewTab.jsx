@@ -76,7 +76,7 @@ function TodayAtAGlance({ trip }) {
       const headers = new Headers(options.headers || {})
       headers.set('Content-Type', 'application/json')
       if (token) headers.set('Authorization', `Bearer ${token}`)
-      return fetch(url, { ...options, headers, mode: 'cors', credentials: 'include' })
+      return fetch(url, { ...options, headers, mode: 'cors', credentials: 'omit' })
     }
   }), [trip.id]) // eslint-disable-line react-hooks/exhaustive-deps
 

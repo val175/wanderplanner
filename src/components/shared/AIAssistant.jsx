@@ -30,7 +30,7 @@ const chatTransport = new DefaultChatTransport({
         ...options,
         headers,
         mode: 'cors',
-        credentials: 'include', // Required if server returns Access-Control-Allow-Credentials: true
+        credentials: 'omit', // Standard for cross-site API unless using cookies
       });
 
       if (!response.ok) {

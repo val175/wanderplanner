@@ -179,8 +179,7 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
       const res = await fetch('https://wanderplan-rust.vercel.app/api/semantic-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, trip: tripSummary }),
-        credentials: 'include'
+        body: JSON.stringify({ query, trip: tripSummary })
       })
       if (!res.ok) throw new Error('Failed AI search')
       const data = await res.json()
