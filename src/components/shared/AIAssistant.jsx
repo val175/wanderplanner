@@ -60,6 +60,8 @@ const MAGIC_SPELLS = [
   'Bibbidi-Bobbidi-Boo!', 'Azarath Metrion Zinthos!'
 ];
 
+const PILL_INSTRUCTION_MARKER = '\n\n[INSTRUCTION]:\n';
+
 export default function AIAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
@@ -114,19 +116,25 @@ export default function AIAssistant() {
   const handlePillClick = (label) => {
     if (isLoading) return;
     
-    // Convert generic pill clicks into explicit, tool-forcing prompts for the AI,
-    // but the displayed text in the chat bubble remains just the label.
-    let systemInstruction = label;
+    // Explicit instructions for the AI to use its tools when a pill is clicked.
+    // The PILL_INSTRUCTION_MARKER is used to hide this from the user in the UI.
+    let instruction = '';
     if (label.includes('Food spots')) {
-      systemInstruction = `${label}\nPlease recommend 3 specific food spots in our destination. IMPORTANT: For EACH spot, you MUST call the "add_idea_to_voting_room" tool. Do not just list them in text.`;
+      instruction = `Please recommend 3 specific food spots in our destination. IMPORTANT: For EACH spot, you MUST call the "add_idea_to_voting_room" tool. Do not just list them in text.`;
     } else if (label.includes('Hotel tips')) {
-      systemInstruction = `${label}\nPlease recommend 3 specific hotels/lodging options. IMPORTANT: For EACH option, you MUST call the "add_idea_to_voting_room" tool. Do not just list them in text.`;
+      instruction = `Please recommend 3 specific hotels/lodging options. IMPORTANT: For EACH option, you MUST call the "add_idea_to_voting_room" tool. Do not just list them in text.`;
     } else if (label.includes('Packing list')) {
-      systemInstruction = `${label}\nPlease recommend 3 specific packing items based on our destination/dates. IMPORTANT: For EACH item, you MUST call the "add_to_packing_list" tool. Do not just list them in text.`;
+      instruction = `Please recommend 3 specific packing items based on our destination/dates. IMPORTANT: For EACH item, you MUST call the "add_to_packing_list" tool. Do not just list them in text.`;
+    } else if (label.includes('Budget tips')) {
+      instruction = `Please analyze our budget and give 3 specific tips on where to save or where to spend. Use the "add_idea_to_voting_room" tool if you recommend specific cheaper alternatives/spots.`;
+    } else if (label.includes('Optimize itinerary')) {
+      instruction = `Please look at our itinerary and suggest 3 improvements or additions. For any specific new place or activity, you MUST call the "add_idea_to_voting_room" tool.`;
+    } else if (label.includes('Getting around')) {
+      instruction = `Give me 3 specific transport tips for this destination (e.g. local apps, rail passes). If there's a specific service to book, use the "add_idea_to_voting_room" tool.`;
     }
     
-    // Send the detailed prompt to the API, but keep the UI clean
-    sendMessage({ text: systemInstruction });
+    const text = instruction ? `${label}${PILL_INSTRUCTION_MARKER}${instruction}` : label;
+    sendMessage({ text });
     setInput('');
   };
 
@@ -360,7 +368,9 @@ export default function AIAssistant() {
                   let textContent = textParts.map(p => p.text).join('').trim()
 
                   // Hide system instructions from the UI for pill clicks
-                  if (m.role === 'user' && textContent.includes('\\nMenu Instruction:')) {
+                  if (m.role === 'user' && textContent.includes(PILL_INSTRUCTION_MARKER)) {
+                    textContent = textContent.split(PILL_INSTRUCTION_MARKER)[0];
+                  } else if (m.role === 'user' && textContent.includes('\\nMenu Instruction:')) {
                     textContent = textContent.split('\\n')[0];
                   } else if (m.role === 'user' && textContent.includes('\nPlease recommend')) {
                     textContent = textContent.split('\n')[0];
