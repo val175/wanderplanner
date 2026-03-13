@@ -107,7 +107,7 @@ function AddTodoModal({ isOpen, onClose, onAdd, travelers, statuses }) {
           <DatePicker
             value={todoData.dueDate}
             onChange={v => setTodoData(prev => ({ ...prev, dueDate: v }))}
-            placeholder="Select date"
+            placeholder="Set date"
           />
         </div>
 
@@ -235,7 +235,12 @@ function AssigneePill({ value, onChange, tripTravelers, resolveProfile, currentU
   if (value) {
     const p = resolveProfile(value)
     if (p) {
-      displayNode = <AvatarCircle profile={p} size={22} />
+      displayNode = (
+        <div className="flex items-center gap-1.5">
+          <AvatarCircle profile={p} size={22} />
+          <span className="text-[12px] text-text-secondary truncate max-w-[65px]">{p.name?.split(' ')[0]}</span>
+        </div>
+      )
       displayName = p.name
     } else {
       displayNode = (
@@ -259,7 +264,7 @@ function AssigneePill({ value, onChange, tripTravelers, resolveProfile, currentU
       <button
         ref={buttonRef}
         onClick={handleOpen}
-        className="inline-flex items-center rounded-full border border-transparent hover:ring-[2px] transition-all ring-accent/30 focus:outline-none"
+        className="inline-flex items-center rounded-full transition-all focus:outline-none"
         title={displayName}
       >
         {displayNode}
@@ -515,7 +520,7 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
         </div>
 
         {/* Assignee */}
-        <div className="w-[40px] shrink-0 flex justify-start">
+        <div className="w-[100px] shrink-0 flex justify-center">
           <AssigneePill
             value={todo.assigneeId}
             onChange={(v) => onUpdate({ assigneeId: v })}
@@ -963,7 +968,7 @@ export default function TodoTab() {
                 <div className="flex-1 px-2 text-xs font-bold uppercase tracking-wider text-text-muted">TASK</div>
                 <div className="w-[140px] shrink-0 text-xs font-bold uppercase tracking-wider text-text-muted text-left">STATUS</div>
                 <div className="w-[140px] text-left px-2 text-xs font-bold uppercase tracking-wider text-text-muted">DUE DATE</div>
-                <div className="w-[40px] text-left text-xs font-bold uppercase tracking-wider text-text-muted">WHO</div>
+                <div className="w-[100px] shrink-0 text-center text-xs font-bold uppercase tracking-wider text-text-muted">ASSIGNED</div>
                 <div className="w-[30px]"></div>
                 {!isReadOnly && <div className="w-[40px]"></div>}
               </div>

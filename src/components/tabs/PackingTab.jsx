@@ -295,7 +295,12 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
   } else if (assignees.length === 1) {
     const p = resolveProfile(assignees[0])
     if (p) {
-      displayNode = <AvatarCircle profile={p} size={22} />
+      displayNode = (
+        <div className="flex items-center gap-1.5 px-0.5">
+          <AvatarCircle profile={p} size={22} />
+          <span className="text-[12px] text-text-secondary truncate max-w-[65px]">{p.name?.split(' ')[0]}</span>
+        </div>
+      )
       displayName = p.name
     } else {
       displayNode = (
@@ -541,21 +546,26 @@ export default function PackingTab() {
       accessorKey: 'notes',
       header: 'Notes',
       size: 999, // fluid
-      cell: info => (
-        <EditableText
-          value={info.getValue() || ''}
-          onSave={val => onUpdate(info.row.original.id, { notes: val })}
-          inputClassName="w-full"
-          className="text-sm text-text-muted block w-full truncate"
-          placeholder="Add note…"
-          readOnly={isReadOnly}
-        />
-      ),
+      cell: info => {
+        const val = info.getValue()
+        return (
+          <div className={`transition-opacity duration-150 ${!val ? 'opacity-0 group-hover:opacity-100' : ''}`}>
+            <EditableText
+              value={val || ''}
+              onSave={val => onUpdate(info.row.original.id, { notes: val })}
+              inputClassName="w-full"
+              className="text-sm text-text-muted block w-full truncate"
+              placeholder="Add note"
+              readOnly={isReadOnly}
+            />
+          </div>
+        )
+      },
     },
     {
       id: 'assignee',
       header: <div className="text-center w-full">Assigned</div>,
-      size: 90,
+      size: 110,
       cell: info => (
         <div className="flex justify-center">
           <AssigneePill

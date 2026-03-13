@@ -10,6 +10,7 @@ import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { formatCurrency, formatDate } from '../../utils/helpers'
 import Button from '../shared/Button'
+import DatePicker from '../shared/DatePicker'
 import AvatarCircle from '../shared/AvatarCircle'
 import { calculateBalances, simplifyDebts, buildSplits } from '../../utils/splitwise'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
@@ -388,7 +389,7 @@ function GroupBalancesCard({ spendingLog, travelers, currency }) {
 }
 
 
-function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onDelete, onEdit, search, onSearch, onShowScan }) {
+function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onDelete, onEdit, search, onSearch, onShowScan, isReadOnly }) {
   const showPaidBy = travelers.length > 1
   const [editId, setEditId] = useState(null)
   const [editData, setEditData] = useState({})
@@ -477,8 +478,15 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                   <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: dotColor }} />
                   {entry.category}
                 </span>
-                {showPaidBy && paidByName && (
-                  <span className="text-text-muted">· Paid by {paidByName}</span>
+                {showPaidBy && entry.paidBy && (
+                  <div className="flex items-center gap-1.5 text-text-muted">
+                    <span>·</span>
+                    <span className="text-[11px]">Payer</span>
+                    <div className="flex items-center gap-1 bg-bg-secondary/50 px-1.5 py-0.5 rounded-full border border-border/50">
+                      <AvatarCircle profile={travelers.find(t => t.id === entry.paidBy)} size={14} />
+                      <span className="text-[10px] text-text-secondary font-medium">{paidByName}</span>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
@@ -490,12 +498,12 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border/50">
-              <th className="text-left py-2 px-3 text-xs font-bold uppercase tracking-wider text-text-muted w-[80px]">Date</th>
-              <th className="text-left py-2 px-2 text-xs font-bold uppercase tracking-wider text-text-muted">Description</th>
-              <th className="text-left py-2 px-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[130px]">Category</th>
-              {showPaidBy && <th className="text-left py-2 px-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[100px]">Paid by</th>}
-              <th className="text-right py-2 px-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[100px]">Amount</th>
+             <tr className="border-b border-border/50">
+               <th className="text-left py-2 px-3 text-xs font-bold uppercase tracking-wider text-text-muted w-[80px]">Date</th>
+               <th className="text-left py-2 px-2 text-xs font-bold uppercase tracking-wider text-text-muted">Expense</th>
+               <th className="text-right py-2 px-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[100px]">Amount</th>
+               <th className="text-left py-2 px-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[130px]">Category</th>
+               {showPaidBy && <th className="text-left py-2 px-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[120px]">Payer</th>}
               <th className="w-[40px]" />
             </tr>
           </thead>
@@ -524,41 +532,55 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
               if (isEditing) {
                 return (
                   <tr key={entry.id} className="border-t border-border/20 bg-bg-hover">
-                    <td className="py-2 px-3 text-[11px] text-text-muted tabular-nums">{dateLabel}</td>
-                    <td className="py-2 px-2" colSpan={showPaidBy ? 2 : 1}>
-                      <input
-                        value={editData.description}
-                        onChange={e => setEditData(p => ({ ...p, description: e.target.value }))}
-                        className="w-full text-xs bg-bg-input border border-border rounded-[var(--radius-sm)] px-2 py-1 text-text-primary focus:outline-none focus:border-accent"
-                        autoFocus
-                      />
-                    </td>
+                  <td className="py-2 px-3">
+                    <DatePicker
+                      value={editData.date}
+                      onChange={v => setEditData(p => ({ ...p, date: v }))}
+                      className="text-text-primary text-xs w-[110px]"
+                      disabled={isReadOnly}
+                    />
+                  </td>
+                  <td className="py-2 px-2">
+                    <input
+                      value={editData.description}
+                      onChange={e => setEditData(p => ({ ...p, description: e.target.value }))}
+                      className="w-full text-xs bg-bg-input border border-border rounded-[var(--radius-sm)] px-2 py-1 text-text-primary focus:outline-none focus:border-accent"
+                      autoFocus
+                    />
+                  </td>
+                  <td className="py-2 px-2 text-right">
+                    <input
+                      type="number"
+                      value={editData.amount}
+                      onChange={e => setEditData(p => ({ ...p, amount: e.target.value }))}
+                      className="w-24 text-xs bg-bg-input border border-border rounded-[var(--radius-sm)] px-2 py-1 font-mono text-text-primary focus:outline-none text-right"
+                    />
+                  </td>
+                  <td className="py-2 px-2">
+                    <Select
+                      value={editData.category}
+                      onValueChange={v => setEditData(p => ({ ...p, category: v }))}
+                      size="sm"
+                    >
+                      {budget.map(c => (
+                        <SelectItem key={c.id} value={c.name}>{c.emoji} {c.name}</SelectItem>
+                      ))}
+                    </Select>
+                  </td>
+                  {showPaidBy && (
                     <td className="py-2 px-2">
-                      <Select
-                        value={editData.category}
-                        onValueChange={v => setEditData(p => ({ ...p, category: v }))}
-                        size="sm"
-                      >
-                        {budget.map(c => (
-                          <SelectItem key={c.id} value={c.name}>{c.emoji} {c.name}</SelectItem>
-                        ))}
-                      </Select>
-                    </td>
-                    <td className="py-2 px-2 text-right">
-                      <input
-                        type="number"
-                        value={editData.amount}
-                        onChange={e => setEditData(p => ({ ...p, amount: e.target.value }))}
-                        className="w-24 text-xs bg-bg-input border border-border rounded-[var(--radius-sm)] px-2 py-1 font-mono text-text-primary focus:outline-none text-right"
-                      />
-                    </td>
-                    <td className="py-2 px-3">
-                      <div className="flex gap-1">
-                        <button onClick={commitEdit} className="p-1 text-success hover:text-success/80 touch-target"><Check size={14} /></button>
-                        <button onClick={() => setEditId(null)} className="p-1 text-text-muted hover:text-danger touch-target"><X size={14} /></button>
-
+                      <div className="flex items-center gap-1.5 opacity-50">
+                        <AvatarCircle profile={travelers.find(t => t.id === entry.paidBy)} size={18} />
+                        <span className="text-xs text-text-muted truncate">{paidByName}</span>
                       </div>
                     </td>
+                  )}
+                  <td className="py-2 px-3">
+                    <div className="flex gap-1">
+                      <button onClick={commitEdit} className="p-1 text-success hover:text-success/80 touch-target"><Check size={14} /></button>
+                      <button onClick={() => setEditId(null)} className="p-1 text-text-muted hover:text-danger touch-target"><X size={14} /></button>
+                    </div>
+                  </td>
                   </tr>
                 )
               }
@@ -571,13 +593,28 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                     highlightedExpenseId === entry.id ? 'bg-accent/10 ring-2 ring-accent/30' : 'hover:bg-bg-hover'
                   }`}
                 >
-                  <td className="py-3 px-3 text-[11px] text-text-muted tabular-nums whitespace-nowrap">{dateLabel}</td>
+                  <td className="py-3 px-3">
+                    <div className={`transition-opacity duration-150 ${!entry.date ? 'opacity-0 group-hover:opacity-100' : ''}`}>
+                      <DatePicker
+                        value={entry.date}
+                        onChange={v => onUpdate(entry.id, { date: v })}
+                        className="text-text-muted text-xs tabular-nums w-[110px]"
+                        disabled={isReadOnly}
+                        placeholder="Set date"
+                      />
+                    </div>
+                  </td>
                   <td className="py-3 px-2">
                     <span className="flex items-center gap-1.5">
                       <span className="text-[13px] font-medium text-text-primary">{entry.description}</span>
                       {showPaidBy && entry.splits && Object.keys(entry.splits).length < travelers.length && (
                         <span title="Split mismatch" className="text-[10px] cursor-help">⚠️</span>
                       )}
+                    </span>
+                  </td>
+                  <td className="py-3 px-2 text-right">
+                    <span className="text-[13px] font-mono font-semibold text-text-primary tabular-nums">
+                      {formatCurrency(entry.amount, currency)}
                     </span>
                   </td>
                   <td className="py-3 px-2">
@@ -590,15 +627,13 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                     </span>
                   </td>
                   {showPaidBy && (
-                    <td className="py-3 px-2 text-[12px] text-text-secondary">
-                      {paidByName || '—'}
+                    <td className="py-3 px-2">
+                      <div className="flex items-center gap-1.5">
+                        <AvatarCircle profile={travelers.find(t => t.id === entry.paidBy)} size={20} />
+                        <span className="text-[12px] text-text-secondary truncate max-w-[80px]">{paidByName || '—'}</span>
+                      </div>
                     </td>
                   )}
-                  <td className="py-3 px-2 text-right">
-                    <span className="text-[13px] font-mono font-semibold text-text-primary tabular-nums">
-                      {formatCurrency(entry.amount, currency)}
-                    </span>
-                  </td>
                   <td className="py-3 px-3">
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out">
                       {onEdit && !entry.source && (
@@ -743,6 +778,7 @@ export default function BudgetTab() {
             search={search}
             onSearch={setSearch}
             onShowScan={() => setShowScanModal(true)}
+            isReadOnly={isReadOnly}
           />
         </div>
 

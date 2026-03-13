@@ -213,6 +213,13 @@ When a tab offers multiple layouts (e.g. Table vs Board, Grid vs Table), the sta
 #### Portal Dropdowns
 All portal-based dropdowns (category pickers, assignee pickers, traveler pickers) must **never** use shadow classes (`shadow-sm`, `shadow-md`, `shadow-lg`). Rely on `border border-border` for separation per the No Shadows rule in section 3.
 
+#### Assigned Avatar Standard
+When displaying a traveler in a table column (e.g., "Assigned" or "Payer"), follow the `<AvatarCircle> <FirstName>` pattern:
+- **Component**: Use `<AvatarCircle profile={user} size={20} />` (or similar size).
+- **Label**: Display only the first name (`name.split(' ')[0]`) in a `<span>`.
+- **Styling**: `flex items-center gap-1.5`. Use `truncate` and `max-w-[80px]` on the name to prevent overflow.
+- **Color**: Name text should usually be `text-text-secondary` at `text-[12px]`.
+
 ## Inconsistency Checklist (Pre-Merge Audit)
 Before submitting a new component or UI refactor, ensure it passes this "AI Aesthetic Cleanliness" check:
 

@@ -368,13 +368,15 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
               />
             </div>
             <div className="text-xs font-medium text-text-muted mt-0.5 relative min-w-[150px]">
+            <div className={`transition-opacity duration-150 ${!day.date ? 'opacity-0 group-hover/day:opacity-100' : ''}`}>
               <DatePicker
                 value={day.date}
                 onChange={val => dispatch({ type: ACTIONS.UPDATE_DAY, payload: { dayId: day.id, updates: { date: val } } })}
-                placeholder="Add date…"
+                placeholder="Set date"
                 className="bg-transparent border-transparent hover:border-border text-xs !px-1 w-auto max-w-[200px]"
                 disabled={isReadOnly}
               />
+            </div>
             </div>
           </div>
         </div>
@@ -519,15 +521,17 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
                                 ) : null
                               })()}
                               {(activity.notes !== undefined) && (
-                                <EditableText
-                                  value={activity.notes || ''}
-                                  onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { notes: val } } })}
-                                  className="text-[12px] text-text-muted block mt-1 hover:text-text-secondary w-full"
-                                  inputClassName="w-full text-[12px] px-0 py-0"
-                                  placeholder="+ Add note"
-                                  multiline
-                                  readOnly={isReadOnly}
-                                />
+                                <div className={`transition-opacity duration-150 ${!activity.notes ? 'opacity-0 group-hover/row:opacity-100' : ''}`}>
+                                  <EditableText
+                                    value={activity.notes || ''}
+                                    onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { notes: val } } })}
+                                    className="text-[12px] text-text-muted block mt-1 hover:text-text-secondary w-full"
+                                    inputClassName="w-full text-[12px] px-0 py-0"
+                                    placeholder="Add note"
+                                    multiline
+                                    readOnly={isReadOnly}
+                                  />
+                                </div>
                               )}
                             </div>
                           </div>
@@ -584,7 +588,7 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
                             )}
                           </td>
                           <td colSpan={3} className="py-2 pl-2">
-                            <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-text-muted bg-bg-secondary/30 border border-border/50 rounded-full px-2.5 py-0.5 hover:border-text-primary transition-colors relative z-10">
+                            <div className={`inline-flex items-center gap-1.5 text-[11px] font-medium text-text-muted bg-bg-secondary/30 border border-border/50 rounded-full px-2.5 py-0.5 hover:border-text-primary transition-all duration-150 relative z-10 ${!activity.transit ? 'opacity-0 group-hover/transit:opacity-100' : ''}`}>
                               <Select
                                 value={activity.transitEmoji || '🚕'}
                                 onValueChange={v => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { transitEmoji: v } } })}
@@ -607,7 +611,7 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
                                 onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { transit: val } } })}
                                 className="min-w-[50px] inline-flex items-center"
                                 inputClassName="px-0 py-0 text-[11px] font-medium w-[100px] bg-transparent"
-                                placeholder="Add transit..."
+                                placeholder="Add transit"
                                 readOnly={isReadOnly}
                               />
                             </div>
@@ -738,60 +742,62 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
                 : 'bg-bg-card'
             }`}
           >
-            <div className="flex items-start gap-2 mb-2 w-full">
-              <div className="flex-1 min-w-0 pr-6">
-                <EditableText
-                  value={activity.name}
-                  onSave={async (val) => {
-                    dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { name: val } } })
-                    // Auto-resolve if location is empty and name is provided
-                    if (val && !activity.location?.verified) {
-                      resolveLocation(day.id, activity.id, val, day.location)
-                    }
-                  }}
-                  className="font-semibold text-sm text-text-primary leading-tight truncate w-full"
-                  readOnly={isReadOnly}
-                />
-                <div className="text-[11px] text-text-muted font-medium mt-0.5 truncate uppercase tracking-tight">
-                  {(activity.location?.placeName || activity.location || 'Unknown')} • {getCategoryTheme(activity.category).label} • {activity.duration || 60}m
+            <div className="flex flex-col gap-1">
+              {/* Header: Emoji + Name */}
+              <div className="flex items-center gap-2">
+                <span className="text-[14px] shrink-0">{activity.emoji || '📍'}</span>
+                <div className="flex-1 min-w-0 pr-6">
+                  <EditableText
+                    value={activity.name}
+                    onSave={async (val) => {
+                      dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { name: val } } })
+                      if (val && !activity.location?.verified) {
+                        resolveLocation(day.id, activity.id, val, day.location)
+                      }
+                    }}
+                    className="font-semibold text-sm text-text-primary leading-tight truncate w-full"
+                    readOnly={isReadOnly}
+                  />
                 </div>
+                {!isReadOnly && (
+                  <button
+                    onClick={() => {
+                      triggerHaptic('medium')
+                      dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })
+                    }}
+                    className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out text-text-muted hover:text-danger p-1 rounded hover:bg-bg-hover"
+                    title="Delete"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>
+                )}
               </div>
-              {!isReadOnly && (
-                <button
-                  onClick={() => {
-                    triggerHaptic('medium')
-                    dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })
-                  }}
-                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out text-text-muted hover:text-danger p-1 rounded hover:bg-bg-hover"
-                  title="Delete"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                </button>
-              )}
-            </div>
 
-            {/* Bottom Row */}
-            <div className="flex items-center justify-between pt-2 border-t border-border/10 mt-2 gap-2">
-              <div className="flex-1 min-w-0">
-                <span className="text-[14px]">{activity.emoji || '📍'}</span>
+              {/* Sub-header: Location • Duration */}
+              <div className="text-[11px] text-text-muted font-medium truncate uppercase tracking-tight">
+                {(activity.location?.placeName || activity.location || 'Unknown')} • {activity.duration || 60}m
               </div>
-              <div className="flex flex-col items-end gap-1 shrink-0">
+
+              {/* Time Row: Plain text style */}
+              <div className="flex items-center gap-1.5 text-xs font-mono text-text-secondary mt-0.5">
                 <TimePicker
                   value={activity.time}
                   onChange={time => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { time } } })}
-                  className="text-[10px] font-mono font-medium text-text-secondary bg-bg-secondary rounded px-2 py-0.5 w-[60px] border-none text-right"
-                  placeholder="Time"
+                  className="bg-transparent border-none p-0 w-auto hover:text-text-primary"
+                  placeholder="Start"
                   disabled={isReadOnly}
                 />
+                <span className="opacity-40">-</span>
                 <TimePicker
                   value={activity.endTime}
                   onChange={endTime => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { endTime } } })}
-                  className="text-[9px] font-mono text-text-muted bg-transparent border-transparent hover:border-border h-auto py-0 w-[60px] text-right !px-2"
-                  placeholder="-:-"
+                  className="bg-transparent border-none p-0 w-auto hover:text-text-primary"
+                  placeholder="End"
                   disabled={isReadOnly}
                 />
               </div>
             </div>
+
             {(activity.notes || activity.notes === '') && (
               <div className="mt-2 pt-2 border-t border-border/10">
                 <EditableText
@@ -847,9 +853,12 @@ function CalendarActivityBlock({ activity, day, startOfDayMinutes, hourHeight, t
   }
 
   const minutesToTimeString = (totalMins) => {
-    const h = Math.floor(totalMins / 60) % 24
+    let h = Math.floor(totalMins / 60) % 24
     const m = Math.round(totalMins % 60)
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+    const ampm = h >= 12 ? 'PM' : 'AM'
+    h = h % 12
+    h = h ? h : 12
+    return `${h}:${m.toString().padStart(2, '0')} ${ampm}`
   }
 
   // Bind drag for moving the whole block
@@ -910,9 +919,8 @@ function CalendarActivityBlock({ activity, day, startOfDayMinutes, hourHeight, t
   const currentStartMins = startOfDayMinutes + pixelsToMinutes(localTop)
   const currentDurationMins = pixelsToMinutes(localHeight)
   
-  const displayTime = isDragging || isResizing 
-    ? `${minutesToTimeString(currentStartMins)} - ${minutesToTimeString(currentStartMins + currentDurationMins)}`
-    : activity.time
+  const displayTime = minutesToTimeString(currentStartMins)
+  const displayEndTime = minutesToTimeString(currentStartMins + currentDurationMins)
 
   return (
     <div
@@ -924,18 +932,23 @@ function CalendarActivityBlock({ activity, day, startOfDayMinutes, hourHeight, t
       } ${isDragging || (isResizing && false) ? 'opacity-80 scale-[0.98] ring-2 ring-accent/30' : ''} ${!isReadOnly ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
       style={{ top: localTop + 4, height: localHeight - 8, touchAction: 'none' }}
     >
-      <div className="flex flex-col h-full relative z-10 p-3 pointer-events-none">
-        <div className="flex items-start justify-between gap-2">
+      <div className="flex flex-col h-full relative z-10 p-2.5 pointer-events-none gap-0.5">
+        {/* Header: Emoji + Name */}
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-[13px] shrink-0">{activity.emoji || '📍'}</span>
           <h4 className="text-sm font-semibold font-heading leading-tight text-text-primary transition-colors truncate">
             {activity.name}
           </h4>
-          <span className={`text-[10px] font-mono font-semibold shrink-0 ${isDragging || isResizing ? 'text-accent' : 'text-text-muted/80'}`}>
-            {displayTime}
-          </span>
         </div>
         
-        <div className="text-xs text-text-muted font-medium mt-1 truncate uppercase tracking-wide">
-          {(activity.location?.placeName || activity.location || 'Unknown')} • {theme.label}
+        {/* Sub-header: Location • Duration */}
+        <div className="text-[11px] text-text-muted font-medium truncate uppercase tracking-tight">
+          {(activity.location?.placeName || activity.location || 'Unknown')} • {activity.duration || 60}m
+        </div>
+
+        {/* Time Row: Start - End */}
+        <div className={`text-[11px] font-mono font-medium transition-colors ${isDragging || isResizing ? 'text-accent' : 'text-text-secondary'}`}>
+          {displayTime} – {displayEndTime}
         </div>
 
         {localHeight > 100 && <div className="mt-auto" />}

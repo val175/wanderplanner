@@ -142,12 +142,12 @@ export default function BookingsTable({
                 const row = info.row.original
                 const dateVal = row.bookByDate || row.startDate || ''
                 return (
-                    <div className="w-full">
+                    <div className={`w-full transition-opacity duration-150 ${!dateVal ? 'opacity-0 group-hover:opacity-100' : ''}`}>
                         <DatePicker
                             value={dateVal}
                             onChange={val => onUpdate(row.id, { bookByDate: val })}
                             className={`text-text-secondary text-sm block ${isReadOnly ? 'cursor-default' : 'cursor-pointer'}`}
-                            placeholder="Set date..."
+                            placeholder="Set date"
                             disabled={isReadOnly}
                         />
                     </div>
@@ -162,7 +162,7 @@ export default function BookingsTable({
             cell: info => {
                 const val = info.getValue()
                 return (
-                    <div className="flex items-center gap-1 group">
+                    <div className={`flex items-center gap-1 transition-opacity duration-150 ${!val ? 'opacity-0 group-hover:opacity-100' : ''}`}>
                         <EditableText
                             value={val}
                             onSave={newVal => onUpdate(info.row.original.id, { confirmationNumber: newVal })}
@@ -211,15 +211,20 @@ export default function BookingsTable({
             header: 'Location',
             accessorKey: 'location',
             size: 140,
-            cell: info => (
-                <EditableText
-                    value={info.getValue() || ''}
-                    onSave={val => onUpdate(info.row.original.id, { location: val })}
-                    className="text-xs text-text-muted truncate block w-full"
-                    placeholder="Add location"
-                    readOnly={isReadOnly}
-                />
-            )
+            cell: info => {
+                const val = info.getValue()
+                return (
+                    <div className={`transition-opacity duration-150 ${!val ? 'opacity-0 group-hover:opacity-100' : ''}`}>
+                        <EditableText
+                            value={val || ''}
+                            onSave={val => onUpdate(info.row.original.id, { location: val })}
+                            className="text-xs text-text-muted truncate block w-full"
+                            placeholder="Add location"
+                            readOnly={isReadOnly}
+                        />
+                    </div>
+                )
+            }
         },
         {
             id: 'actions',
