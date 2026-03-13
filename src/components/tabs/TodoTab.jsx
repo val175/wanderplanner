@@ -964,14 +964,17 @@ export default function TodoTab() {
         statuses={TODO_STATUSES}
       />
 
-      <TodoDrawer
-        todo={todos.find(t => t.id === selectedTodoId)}
-        travelers={tripTravelers}
-        onUpdate={(id, updates) => dispatch({ type: ACTIONS.UPDATE_TODO, payload: { id, updates } })}
-        onClose={() => setSelectedTodoId(null)}
-        resolveProfile={resolveProfile}
-        isReadOnly={isReadOnly}
-      />
+      {selectedTodoId && (
+        <TodoDrawer
+          todo={todos.find(t => t.id === selectedTodoId)}
+          travelers={tripTravelers}
+          onUpdate={(id, updates) => dispatch({ type: ACTIONS.UPDATE_TODO, payload: { id, updates } })}
+          onAddComment={(todoId, text, actorId) => dispatch({ type: ACTIONS.ADD_TODO_COMMENT, payload: { todoId, text, actorId } })}
+          onClose={() => setSelectedTodoId(null)}
+          resolveProfile={resolveProfile}
+          isReadOnly={isReadOnly}
+        />
+      )}
     </div>
   )
 }

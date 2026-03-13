@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { TODO_STATUSES } from '../../constants/tabs'
 import EditableText from '../shared/EditableText'
@@ -7,7 +7,8 @@ import DatePicker from '../shared/DatePicker'
 import Select, { SelectItem } from '../shared/Select'
 import { useProfiles } from '../../context/ProfileContext'
 import AvatarCircle from '../shared/AvatarCircle'
-import { hapticSelection } from '../../utils/haptics'
+import { hapticImpact, hapticSelection } from '../../utils/haptics'
+import { formatDate } from '../../utils/helpers'
 
 function TodoStatusSelect({ value, onChange, disabled }) {
   const current = TODO_STATUSES.find(s => s.id === value) || TODO_STATUSES[0]
@@ -56,8 +57,11 @@ function AssigneeSelect({ value, onChange, travelers, resolveProfile, disabled }
   )
 }
 
-export default function TodoDrawer({ todo, travelers, onUpdate, onClose, resolveProfile, isReadOnly }) {
+export default function TodoDrawer({ todo, travelers, onUpdate, onAddComment, onClose, resolveProfile, isReadOnly }) {
+  const { currentUserProfile } = useProfiles()
   const [mounted, setMounted] = useState(false)
+  const [draftComment, setDraftComment] = useState('')
+  const actorId = currentUserProfile?.uid || currentUserProfile?.id
 
   useEffect(() => {
     setMounted(true)
@@ -68,10 +72,24 @@ export default function TodoDrawer({ todo, travelers, onUpdate, onClose, resolve
     return () => window.removeEventListener('keydown', handleEsc)
   }, [onClose])
 
+  const comments = useMemo(() => {
+    if (!todo?.comments?.length) return []
+    return [...todo.comments]
+  }, [todo?.comments])
+
+  const handlePost = () => {
+    if (isReadOnly) return
+    const text = draftComment.trim()
+    if (!text) return
+    onAddComment?.(todo.id, text, actorId)
+    setDraftComment('')
+    hapticImpact('medium')
+  }
+
   if (!todo || !mounted) return null
 
   return createPortal(
-    <div className="relative z-[9999]">
+    <div className="relative z-[9999] font-heading">
       {/* Backdrop */}
       <div
         className={`fixed inset-0 bg-bg-primary/50 backdrop-blur-sm transition-opacity duration-300 ${mounted ? 'opacity-100' : 'opacity-0'}`}
@@ -149,8 +167,70 @@ export default function TodoDrawer({ todo, travelers, onUpdate, onClose, resolve
               rows={4}
               placeholder="Add context, links, or instructions here..."
               readOnly={isReadOnly}
-              className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors resize-none leading-relaxed"
+              className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors resize-none leading-relaxed font-heading"
             />
+          </div>
+
+          <hr className="border-border/30" />
+
+          {/* Updates Feed */}
+          <div className="space-y-3">
+            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Updates</label>
+            {comments.length === 0 ? (
+              <div className="min-h-[120px] flex items-center justify-center text-sm text-text-muted border border-dashed border-border rounded-[var(--radius-md)]">
+                No updates yet. Start the conversation.
+              </div>
+            ) : (
+              <div className="max-h-[260px] overflow-y-auto pr-1 space-y-3 scrollbar-thin">
+                {comments.map(comment => {
+                  const author = resolveProfile(comment.authorId)
+                  return (
+                    <div key={comment.id} className="flex items-start gap-3">
+                      <AvatarCircle profile={author} size={28} />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 text-xs text-text-muted">
+                          <span className="font-semibold text-text-primary">
+                            {author?.name || 'Unknown'}
+                          </span>
+                          <span className="text-text-muted">•</span>
+                          <span>{comment.timestamp ? formatDate(comment.timestamp, 'short') : ''}</span>
+                        </div>
+                        <div className="mt-1 bg-bg-secondary border border-border rounded-[var(--radius-md)] px-3 py-2 text-sm text-text-secondary shadow-none">
+                          {comment.text}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer Input */}
+        <div className="border-t border-border px-4 py-3 bg-bg-card">
+          <div className="flex items-center gap-2 bg-bg-secondary border border-border rounded-[var(--radius-md)] px-3 py-2">
+            <input
+              value={draftComment}
+              onChange={e => setDraftComment(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  handlePost()
+                }
+              }}
+              onFocus={() => hapticSelection()}
+              placeholder={isReadOnly ? 'Updates are read-only' : 'Write an update...'}
+              disabled={isReadOnly}
+              className="flex-1 bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-muted font-heading"
+            />
+            <Button
+              size="sm"
+              onClick={handlePost}
+              disabled={isReadOnly || !draftComment.trim()}
+            >
+              Post
+            </Button>
           </div>
         </div>
       </div>

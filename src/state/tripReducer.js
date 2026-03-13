@@ -56,6 +56,7 @@ export const ACTIONS = {
   ADD_TODO: 'ADD_TODO',
   TOGGLE_TODO: 'TOGGLE_TODO',
   UPDATE_TODO: 'UPDATE_TODO',
+  ADD_TODO_COMMENT: 'ADD_TODO_COMMENT',
   DELETE_TODO: 'DELETE_TODO',
   SET_TODOS: 'SET_TODOS',
 
@@ -573,7 +574,7 @@ export function tripReducer(state, action) {
     case ACTIONS.ADD_TODO:
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
-        todos: [...trip.todos, { id: generateId(), status: 'not_started', done: false, priority: 'normal', dueDate: '', assigneeId: null, ...payload }],
+        todos: [...trip.todos, { id: generateId(), status: 'not_started', done: false, priority: 'normal', dueDate: '', assigneeId: null, comments: [], ...payload }],
       }))
 
     case ACTIONS.TOGGLE_TODO:
@@ -591,6 +592,23 @@ export function tripReducer(state, action) {
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
         todos: trip.todos.map(t => t.id === payload.id ? { ...t, ...payload.updates } : t),
+      }))
+
+    case ACTIONS.ADD_TODO_COMMENT:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        todos: trip.todos.map(t => {
+          if (t.id !== payload.todoId) return t
+          if (!payload.text || !payload.text.trim()) return t
+          const nextComment = {
+            id: generateId(),
+            authorId: payload.actorId || null,
+            text: payload.text.trim(),
+            timestamp: new Date().toISOString(),
+          }
+          const comments = Array.isArray(t.comments) ? t.comments : []
+          return { ...t, comments: [...comments, nextComment] }
+        }),
       }))
 
     case ACTIONS.DELETE_TODO:
