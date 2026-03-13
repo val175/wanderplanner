@@ -57,6 +57,8 @@ export const ACTIONS = {
   TOGGLE_TODO: 'TOGGLE_TODO',
   UPDATE_TODO: 'UPDATE_TODO',
   ADD_TODO_COMMENT: 'ADD_TODO_COMMENT',
+  UPDATE_TODO_COMMENT: 'UPDATE_TODO_COMMENT',
+  DELETE_TODO_COMMENT: 'DELETE_TODO_COMMENT',
   DELETE_TODO: 'DELETE_TODO',
   SET_TODOS: 'SET_TODOS',
 
@@ -608,6 +610,33 @@ export function tripReducer(state, action) {
           }
           const comments = Array.isArray(t.comments) ? t.comments : []
           return { ...t, comments: [...comments, nextComment] }
+        }),
+      }))
+
+    case ACTIONS.UPDATE_TODO_COMMENT:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        todos: trip.todos.map(t => {
+          if (t.id !== payload.todoId) return t
+          const comments = Array.isArray(t.comments) ? t.comments : []
+          return {
+            ...t,
+            comments: comments.map(c =>
+              c.id === payload.commentId
+                ? { ...c, text: payload.text?.trim() || c.text }
+                : c
+            ),
+          }
+        }),
+      }))
+
+    case ACTIONS.DELETE_TODO_COMMENT:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        todos: trip.todos.map(t => {
+          if (t.id !== payload.todoId) return t
+          const comments = Array.isArray(t.comments) ? t.comments : []
+          return { ...t, comments: comments.filter(c => c.id !== payload.commentId) }
         }),
       }))
 
