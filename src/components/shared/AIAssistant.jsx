@@ -54,9 +54,16 @@ const PILLS = [
   { emoji: '🚗', label: 'Getting around' },
 ];
 
+const MAGIC_SPELLS = [
+  'Abracadabra!', 'Alakazam!', 'Hocus Pocus!',
+  'Expecto Patronum!', 'Alohomora!', 'Wingardium Leviosa!',
+  'Bibbidi-Bobbidi-Boo!', 'Azarath Metrion Zinthos!'
+];
+
 export default function AIAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
+  const [currentSpellIndex, setCurrentSpellIndex] = useState(0);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -71,6 +78,18 @@ export default function AIAssistant() {
   });
 
   const isLoading = status === 'submitted' || status === 'streaming';
+
+  useEffect(() => {
+    let interval;
+    if (isLoading) {
+      interval = setInterval(() => {
+        setCurrentSpellIndex(prev => (prev + 1) % MAGIC_SPELLS.length);
+      }, 800);
+    } else {
+      setCurrentSpellIndex(0);
+    }
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
   useEffect(() => {
     const handleToggle = () => setIsOpen(prev => !prev);
@@ -383,13 +402,24 @@ export default function AIAssistant() {
 
         {isLoading && (
           <div className="flex items-center gap-2 text-sm text-text-secondary">
-            <div className="text-sm">🪄</div>
-            <div className="flex items-center gap-1">
-              {[0, 1, 2].map(i => (
-                <span key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--color-text-muted)', display: 'inline-block', animation: `wanda-dot 1.2s ease-in-out ${i * 0.2}s infinite` }} />
-              ))}
+            <div className="text-sm wanda-wiggle-slow">🪄</div>
+            <div className="italic text-[11px] text-accent/80 animate-pulse font-medium">
+              {MAGIC_SPELLS[currentSpellIndex]}
             </div>
-            <style>{`@keyframes wanda-dot { 0%,80%,100%{transform:scale(0.6);opacity:0.4} 40%{transform:scale(1);opacity:1} }`}</style>
+            <style>{`
+              @keyframes wanda-wiggle-fast {
+                0% { transform: rotate(0deg); }
+                25% { transform: rotate(15deg); }
+                50% { transform: rotate(-12deg); }
+                75% { transform: rotate(8deg); }
+                100% { transform: rotate(0deg); }
+              }
+              .wanda-wiggle-slow {
+                display: inline-block;
+                transform-origin: 70% 80%;
+                animation: wanda-wiggle-fast 0.6s ease-in-out infinite;
+              }
+            `}</style>
           </div>
         )}
 

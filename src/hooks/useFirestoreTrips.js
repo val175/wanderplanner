@@ -31,7 +31,7 @@ function getInitialState() {
       const parsed = JSON.parse(saved)
       darkMode = parsed.darkMode || false
       aiViewMode = parsed.aiViewMode || 'floating'
-      aiOpen = parsed.aiOpen || false
+      aiOpen = false
     }
   } catch { /* ignore */ }
 
