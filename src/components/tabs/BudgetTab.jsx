@@ -394,6 +394,8 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
   const [editId, setEditId] = useState(null)
   const [editData, setEditData] = useState({})
   const [highlightedExpenseId, setHighlightedExpenseId] = useState(null)
+  const [sortCol, setSortCol] = useState('date') // 'date' | 'description' | 'amount' | 'category' | 'payer'
+  const [sortDir, setSortDir] = useState('desc') // 'asc' | 'desc'
 
   useEffect(() => {
     const handleHighlight = (e) => {
@@ -422,26 +424,66 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
     setEditId(null)
   }
 
-  const filtered = useMemo(() => {
-    if (!search.trim()) return spendingLog
-    const q = search.toLowerCase()
-    return spendingLog.filter(e =>
-      e.description?.toLowerCase().includes(q) || e.category?.toLowerCase().includes(q)
-    )
-  }, [spendingLog, search])
+  const sortedAndFiltered = useMemo(() => {
+    let result = spendingLog
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      result = result.filter(e =>
+        e.description?.toLowerCase().includes(q) || e.category?.toLowerCase().includes(q)
+      )
+    }
+
+    return [...result].sort((a, b) => {
+      let va, vb
+      if (sortCol === 'description') {
+        va = (a.description || '').toLowerCase(); vb = (b.description || '').toLowerCase()
+        return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
+      }
+      if (sortCol === 'amount') {
+        va = Number(a.amount) || 0; vb = Number(b.amount) || 0
+        return sortDir === 'asc' ? va - vb : vb - va
+      }
+      if (sortCol === 'category') {
+        va = (a.category || '').toLowerCase(); vb = (b.category || '').toLowerCase()
+        return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
+      }
+      if (sortCol === 'payer') {
+        va = travelers.find(t => t.id === a.paidBy)?.name || ''
+        vb = travelers.find(t => t.id === b.paidBy)?.name || ''
+        return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
+      }
+      // date (default)
+      va = a.date ? new Date(a.date).getTime() : 0
+      vb = b.date ? new Date(b.date).getTime() : 0
+      return sortDir === 'asc' ? va - vb : vb - va
+    })
+  }, [spendingLog, search, sortCol, sortDir, travelers])
+
+  function toggleSort(col) {
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortCol(col); setSortDir('asc') }
+    hapticImpact('light')
+  }
+
+  const SortIcon = ({ col }) => {
+    if (sortCol !== col) return <svg className="w-3 h-3 opacity-25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12l7-7 7 7" /></svg>
+    return sortDir === 'asc'
+      ? <svg className="w-3 h-3 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+      : <svg className="w-3 h-3 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 5v14M5 12l7 7 7-7" /></svg>
+  }
 
   return (
     <Card className="border-border bg-bg-card overflow-hidden">
 
       {/* ── Mobile card view ── */}
       <div className="flex flex-col gap-3 p-3 md:hidden">
-        {filtered.length === 0 && (
+        {sortedAndFiltered.length === 0 && (
           <p className="text-center text-[13px] text-text-muted py-6 text-balance">
             {search ? `No results for "${search}"` : 'No expenses yet — tap + Log Expense to add one'}
           </p>
 
         )}
-        {filtered.map(entry => {
+        {sortedAndFiltered.map(entry => {
           const catIndex = budget.findIndex(c => c.name === entry.category)
           const dotColor = catIndex >= 0 ? CHART_COLORS[catIndex % CHART_COLORS.length] : 'var(--color-border)'
           const catEmoji = budget.find(c => c.name === entry.category)?.emoji || '💸'
@@ -499,17 +541,29 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
         <table className="w-full text-sm">
           <thead>
              <tr className="border-b border-border/50">
-               <th className="text-left py-2 px-3 text-xs font-bold uppercase tracking-wider text-text-muted w-[80px]">Date</th>
-               <th className="text-left py-2 px-2 text-xs font-bold uppercase tracking-wider text-text-muted">Expense</th>
-               <th className="text-right py-2 px-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[100px]">Amount</th>
-               <th className="text-left py-2 px-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[130px]">Category</th>
-               {showPaidBy && <th className="text-left py-2 px-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[120px]">Payer</th>}
+               <th className={`py-2 px-3 w-[160px] text-left text-xs font-bold uppercase tracking-wider text-text-muted select-none cursor-pointer hover:text-text-primary transition-colors`} onClick={() => toggleSort('date')}>
+                 <div className="flex items-center gap-1 whitespace-nowrap">Date <SortIcon col="date" /></div>
+               </th>
+               <th className={`py-2 px-2 text-left text-xs font-bold uppercase tracking-wider text-text-muted select-none`}>
+                 <div className="flex items-center gap-1">Expense</div>
+               </th>
+               <th className={`py-2 px-2 text-right w-[120px] text-xs font-bold uppercase tracking-wider text-text-muted select-none cursor-pointer hover:text-text-primary transition-colors`} onClick={() => toggleSort('amount')}>
+                 <div className="flex items-center justify-end gap-1">Amount <SortIcon col="amount" /></div>
+               </th>
+               <th className={`py-2 px-2 w-[160px] text-left text-xs font-bold uppercase tracking-wider text-text-muted select-none cursor-pointer hover:text-text-primary transition-colors`} onClick={() => toggleSort('category')}>
+                 <div className="flex items-center gap-1">Category <SortIcon col="category" /></div>
+               </th>
+               {showPaidBy && (
+                 <th className={`py-2 px-2 w-[140px] text-left text-xs font-bold uppercase tracking-wider text-text-muted select-none cursor-pointer hover:text-text-primary transition-colors`} onClick={() => toggleSort('payer')}>
+                   <div className="flex items-center gap-1">Payer <SortIcon col="payer" /></div>
+                 </th>
+               )}
               <th className="w-[40px]" />
             </tr>
           </thead>
           <tbody>
 
-            {filtered.length === 0 && (
+            {sortedAndFiltered.length === 0 && (
               <tr>
                 <td colSpan={showPaidBy ? 6 : 5} className="py-10 text-center text-text-muted">
                   {search ? (
@@ -521,7 +575,7 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
               </tr>
             )}
 
-            {filtered.map(entry => {
+            {sortedAndFiltered.map(entry => {
               const catIndex = budget.findIndex(c => c.name === entry.category)
               const dotColor = catIndex >= 0 ? CHART_COLORS[catIndex % CHART_COLORS.length] : 'var(--color-border)'
               const catEmoji = budget.find(c => c.name === entry.category)?.emoji || '💸'
@@ -536,7 +590,7 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                     <DatePicker
                       value={editData.date}
                       onChange={v => setEditData(p => ({ ...p, date: v }))}
-                      className="text-text-primary text-xs w-[110px]"
+                      className="text-text-primary text-xs w-[140px] whitespace-nowrap"
                       disabled={isReadOnly}
                     />
                   </td>
@@ -598,7 +652,7 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                       <DatePicker
                         value={entry.date}
                         onChange={v => onUpdate(entry.id, { date: v })}
-                        className="text-text-muted text-xs tabular-nums w-[110px]"
+                        className="text-text-muted text-xs tabular-nums w-[140px] whitespace-nowrap"
                         disabled={isReadOnly}
                         placeholder="Set date"
                       />
@@ -669,6 +723,7 @@ export default function BudgetTab() {
   const { activeTrip, dispatch, isReadOnly } = useTripContext()
   const travelers = useTripTravelers()
   const [search, setSearch] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('all')
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [showScanModal, setShowScanModal] = useState(false)
 
@@ -708,14 +763,24 @@ export default function BudgetTab() {
 
       {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between pb-3 mb-4 gap-2">
-        {/* Left: Search */}
-        <div className="flex-1 md:max-w-sm">
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search expenses..."
-            className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] px-4 py-2 text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors"
-          />
+        {/* Left: Search & Category Filter */}
+        <div className="flex flex-col sm:flex-row flex-1 md:max-w-2xl gap-2">
+          <div className="flex-1">
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search expenses..."
+              className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] px-4 py-2 text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors"
+            />
+          </div>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter} className="w-full sm:w-auto min-w-[140px]" size="md">
+            <SelectItem value="all">All Categories</SelectItem>
+            {budget.map(cat => (
+              <SelectItem key={cat.id} value={cat.name}>
+                {cat.emoji} {cat.name}
+              </SelectItem>
+            ))}
+          </Select>
         </div>
 
         {/* Right: Actions — horizontally scrollable on mobile */}
@@ -768,7 +833,13 @@ export default function BudgetTab() {
         {/* Left Column (2/3 width) - Spending Log */}
         <div className="lg:col-span-2">
           <SpendingLogTable
-            spendingLog={trip.spendingLog || []}
+            spendingLog={useMemo(() => {
+              let log = trip.spendingLog || []
+              if (categoryFilter !== 'all') {
+                log = log.filter(e => e.category === categoryFilter)
+              }
+              return log
+            }, [trip.spendingLog, categoryFilter])}
             budget={budget}
             travelers={travelers}
             currency={currency}
