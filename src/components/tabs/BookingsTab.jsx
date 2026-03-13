@@ -233,7 +233,7 @@ export default function BookingsTab() {
           <>
             <div className="flex-1">
               <div className="relative inline-flex">
-                <Select value={filter} onValueChange={setFilter} className="min-w-[140px]">
+                <Select value={filter} onValueChange={setFilter} className="min-w-[140px] h-7 text-xs" size="sm">
                   {filters.map(f => (
                     <SelectItem key={f.id} value={f.id}>
                       {f.label === 'All' ? 'All Bookings' : f.label}

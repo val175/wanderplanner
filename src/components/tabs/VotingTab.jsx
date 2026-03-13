@@ -990,7 +990,7 @@ export default function VotingTab() {
 
                     <div className={`transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-2 relative gap-2 ${isCreatingPoll ? '-mt-2' : ''}`}>
                         <div className="flex-1">
-                            <Select value={filter} onValueChange={setFilter} className="min-w-[140px]">
+                            <Select value={filter} onValueChange={setFilter} className="min-w-[140px] h-7 text-xs w-auto" size="sm">
                                 <SelectItem value="all">All Categories</SelectItem>
                                 {GLOBAL_CATEGORIES.map(cat => (
                                     <SelectItem key={cat.id} value={cat.id}>

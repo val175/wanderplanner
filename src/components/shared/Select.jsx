@@ -21,7 +21,7 @@ const sizeClasses = {
 const baseTriggerCls = `
   w-full flex items-center justify-between gap-2
   text-sm bg-bg-card border border-border rounded-[var(--radius-md)]
-  text-text-primary
+  text-inherit
   focus:border-accent focus:outline-none
   transition-colors cursor-pointer
   hover:bg-bg-hover/50

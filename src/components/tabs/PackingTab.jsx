@@ -626,7 +626,7 @@ export default function PackingTab() {
         rightSlot={
           <>
             <div className="flex-1">
-              <Select value={categoryFilter} onValueChange={setCategoryFilter} className="min-w-[140px]">
+              <Select value={categoryFilter} onValueChange={setCategoryFilter} className="min-w-[140px] h-7 text-xs" size="sm">
                 {filters.map(f => (
                   <SelectItem key={f.id} value={f.id}>
                     {f.label === 'All' ? 'All Items' : f.label}

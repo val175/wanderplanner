@@ -728,7 +728,7 @@ export default function BudgetTab() {
       />
 
       {/* 2:1 Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start animate-tab-enter stagger-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start animate-tab-enter stagger-2">
 
         {/* Left Column (2/3 width) - Spending Log */}
         <div className="lg:col-span-2">
@@ -747,7 +747,7 @@ export default function BudgetTab() {
         </div>
 
         {/* Right Column (1/3 width) - Analytics & Health */}
-        <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-0">
+        <div className="lg:col-span-1 space-y-5 lg:sticky lg:top-0">
           <GroupBalancesCard
             spendingLog={trip.spendingLog || []}
             travelers={travelers}
