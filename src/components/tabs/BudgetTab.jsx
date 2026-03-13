@@ -644,7 +644,7 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                   id={`expense-${entry.id}`}
                   key={entry.id} 
                   className={`border-t border-border/20 group transition-colors ${
-                    highlightedExpenseId === entry.id ? 'bg-accent/10 ring-2 ring-accent/30' : 'hover:bg-bg-hover'
+                    highlightedExpenseId === entry.id ? 'bg-accent/10 ring-2 ring-accent/30' : 'hover:bg-bg-hover/50'
                   }`}
                 >
                   <td className="py-3 px-3">

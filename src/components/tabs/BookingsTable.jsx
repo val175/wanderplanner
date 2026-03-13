@@ -363,7 +363,7 @@ export default function BookingsTable({
                         {table.getRowModel().rows.map(row => (
                             <tr
                                 key={row.id}
-                                className="group hover:bg-bg-hover transition-colors border-t border-border/20"
+                                className="group hover:bg-bg-hover/50 transition-colors border-t border-border/20"
                             >
                                 {row.getVisibleCells().map(cell => (
                                     <td

@@ -356,7 +356,7 @@ export default function TodoDrawer({ todo, travelers, onUpdate, onAddComment, on
           <hr className="border-border/30" />
 
           {/* Updates Feed */}
-          <div className="space-y-4">
+          <div className="space-y-6">
             <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Updates</label>
             {comments.length === 0 ? (
               <div className="min-h-[120px] flex items-center justify-center text-sm text-text-muted border border-dashed border-border rounded-[var(--radius-md)]">
@@ -369,7 +369,7 @@ export default function TodoDrawer({ todo, travelers, onUpdate, onAddComment, on
                   const isLast = index === comments.length - 1
                   const isEditing = editingCommentId === comment.id
                   return (
-                    <div key={comment.id} className="flex items-start gap-4">
+                    <div key={comment.id} className="flex items-start gap-4 group">
                       <div className="flex flex-col items-center gap-2">
                         <AvatarCircle profile={author} size={28} />
                         <div className={`w-px flex-1 bg-border/60 ${isLast ? 'opacity-0' : ''}`} />
@@ -382,7 +382,7 @@ export default function TodoDrawer({ todo, travelers, onUpdate, onAddComment, on
                           <span className="text-text-muted">•</span>
                           <span>{formatCommentTimestamp(comment.timestamp)}</span>
                           {!isReadOnly && comment.authorId === actorId && (
-                            <div className="flex items-center gap-2 ml-2">
+                            <div className="flex items-center gap-2 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button
                                 onClick={() => handleStartEdit(comment)}
                                 className="text-xs text-text-muted hover:text-text-primary"

@@ -504,8 +504,8 @@ export default function CityCombobox({
     }
 
     if (query.trim()) {
-      const resolved = resolveCity(query, country, flag, entry?.lat, entry?.lng)
-      if (resolved.flag !== flag || resolved.country !== country || resolved.lat !== entry?.lat) {
+      const resolved = resolveCity(query, country, flag)
+      if (resolved.flag !== flag || resolved.country !== country) {
         setQuery(resolved.city)
         onChange(resolved)
       }

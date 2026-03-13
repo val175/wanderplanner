@@ -844,7 +844,13 @@ export function tripReducer(state, action) {
       const identityChanged = newName !== undefined || newCountry !== undefined || newFlag !== undefined || newLat !== undefined || newLng !== undefined
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
-        cities: trip.cities.map(c => c.id === payload.id ? { ...c, ...payload.updates } : c),
+        cities: trip.cities.map(c => {
+          if (c.id !== payload.id) return c
+          const sanitizedUpdates = Object.fromEntries(
+            Object.entries(payload.updates).filter(([_, v]) => v !== undefined)
+          )
+          return { ...c, ...sanitizedUpdates }
+        }),
         // Sync name / country / flag changes into route waypoints
         destinations: (identityChanged && oldName)
           ? (trip.destinations || []).map(d =>
@@ -854,8 +860,8 @@ export function tripReducer(state, action) {
                 ...(newName !== undefined && { city: newName }),
                 ...(newCountry !== undefined && { country: newCountry }),
                 ...(newFlag !== undefined && { flag: newFlag }),
-                ...(newLat !== undefined && { lat: newLat }),
-                ...(newLng !== undefined && { lng: newLng }),
+                ...(newLat !== undefined && { lat: newLat ?? null }),
+                ...(newLng !== undefined && { lng: newLng ?? null }),
               }
               : d
           )
@@ -872,8 +878,8 @@ export function tripReducer(state, action) {
           city: payload.city || 'New City',
           country: payload.country || '',
           flag: payload.flag || '🌍',
-          lat: payload.lat,
-          lng: payload.lng,
+          lat: payload.lat ?? null,
+          lng: payload.lng ?? null,
           highlights: '',
           mustDo: '',
           weather: '',
@@ -886,8 +892,8 @@ export function tripReducer(state, action) {
           city: payload.city || 'New City',
           country: payload.country || '',
           flag: payload.flag || '🌍',
-          lat: payload.lat,
-          lng: payload.lng,
+          lat: payload.lat ?? null,
+          lng: payload.lng ?? null,
         }],
       }))
 

@@ -791,7 +791,7 @@ export default function PackingTab() {
               {table.getRowModel().rows.map(row => (
                 <tr
                   key={row.id}
-                  className={`group border-t border-border/20 transition-colors ${row.original.packed ? 'hover:bg-bg-hover/40' : 'hover:bg-bg-hover'
+                  className={`group border-t border-border/20 transition-colors ${row.original.packed ? 'hover:bg-bg-hover/20' : 'hover:bg-bg-hover/50'
                     }`}
                 >
                   {row.getVisibleCells().map(cell => (

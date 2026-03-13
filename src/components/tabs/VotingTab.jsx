@@ -77,7 +77,7 @@ function IdeaTableRow({ idea, resolveProfile, onDelete, isSelectable, isSelected
 
     return (
         <tr
-            className={`group border-t border-border/20 transition-colors ${isBooked ? 'opacity-40 grayscale' : 'hover:bg-bg-hover'
+            className={`group border-t border-border/20 transition-colors ${isBooked ? 'opacity-40 grayscale' : 'hover:bg-bg-hover/50'
                 } ${isSelected ? 'bg-accent/5' : ''}`}
         >
             {/* Checkbox */}

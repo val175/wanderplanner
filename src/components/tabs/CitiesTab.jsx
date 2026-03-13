@@ -9,6 +9,7 @@ import Modal from '../shared/Modal'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { generateCityGuide } from '../../hooks/useAI'
+import { Plus, Check, X, Pencil } from 'lucide-react'
 import { triggerHaptic, hapticImpact } from '../../utils/haptics'
 
 function AddCityModal({ isOpen, onClose, onAdd }) {
@@ -69,14 +70,10 @@ function AddCityModal({ isOpen, onClose, onAdd }) {
 }
 
 
-function CityRow({ city }) {
+function CityRow({ city, isEditing, editData, onEditChange, onStartEdit, onSave, onCancel }) {
   const { activeTrip, dispatch, isReadOnly } = useTripContext()
   const [loading, setLoading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
-
-  const updateCity = (updates) => {
-    dispatch({ type: ACTIONS.UPDATE_CITY, payload: { id: city.id, updates } })
-  }
 
   const handleWandaFill = async () => {
     triggerHaptic('medium')
@@ -91,7 +88,7 @@ function CityRow({ city }) {
         weather: data.weatherTip || `🌤️ Check local forecast (Primary: ${data.language})`
       }
 
-      updateCity(updates)
+      dispatch({ type: ACTIONS.UPDATE_CITY, payload: { id: city.id, updates } })
     } catch (e) {
       console.error(e)
       dispatch({ type: ACTIONS.SHOW_TOAST, payload: { message: "Wanda couldn't generate the guide right now.", type: 'error' } })
@@ -120,9 +117,71 @@ function CityRow({ city }) {
 
   const needsInspiration = !(city.weather || city.currencyTip || city.mustDo)
 
+  if (isEditing) {
+    return (
+      <tr className="border-t border-border/20 bg-bg-hover/30">
+        {!isReadOnly && <td className="px-1 py-3 align-top w-6 shrink-0" />}
+        <td className="px-2 py-3 align-top text-center text-2xl" style={{ width: '48px' }}>
+          {city.flag || '📍'}
+        </td>
+        <td className="px-2 py-3 align-top" style={{ width: '22%' }}>
+          <div className="flex flex-col gap-1.5 pr-2">
+            <input
+              value={editData.city}
+              onChange={e => onEditChange({ city: e.target.value })}
+              className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-sm)] px-2 py-1 text-text-primary focus:outline-none focus:border-accent font-semibold"
+              placeholder="City name"
+              autoFocus
+            />
+            <input
+              value={editData.country}
+              onChange={e => onEditChange({ country: e.target.value })}
+              className="w-full text-xs bg-bg-input border border-border rounded-[var(--radius-sm)] px-2 py-1 text-text-primary focus:outline-none focus:border-accent"
+              placeholder="Country"
+            />
+          </div>
+        </td>
+        <td className="px-2 py-3 align-top" style={{ width: '18%' }}>
+          <input
+            value={editData.weather}
+            onChange={e => onEditChange({ weather: e.target.value })}
+            className="w-full text-[13px] bg-bg-input border border-border rounded-[var(--radius-sm)] px-2 py-1 text-text-primary focus:outline-none focus:border-accent"
+            placeholder="e.g. 14°C / 5°C"
+          />
+        </td>
+        <td className="px-2 py-3 align-top" style={{ width: '18%' }}>
+          <textarea
+            value={editData.currencyTip}
+            onChange={e => onEditChange({ currencyTip: e.target.value })}
+            className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-sm)] px-2 py-1 text-text-primary focus:outline-none focus:border-accent min-h-[60px] resize-none"
+            placeholder="e.g. 1 USD = 150 JPY"
+          />
+        </td>
+        <td className="px-2 py-3 align-top" style={{ width: '28%' }}>
+          <textarea
+            value={editData.mustDo}
+            onChange={e => onEditChange({ mustDo: e.target.value })}
+            className="w-full text-[13px] bg-bg-input border border-border rounded-[var(--radius-sm)] px-2 py-1 text-text-primary focus:outline-none focus:border-accent min-h-[80px] resize-none leading-relaxed"
+            placeholder="Neon lights, ancient temples..."
+          />
+        </td>
+        <td className="px-2 py-4 align-top text-center w-[124px] shrink-0">
+          <div className="flex items-center gap-2 justify-center">
+            <button onClick={onSave} className="p-1 text-success hover:text-success/80 transition-colors" title="Save">
+              <Check size={18} />
+            </button>
+            <button onClick={onCancel} className="p-1 text-text-muted hover:text-danger transition-colors" title="Cancel">
+              <X size={18} />
+            </button>
+          </div>
+        </td>
+      </tr>
+    )
+  }
+
   return (
     <tr
-      className={`group hover:bg-bg-hover transition-colors border-t border-border/20 ${dragOver && !isReadOnly ? 'ring-2 ring-inset ring-accent' : ''}`}
+      className={`group hover:bg-bg-hover/50 transition-colors border-t border-border/20 ${dragOver && !isReadOnly ? 'ring-2 ring-inset ring-accent' : ''}`}
       draggable={!isReadOnly}
       onDragStart={e => {
         if (isReadOnly) return
@@ -138,102 +197,82 @@ function CityRow({ city }) {
       onDrop={handleDrop}
     >
       {!isReadOnly && (
-        <td className="px-1 py-3 align-middle text-center w-6 shrink-0">
+        <td className="px-1 py-4 align-top text-center w-6 shrink-0">
           <div className="city-drag-handle cursor-grab active:cursor-grabbing text-text-muted opacity-20 hover:opacity-100 transition-opacity select-none">
             ⠿
           </div>
         </td>
       )}
-      <td className="px-2 py-3 align-middle text-center text-2xl" style={{ width: '48px' }}>
+      <td className="px-2 py-3.5 align-top text-center text-2xl" style={{ width: '48px' }}>
         {city.flag || '📍'}
       </td>
-      <td className="px-2 py-3 align-middle" style={{ width: '22%' }}>
+      <td className="px-2 py-4 align-top" style={{ width: '22%' }}>
         <div className="flex flex-col pr-2">
-          <EditableText
-            value={city.city}
-            onSave={val => updateCity({ city: val })}
-            className="text-[14px] font-semibold text-text-primary truncate block w-full"
-            inputClassName="w-full font-semibold"
-            placeholder="City name"
-            readOnly={isReadOnly}
-          />
-          <EditableText
-            value={city.country}
-            onSave={val => updateCity({ country: val })}
-            className="text-xs text-text-muted truncate block w-full mt-0.5"
-            inputClassName="w-full text-xs"
-            placeholder="Country"
-            readOnly={isReadOnly}
-          />
+          <span className="text-[14px] font-semibold text-text-primary truncate block w-full">
+            {city.city}
+          </span>
+          <span className="text-xs text-text-muted truncate block w-full mt-0.5">
+            {city.country}
+          </span>
         </div>
       </td>
-      <td className="px-2 py-3 align-middle" style={{ width: '18%' }}>
-        <EditableText
-          value={city.weather}
-          onSave={val => updateCity({ weather: val })}
-          className="text-[13px] text-text-secondary leading-snug whitespace-pre-wrap min-h-[40px] flex items-center pr-2"
-          inputClassName="w-full text-[13px]"
-          placeholder="e.g. 14°C / 5°C"
-          multiline
-          readOnly={isReadOnly}
-        />
+      <td className="px-2 py-4 align-top" style={{ width: '18%' }}>
+        <p className="text-[13px] text-text-secondary leading-snug">
+          {city.weather || <span className="text-text-muted italic opacity-40">Weather info...</span>}
+        </p>
       </td>
-      <td className="px-2 py-3 align-middle" style={{ width: '18%' }}>
+      <td className="px-2 py-4 align-top" style={{ width: '18%' }}>
         {(() => {
           const isPHP = city.currencyCode === 'PHP' || city.country?.toLowerCase().includes('philippines')
           const displayValue = isPHP
             ? '💱 Uses PHP'
-            : (city.currencyTip || '💱 Exchange rate unavailable')
+            : (city.currencyTip || '💱 Rate info...')
 
           return (
-            <EditableText
-              value={city.currencyTip}
-              displayValue={displayValue}
-              onSave={val => updateCity({ currencyTip: val })}
-              className="text-sm text-text-primary font-heading leading-snug whitespace-pre-wrap min-h-[40px] flex items-center pr-2"
-              inputClassName="w-full text-sm font-heading"
-              placeholder="e.g. 1 USD = 150 JPY"
-              multiline
-              readOnly={isReadOnly}
-            />
+            <p className={`text-sm font-heading leading-snug ${!city.currencyTip && !isPHP ? 'text-text-muted italic opacity-40' : 'text-text-primary'}`}>
+              {displayValue}
+            </p>
           )
         })()}
       </td>
-      <td className="px-2 py-3 align-middle" style={{ width: '28%' }}>
-        <EditableText
-          value={city.mustDo}
-          onSave={val => updateCity({ mustDo: val })}
-          className="text-[13px] text-text-secondary leading-relaxed w-full min-h-[40px] pr-2"
-          inputClassName="w-full text-[13px]"
-          placeholder="Neon lights, ancient temples..."
-          multiline
-          readOnly={isReadOnly}
-        />
-      </td>
-      <td className="px-2 py-3 align-middle text-right" style={{ width: '110px' }}>
-        {!isReadOnly && (!city.mustDo || needsInspiration) && (
-          <button
-            onClick={handleWandaFill}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-1 px-1.5 py-1.5 rounded bg-accent/10 text-accent font-semibold hover:bg-accent/20 transition-colors text-[10px] uppercase tracking-widest disabled:opacity-50"
-            title="Generate city guide with Wanda"
-          >
-            {loading ? '...' : '🪄 Auto-fill'}
-          </button>
-        )}
+      <td className="px-2 py-4 align-top" style={{ width: '28%' }}>
+        <p className={`text-[13px] text-text-secondary leading-relaxed w-full pr-2 whitespace-pre-wrap ${!city.mustDo ? 'italic opacity-40' : ''}`}>
+          {city.mustDo || 'Vibe & highlights...'}
+        </p>
       </td>
       {!isReadOnly && (
-        <td className="px-2 py-3 align-middle text-center w-10 shrink-0">
-          <button
-            onClick={() => {
-              triggerHaptic('medium')
-              dispatch({ type: ACTIONS.DELETE_CITY, payload: city.id })
-            }}
-            className="text-text-muted hover:text-danger opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out p-2"
-            title="Delete City"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-          </button>
+        <td className="px-2 py-4 align-top text-center w-[124px] shrink-0">
+          <div className="flex items-center gap-2 justify-center opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out">
+            <button
+              onClick={handleWandaFill}
+              disabled={loading || !needsInspiration}
+              className={`p-1.5 transition-all duration-200 ${
+                !needsInspiration 
+                  ? 'text-text-muted opacity-30 grayscale cursor-not-allowed' 
+                  : 'text-accent hover:scale-110 active:scale-95'
+              }`}
+              title={!needsInspiration ? "Guide already generated" : "Generate city guide with Wanda"}
+            >
+              {loading ? <span className="text-[10px] font-bold animate-pulse">...</span> : <span className="text-base leading-none">🪄</span>}
+            </button>
+            <button
+              onClick={() => onStartEdit(city)}
+              className="p-1.5 text-text-muted hover:text-accent transition-colors"
+              title="Edit City"
+            >
+              <Pencil size={14} />
+            </button>
+            <button
+              onClick={() => {
+                triggerHaptic('medium')
+                dispatch({ type: ACTIONS.DELETE_CITY, payload: city.id })
+              }}
+              className="text-text-muted hover:text-danger transition-colors p-1.5"
+              title="Delete City"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+          </div>
         </td>
       )}
     </tr>
@@ -317,9 +356,40 @@ function CityMobileCard({ city }) {
 export default function CitiesTab() {
   const { activeTrip, dispatch, isReadOnly } = useTripContext()
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [editId, setEditId] = useState(null)
+  const [editData, setEditData] = useState({})
+
   if (!activeTrip) return null
 
   const cities = activeTrip.cities || []
+
+  const startEdit = (city) => {
+    setEditId(city.id)
+    setEditData({
+      city: city.city || '',
+      country: city.country || '',
+      weather: city.weather || '',
+      currencyTip: city.currencyTip || '',
+      mustDo: city.mustDo || ''
+    })
+  }
+
+  const commitEdit = () => {
+    if (editId) {
+      dispatch({ 
+        type: ACTIONS.UPDATE_CITY, 
+        payload: { 
+          id: editId, 
+          updates: {
+            ...editData,
+            city: editData.city.trim()
+          } 
+        } 
+      })
+      setEditId(null)
+      triggerHaptic('light')
+    }
+  }
 
   return (
     <div className="space-y-6 pb-24 animate-tab-enter stagger-1 w-full">
@@ -387,15 +457,23 @@ export default function CitiesTab() {
                 <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted" style={{ width: '18%' }}>Weather</th>
                 <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted" style={{ width: '18%' }}>Currency</th>
                 <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted" style={{ width: '28%' }}>Vibe & Must Do</th>
-                <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted text-center" style={{ width: '110px' }}>Action</th>
                 {!isReadOnly && (
-                  <th className="px-2 py-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted w-10 shrink-0"></th>
+                  <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted text-center" style={{ width: '124px' }}>Actions</th>
                 )}
               </tr>
             </thead>
             <tbody>
               {cities.map(city => (
-                <CityRow key={city.id} city={city} />
+                <CityRow 
+                  key={city.id} 
+                  city={city} 
+                  isEditing={editId === city.id}
+                  editData={editData}
+                  onEditChange={updates => setEditData(prev => ({ ...prev, ...updates }))}
+                  onStartEdit={startEdit}
+                  onSave={commitEdit}
+                  onCancel={() => setEditId(null)}
+                />
               ))}
             </tbody>
           </table>

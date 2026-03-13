@@ -445,7 +445,7 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
                         }}
                         onDragOver={e => e.preventDefault()}
                         onDrop={e => handleDropActivity(e, index)}
-                        className="group/row hover:bg-bg-hover transition-colors relative cursor-pointer border-t border-border/20"
+                        className="group/row hover:bg-bg-hover/50 transition-colors relative cursor-pointer border-t border-border/20"
                       >
                         {/* Drag Handle */}
                         <td className="px-2 pt-4 pb-2 align-top">
