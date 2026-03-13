@@ -378,6 +378,10 @@ export default function AIAssistant() {
                     textContent = textContent.split('\n')[0];
                   }
 
+                  if (m.parts && textContent) {
+                    return <span>{textContent}</span>
+                  }
+                  
                   if (m.parts && !textContent) {
                     // Gemini sometimes omits text when calling tools — build context from tool inputs
                     const votingParts = m.parts.filter(p => p.type === 'tool-add_idea_to_voting_room' && p.input?.title)
@@ -391,7 +395,13 @@ export default function AIAssistant() {
                       return <span>Here are some packing suggestions: {names}. Tap to add!</span>
                     }
                   }
-                  return m.parts ? textParts.map((p, i) => <span key={i}>{p.text}</span>) : m.content
+
+                  // For older messages or fallbacks
+                  let fallbackContent = m.content || ''
+                  if (m.role === 'user' && fallbackContent.includes(PILL_INSTRUCTION_MARKER)) {
+                    fallbackContent = fallbackContent.split(PILL_INSTRUCTION_MARKER)[0];
+                  }
+                  return fallbackContent
                 })()}
               </div>
             </div>
