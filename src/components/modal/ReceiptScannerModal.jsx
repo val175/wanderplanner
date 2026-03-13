@@ -116,7 +116,8 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
                     'Content-Type': 'application/json',
                     ...(token && { 'Authorization': `Bearer ${token}` })
                 },
-                body: JSON.stringify({ imageBase64: base64String })
+                body: JSON.stringify({ imageBase64: base64String }),
+                credentials: 'include'
             })
 
             if (!response.ok) {

@@ -44,6 +44,7 @@ export default function IdeaExtractorModal({ isOpen, onClose }) {
                     ...(token && { Authorization: `Bearer ${token}` }),
                 },
                 body: JSON.stringify({ url }),
+                credentials: 'include'
             })
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}))

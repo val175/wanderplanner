@@ -95,7 +95,8 @@ function StepBasics({ form, setForm }) {
           'Content-Type': 'application/json',
           ...(token && { 'Authorization': `Bearer ${token}` })
         },
-        body: JSON.stringify({ url: importUrl })
+        body: JSON.stringify({ url: importUrl }),
+        credentials: 'include'
       })
 
       const data = await res.json()
