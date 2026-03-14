@@ -29,8 +29,9 @@ function getAllowedOrigin(req) {
 
 const COMMON_HEADERS = {
     'Access-Control-Allow-Methods': 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
-    'Access-Control-Allow-Headers': 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, x-ai-sdk-runtime, x-ai-sdk-version, User-Agent',
+    'Access-Control-Allow-Headers': 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, x-ai-sdk-runtime, x-ai-sdk-version, User-Agent, Cache-Control, Pragma, Expires, X-Client-Data',
     'Access-Control-Allow-Credentials': 'false',
+    'Access-Control-Max-Age': '86400',
     'Vary': 'Origin',
 }
 
