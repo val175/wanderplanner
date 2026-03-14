@@ -77,25 +77,27 @@ function TravelerPicker({ trip, travelerProfiles, dispatch, isReadOnly }) {
       <button
         ref={btnRef}
         onClick={isReadOnly ? undefined : handleOpen}
-        className={`inline-flex items-center gap-1.5 rounded-[var(--radius-sm)]
-                   px-1.5 py-0.5 -mx-1.5 transition-colors group
+        className={`inline-flex items-center gap-2 rounded-[var(--radius-sm)]
+                   py-0.5 transition-colors group
                    ${isReadOnly ? 'cursor-default' : 'hover:bg-bg-hover'}`}
         title={isReadOnly ? "Wanderers" : "Edit wanderers"}
       >
         {travelerProfiles.length > 0 ? (
           <>
-            {travelerProfiles.map((p, i) => (
-              <span key={p.id} className={`inline-flex ${i === 0 ? '' : '-ml-2'}`}>
-                <AvatarCircle profile={p} size={22} ring />
-              </span>
-            ))}
-            <span className="ml-1 text-xs text-text-muted">
+            <div className="flex items-center">
+              {travelerProfiles.map((p, i) => (
+                <div key={p.id} className={`inline-flex ${i === 0 ? '' : '-ml-2'} border-2 border-bg-primary rounded-full`}>
+                  <AvatarCircle profile={p} size={24} />
+                </div>
+              ))}
+            </div>
+            <span className="text-sm font-medium text-text-secondary truncate max-w-[120px]">
               {travelerProfiles.map(p => (p.name || 'Anonymous').split(' ')[0]).join(' & ')}
             </span>
           </>
         ) : (
           <>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
               className="shrink-0 text-text-muted">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -109,7 +111,7 @@ function TravelerPicker({ trip, travelerProfiles, dispatch, isReadOnly }) {
           </>
         )}
         {!isReadOnly && (
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
             strokeLinecap="round" strokeLinejoin="round"
             className="text-text-muted opacity-0 group-hover:opacity-60 transition-opacity shrink-0">
             <polyline points="6 9 12 15 18 9" />
@@ -224,7 +226,7 @@ function InlineTripName({ value, onSave }) {
       className="group flex items-center gap-1 min-w-0 text-left flex-1"
       aria-label={`Trip name: ${value}. Click to edit.`}
     >
-      <h1 className={`font-heading text-xl md:text-2xl font-semibold text-text-primary
+      <h1 className={`font-heading text-lg md:text-2xl font-bold text-text-primary
                        leading-tight truncate transition-all duration-150
                        ${hovered ? 'underline decoration-border-strong underline-offset-4' : ''}`}>
         {value}
@@ -245,53 +247,20 @@ function InlineTripName({ value, onSave }) {
    CityBreadcrumbs — compact destination display
 ───────────────────────────────────────────────────────────── */
 function CityBreadcrumbs({ destinations }) {
-  const [expanded, setExpanded] = useState(false)
   if (!destinations?.length) return null
-  const count = destinations.length
 
-  const DestChain = ({ dests }) => (
-    <div className="flex items-center flex-wrap gap-x-0.5 gap-y-0.5">
-      {dests.map((dest, i) => (
+  return (
+    <div className="flex items-center flex-wrap gap-x-1 gap-y-0.5">
+      {destinations.map((dest, i) => (
         <span key={i} className="flex items-center">
-          {i > 0 && <span className="text-text-muted mx-1">&middot;</span>}
-          <span className="inline-flex items-center gap-1 text-sm text-text-secondary whitespace-nowrap font-medium">
+          {i > 0 && <span className="text-text-muted/40 mx-1">&middot;</span>}
+          <span className="inline-flex items-center gap-1 text-[13px] text-text-secondary whitespace-nowrap font-medium">
             <span>{dest.flag}</span>
             <span>{dest.city}</span>
           </span>
         </span>
       ))}
     </div>
-  )
-
-  return (
-    <>
-      <div className="sm:hidden">
-        {!expanded ? (
-          <button
-            onClick={() => setExpanded(true)}
-            className="inline-flex items-center gap-1 text-xs text-text-muted hover:text-text-secondary transition-colors"
-          >
-            <span>{destinations[0]?.flag}{count > 1 ? '…' : ''}</span>
-            <span>{count} {count === 1 ? 'city' : 'cities'}</span>
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-              strokeLinecap="round" strokeLinejoin="round" className="text-text-muted">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
-        ) : (
-          <div className="flex flex-col gap-1">
-            <DestChain dests={destinations} />
-            <button onClick={() => setExpanded(false)}
-              className="text-xs text-text-muted hover:text-text-secondary transition-colors self-start mt-0.5">
-              ↑ collapse
-            </button>
-          </div>
-        )}
-      </div>
-      <div className="hidden sm:block">
-        <DestChain dests={destinations} />
-      </div>
-    </>
   )
 }
 
@@ -603,87 +572,88 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 lg:gap-4">
 
           {/* ── LEFT — Title + Meta ── */}
-          <div className="flex flex-col min-w-0 flex-1 gap-1.5">
+          <div className="flex flex-col min-w-0 flex-1 gap-2 sm:gap-3">
 
-            {/* Row 1: Hamburger + Emoji + Trip Name */}
-            <div className="flex items-center gap-2 min-w-0">
-              {isMobile && (
-                <button
-                  onClick={onOpenSidebar}
-                  className="flex items-center justify-center w-11 h-11 -ml-2 shrink-0 text-text-secondary hover:bg-bg-hover rounded-[var(--radius-md)] transition-colors"
-                  aria-label="Open sidebar menu"
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="3" y1="6" x2="21" y2="6" />
-                    <line x1="3" y1="12" x2="21" y2="12" />
-                    <line x1="3" y1="18" x2="21" y2="18" />
-                  </svg>
-                </button>
-              )}
+            {/* Row 1: Hamburger + Emoji + Trip Name + (Mobile Actions) */}
+            <div className="flex items-center justify-between gap-2 min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
+                {isMobile && (
+                  <button
+                    onClick={onOpenSidebar}
+                    className="flex items-center justify-center w-10 h-10 -ml-2 shrink-0 text-text-secondary hover:bg-bg-hover rounded-[var(--radius-md)] transition-colors"
+                    aria-label="Open sidebar menu"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="3" y1="6" x2="21" y2="6" />
+                      <line x1="3" y1="12" x2="21" y2="12" />
+                      <line x1="3" y1="18" x2="21" y2="18" />
+                    </svg>
+                  </button>
+                )}
 
-              {isReadOnly
-                ? <h1 className="font-heading text-xl md:text-2xl font-semibold text-text-primary leading-tight truncate flex-1 min-w-0">{trip.emoji} {trip.name}</h1>
-                : (
-                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                    <span className="text-xl md:text-2xl leading-none shrink-0" role="img" aria-label="Trip emoji">{trip.emoji}</span>
-                    <InlineTripName value={trip.name} onSave={handleRename} />
-                  </div>
-                )
-              }
-
-              {/* Desktop-only status badge in title row */}
-              <span className="hidden lg:inline-flex shrink-0 items-center px-2 py-0.5 rounded-full bg-bg-secondary border border-border text-[9px] font-semibold uppercase tracking-widest text-text-muted whitespace-nowrap">
-                {statusLabel}
-              </span>
-            </div>
-
-            {/* Row 2: Status (mobile) + Meta info + Mobile action buttons */}
-            <div className="flex items-center gap-1.5 min-w-0">
-
-              {/* Left: Status + Cities + Dates + Countdown — strict single line, truncates on overflow */}
-              <div className="flex items-center gap-x-2 flex-1 min-w-0 text-sm text-text-muted overflow-hidden whitespace-nowrap mask-fade-right">
-                {/* Status badge — mobile only */}
-                <span className="lg:hidden shrink-0">
-                  <StatusBadge />
-                </span>
-
-                {destinations.length > 0 && (
-                  <>
-                    <span className="opacity-40 text-xs shrink-0 hidden lg:inline">·</span>
-                    <div className="shrink min-w-0 truncate">
-                      <CityBreadcrumbs destinations={destinations} />
+                {isReadOnly
+                  ? <h1 className="font-heading text-lg md:text-2xl font-bold text-text-primary leading-tight truncate flex-1 min-w-0">{trip.emoji} {trip.name}</h1>
+                  : (
+                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                      <span className="text-lg md:text-2xl leading-none shrink-0" role="img" aria-label="Trip emoji">{trip.emoji}</span>
+                      <InlineTripName value={trip.name} onSave={handleRename} />
                     </div>
-                  </>
-                )}
+                  )
+                }
 
-                {(destinations.length > 0 || true) && (
-                  <span className="opacity-40 text-xs shrink-0">·</span>
-                )}
-
-                <div className="shrink-0 flex items-center">
-                  <DateRangeEditor trip={trip} dispatch={dispatch} isReadOnly={isReadOnly} />
-                </div>
-
-                {!isReadOnly && trip.startDate && tripStatus === 'upcoming' && (
-                  <div className="shrink-0 hidden sm:block">
-                    <CountdownPill targetDate={trip.startDate} />
-                  </div>
-                )}
+                {/* Desktop-only status badge in title row — moved inside the group for better spacing */}
+                <span className="hidden lg:inline-flex shrink-0 items-center px-2 py-0.5 rounded-full bg-bg-secondary border border-border text-[9px] font-semibold uppercase tracking-widest text-text-muted whitespace-nowrap ml-2">
+                  {statusLabel}
+                </span>
               </div>
 
-              {/* Right: Mobile-only action buttons — min 44×44px touch targets */}
-              <div className="flex items-center shrink-0 lg:hidden">
-                <TravelerPicker trip={trip} travelerProfiles={travelerProfiles} dispatch={dispatch} isReadOnly={isReadOnly} />
+              {/* Mobile main actions: Status, Search, Dots */}
+              <div className="flex items-center gap-1 lg:hidden">
+                <StatusBadge />
                 <button
                   onClick={() => window.dispatchEvent(new CustomEvent('open-global-search'))}
-                  className="flex items-center justify-center min-w-[44px] min-h-[44px] rounded-[var(--radius-md)] text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors"
+                  className="flex items-center justify-center w-10 h-10 text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors"
                   aria-label="Search"
                 >
                   <SearchIcon size={18} />
                 </button>
                 <HeaderOptionsDropdown trip={trip} dispatch={dispatch} isReadOnly={isReadOnly} onRenameRequest={handleRenameClick} />
               </div>
+            </div>
 
+            {/* Row 2 (Mobile): Travelers + Dates */}
+            <div className="flex lg:hidden items-center justify-start gap-4 px-0.5 pl-10 md:pl-0">
+               <div className="flex items-center min-w-0">
+                  <TravelerPicker trip={trip} travelerProfiles={travelerProfiles} dispatch={dispatch} isReadOnly={isReadOnly} />
+               </div>
+               <div className="shrink-0">
+                  <DateRangeEditor trip={trip} dispatch={dispatch} isReadOnly={isReadOnly} />
+               </div>
+            </div>
+
+            {/* Row 3 (Mobile) / Row 2 (Desktop): Destinations */}
+            <div className="flex items-center min-w-0 pl-10 md:pl-0">
+              <div className="flex items-center gap-x-2 flex-1 min-w-0 text-sm text-text-muted overflow-x-auto no-scrollbar whitespace-nowrap mask-fade-right pb-1">
+                
+                {destinations.length > 0 && (
+                  <div className="shrink-0 min-w-0">
+                    <CityBreadcrumbs destinations={destinations} />
+                  </div>
+                )}
+
+                {/* Desktop layout metadata helpers */}
+                <span className="hidden lg:inline opacity-40 text-xs shrink-0">·</span>
+                <div className="hidden lg:flex shrink-0 items-center">
+                  <DateRangeEditor trip={trip} dispatch={dispatch} isReadOnly={isReadOnly} />
+                </div>
+
+                {!isReadOnly && trip.startDate && tripStatus === 'upcoming' && (
+                  <div className="shrink-0 hidden lg:block">
+                    <span className="opacity-40 text-xs shrink-0 mx-2">·</span>
+                    <CountdownPill targetDate={trip.startDate} />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
