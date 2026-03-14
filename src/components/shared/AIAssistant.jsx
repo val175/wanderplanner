@@ -281,9 +281,6 @@ export default function AIAssistant() {
             <div className="font-semibold text-sm text-text-primary tracking-[-0.01em]">
               Wanda
             </div>
-            <div className="text-[11px] text-text-muted mt-0.5">
-              {activeTrip ? `Knows your ${activeTrip.name} trip` : 'AI travel assistant'}
-            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
