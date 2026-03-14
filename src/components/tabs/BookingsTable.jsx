@@ -37,7 +37,7 @@ function StatusPill({ value, onChange, disabled }) {
             value={value}
             onValueChange={onChange}
             disabled={disabled}
-            className={`text-left min-h-[44px] sm:min-h-0 text-[14px] sm:text-xs font-semibold min-w-[180px] ${current.colors}`}
+            className={`text-left min-h-[44px] sm:min-h-0 text-[14px] sm:text-xs font-semibold w-full ${current.colors}`}
         >
             {MONDAY_STATUSES.map(opt => (
                 <SelectItem key={opt.value} value={opt.value}>
@@ -124,7 +124,7 @@ export default function BookingsTable({
             id: 'status',
             accessorKey: 'status',
             header: 'Status',
-            size: 200,
+            size: 140,
             cell: info => (
                 <StatusPill
                     value={migrateStatus(info.getValue())}
