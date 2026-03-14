@@ -240,7 +240,7 @@ function AuthenticatedApp({ user, signOutUser }) {
                 <div
                   id={`panel-${state.activeTab}`}
                   role="tabpanel"
-                  className={`flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)] md:pb-0 mb-14 md:mb-0 ${state.activeTab === 'wandermap' ? '' : 'px-4 sm:px-8 py-5 sm:py-7'}`}
+                  className={`flex-1 overflow-y-auto overflow-x-hidden pb-[env(safe-area-inset-bottom)] md:pb-0 mb-14 md:mb-0 ${state.activeTab === 'wandermap' ? '' : 'px-4 sm:px-8 py-5 sm:py-7'}`}
                 >
                   <div className={state.activeTab === 'wandermap' ? 'h-full w-full relative' : 'max-w-[1400px] mx-auto'}>
                     <TabPanel activeTab={state.activeTab} onTabSwitch={handleTabSwitch} />
