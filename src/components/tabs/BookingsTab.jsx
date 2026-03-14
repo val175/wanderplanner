@@ -188,7 +188,7 @@ export default function BookingsTab() {
     [trip.bookings, selectedBookingId])
 
   return (
-    <div className="space-y-0 animate-fade-in relative">
+    <div className="space-y-0 animate-fade-in relative pb-24">
 
       {/* Drawer */}
       <BookingDrawer

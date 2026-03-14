@@ -1133,7 +1133,7 @@ export default function ItineraryTab() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12 flex flex-col h-full min-h-[calc(100vh-120px)]">
+    <div className="space-y-6 animate-fade-in pb-24 flex flex-col h-full min-h-[calc(100vh-120px)]">
 
       <TabHeader
         leftSlot={

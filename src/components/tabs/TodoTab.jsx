@@ -761,7 +761,7 @@ export default function TodoTab() {
   }
 
   return (
-    <div className="space-y-6 animate-tab-enter stagger-1 pb-12 w-full">
+    <div className="space-y-6 animate-tab-enter stagger-1 pb-24 w-full">
 
       <CelebrationEffect trigger={celebration} />
 

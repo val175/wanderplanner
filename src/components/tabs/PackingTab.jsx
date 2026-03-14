@@ -608,7 +608,7 @@ export default function PackingTab() {
   })
 
   return (
-    <div className="space-y-5 animate-tab-enter stagger-1">
+    <div className="space-y-5 animate-tab-enter stagger-1 pb-24">
 
       <CelebrationEffect trigger={celebration} />
 

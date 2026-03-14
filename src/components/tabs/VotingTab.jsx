@@ -908,7 +908,7 @@ export default function VotingTab() {
     }
 
     return (
-        <div className="space-y-8 animate-fade-in pb-16 w-full">
+        <div className="space-y-8 animate-fade-in pb-24 w-full">
             {/* ── Layer 1: Header (Token Bank) ── */}
             <div className="flex justify-end">
                 <Card className="px-5 py-2.5 rounded-full flex items-center gap-4 border border-border">

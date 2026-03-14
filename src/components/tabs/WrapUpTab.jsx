@@ -138,7 +138,7 @@ export default function WrapUpTab() {
     }
 
     return (
-        <div className="space-y-6 animate-fade-in pb-12">
+        <div className="space-y-6 animate-fade-in pb-24">
             {/* Hero */}
             <div className="text-center py-6">
                 <div className="text-5xl mb-4 animate-pulse-warm">🎉</div>

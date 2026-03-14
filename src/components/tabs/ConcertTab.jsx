@@ -89,7 +89,7 @@ export default function ConcertTab() {
     : `⏳ ${(concertBooking.status || 'pending').replace('_', ' ')}`
 
   return (
-    <div className="concert-theme rounded-[var(--radius-xl)] overflow-hidden animate-fade-in">
+    <div className="concert-theme rounded-[var(--radius-xl)] overflow-hidden animate-fade-in pb-24">
       {/* Dark concert-themed container */}
       <div className="bg-[#141413] rounded-[var(--radius-xl)] border border-[#2A2A28]">
 
