@@ -17,7 +17,7 @@ import { triggerHaptic } from '../../utils/haptics'
 export const MONDAY_STATUSES = [
     { value: 'to_book', label: 'To Book', colors: 'bg-warning/10 text-warning border-warning/20' },
     { value: 'requested', label: 'Requested', colors: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
-    { value: 'confirmed', label: 'Confirmed ✓', colors: 'bg-success/10 text-success border-success/20' },
+    { value: 'confirmed', label: 'Confirmed', colors: 'bg-success/10 text-success border-success/20' },
     { value: 'cancelled', label: 'Cancelled', colors: 'bg-danger/10 text-danger border-danger/20' },
 ]
 

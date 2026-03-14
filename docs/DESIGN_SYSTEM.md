@@ -108,7 +108,10 @@ All tables (e.g., Budget Spending Log, Bookings Table, Packing Table) must follo
 
 ### 6. Tab Layouts
 When building a top-level Tab component (e.g., `BookingsTab`, `TodoTab`, `PackingTab`):
-- **Layer 1: Tab Header (`TabHeader`)**: The `rightSlot` is STRICTLY for passive, read-only statistics (e.g., Progress Bars, "X of Y packed", "X items"). **Never** put primary or secondary action CTAs (like "+ New Item" or "Export") in the `rightSlot`.
+- **Layer 1: Tab Header (`TabHeader`)**:
+    - **Purpose**: The header contains passive stats on the left and toolbar actions on the right.
+    - **Right Slot Standard**: The `rightSlot` must ALWAYS be inline. Use a `flex-1` wrapper for the primary filter/select on the left side of the slot to ensure it pushes action buttons to the far right.
+    - **Action Buttons**: Wrap all toolbar controls (view toggles, CTA buttons) in a single horizontal scroll container: `<div className="flex items-center gap-2 overflow-x-auto scrollbar-hide md:overflow-visible shrink-0">`.
 - **TabHeader Spacing**: Use `pb-3 mb-4` on the TabHeader wrapper to keep the header-to-content gap aligned with the tighter spacing standard used in `OverviewTab`.
 - **Layer 2: The Toolbar**: This layer sits below the TabHeader.
     - **Outer wrapper**: `<div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-6 gap-2">` — stacks vertically on mobile, horizontal on desktop.

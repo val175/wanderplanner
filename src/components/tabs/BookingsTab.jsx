@@ -223,30 +223,32 @@ export default function BookingsTab() {
         }
         rightSlot={
           <>
-            <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
-              <button
-                onClick={() => setViewMode('table')}
-                className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all flex items-center gap-1.5 ${viewMode === 'table' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="3" y1="15" x2="21" y2="15" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" /></svg>
-                Table
-              </button>
-              <button
-                onClick={() => setViewMode('board')}
-                className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all flex items-center gap-1.5 ${viewMode === 'board' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
-                Board
-              </button>
+            <div className="flex-1">
+              <Select value={filter} onValueChange={setFilter} className="min-w-[140px] h-7 text-xs" size="sm">
+                {filters.map(f => (
+                  <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
+                ))}
+              </Select>
             </div>
 
-            <Select value={filter} onValueChange={setFilter} className="min-w-[140px] h-7 text-xs" size="sm">
-              {filters.map(f => (
-                <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
-              ))}
-            </Select>
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide md:overflow-visible shrink-0 pb-2 md:pb-0">
+              <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
+                <button
+                  onClick={() => setViewMode('table')}
+                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all flex items-center gap-1.5 ${viewMode === 'table' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="3" y1="15" x2="21" y2="15" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" /></svg>
+                  Table
+                </button>
+                <button
+                  onClick={() => setViewMode('board')}
+                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all flex items-center gap-1.5 ${viewMode === 'board' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
+                  Board
+                </button>
+              </div>
 
-            <div className="flex items-center gap-2">
               {viewMode === 'table' && (
                 <div className="relative group hidden md:block shrink-0">
                   <Button variant="secondary" size="sm">
@@ -258,9 +260,9 @@ export default function BookingsTab() {
                         <label key={col.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-bg-hover rounded cursor-pointer text-sm">
                           <input
                             type="checkbox"
-                            className="rounded border-border text-accent focus:ring-accent"
                             checked={!hiddenColumns.includes(col.id)}
                             onChange={() => toggleColumn(col.id)}
+                            className="rounded border-border text-accent focus:ring-accent"
                           />
                           <span className="text-text-secondary">{col.label}</span>
                         </label>
