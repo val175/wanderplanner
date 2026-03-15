@@ -60,14 +60,22 @@ export default async function handler(req, res) {
 
             if (socialPlatform) {
                 sourceName = socialPlatform
+                const handle = url.split('/').filter(Boolean).pop()?.replace('@', '') || ''
+                let socialContext = `Instagram Handle: @${handle}`
+
                 try {
                     const ml = await fetch(`https://api.microlink.io?url=${encodeURIComponent(url)}`)
                     if (ml.ok) {
                         const mlData = (await ml.json()).data || {}
-                        contextText = [mlData.title, mlData.description].filter(Boolean).join('\n')
+                        socialContext = [
+                            mlData.title ? `Title: ${mlData.title}` : '',
+                            mlData.description ? `Bio/Description: ${mlData.description}` : '',
+                            `Handle: @${handle}`
+                        ].filter(Boolean).join('\n')
                         thumbnail_url = mlData.image?.url || mlData.logo?.url || null
                     }
                 } catch (_) {}
+                contextText = socialContext
             } else {
                 // Attempt 1: direct scrape with browser-like headers
                 try {
@@ -99,6 +107,9 @@ export default async function handler(req, res) {
                     } catch (_) { }
                 }
 
+                // Attempt 3: URL-only fallback
+                if (!contextText) contextText = url
+
                 // Infer source name from hostname
                 try {
                     if (host.includes('tripadvisor')) sourceName = 'TripAdvisor'
@@ -115,7 +126,7 @@ export default async function handler(req, res) {
 
         // ── AI Standardisation via Gemini (Native SDK) ───────────────────────────
         const google = createGoogleGenerativeAI({
-            apiKey: process.env.GEMINI_API_KEY,
+            apiKey: process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY,
         })
         const { object } = await generateObject({
             model: google('gemini-3.1-flash-lite-preview'),
@@ -124,9 +135,9 @@ export default async function handler(req, res) {
                 category: z.string().describe('One of: Food, Activity, Nightlife, Lodging, Transport, Shopping, Other'),
                 location: z.string().describe('City or neighborhood extracted from the context'),
                 vibe: z.string().describe('1-2 word mood descriptor, e.g. "Aesthetic", "High-Energy", "Relaxing"'),
-                estimatedCost: z.string().describe('Price estimate. Use exact price if visible in content. Otherwise make a realistic market-rate estimate and append " (est.)". Format: "20 - 50/person" or "500/night" or "Free". NEVER leave blank.'),
+                estimatedCost: z.string().describe('Price estimate. Format: "20 - 50/person" or "500/night" or "Free". NEVER leave blank.'),
             }),
-            prompt: `Extract travel idea details from this web content:\n\n${contextText}`,
+            prompt: `Extract travel idea details from this web content (or URL handle):\n\n${contextText}\n\nURL: ${url}`,
         })
 
         return res.status(200).json({ ...object, url, thumbnail_url, sourceName })
