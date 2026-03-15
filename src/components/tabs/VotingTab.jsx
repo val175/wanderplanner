@@ -1101,14 +1101,13 @@ export default function VotingTab() {
 
                 {/* Idea Pool: Grid or Table */}
                 {ideas.length === 0 ? (
-                    <div className="mt-8 border-2 border-dashed border-border rounded-[var(--radius-xl)] bg-bg-secondary/30">
-                        <EmptyState
-                            emoji="📦"
-                            title="The board is empty"
-                            subtitle="Paste a link to any hotel, Airbnb, or tour — or ask Wanda for recommendations your group can vote on."
-                            wandaPrompt="Give me 3 hotel recommendations and 3 activity ideas for our trip that I can add to the voting room."
-                        />
-                    </div>
+                    <EmptyState
+                        className="mt-8"
+                        emoji="📦"
+                        title="The board is empty"
+                        subtitle="Paste a link to any hotel, Airbnb, or tour — or ask Wanda for recommendations your group can vote on."
+                        wandaPrompt="Give me 3 hotel recommendations and 3 activity ideas for our trip that I can add to the voting room."
+                    />
                 ) : ideaView === 'table' ? (
                     <div className="mt-4">
                         <IdeaTableView

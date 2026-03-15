@@ -3,13 +3,15 @@
 This document is the single source of truth for all styling, spacing, typography, and component conventions in the Wanderplan app. AI agents generating or modifying UI components must adhere strictly to these guidelines to maintain a cohesive user experience.
 
 ## Typography
-Wanderplan uses custom Anthropic fonts to match the brand identity:
+Wanderplan uses custom Anthropic fonts for UI, with a single brand exception for the Wanda name:
 - **UI & Headings**: `Anthropic Sans`
-- **Body Copy**: `Anthropic Sans` (Serif fonts are strictly forbidden)
+- **Body Copy**: `Anthropic Sans` (Serif fonts are forbidden in body/UI)
+- **"Wanda" brand name only**: `Instrument Serif`, italic — applied via CSS class `.wanda-serif`
 
 **Font Families:**
 - `font-heading`: Use for all titles, buttons, UI elements, and navigation.
 - `font-body`: Use `font-heading` instead. **Anthropic Serif is banned.**
+- `.wanda-serif`: **Only for the word "Wanda"** when used as the AI assistant's name/brand. Apply to `<span class="wanda-serif">Wanda</span>` in headings, CTAs ("Ask Wanda", "Chat with Wanda"), and labels. Do NOT use for general UI text.
 
 **Font Sizing (Tailwind standards mapped to specific usages):**
 - `text-xs` (12px): Utility text, dense metadata, table headers, small badges.
@@ -29,6 +31,7 @@ Wanderplan uses a semantic color system that supports Light and Dark mode automa
 
 **Emoji/Iconography:**
 - **Wanda AI Features**: Always use the Magic Wand (`🪄`) emoji for any AI features associated with the assistant "Wanda" (e.g., "🪄 Ask Wanda", "🪄 Auto-fill with Wanda", "🪄 Generate with Wanda"). Do not use sparkles (`✨`).
+- **Wanda name styling**: Wrap the word "Wanda" in `<span className="wanda-serif">Wanda</span>` in all UI labels, panel headers, tooltips, and CTA buttons.
 
 **Backgrounds**
 - `bg-bg-primary`: The main canvas color (light grège).
@@ -108,7 +111,26 @@ All tables (e.g., Budget Spending Log, Bookings Table, Packing Table) must follo
 - **Row Edit Mode (CitiesTab Standard)**: All table rows use a **row-level edit mode** triggered by the pencil icon — NOT per-column inline editing via `EditableText`. In view mode, cells display static text. Clicking the pencil replaces the entire `<tr>` with input fields and shows Check/X buttons. This requires: `isEditing` + `editData` state per row component; `startEdit()` copies current values to `editData`; `saveEdit()` calls `onUpdate` and exits edit mode; `onKeyDown` handles Enter (save) and Escape (cancel). Import `{ Pencil, Check, X }` from `lucide-react` in any table tab using this pattern.
 - **Grouped Tables (e.g., Itinerary)**: For tables broken into collapsible groups, the outer container may use standard card-like classes (`border border-border rounded-[var(--radius-md)] overflow-hidden bg-bg-card`) with a custom stylized header instead of `Card`. The internal `<table>` structure, headers, and rows must still adhere strictly to the design rules above.
 
-### 6. Tab Layouts
+### 6. Empty States (`src/components/shared/EmptyState.jsx`)
+All empty tabs/sections must use the `EmptyState` shared component. **Do not build custom empty states.**
+
+**Standard appearance** (built into the component):
+- Dashed border container: `border-2 border-dashed border-border rounded-[var(--radius-xl)] bg-bg-secondary/30`
+- Centered content with emoji illustration, title (`font-heading font-semibold`), subtitle (`text-sm text-text-muted`)
+- Optional primary `action` slot (e.g., an "Add First Day" button)
+- Optional `wandaPrompt` string — renders a `🪄 Ask Wanda` pill that opens Wanda and **auto-submits** the prompt
+
+**Props:**
+- `emoji`: Large illustration emoji (renders at `text-4xl`)
+- `title`: Short heading
+- `subtitle`: Supporting description (max ~xs width)
+- `wandaPrompt`: Pre-written prompt string auto-sent to Wanda on click
+- `action`: Optional JSX for primary CTA (e.g., Button component)
+- `className`: Spacing override for the outer container (e.g., `"mt-8"`)
+
+**Usage:** Drop `<EmptyState ... />` directly — no wrapper `<Card>` or `<div>` needed. Use `className` for margin only.
+
+### 7. Tab Layouts
 When building a top-level Tab component (e.g., `BookingsTab`, `TodoTab`, `PackingTab`):
 - **Layer 1: Tab Header (`TabHeader`)**:
     - **Purpose**: The header contains passive stats on the left and toolbar actions on the right.

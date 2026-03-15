@@ -1454,21 +1454,19 @@ export default function ItineraryTab() {
           )}
         </div>
       ) : (
-        <Card className="max-w-2xl mx-auto">
-          <EmptyState
-            emoji="🗺️"
-            title="Build your perfect trip"
-            subtitle="Start outlining your days and dragging activities around until your schedule is air-tight."
-            wandaPrompt={`Help me plan my itinerary for ${trip.name || 'this trip'}. Suggest a day-by-day schedule for ${trip.cities?.map(c => c.city).join(', ') || 'my destinations'}.`}
-            action={
-              !isReadOnly && (
-                <Button variant="primary" size="lg" onClick={handleAddDay}>
-                  <span className="text-xl leading-none mr-1">+</span> Add First Day
-                </Button>
-              )
-            }
-          />
-        </Card>
+        <EmptyState
+          emoji="🗺️"
+          title="Build your perfect trip"
+          subtitle="Start outlining your days and dragging activities around until your schedule is air-tight."
+          wandaPrompt={`Help me plan my itinerary for ${trip.name || 'this trip'}. Suggest a day-by-day schedule for ${trip.cities?.map(c => c.city).join(', ') || 'my destinations'}.`}
+          action={
+            !isReadOnly && (
+              <Button variant="primary" size="lg" onClick={handleAddDay}>
+                <span className="text-xl leading-none mr-1">+</span> Add First Day
+              </Button>
+            )
+          }
+        />
       )}
     </div>
   )

@@ -379,7 +379,7 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
             <span className="flex items-center gap-1.5"><kbd className="font-sans px-1 py-0.5 rounded bg-bg-input border border-border">↑↓</kbd> to navigate</span>
             <span className="flex items-center gap-1.5"><kbd className="font-sans px-1 py-0.5 rounded bg-bg-input border border-border">↵</kbd> to select</span>
           </div>
-          <span className="font-medium flex items-center gap-1">Powered by <span className="text-accent">Wanda</span></span>
+          <span className="font-medium flex items-center gap-1">Powered by <span className="text-accent wanda-serif">Wanda</span></span>
         </div>
       </div>
     </div>,

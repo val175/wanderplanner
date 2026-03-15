@@ -73,6 +73,7 @@ export default function AIAssistant() {
   const inputRef = useRef(null);
   const prevStatusRef = useRef('ready');
   const prevTripIdRef = useRef(null);
+  const sendMessageRef = useRef(null);
 
   const { state, activeTrip, dispatch, showToast } = useContext(TripContext);
 
@@ -83,6 +84,7 @@ export default function AIAssistant() {
   const { messages, sendMessage, status, error, addToolResult, setMessages } = useChat({
     transport: chatTransport,
   });
+  useEffect(() => { sendMessageRef.current = sendMessage; }, [sendMessage]);
 
   // Load saved conversation when active trip changes
   useEffect(() => {
@@ -140,8 +142,10 @@ export default function AIAssistant() {
 
   useEffect(() => {
     const handlePrefill = (e) => {
+      // Open on mobile + desktop floating
       setIsOpen(true);
-      if (e.detail?.text) setInput(e.detail.text);
+      dispatch({ type: ACTIONS.SET_AI_OPEN, payload: true });
+      if (e.detail?.text) sendMessageRef.current?.({ text: e.detail.text });
     };
     window.addEventListener('wanda-prefill', handlePrefill);
     return () => window.removeEventListener('wanda-prefill', handlePrefill);
@@ -366,7 +370,7 @@ export default function AIAssistant() {
             🪄
           </div>
           <div>
-            <div className="font-semibold text-sm text-text-primary tracking-[-0.01em]">
+            <div className="wanda-serif text-sm text-text-primary tracking-[-0.01em]">
               Wanda
             </div>
           </div>
@@ -421,7 +425,7 @@ export default function AIAssistant() {
             <p className="text-text-secondary text-sm leading-relaxed m-0">
               {activeTrip
                 ? <>Hi! I know all about your <strong>{activeTrip.name}</strong> trip — ask me anything!</>
-                : "Hi! I'm Wanda, your AI travel assistant. Select a trip and I'll know all about it!"}
+                : <>Hi! I'm <span className="wanda-serif">Wanda</span>, your AI travel assistant. Select a trip and I'll know all about it!</>}
             </p>
           </div>
         )}
@@ -599,7 +603,7 @@ export default function AIAssistant() {
           `}</style>
           <div className="pointer-events-none absolute right-full mr-3 top-1/2 -translate-y-1/2 opacity-0 scale-95 transition-all duration-150 ease-out group-hover:opacity-100 group-hover:scale-100">
             <div className="flex items-center gap-2 rounded-[var(--radius-lg)] border border-border bg-bg-card px-5 py-2 text-sm text-text-primary shadow-none whitespace-nowrap">
-              Chat with Wanda
+              Chat with <span className="wanda-serif">Wanda</span>
             </div>
           </div>
           <button
