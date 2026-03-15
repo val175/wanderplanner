@@ -162,7 +162,11 @@ URL: ${url}
 RULES:
 1. Use the ₱ (Pesos) symbol for estimatedCost. Format: "₱500 - ₱1000/person" or "₱3000/night".
 2. If the content is sparse (e.g. just a social handle), use your INTERNAL KNOWLEDGE about the business or location to make a realistic market-rate estimate.
-3. BE REALISTIC: A "Resort" or "Hotel" in the Philippines is usually ₱2000-₱8000/night. A "Hostel" is ₱800-₱1500. A "Meal" is ₱200-₱800. NEVER guess ₱50-₱150 for lodging unless specifically stated in the text.
+3. BE SPECIFIC & ACCURATE: Perform a mental lookup of the specific business if possible (e.g., "Fatwave Surf Resort", "Hostel Arcajoo").
+   - Acknowledge their actual known rates (e.g., Fatwave is ₱3000-₱7000/night, ArcaJoo is ₱900-₱1500).
+   - Do NOT use wide category ranges if you recognize the specific business name.
+   - If you don't know the specific business, make a realistic estimate based on the location: a Hotel in the PH is ₱2500-₱6000, a Hostel is ₱800-₱1500, a Meal is ₱300-₱800.
+   - NEVER guess ₱50-₱150 for lodging.
 4. If exact prices aren't found, append " (est.)" to your estimate.`,
         })
 
