@@ -3,6 +3,7 @@ import { useTripContext } from '../../context/TripContext'
 import { formatCurrency, formatDate, haversineDistance, geocodeCity } from '../../utils/helpers'
 import { ACTIONS } from '../../state/tripReducer'
 import { useProfiles } from '../../context/ProfileContext'
+import Button from '../shared/Button'
 
 const VIBE_TAGS = [
     { label: 'Surf & Chill', emoji: '🏄' },
@@ -255,6 +256,16 @@ export default function WrapUpTab() {
                     ))}
                 </div>
                 {!trip.rating && <p className="text-xs text-text-muted mt-1">Rate this trip</p>}
+
+                {/* Hero CTAs */}
+                <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
+                    <Button variant="primary" size="sm" onClick={handleUseAsTemplate}>
+                        📋 Clone Itinerary
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={handleWandaRecap}>
+                        🪄 <span className="wanda-serif">Wanda</span> Recap
+                    </Button>
+                </div>
             </div>
 
             {/* Stats row — Trip Pace · Daily Average · Distance */}
@@ -389,30 +400,15 @@ export default function WrapUpTab() {
                 </div>
             )}
 
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            {/* Restore Trip (archived only) */}
+            {isArchived && (
                 <button
-                    onClick={handleUseAsTemplate}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 px-4 text-sm font-semibold rounded-[var(--radius-md)] bg-accent text-white hover:bg-accent-hover active:scale-[0.98] transition-all"
+                    onClick={handleUnarchive}
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 text-sm font-medium rounded-[var(--radius-md)] border border-border text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-all"
                 >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-                    Clone Itinerary for Next Trip
+                    Restore Trip
                 </button>
-                <button
-                    onClick={handleWandaRecap}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 px-4 text-sm font-semibold rounded-[var(--radius-md)] border border-accent/30 text-accent hover:bg-accent/5 active:scale-[0.98] transition-all"
-                >
-                    🪄 <span className="wanda-serif">Wanda</span> Recap
-                </button>
-                {isArchived && (
-                    <button
-                        onClick={handleUnarchive}
-                        className="flex-1 flex items-center justify-center gap-2 py-3 px-4 text-sm font-medium rounded-[var(--radius-md)] border border-border text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-all"
-                    >
-                        Restore Trip
-                    </button>
-                )}
-            </div>
+            )}
         </div>
     )
 }
