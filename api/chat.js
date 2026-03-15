@@ -70,7 +70,8 @@ const WANDA_TOOLS = {
     add_budget_alert: tool({
         description: [
             'Add a persistent budget alert to the trip Overview attention items.',
-            'Call when you identify a budget overrun, spending risk, or cost-saving opportunity during a Budget Check.',
+            'Call ONLY when the user explicitly performs a "Budget Check" or asks weight/pace questions.',
+            'DO NOT use this tool for general travel advice unless the budget risk is critical.',
             'Call once per distinct issue (up to 3 per response).',
         ].join(' '),
         parameters: z.object({
