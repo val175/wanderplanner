@@ -988,9 +988,9 @@ export default function VotingTab() {
                         </div>
                     )}
 
-                    <div className={`transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-4 mb-2 relative gap-2 ${isCreatingPoll ? '-mt-2' : ''}`}>
-                        <div>
-                            <Select value={filter} onValueChange={setFilter} className="min-w-[140px] h-7 text-xs w-auto" size="sm">
+                    <div className={`transition-all duration-300 flex flex-col md:flex-row md:items-center justify-end border-b border-border pb-4 mb-2 relative gap-2 ${isCreatingPoll ? '-mt-2' : ''}`}>
+                        <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
+                            <Select value={filter} onValueChange={setFilter} className="!w-auto min-w-[140px] h-[30px] text-xs shrink-0" size="sm">
                                 <SelectItem value="all">All Categories</SelectItem>
                                 {GLOBAL_CATEGORIES.map(cat => (
                                     <SelectItem key={cat.id} value={cat.id}>
@@ -998,9 +998,6 @@ export default function VotingTab() {
                                     </SelectItem>
                                 ))}
                             </Select>
-                        </div>
-
-                        <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
                             {/* View toggle */}
                             <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
                                 <button

@@ -763,17 +763,19 @@ export default function BudgetTab() {
 
       {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between pb-3 mb-4 gap-2">
-        {/* Left: Search & Category Filter */}
-        <div className="flex flex-col sm:flex-row flex-1 md:max-w-2xl gap-2">
-          <div className="flex-1">
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search expenses..."
-              className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] px-4 py-2 text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors"
-            />
-          </div>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter} className="w-full sm:w-auto min-w-[140px]" size="md">
+        {/* Left: Search only */}
+        <div className="w-full md:max-w-[240px]">
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search expenses..."
+            className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] px-3 py-[7px] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors"
+          />
+        </div>
+
+        {/* Right: Category Filter + Actions */}
+        <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
+          <Select value={categoryFilter} onValueChange={setCategoryFilter} className="!w-auto min-w-[140px] h-[30px] text-xs shrink-0" size="sm">
             <SelectItem value="all">All Categories</SelectItem>
             {budget.map(cat => (
               <SelectItem key={cat.id} value={cat.name}>
@@ -781,10 +783,6 @@ export default function BudgetTab() {
               </SelectItem>
             ))}
           </Select>
-        </div>
-
-        {/* Right: Actions — horizontally scrollable on mobile */}
-        <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
           {!isReadOnly && (
             <>
               <Button
