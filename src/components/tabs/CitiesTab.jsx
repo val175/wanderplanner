@@ -407,9 +407,11 @@ export default function CitiesTab() {
             </div>
             <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
               {!isReadOnly && (
-                <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="hidden md:inline-flex shrink-0">
-                  🏙️ New City
-                </Button>
+                <div className="hidden md:block shrink-0">
+                  <Button size="sm" onClick={() => setIsAddModalOpen(true)}>
+                    🏙️ New City
+                  </Button>
+                </div>
               )}
             </div>
           </>

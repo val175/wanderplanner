@@ -420,7 +420,7 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
           </div>
         </div>
 
-        <div className="flex items-center gap-4 text-xs font-medium text-text-muted">
+        <div className="hidden sm:flex items-center gap-4 text-xs font-medium text-text-muted">
           <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-bg-secondary/30">
             <span className="text-danger">📍</span>
             {day.activities?.length || 0} activities/locations
@@ -1037,6 +1037,21 @@ function CalendarActivityBlock({ activity, day, dayActivities, startOfDayMinutes
 }
 
 function CalendarView({ trip, isMobile, activeDayIndex, onOpenDrawer }) {
+  const canvasRef = useRef(null)
+  const panState = useRef({ active: false, startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0 })
+
+  const handleCanvasPointerDown = (e) => {
+    if (e.button !== 0) return
+    if (e.target.closest('button, input, select, [role="button"]')) return
+    panState.current = { active: true, startX: e.clientX, startY: e.clientY, scrollLeft: canvasRef.current?.scrollLeft || 0, scrollTop: canvasRef.current?.scrollTop || 0 }
+  }
+  const handleCanvasPointerMove = (e) => {
+    if (!panState.current.active || !canvasRef.current) return
+    canvasRef.current.scrollLeft = panState.current.scrollLeft - (e.clientX - panState.current.startX)
+    canvasRef.current.scrollTop = panState.current.scrollTop - (e.clientY - panState.current.startY)
+  }
+  const handleCanvasPointerUp = () => { panState.current.active = false }
+
   const timeToMinutes = (timeStr) => {
     if (!timeStr) return null
     let hours, mins
@@ -1088,7 +1103,14 @@ function CalendarView({ trip, isMobile, activeDayIndex, onOpenDrawer }) {
   const totalMinHeight = Math.max(600, (numHours + 1) * hourHeight);
 
   return (
-    <div className="flex-1 overflow-y-auto bg-bg-card rounded-[var(--radius-lg)] border border-border relative select-none custom-scrollbar h-[calc(100dvh-250px)]">
+    <div
+      ref={canvasRef}
+      className="flex-1 overflow-x-auto overflow-y-auto bg-bg-card rounded-[var(--radius-lg)] border border-border relative custom-scrollbar h-[calc(100dvh-250px)] cursor-grab active:cursor-grabbing select-none"
+      onPointerDown={handleCanvasPointerDown}
+      onPointerMove={handleCanvasPointerMove}
+      onPointerUp={handleCanvasPointerUp}
+      onPointerLeave={handleCanvasPointerUp}
+    >
       <div className="flex min-w-fit relative" style={{ minHeight: totalMinHeight }}>
         {/* Time Axis */}
         <div className="w-16 sticky left-0 z-20 bg-bg-card/95 border-r border-border/20 shrink-0">

@@ -273,9 +273,11 @@ export default function BookingsTab() {
               )}
 
               {!isReadOnly && (
-                <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="hidden md:inline-flex shrink-0 gap-1.5">
-                  <span className="text-base leading-none">🎫</span> New Booking
-                </Button>
+                <div className="hidden md:block shrink-0">
+                  <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="gap-1.5">
+                    <span className="text-base leading-none">🎫</span> New Booking
+                  </Button>
+                </div>
               )}
             </div>
           </>

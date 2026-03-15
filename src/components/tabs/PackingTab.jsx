@@ -182,7 +182,7 @@ function CategoryPill({ value, onChange, disabled }) {
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild disabled={disabled}>
         <button
-          className={`inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 px-3 sm:px-2 py-1 sm:py-0.5 rounded-[var(--radius-pill)] text-xs font-medium border border-border bg-bg-secondary text-text-secondary transition-colors ${disabled ? 'cursor-default' : 'hover:bg-bg-hover'}`}
+          className={`inline-flex items-center justify-center gap-1 min-h-[36px] sm:min-h-0 px-3 sm:px-2 py-1 sm:py-0.5 rounded-[var(--radius-pill)] text-xs font-medium border border-border bg-bg-secondary text-text-secondary transition-colors ${disabled ? 'cursor-default' : 'hover:bg-bg-hover'}`}
         >
           <span className="text-lg sm:text-base">{cat.emoji}</span>
           <span className="hidden sm:inline">{cat.label}</span>
@@ -220,7 +220,7 @@ function QtyStepper({ value, onChange, disabled }) {
     <div className="flex items-center gap-1 sm:gap-2 justify-center">
       <button
         onClick={() => !disabled && onChange(Math.max(1, value - 1))}
-        className={`w-11 h-11 sm:w-5 sm:h-5 flex items-center justify-center rounded-[5px] bg-bg-secondary text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors touch-target ${disabled ? 'opacity-50 cursor-default' : ''}`}
+        className={`w-7 h-7 sm:w-5 sm:h-5 flex items-center justify-center rounded-[5px] bg-bg-secondary text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors touch-target ${disabled ? 'opacity-50 cursor-default' : ''}`}
         disabled={value <= 1 || disabled}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="sm:w-[10px] sm:h-[10px]"><path d="M5 12h14" /></svg>
@@ -229,7 +229,7 @@ function QtyStepper({ value, onChange, disabled }) {
       <span className="text-base sm:text-sm font-medium tabular-nums min-w-[1.5rem] sm:min-w-[1.25rem] text-center">{value}</span>
       <button
         onClick={() => !disabled && onChange(value + 1)}
-        className={`w-11 h-11 sm:w-5 sm:h-5 flex items-center justify-center rounded-[5px] bg-bg-secondary text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors touch-target ${disabled ? 'opacity-50 cursor-default' : ''}`}
+        className={`w-7 h-7 sm:w-5 sm:h-5 flex items-center justify-center rounded-[5px] bg-bg-secondary text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors touch-target ${disabled ? 'opacity-50 cursor-default' : ''}`}
         disabled={disabled}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="sm:w-[10px] sm:h-[10px]"><path d="M12 5v14M5 12h14" /></svg>

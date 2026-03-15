@@ -249,9 +249,13 @@ function InlineTripName({ value, onSave }) {
 function CityBreadcrumbs({ destinations }) {
   if (!destinations?.length) return null
 
+  const MAX = 3
+  const visible = destinations.slice(0, MAX)
+  const overflow = destinations.length - MAX
+
   return (
-    <div className="flex items-center flex-wrap gap-x-1 gap-y-0.5">
-      {destinations.map((dest, i) => (
+    <div className="flex items-center flex-nowrap gap-x-1">
+      {visible.map((dest, i) => (
         <span key={i} className="flex items-center">
           {i > 0 && <span className="text-text-muted/40 mx-1">&middot;</span>}
           <span className="inline-flex items-center gap-1 text-[13px] text-text-secondary whitespace-nowrap font-medium">
@@ -260,6 +264,12 @@ function CityBreadcrumbs({ destinations }) {
           </span>
         </span>
       ))}
+      {overflow > 0 && (
+        <span className="flex items-center">
+          <span className="text-text-muted/40 mx-1">&middot;</span>
+          <span className="text-[11px] text-text-muted font-medium whitespace-nowrap">+{overflow} more</span>
+        </span>
+      )}
     </div>
   )
 }
