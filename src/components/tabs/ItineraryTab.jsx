@@ -1079,23 +1079,27 @@ function CalendarView({ trip, isMobile, activeDayIndex, onOpenDrawer, onDayChang
     ? [trip.itinerary[activeDayIndex]].filter(Boolean)
     : (trip.itinerary || [])
 
-  let earliestHour = 8;
-  let latestHour = 22;
+  let foundEarliest = 8;
+  let foundLatest = 22;
+  let hasActivities = false;
 
   itinerary.forEach(day => {
     day.activities?.forEach(act => {
       const startMins = timeToMinutes(act.time);
       if (startMins !== null) {
+        hasActivities = true;
         const startH = Math.floor(startMins / 60);
-        if (startH < earliestHour && startH >= 0) earliestHour = startH;
+        if (startH < foundEarliest) foundEarliest = startH;
         
         const endMins = startMins + (act.duration || 60);
         const endH = Math.ceil(endMins / 60);
-        if (endH > latestHour && endH <= 24) latestHour = endH;
+        if (endH > foundLatest) foundLatest = endH;
       }
     });
   });
 
+  const earliestHour = hasActivities ? Math.max(0, foundEarliest - 1) : 8;
+  const latestHour = hasActivities ? Math.min(24, foundLatest + 1) : 22;
   const numHours = latestHour - earliestHour + 1;
   const hours = Array.from({ length: numHours }, (_, i) => i + earliestHour);
   const startOfDayMinutes = earliestHour * 60;
