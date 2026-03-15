@@ -1,11 +1,10 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo } from 'react'
 import {
     useReactTable,
     getCoreRowModel,
     flexRender,
     getSortedRowModel,
 } from '@tanstack/react-table'
-import { Pencil } from 'lucide-react'
 import EditableText from '../shared/EditableText'
 import DatePicker from '../shared/DatePicker'
 import { BOOKING_CATEGORIES } from '../../constants/tabs'
@@ -88,13 +87,10 @@ export default function BookingsTable({
             accessorKey: 'category',
             header: 'Type',
             size: 60,
-            cell: info => (
-                <TypeDropdown
-                    value={info.getValue()}
-                    onChange={val => onUpdate(info.row.original.id, { category: val })}
-                    disabled={isReadOnly}
-                />
-            ),
+            cell: info => {
+                const cat = BOOKING_CATEGORIES.find(c => c.id === info.getValue()) || BOOKING_CATEGORIES[0]
+                return <span className="text-xl">{cat.emoji}</span>
+            },
         },
         {
             id: 'name',
@@ -102,23 +98,7 @@ export default function BookingsTable({
             header: 'Booking Name',
             size: 250,
             cell: info => (
-                <div className={`flex items-center gap-2 group ${isReadOnly ? '' : 'cursor-pointer'}`} onClick={() => !isReadOnly && onRowClick?.(info.row.original)}>
-                    <EditableText
-                        value={info.getValue()}
-                        onSave={val => onUpdate(info.row.original.id, { name: val })}
-                        className="text-[13px] font-medium text-text-primary flex-1 truncate"
-                        inputClassName="w-full"
-                        onClick={e => e.stopPropagation()}
-                        readOnly={isReadOnly}
-                    />
-                    <button
-                        className="opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out p-1 text-text-muted hover:text-accent rounded hover:bg-bg-hover"
-                        title="Open Details"
-                        onClick={(e) => { e.stopPropagation(); onRowClick?.(info.row.original) }}
-                    >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                    </button>
-                </div>
+                <span className="text-[13px] font-medium text-text-primary truncate block">{info.getValue()}</span>
             ),
         },
         {
@@ -126,13 +106,14 @@ export default function BookingsTable({
             accessorKey: 'status',
             header: 'Status',
             size: 140,
-            cell: info => (
-                <StatusPill
-                    value={migrateStatus(info.getValue())}
-                    onChange={val => onUpdate(info.row.original.id, { status: val })}
-                    disabled={isReadOnly}
-                />
-            )
+            cell: info => {
+                const s = MONDAY_STATUSES.find(s => s.value === migrateStatus(info.getValue())) || MONDAY_STATUSES[0]
+                return (
+                    <span className={`text-[10px] px-2 py-0.5 rounded-[var(--radius-pill)] uppercase tracking-wider font-semibold border ${s.colors}`}>
+                        {s.label}
+                    </span>
+                )
+            }
         },
         {
             id: 'dates',
@@ -140,18 +121,11 @@ export default function BookingsTable({
             size: 180,
             accessorFn: row => row.bookByDate || row.startDate || '',
             cell: info => {
-                const row = info.row.original
-                const dateVal = row.bookByDate || row.startDate || ''
+                const dateVal = info.getValue()
                 return (
-                    <div className={`w-full transition-opacity duration-150 ${!dateVal ? 'opacity-0 group-hover:opacity-100' : ''}`}>
-                        <DatePicker
-                            value={dateVal}
-                            onChange={val => onUpdate(row.id, { bookByDate: val })}
-                            className={`text-text-secondary text-sm block ${isReadOnly ? 'cursor-default' : 'cursor-pointer'}`}
-                            placeholder="Set date"
-                            disabled={isReadOnly}
-                        />
-                    </div>
+                    <span className={`text-text-secondary text-sm ${!dateVal ? 'opacity-0 group-hover:opacity-100 transition-opacity' : ''}`}>
+                        {dateVal || '—'}
+                    </span>
                 )
             }
         },
@@ -163,25 +137,16 @@ export default function BookingsTable({
             cell: info => {
                 const val = info.getValue()
                 return (
-                    <div className={`flex items-center gap-1 transition-opacity duration-150 ${!val ? 'opacity-0 group-hover:opacity-100' : ''}`}>
-                        <EditableText
-                            value={val}
-                            onSave={newVal => onUpdate(info.row.original.id, { confirmationNumber: newVal })}
-                            className="font-mono text-text-primary text-xs flex-1 truncate"
-                            inputClassName="w-full"
-                            placeholder="—"
-                            readOnly={isReadOnly}
-                        />
+                    <div className={`flex items-center gap-1 ${!val ? 'opacity-0 group-hover:opacity-100 transition-opacity' : ''}`}>
+                        <span className="font-mono text-text-primary text-xs truncate">{val || '—'}</span>
                         {val && (
                             <button
-                                onClick={(e) => {
-                                    e.stopPropagation()
-                                    navigator.clipboard.writeText(val)
-                                }}
-                                className="opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out p-1 text-text-muted hover:text-accent rounded"
+                                data-no-drawer
+                                onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(val) }}
+                                className="opacity-0 group-hover:opacity-100 p-1 text-text-muted hover:text-accent rounded transition-colors shrink-0"
                                 title="Copy to clipboard"
                             >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
                             </button>
                         )}
                     </div>
@@ -194,17 +159,9 @@ export default function BookingsTable({
             accessorKey: 'amountPaid',
             size: 100,
             cell: info => (
-                <div className="text-right tabular-nums font-mono text-xs">
-                    <EditableText
-                        value={info.getValue() ? String(info.getValue()) : ''}
-                        displayValue={info.getValue() ? formatCurrency(info.getValue(), currency) : undefined}
-                        onSave={newVal => onUpdate(info.row.original.id, { amountPaid: Number(newVal) || 0 })}
-                        className="text-text-primary text-xs font-medium tabular-nums text-right block w-full"
-                        inputClassName="w-full text-right"
-                        placeholder={formatCurrency(0, currency)}
-                        readOnly={isReadOnly}
-                    />
-                </div>
+                <span className="text-text-primary text-xs font-medium tabular-nums font-mono block text-right">
+                    {info.getValue() ? formatCurrency(info.getValue(), currency) : <span className="text-text-muted">—</span>}
+                </span>
             )
         },
         {
@@ -215,31 +172,18 @@ export default function BookingsTable({
             cell: info => {
                 const val = info.getValue()
                 return (
-                    <div className={`transition-opacity duration-150 ${!val ? 'opacity-0 group-hover:opacity-100' : ''}`}>
-                        <EditableText
-                            value={val || ''}
-                            onSave={val => onUpdate(info.row.original.id, { location: val })}
-                            className="text-xs text-text-muted truncate block w-full"
-                            placeholder="Add location"
-                            readOnly={isReadOnly}
-                        />
-                    </div>
+                    <span className={`text-xs text-text-muted truncate block ${!val ? 'opacity-0 group-hover:opacity-100 transition-opacity' : ''}`}>
+                        {val || '—'}
+                    </span>
                 )
             }
         },
         {
             id: 'actions',
             header: '',
-            size: 72,
+            size: 48,
             cell: info => !isReadOnly && (
-                <div className="flex items-center gap-0 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out">
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onRowClick?.(info.row.original) }}
-                        className="p-1 text-text-muted hover:text-accent rounded transition-colors"
-                        title="Edit Booking"
-                    >
-                        <Pencil size={13} />
-                    </button>
+                <div data-no-drawer className="flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                         onClick={(e) => {
                             e.stopPropagation()
@@ -249,12 +193,12 @@ export default function BookingsTable({
                         className="p-1 text-text-muted hover:text-danger rounded transition-colors"
                         title="Delete Booking"
                     >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                     </button>
                 </div>
             )
         }
-    ], [currency, onUpdate, onDelete, isReadOnly, onRowClick])
+    ], [currency, onDelete, isReadOnly])
 
     // Map hidden array strings to an object { [columnId]: false }
     const columnVisibility = useMemo(() => {
@@ -373,7 +317,8 @@ export default function BookingsTable({
                         {table.getRowModel().rows.map(row => (
                             <tr
                                 key={row.id}
-                                className="group hover:bg-bg-hover/50 transition-colors border-t border-border/20"
+                                className="group hover:bg-bg-hover/50 transition-colors border-t border-border/20 cursor-pointer"
+                                onClick={(e) => { if (!e.target.closest('[data-no-drawer]')) onRowClick?.(row.original) }}
                             >
                                 {row.getVisibleCells().map(cell => (
                                     <td

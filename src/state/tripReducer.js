@@ -44,6 +44,11 @@ export const ACTIONS = {
   CYCLE_BOOKING_STATUS: 'CYCLE_BOOKING_STATUS',
   SET_BOOKING_STATUS: 'SET_BOOKING_STATUS',
 
+  // Booking comments
+  ADD_BOOKING_COMMENT: 'ADD_BOOKING_COMMENT',
+  UPDATE_BOOKING_COMMENT: 'UPDATE_BOOKING_COMMENT',
+  DELETE_BOOKING_COMMENT: 'DELETE_BOOKING_COMMENT',
+
   // Budget
   UPDATE_BUDGET_CATEGORY: 'UPDATE_BUDGET_CATEGORY',
   ADD_BUDGET_CATEGORY: 'ADD_BUDGET_CATEGORY',
@@ -580,6 +585,46 @@ export function tripReducer(state, action) {
         const bookings = trip.bookings.map(b => b.id === payload.id ? next : b)
         return { ...trip, bookings, spendingLog, budget }
       })
+
+    case ACTIONS.ADD_BOOKING_COMMENT:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        bookings: trip.bookings.map(b => {
+          if (b.id !== payload.bookingId) return b
+          if (!payload.text?.trim()) return b
+          const comment = {
+            id: generateId(),
+            authorId: payload.actorId || null,
+            text: payload.text.trim(),
+            timestamp: new Date().toISOString(),
+          }
+          return { ...b, comments: [...(b.comments || []), comment] }
+        }),
+      }))
+
+    case ACTIONS.UPDATE_BOOKING_COMMENT:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        bookings: trip.bookings.map(b =>
+          b.id !== payload.bookingId ? b : {
+            ...b,
+            comments: (b.comments || []).map(c =>
+              c.id === payload.commentId ? { ...c, text: payload.text?.trim() || c.text } : c
+            ),
+          }
+        ),
+      }))
+
+    case ACTIONS.DELETE_BOOKING_COMMENT:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        bookings: trip.bookings.map(b =>
+          b.id !== payload.bookingId ? b : {
+            ...b,
+            comments: (b.comments || []).filter(c => c.id !== payload.commentId),
+          }
+        ),
+      }))
 
     // ─── Budget ───
     case ACTIONS.UPDATE_BUDGET_CATEGORY:
