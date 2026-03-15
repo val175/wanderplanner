@@ -231,7 +231,7 @@ function AuthenticatedApp({ user, signOutUser }) {
   }, [activeTrip?.id, currentUserProfile, dispatch])
 
   if (firestoreLoading || !splashDone) {
-    return <LoadingScreen message="Loading your trips…" onComplete={() => setSplashDone(true)} />
+    return <LoadingScreen message="Eleka nahmen nahmen, ah tum ah tum, eleka nahmen.." onComplete={() => setSplashDone(true)} />
   }
 
   return (
@@ -336,7 +336,7 @@ export default function App() {
   const [splashDone, setSplashDone] = useState(false)
 
   if (authLoading || (user && checking) || !splashDone) {
-    return <LoadingScreen message="Loading…" onComplete={() => setSplashDone(true)} />
+    return <LoadingScreen message="Eleka nahmen nahmen, ah tum ah tum, eleka nahmen.." onComplete={() => setSplashDone(true)} />
   }
 
   if (!user) {
