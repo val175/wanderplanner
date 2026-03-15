@@ -430,34 +430,44 @@ function AttentionCell({ trip, onTabSwitch }) {
    TripHealthCard — Consolidated Weather + Readiness + Budget
 ───────────────────────────────────────────────────────────── */
 function TripHealthCard({ trip, onTabSwitch }) {
-  // === Weather (Change 4: multi-destination cycling) ===
+  // === Weather (parallel fetch for all destinations on mount) ===
   const destinations = trip.destinations || []
-  const [weather, setWeather] = useState(null)
+  const [weatherCache, setWeatherCache] = useState({})
   const [weatherStatus, setWeatherStatus] = useState('loading')
   const [destIndex, setDestIndex] = useState(0)
   const currentDest = destinations[destIndex]
+  const weather = currentDest ? (weatherCache[currentDest.city] ?? null) : null
+  const effectiveWeatherStatus = effectiveWeatherStatus === 'loading' ? 'loading' : (weather ? 'ok' : 'error')
 
   useEffect(() => { setDestIndex(0) }, [destinations])
 
   useEffect(() => {
-    if (!currentDest) { setWeatherStatus('error'); return }
+    if (!destinations.length) { setWeatherStatus('error'); return }
     let cancelled = false
-    setWeatherStatus('loading'); setWeather(null)
-    async function fetch_() {
-      try {
-        const g = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(currentDest.city)}&count=1&language=en&format=json`)
-        const gd = await g.json()
-        if (!gd.results?.length) throw new Error('not found')
-        const { latitude, longitude } = gd.results[0]
-        const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,weathercode&temperature_unit=celsius&timezone=auto`)
-        const wd = await w.json()
-        const c = wd.current
-        if (!cancelled) { setWeather({ temp: Math.round(c.temperature_2m), feelsLike: Math.round(c.apparent_temperature), wmo: c.weathercode, city: currentDest.city, flag: currentDest.flag }); setWeatherStatus('ok') }
-      } catch { if (!cancelled) setWeatherStatus('error') }
+    setWeatherStatus('loading')
+
+    async function fetchOne(dest) {
+      const g = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(dest.city)}&count=1&language=en&format=json`)
+      const gd = await g.json()
+      if (!gd.results?.length) return null
+      const { latitude, longitude } = gd.results[0]
+      const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,weathercode&temperature_unit=celsius&timezone=auto`)
+      const wd = await w.json()
+      const c = wd.current
+      return { temp: Math.round(c.temperature_2m), feelsLike: Math.round(c.apparent_temperature), wmo: c.weathercode, city: dest.city, flag: dest.flag }
     }
-    fetch_()
+
+    Promise.all(destinations.map(dest => fetchOne(dest).catch(() => null)))
+      .then(results => {
+        if (cancelled) return
+        const cache = {}
+        results.forEach((r, i) => { if (r) cache[destinations[i].city] = r })
+        setWeatherCache(cache)
+        setWeatherStatus(Object.keys(cache).length ? 'ok' : 'error')
+      })
+
     return () => { cancelled = true }
-  }, [currentDest?.city])
+  }, [destinations.map(d => d.city).join(',')])
 
   // === Readiness ===
   const readiness = calculateReadiness(trip)
@@ -532,7 +542,7 @@ function TripHealthCard({ trip, onTabSwitch }) {
               </div>
             )}
           </div>
-          {weatherStatus === 'loading' && (
+          {effectiveWeatherStatus === 'loading' && (
             <div className="flex items-center gap-3 animate-pulse mt-3">
               <div className="w-10 h-10 rounded-full bg-bg-secondary shrink-0" />
               <div className="space-y-1.5 flex-1">
@@ -541,7 +551,7 @@ function TripHealthCard({ trip, onTabSwitch }) {
               </div>
             </div>
           )}
-          {weatherStatus === 'ok' && weather && (() => {
+          {effectiveWeatherStatus === 'ok' && weather && (() => {
             const { emoji, label } = wmoToDescription(weather.wmo)
             return (
               <div className="flex items-center justify-between mt-2">
@@ -559,7 +569,7 @@ function TripHealthCard({ trip, onTabSwitch }) {
               </div>
             )
           })()}
-          {weatherStatus === 'error' && (
+          {effectiveWeatherStatus === 'error' && (
             <div className="flex items-center justify-center mt-3">
               <span className="text-xs text-text-muted">Unavailable</span>
             </div>
