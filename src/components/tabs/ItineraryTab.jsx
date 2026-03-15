@@ -1123,11 +1123,13 @@ function CalendarView({ trip, isMobile, activeDayIndex, onOpenDrawer, onDayChang
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
             </button>
-            <div className="text-center leading-tight">
-              <p className="text-sm font-semibold text-text-primary font-heading">
-                {day?.emoji} Day {day?.dayNumber}{day?.location ? ` · ${day.location}` : ''}
+            <div className="text-center leading-tight py-1">
+              <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest font-heading mb-0.5">
+                {day?.emoji} Day {day?.dayNumber}
               </p>
-              {day?.date && <p className="text-[11px] text-text-muted mt-0.5">{day.date}</p>}
+              <p className="text-sm font-bold text-text-primary font-heading truncate max-w-[200px]">
+                {day?.location || 'Untitled'}
+              </p>
             </div>
             <button
               onClick={() => onDayChange(Math.min(trip.itinerary.length - 1, activeDayIndex + 1))}
@@ -1142,7 +1144,7 @@ function CalendarView({ trip, isMobile, activeDayIndex, onOpenDrawer, onDayChang
       <div className="flex min-w-fit relative" style={{ minHeight: totalMinHeight }}>
         {/* Time Axis */}
         <div className="w-16 sticky left-0 z-20 bg-bg-card/95 border-r border-border/20 shrink-0">
-          <div className="h-14" /> {/* Header spacer */}
+          {!isMobile && <div className="h-14" />} {/* Header spacer */}
           {hours.map(hr => (
             <div key={hr} className="relative" style={{ height: hourHeight }}>
               <span className="absolute -top-2.5 left-3 text-[10px] font-mono text-text-muted font-semibold uppercase tracking-widest">
@@ -1162,26 +1164,28 @@ function CalendarView({ trip, isMobile, activeDayIndex, onOpenDrawer, onDayChang
                 className="flex-1 min-w-[320px] border-r border-border/20 relative transition-colors bg-bg-card"
               >
                 {/* Day Header */}
-                <div 
-                  className="h-14 border-b border-border/20 flex flex-col items-center justify-center sticky top-0 z-10 px-4 transition-all bg-bg-card"
-                >
-                  <span className="text-[10px] font-semibold font-heading uppercase tracking-widest text-text-muted">
-                    Day {day.dayNumber}
-                  </span>
-                  <span className="text-sm font-semibold font-heading text-text-primary truncate max-w-full">
-                    {day.location || 'Untitled'}
-                  </span>
-                </div>
+                {!isMobile && (
+                  <div 
+                    className="h-14 border-b border-border/20 flex flex-col items-center justify-center sticky top-0 z-10 px-4 transition-all bg-bg-card"
+                  >
+                    <span className="text-[10px] font-semibold font-heading uppercase tracking-widest text-text-muted">
+                      Day {day.dayNumber}
+                    </span>
+                    <span className="text-sm font-semibold font-heading text-text-primary truncate max-w-full">
+                      {day.location || 'Untitled'}
+                    </span>
+                  </div>
+                )}
                 
                 {/* Grid Lines */}
-                <div className="absolute inset-0 pt-14 pointer-events-none">
+                <div className={`absolute inset-0 ${isMobile ? 'pt-0' : 'pt-14'} pointer-events-none`}>
                   {hours.map(hr => (
                     <div key={hr} className="border-b border-dashed border-border/20 w-full" style={{ height: hourHeight }} />
                   ))}
                 </div>
 
                 {/* Activity Blocks */}
-                <div className="relative pt-14 h-full px-2">
+                <div className={`relative ${isMobile ? 'pt-0' : 'pt-14'} h-full px-2`}>
                   {day.activities?.map(activity => {
                     const minutes = timeToMinutes(activity.time)
                     if (minutes === null || minutes < startOfDayMinutes) return null
