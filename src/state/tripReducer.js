@@ -744,19 +744,41 @@ export function tripReducer(state, action) {
       return updateTrip(state, activeTripId, trip => ({ ...trip, wandaAlerts: [] }))
 
     case ACTIONS.BATCH_ADD_ACTIVITIES: {
-      const { dayNumber, activities } = payload
-      return updateTrip(state, activeTripId, trip => ({
-        ...trip,
-        itinerary: (trip.itinerary || []).map(day =>
-          day.dayNumber !== dayNumber ? day : {
-            ...day,
-            activities: [
-              ...(day.activities || []),
-              ...activities.map(a => ({ ...a, id: generateId() })),
-            ],
+      const { dayNumber, location, activities } = payload
+      return updateTrip(state, activeTripId, trip => {
+        const itinerary = trip.itinerary || []
+        const dayExists = itinerary.some(d => d.dayNumber === dayNumber)
+        if (dayExists) {
+          return {
+            ...trip,
+            itinerary: itinerary.map(day =>
+              day.dayNumber !== dayNumber ? day : {
+                ...day,
+                activities: [
+                  ...(day.activities || []),
+                  ...activities.map(a => ({ ...a, id: generateId() })),
+                ],
+              }
+            ),
           }
-        ),
-      }))
+        }
+        // Day doesn't exist yet — create it with the activities
+        return {
+          ...trip,
+          itinerary: [
+            ...itinerary,
+            {
+              id: generateId(),
+              dayNumber,
+              date: '',
+              location: location || '',
+              emoji: '📍',
+              activities: activities.map(a => ({ ...a, id: generateId() })),
+              notes: '',
+            },
+          ],
+        }
+      })
     }
 
     case ACTIONS.UPDATE_IDEA:

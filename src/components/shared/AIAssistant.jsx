@@ -303,7 +303,7 @@ export default function AIAssistant() {
     const canAct = !!activeTrip && !done
     const handleClick = () => {
       if (!canAct) return
-      dispatch({ type: ACTIONS.BATCH_ADD_ACTIVITIES, payload: { dayNumber, activities } })
+      dispatch({ type: ACTIONS.BATCH_ADD_ACTIVITIES, payload: { dayNumber, location, activities } })
       try { addToolResult({ tool: 'generate_day_itinerary', toolCallId: inv.toolCallId, output: 'added' }) } catch { }
       showToast(`🗓️ Day ${dayNumber} plan added — ${activities.length} activities`)
       setLocalDone(true)

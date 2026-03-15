@@ -828,7 +828,7 @@ export default function PackingTab() {
           emoji="🧳"
           title="Your packing list is empty"
           subtitle="Add items manually or let Wanda suggest what to pack based on your destinations."
-          wandaPrompt={`What should I pack for my trip to ${activeTrip.cities?.map(c => c.city).join(', ') || 'my destinations'}? Suggest specific packing items.`}
+          wandaPrompt={`What should I pack for my trip to ${activeTrip.cities?.map(c => c.city).join(', ') || 'my destinations'}? Suggest 3 specific items and call the add_to_packing_list tool for each one.`}
           action={
             !isReadOnly && (
               <Button variant="primary" size="sm" onClick={handleStarterList}>

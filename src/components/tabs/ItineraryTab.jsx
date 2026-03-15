@@ -1461,7 +1461,7 @@ export default function ItineraryTab() {
           wandaPrompt={`Help me plan my itinerary for ${trip.name || 'this trip'}. Suggest a day-by-day schedule for ${trip.cities?.map(c => c.city).join(', ') || 'my destinations'}.`}
           action={
             !isReadOnly && (
-              <Button variant="primary" size="lg" onClick={handleAddDay}>
+              <Button variant="primary" size="sm" onClick={handleAddDay}>
                 <span className="text-xl leading-none mr-1">+</span> Add First Day
               </Button>
             )
