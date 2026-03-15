@@ -18,8 +18,9 @@ export const config = {
 const WANDA_TOOLS = {
     add_to_packing_list: tool({
         description: [
-            'Add ONE specific packing item to the trip packing list.',
-            'IMPORTANT: Call this tool once per individual item — never use arrays, never group items.',
+            'Add ONE specific packing item to the trip packing list as a supporting addition to your text answer.',
+            'IMPORTANT: You MUST answer the user\'s question in text first. This tool is only for adding items you mentioned.',
+            'Call once per individual item — never use arrays, never group items.',
             'Correct: { item: "Rain jacket", section: "Clothing", emoji: "🧥" }',
             'Correct: { item: "Compact umbrella", section: "Misc", emoji: "☂️" }',
             'Call up to 3 times per response for different individual items.',
@@ -32,8 +33,9 @@ const WANDA_TOOLS = {
     }),
     add_idea_to_voting_room: tool({
         description: [
-            'Add ONE travel recommendation to the trip voting room.',
-            'IMPORTANT: Call once per idea — never group multiple ideas in one call.',
+            'Add ONE travel recommendation to the trip voting room as a supporting addition to your text answer.',
+            'IMPORTANT: You MUST answer the user\'s question or provide recommendations in text first. This tool is only for adding places you mentioned.',
+            'Call once per idea — never group multiple ideas in one call.',
             'Correct: { title: "Fushimi Inari Hike", type: "activity", description: "Famous torii gate trail", emoji: "⛩️", priceDetails: "Free" }',
             'Correct: { title: "The Peninsula Hotel", type: "lodging", description: "Luxury hotel in city center", emoji: "🏨", priceDetails: "~$300/night" }',
             'Call up to 3 times per response for different recommendations.',
