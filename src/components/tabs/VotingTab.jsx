@@ -1106,7 +1106,7 @@ export default function VotingTab() {
                         emoji="📦"
                         title="The board is empty"
                         subtitle="Paste a link to any hotel, Airbnb, or tour — or ask Wanda for recommendations your group can vote on."
-                        wandaPrompt="Give me 3 hotel recommendations and 3 activity ideas for our trip that I can add to the voting room."
+                        wandaPrompt={`Help us find some cool things to do or places to stay in ${activeTrip.cities?.map(c => c.city).join(', ') || 'my destinations'}.\n\n[INSTRUCTION]:\nGive me 3 hotel recommendations and 3 activity ideas for our trip. IMPORTANT: For EACH one, you MUST call the "add_idea_to_voting_room" tool so the group can vote on them.`}`}
                     />
                 ) : ideaView === 'table' ? (
                     <div className="mt-4">

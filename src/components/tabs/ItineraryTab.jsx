@@ -1505,7 +1505,7 @@ export default function ItineraryTab() {
           emoji="🗺️"
           title="Build your perfect trip"
           subtitle="Start outlining your days and dragging activities around until your schedule is air-tight."
-          wandaPrompt={`Plan Day 1 of my trip to ${trip.cities?.map(c => c.city).join(', ') || 'my destinations'} — use the generate_day_itinerary tool to create a schedule I can add.`}
+          wandaPrompt={`Plan Day 1 of my trip to ${trip.cities?.map(c => c.city).join(', ') || 'my destinations'} — use the generate_day_itinerary tool to create a schedule I can add.\n\n[INSTRUCTION]:\nLook at our itinerary and find the next day that has few or no activities. Call the "generate_day_itinerary" tool to plan it with 4-5 time-slotted activities appropriate for our destination and budget.`}`}
           action={
             !isReadOnly && (
               <Button variant="primary" size="sm" onClick={handleAddDay}>

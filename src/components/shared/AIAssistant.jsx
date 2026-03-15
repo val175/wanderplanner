@@ -65,6 +65,30 @@ const MAGIC_SPELLS = [
 
 const PILL_INSTRUCTION_MARKER = '\n\n[INSTRUCTION]:\n';
 
+const SmoothStream = ({ content, isStreaming }) => {
+  const [displayed, setDisplayed] = useState(isStreaming ? '' : content);
+
+  useEffect(() => {
+    if (!isStreaming) {
+      setDisplayed(content);
+      return;
+    }
+
+    if (displayed.length < content.length) {
+      const gap = content.length - displayed.length;
+      const charsToAdd = gap > 40 ? 3 : 1; 
+
+      const timer = setTimeout(() => {
+        setDisplayed(content.slice(0, displayed.length + charsToAdd));
+      }, 15);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [content, displayed, isStreaming]);
+
+  return <span>{displayed}</span>;
+};
+
 export default function AIAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
@@ -361,6 +385,13 @@ export default function AIAssistant() {
         }
         .wanda-msg-scroll::-webkit-scrollbar { width: 4px; }
         .wanda-msg-scroll::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }
+        @keyframes wanda-msg-fade {
+          from { opacity: 0; transform: translateY(4px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .animate-msg-fade {
+          animation: wanda-msg-fade 0.25s ease-out forwards;
+        }
       `}</style>
 
       {/* Header */}
@@ -439,7 +470,7 @@ export default function AIAssistant() {
         {messages.map(m => (
           <div
             key={m.id}
-            className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}
+            className={`flex flex-col animate-msg-fade ${m.role === 'user' ? 'items-end' : 'items-start'}`}
           >
             <div className={`flex w-full ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               {m.role === 'assistant' && (
@@ -468,7 +499,10 @@ export default function AIAssistant() {
                   }
 
                   if (m.parts && textContent) {
-                    return <span>{textContent}</span>
+                    const isLastMessage = m.id === messages[messages.length - 1].id;
+                    const isCurrentlyStreaming = status === 'streaming' && isLastMessage && m.role === 'assistant';
+                    
+                    return <SmoothStream content={textContent} isStreaming={isCurrentlyStreaming} />;
                   }
                   
                   if (m.parts && !textContent) {
