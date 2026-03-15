@@ -38,31 +38,44 @@ export default async function handler(req, res) {
         let thumbnail_url = null
         let sourceName = 'Link'
 
-        // ── Branch A: TikTok oEmbed ───────────────────────────────────────────────
-        if (url.includes('tiktok.com')) {
-            const oembedRes = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`)
-            if (!oembedRes.ok) throw new Error(`TikTok oEmbed failed with status ${oembedRes.status}`)
-            const oembed = await oembedRes.json()
-            contextText = oembed.title || ''
-            thumbnail_url = oembed.thumbnail_url || null
-            sourceName = 'TikTok'
+        const SOCIAL_DOMAINS = {
+            'facebook.com': 'Facebook', 'fb.com': 'Facebook',
+            'instagram.com': 'Instagram', 'twitter.com': 'Twitter', 'x.com': 'Twitter',
+            'youtube.com': 'YouTube', 'youtu.be': 'YouTube', 'threads.net': 'Threads',
+            'tiktok.com': 'TikTok'
+        }
+        const host = new URL(url).hostname.replace('www.', '')
+        const socialPlatform = Object.entries(SOCIAL_DOMAINS).find(([domain]) => host === domain || host.endsWith('.' + domain))?.[1]
 
-            // ── Branch B: Generic URL — TripAdvisor, Airbnb, Booking.com, blogs, etc. ─
-        } else {
-            // Social media fast-path
-            const SOCIAL_DOMAINS = {
-                'facebook.com': 'Facebook', 'fb.com': 'Facebook',
-                'instagram.com': 'Instagram', 'twitter.com': 'Twitter', 'x.com': 'Twitter',
-                'youtube.com': 'YouTube', 'youtu.be': 'YouTube', 'threads.net': 'Threads'
+        if (socialPlatform) {
+            sourceName = socialPlatform
+            const parts = new URL(url).pathname.split('/').filter(Boolean)
+            let handle = ''
+            if (host.includes('tiktok.com')) {
+                handle = parts.find(p => p.startsWith('@'))?.replace('@', '') || parts[0] || ''
+            } else if (host.includes('instagram.com')) {
+                handle = parts.find(p => !['p', 'reels', 'stories'].includes(p)) || ''
+            } else {
+                handle = parts[0] || ''
             }
-            const host = new URL(url).hostname.replace('www.', '')
-            const socialPlatform = Object.entries(SOCIAL_DOMAINS).find(([domain]) => host === domain || host.endsWith('.' + domain))?.[1]
+            if (handle.startsWith('@')) handle = handle.slice(1)
 
-            if (socialPlatform) {
-                sourceName = socialPlatform
-                const handle = url.split('/').filter(Boolean).pop()?.replace('@', '') || ''
-                let socialContext = `Instagram Handle: @${handle}`
+            let socialContext = `${socialPlatform} Handle: @${handle}`
 
+            // Attempt 1: TikTok oEmbed (special case)
+            if (socialPlatform === 'TikTok') {
+                try {
+                    const oembedRes = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`)
+                    if (oembedRes.ok) {
+                        const oembed = await oembedRes.json()
+                        socialContext = `Title: ${oembed.title}\nAuthor: ${oembed.author_name}\nHandle: @${handle}`
+                        thumbnail_url = oembed.thumbnail_url || null
+                    }
+                } catch (_) {}
+            }
+
+            // Attempt 2: Microlink (Universal Social Scraper)
+            if (!thumbnail_url || socialContext.length < 50) {
                 try {
                     const ml = await fetch(`https://api.microlink.io?url=${encodeURIComponent(url)}`)
                     if (ml.ok) {
@@ -70,58 +83,60 @@ export default async function handler(req, res) {
                         socialContext = [
                             mlData.title ? `Title: ${mlData.title}` : '',
                             mlData.description ? `Bio/Description: ${mlData.description}` : '',
-                            `Handle: @${handle}`
+                            `Handle: @${handle}`,
+                            `Site: ${socialPlatform}`
                         ].filter(Boolean).join('\n')
-                        thumbnail_url = mlData.image?.url || mlData.logo?.url || null
+                        if (!thumbnail_url) thumbnail_url = mlData.image?.url || mlData.logo?.url || null
                     }
                 } catch (_) {}
-                contextText = socialContext
-            } else {
-                // Attempt 1: direct scrape with browser-like headers
-                try {
-                    const htmlRes = await fetch(url, { headers: BROWSER_HEADERS, redirect: 'follow' })
-                    if (htmlRes.ok) {
-                        const html = await htmlRes.text()
-                        const $ = cheerio.load(html)
-                        const ogTitle = $('meta[property="og:title"]').attr('content') || ''
-                        const ogDesc = $('meta[property="og:description"]').attr('content')
-                            || $('meta[name="description"]').attr('content') || ''
-                        const ogImage = $('meta[property="og:image"]').attr('content')
-                            || $('meta[property="og: image"]').attr('content')
-                            || $('meta[name="twitter:image"]').attr('content') || ''
-                        const pageTitle = $('title').text().trim() || ''
-                        contextText = [ogTitle || pageTitle, ogDesc].filter(Boolean).join('\n')
-                        thumbnail_url = ogImage || null
-                    }
-                } catch (_) { }
-
-                // Attempt 2: Microlink fallback
-                if (!contextText || !thumbnail_url) {
-                    try {
-                        const ml = await fetch(`https://api.microlink.io?url=${encodeURIComponent(url)}`)
-                        if (ml.ok) {
-                            const mlData = (await ml.json()).data || {}
-                            if (!contextText) contextText = [mlData.title, mlData.description].filter(Boolean).join('\n')
-                            if (!thumbnail_url) thumbnail_url = mlData.image?.url || null
-                        }
-                    } catch (_) { }
+            }
+            contextText = socialContext
+        } else {
+            // ── Branch B: Generic URL — TripAdvisor, Airbnb, Booking.com, blogs, etc. ─
+            // Attempt 1: direct scrape with browser-like headers
+            try {
+                const htmlRes = await fetch(url, { headers: BROWSER_HEADERS, redirect: 'follow' })
+                if (htmlRes.ok) {
+                    const html = await htmlRes.text()
+                    const $ = cheerio.load(html)
+                    const ogTitle = $('meta[property="og:title"]').attr('content') || ''
+                    const ogDesc = $('meta[property="og:description"]').attr('content')
+                        || $('meta[name="description"]').attr('content') || ''
+                    const ogImage = $('meta[property="og:image"]').attr('content')
+                        || $('meta[property="og: image"]').attr('content')
+                        || $('meta[name="twitter:image"]').attr('content') || ''
+                    const pageTitle = $('title').text().trim() || ''
+                    contextText = [ogTitle || pageTitle, ogDesc].filter(Boolean).join('\n')
+                    thumbnail_url = ogImage || null
                 }
+            } catch (_) { }
 
-                // Attempt 3: URL-only fallback
-                if (!contextText) contextText = url
-
-                // Infer source name from hostname
+            // Attempt 2: Microlink fallback
+            if (!contextText || !thumbnail_url) {
                 try {
-                    if (host.includes('tripadvisor')) sourceName = 'TripAdvisor'
-                    else if (host.includes('airbnb')) sourceName = 'Airbnb'
-                    else if (host.includes('booking.com')) sourceName = 'Booking.com'
-                    else if (host.includes('agoda')) sourceName = 'Agoda'
-                    else {
-                        const name = host.split('.')[0]
-                        sourceName = name.charAt(0).toUpperCase() + name.slice(1)
+                    const ml = await fetch(`https://api.microlink.io?url=${encodeURIComponent(url)}`)
+                    if (ml.ok) {
+                        const mlData = (await ml.json()).data || {}
+                        if (!contextText) contextText = [mlData.title, mlData.description].filter(Boolean).join('\n')
+                        if (!thumbnail_url) thumbnail_url = mlData.image?.url || null
                     }
                 } catch (_) { }
             }
+
+            // Attempt 3: URL-only fallback
+            if (!contextText) contextText = url
+
+            // Infer source name from hostname
+            try {
+                if (host.includes('tripadvisor')) sourceName = 'TripAdvisor'
+                else if (host.includes('airbnb')) sourceName = 'Airbnb'
+                else if (host.includes('booking.com')) sourceName = 'Booking.com'
+                else if (host.includes('agoda')) sourceName = 'Agoda'
+                else {
+                    const name = host.split('.')[0]
+                    sourceName = name.charAt(0).toUpperCase() + name.slice(1)
+                }
+            } catch (_) { }
         }
 
         // ── AI Standardisation via Gemini (Native SDK) ───────────────────────────
