@@ -101,11 +101,11 @@ function EmptyState({ onNewTrip }) {
 /* ─────────────────────────────────────────────────────────────
    Loading screen — shown while auth or Firestore is initialising
 ───────────────────────────────────────────────────────────── */
-function LoadingScreen({ message = 'Loading…' }) {
+function LoadingScreen({ message = 'Loading…', onComplete }) {
   return (
     <div className="flex h-screen items-center justify-center bg-bg-primary">
       <div className="text-center">
-        <WandWordmark />
+        <WandWordmark onComplete={onComplete} />
         <p className="text-text-muted text-sm animate-pulse mt-6">{message}</p>
       </div>
     </div>
@@ -125,6 +125,7 @@ function AuthenticatedApp({ user, signOutUser }) {
   } = useFirestoreTrips(user.uid)
   const isMobile = useMediaQuery('(max-width: 767px)')
   const [showNewTripModal, setShowNewTripModal] = useState(false)
+  const [splashDone, setSplashDone] = useState(false)
 
   // Read-only mode: active when the trip is completed or manually archived
   const effectiveStatus = getEffectiveStatus(activeTrip)
@@ -213,8 +214,8 @@ function AuthenticatedApp({ user, signOutUser }) {
     }
   }, [activeTrip?.id, currentUserProfile, dispatch])
 
-  if (firestoreLoading) {
-    return <LoadingScreen message="Loading your trips…" />
+  if (firestoreLoading || !splashDone) {
+    return <LoadingScreen message="Loading your trips…" onComplete={() => setSplashDone(true)} />
   }
 
   return (
@@ -315,9 +316,10 @@ function useAccessCheck(uid) {
 export default function App() {
   const { user, authLoading, signInWithGoogle, signOutUser } = useAuth()
   const { checking, isAllowed } = useAccessCheck(user?.uid)
+  const [splashDone, setSplashDone] = useState(false)
 
-  if (authLoading || (user && checking)) {
-    return <LoadingScreen message="Loading…" />
+  if (authLoading || (user && checking) || !splashDone) {
+    return <LoadingScreen message="Loading…" onComplete={() => setSplashDone(true)} />
   }
 
   if (!user) {

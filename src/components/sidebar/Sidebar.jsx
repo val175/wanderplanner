@@ -207,13 +207,14 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
             <span className="text-sm" aria-hidden="true">🪄</span>
             <span style={{
               fontFamily: "'Instrument Serif', Georgia, serif",
-              fontStyle: 'italic',
               fontWeight: 400,
               fontSize: '1rem',
               color: 'var(--color-text-primary)',
               letterSpacing: '-0.01em',
               lineHeight: 1,
-            }}>Wanderplan</span>
+            }}>
+              <span style={{ fontStyle: 'italic' }}>Wander</span>plan
+            </span>
           </div>
           <div className="flex items-center gap-1">
             <button

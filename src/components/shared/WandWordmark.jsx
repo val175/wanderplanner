@@ -25,7 +25,7 @@ function WandSVG() {
  * 1550ms → Wand taps the "W" (shake animation)
  * 2400ms → "Wander" cross-fades to italic
  */
-export default function WandWordmark() {
+export default function WandWordmark({ onComplete }) {
   const [phase, setPhase] = useState(0)
 
   useEffect(() => {
@@ -34,6 +34,8 @@ export default function WandWordmark() {
       setTimeout(() => setPhase(2), 950),
       setTimeout(() => setPhase(3), 1550),
       setTimeout(() => setPhase(4), 2400),
+      // fire after the italic crossfade transition finishes (450ms after phase 4)
+      setTimeout(() => onComplete?.(), 2850),
     ]
     return () => timers.forEach(clearTimeout)
   }, [])
@@ -77,13 +79,13 @@ export default function WandWordmark() {
         }}>
           {/* "Wander" — cross-fades normal → italic in phase 4 */}
           <span style={{ position: 'relative', display: 'inline-block' }}>
-            {/* Normal weight — fades out */}
+            {/* Normal Wander — fades out */}
             <span style={{
               display: 'inline-block',
               opacity: phase >= 4 ? 0 : 1,
               transition: 'opacity 0.45s ease',
             }}>Wander</span>
-            {/* Italic — absolutely overlaid, fades in */}
+            {/* Italic Wander — absolutely overlaid, fades in */}
             <span style={{
               position: 'absolute',
               left: 0,
