@@ -203,8 +203,17 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
       {/* Footer / Global Actions */}
       <div className="px-4 py-4 border-t border-border mt-auto">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-1.5 text-sm font-semibold text-text-primary px-1">
-            Wanderplan
+          <div className="flex items-center gap-1 px-1">
+            <span className="text-sm" aria-hidden="true">🪄</span>
+            <span style={{
+              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontStyle: 'italic',
+              fontWeight: 400,
+              fontSize: '1rem',
+              color: 'var(--color-text-primary)',
+              letterSpacing: '-0.01em',
+              lineHeight: 1,
+            }}>Wanderplan</span>
           </div>
           <div className="flex items-center gap-1">
             <button

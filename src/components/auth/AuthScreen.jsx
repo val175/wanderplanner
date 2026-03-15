@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import WandWordmark from '../shared/WandWordmark'
 
 export default function AuthScreen({ onSignIn }) {
   const [loading, setLoading] = useState(false)
@@ -21,12 +22,10 @@ export default function AuthScreen({ onSignIn }) {
     <div className="flex h-screen items-center justify-center bg-bg-primary animate-fade-in">
       <div className="text-center max-w-sm px-8">
 
-        {/* Logo */}
-        <div className="text-6xl mb-5 animate-pulse-warm">🗺️</div>
-
-        <h1 className="font-heading text-3xl font-semibold text-text-primary mb-2">
-          Wanderplan
-        </h1>
+        {/* Animated wordmark */}
+        <div className="mb-8">
+          <WandWordmark />
+        </div>
         <p className="text-text-muted text-sm mb-10 leading-relaxed">
           Every trip, perfectly planned.
         </p>

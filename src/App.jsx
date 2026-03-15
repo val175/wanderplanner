@@ -11,6 +11,7 @@ import { getEffectiveStatus } from './utils/tripStatus'
 
 // Auth
 import AuthScreen from './components/auth/AuthScreen'
+import WandWordmark from './components/shared/WandWordmark'
 
 // Layout components
 import Sidebar from './components/sidebar/Sidebar'
@@ -104,8 +105,8 @@ function LoadingScreen({ message = 'Loading…' }) {
   return (
     <div className="flex h-screen items-center justify-center bg-bg-primary">
       <div className="text-center">
-        <div className="text-4xl mb-4 animate-pulse-warm">🗺️</div>
-        <p className="text-text-muted text-sm animate-pulse">{message}</p>
+        <WandWordmark />
+        <p className="text-text-muted text-sm animate-pulse mt-6">{message}</p>
       </div>
     </div>
   )
