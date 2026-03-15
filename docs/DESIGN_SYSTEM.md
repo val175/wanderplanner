@@ -104,6 +104,7 @@ All tables (e.g., Budget Spending Log, Bookings Table, Packing Table) must follo
 - **Rows (`<tr>`)**: `border-t border-border/20 hover:bg-bg-hover transition-colors`.
 - **Cells (`<td>`)**: `px-2 py-3 align-middle text-sm`. No vertical borders (`border-r`) between columns.
 - **Inputs (`EditableText`)**: Add `inputClassName="w-full"` on every table cell `EditableText` so the input stays within its column width. Amounts should always be formatted via `formatCurrency`.
+- **No Horizontal Scroll**: Adding or modifying columns must **never** introduce a horizontal scrollbar. The total width of all columns must fit within the existing table container. When adding new content to an action column (e.g., a second icon), reduce padding (`p-1` not `p-1.5`) and gap (`gap-0`) rather than increasing `size`. Action columns with two icons (pencil + trash at 13px each) must use `size: 44` max. Never increase a column's `size` just to accommodate added controls — compress the controls instead.
 - **Grouped Tables (e.g., Itinerary)**: For tables broken into collapsible groups, the outer container may use standard card-like classes (`border border-border rounded-[var(--radius-md)] overflow-hidden bg-bg-card`) with a custom stylized header instead of `Card`. The internal `<table>` structure, headers, and rows must still adhere strictly to the design rules above.
 
 ### 6. Tab Layouts

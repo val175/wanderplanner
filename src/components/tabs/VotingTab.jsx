@@ -167,11 +167,11 @@ function IdeaTableRow({ idea, resolveProfile, onDelete, onUpdate, isSelectable, 
             <td className="px-2 py-3 text-[12px] text-text-muted whitespace-nowrap">{date}</td>
 
             {/* Actions */}
-            <td className="px-2 py-3 w-16">
-                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out">
+            <td className="px-2 py-3 w-10">
+                <div className="flex items-center gap-0 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out">
                     <button
                         onClick={(e) => { e.stopPropagation(); /* title EditableText handles inline edit */ }}
-                        className="p-1.5 text-text-muted hover:text-accent rounded transition-colors"
+                        className="p-1 text-text-muted hover:text-accent rounded transition-colors"
                         title="Edit"
                     >
                         <Pencil size={13} />
@@ -179,7 +179,7 @@ function IdeaTableRow({ idea, resolveProfile, onDelete, onUpdate, isSelectable, 
                     {onDelete && (
                         <button
                             onClick={(e) => { e.stopPropagation(); onDelete(idea.id) }}
-                            className="p-1.5 text-text-muted hover:text-danger rounded transition-colors"
+                            className="p-1 text-text-muted hover:text-danger rounded transition-colors"
                             title="Delete"
                         >
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>

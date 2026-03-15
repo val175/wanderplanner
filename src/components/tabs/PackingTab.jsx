@@ -585,12 +585,12 @@ export default function PackingTab() {
     {
       id: 'actions',
       header: '',
-      size: 72,
+      size: 44,
       cell: info => !isReadOnly && (
-        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out">
+        <div className="flex items-center gap-0 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out">
           <button
             onClick={(e) => { e.stopPropagation(); /* name EditableText handles inline edit */ }}
-            className="p-1.5 text-text-muted hover:text-accent rounded transition-colors touch-target"
+            className="p-1 text-text-muted hover:text-accent rounded transition-colors touch-target"
             title="Edit"
           >
             <Pencil size={13} />
@@ -600,7 +600,7 @@ export default function PackingTab() {
               e.stopPropagation()
               onDelete(info.row.original.id)
             }}
-            className="p-1.5 text-text-muted hover:text-danger rounded transition-colors touch-target"
+            className="p-1 text-text-muted hover:text-danger rounded transition-colors touch-target"
             title="Delete"
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
