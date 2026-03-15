@@ -24,6 +24,7 @@ import AvatarCircle from '../shared/AvatarCircle'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
 import { triggerHaptic, hapticImpact } from '../../utils/haptics'
 import TabHeader from '../common/TabHeader'
+import EmptyState from '../shared/EmptyState'
 
 function AddPackingModal({ isOpen, onClose, onAdd, defaultAssignee }) {
   const [itemData, setItemData] = useState({
@@ -822,10 +823,20 @@ export default function PackingTab() {
 
 
       {total === 0 && (
-        <div className="text-center py-12 text-text-muted">
-          <div className="text-4xl mb-3">🧳</div>
-          <p className="text-sm text-balance">No items yet. Add your first item or use the starter list.</p>
-        </div>
+        <EmptyState
+          className="mt-4"
+          emoji="🧳"
+          title="Your packing list is empty"
+          subtitle="Add items manually or let Wanda suggest what to pack based on your destinations."
+          wandaPrompt={`What should I pack for my trip to ${activeTrip.cities?.map(c => c.city).join(', ') || 'my destinations'}? Suggest specific packing items.`}
+          action={
+            !isReadOnly && (
+              <Button variant="primary" size="sm" onClick={handleStarterList}>
+                🗂️ Starter List
+              </Button>
+            )
+          }
+        />
       )}
     </div>
   )
