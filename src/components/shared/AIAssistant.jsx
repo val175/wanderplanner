@@ -46,6 +46,8 @@ const chatTransport = new DefaultChatTransport({
 });
 
 const PILLS = [
+  { emoji: '🗓️', label: 'Plan my day' },
+  { emoji: '💸', label: 'Budget check' },
   { emoji: '💰', label: 'Budget tips' },
   { emoji: '📅', label: 'Optimize itinerary' },
   { emoji: '🏨', label: 'Hotel tips' },
@@ -68,6 +70,8 @@ export default function AIAssistant() {
   const [currentSpellIndex, setCurrentSpellIndex] = useState(0);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+  const prevStatusRef = useRef('ready');
+  const prevTripIdRef = useRef(null);
 
   const { state, activeTrip, dispatch, showToast } = useContext(TripContext);
 
@@ -75,9 +79,37 @@ export default function AIAssistant() {
     _systemPromptRef = buildTripSystemPrompt(activeTrip);
   }, [activeTrip]);
 
-  const { messages, sendMessage, status, error, addToolResult } = useChat({
+  const { messages, sendMessage, status, error, addToolResult, setMessages } = useChat({
     transport: chatTransport,
   });
+
+  // Load saved conversation when active trip changes
+  useEffect(() => {
+    if (prevTripIdRef.current === (activeTrip?.id ?? null)) return;
+    prevTripIdRef.current = activeTrip?.id ?? null;
+    const saved = activeTrip?.wandaConversation || [];
+    setMessages(saved.length
+      ? saved.map(m => ({ id: m.id, role: m.role, content: m.content, parts: [{ type: 'text', text: m.content }] }))
+      : []
+    );
+  }, [activeTrip?.id]);
+
+  // Save conversation to Firestore after each completed AI response
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    prevStatusRef.current = status;
+    if (prev === 'streaming' && status === 'ready' && activeTrip && messages.length > 0) {
+      const simplified = messages
+        .filter(m => m.role === 'user' || m.role === 'assistant')
+        .map(m => {
+          const textParts = m.parts?.filter(p => p.type === 'text') ?? [];
+          const content = textParts.map(p => p.text).join('').trim() || m.content || '';
+          return { id: m.id, role: m.role, content };
+        })
+        .slice(-50);
+      dispatch({ type: ACTIONS.UPDATE_WANDA_CONVERSATION, payload: simplified });
+    }
+  }, [status]);
 
   const isLoading = status === 'submitted' || status === 'streaming';
 
@@ -128,7 +160,11 @@ export default function AIAssistant() {
     // Explicit instructions for the AI to use its tools when a pill is clicked.
     // The PILL_INSTRUCTION_MARKER is used to hide this from the user in the UI.
     let instruction = '';
-    if (label.includes('Food spots')) {
+    if (label.includes('Plan my day')) {
+      instruction = `Look at our itinerary and find the next day that has few or no activities. Call the "generate_day_itinerary" tool to plan it with 4-5 time-slotted activities appropriate for our destination and budget.`;
+    } else if (label.includes('Budget check')) {
+      instruction = `Analyze our budget in detail — check each category against its limit and look at our spending pace. For EACH issue you find (overruns, risks, or tips), call the "add_budget_alert" tool (up to 3 calls). Include specific numbers in your text response too.`;
+    } else if (label.includes('Food spots')) {
       instruction = `Please recommend 3 specific food spots in our destination. IMPORTANT: For EACH spot, you MUST call the "add_idea_to_voting_room" tool. Do not just list them in text.`;
     } else if (label.includes('Hotel tips')) {
       instruction = `Please recommend 3 specific hotels/lodging options. IMPORTANT: For EACH option, you MUST call the "add_idea_to_voting_room" tool. Do not just list them in text.`;
@@ -247,6 +283,46 @@ export default function AIAssistant() {
         })}
         onUndo={newId => dispatch({ type: ACTIONS.DELETE_IDEA, payload: newId })}
         toastLabel="added to voting room"
+      />
+    )
+  }
+
+  // ── Itinerary day plan pill ───────────────────────────────────────────────────
+  const ItineraryPill = ({ inv }) => {
+    const { dayNumber, location, activities = [] } = inv.input || {}
+    const [localDone, setLocalDone] = useState(false)
+    const done = localDone || inv.state === 'output-available'
+    if (!activities.length) return null
+    const canAct = !!activeTrip && !done
+    const handleClick = () => {
+      if (!canAct) return
+      dispatch({ type: ACTIONS.BATCH_ADD_ACTIVITIES, payload: { dayNumber, activities } })
+      try { addToolResult({ tool: 'generate_day_itinerary', toolCallId: inv.toolCallId, output: 'added' }) } catch { }
+      showToast(`🗓️ Day ${dayNumber} plan added — ${activities.length} activities`)
+      setLocalDone(true)
+    }
+    return (
+      <button onClick={handleClick} disabled={!canAct} title={!activeTrip ? 'Select a trip first' : undefined}
+        className={`mt-1 inline-flex items-center gap-2 rounded-[var(--radius-sm)] px-2.5 py-1 text-xs font-semibold transition-colors ${done ? 'text-success' : 'text-text-secondary hover:text-text-primary'} ${canAct ? 'hover:bg-bg-hover' : 'opacity-50'}`}>
+        <span className="text-sm">{done ? '✅' : '🗓️'}</span>
+        <span>{done ? 'Added to itinerary' : `Add Day ${dayNumber} plan (${activities.length} activities)`}</span>
+        {!done && <span className="text-[11px] opacity-60">+</span>}
+      </button>
+    )
+  }
+
+  // ── Budget alert pill ─────────────────────────────────────────────────────────
+  const BudgetAlertPill = ({ inv }) => {
+    const { title, message, severity, emoji } = inv.input || {}
+    return (
+      <ActionPill
+        inv={inv}
+        toolName="add_budget_alert"
+        emoji={emoji || '💸'}
+        label={title}
+        onConfirm={() => dispatch({ type: ACTIONS.ADD_WANDA_ALERT, payload: { title, message, severity: severity || 'warning', emoji: emoji || '💸' } })}
+        onUndo={() => {}}
+        toastLabel="alert saved to Overview"
       />
     )
   }
@@ -412,16 +488,18 @@ export default function AIAssistant() {
               </div>
             </div>
 
-            {/* Action pills — both tools handled; type is 'tool-{name}' in ai@6 */}
+            {/* Action pills — all four tools */}
             {m.role === 'assistant' && m.parts
               ?.filter(p =>
-                (p.type === 'tool-add_to_packing_list' || p.type === 'tool-add_idea_to_voting_room')
+                ['tool-add_to_packing_list', 'tool-add_idea_to_voting_room', 'tool-generate_day_itinerary', 'tool-add_budget_alert'].includes(p.type)
                 && p.state !== 'input-streaming'
               )
-              .map(p => p.type === 'tool-add_to_packing_list'
-                ? <PackingPill key={p.toolCallId} inv={p} />
-                : <VotingPill key={p.toolCallId} inv={p} />
-              )
+              .map(p => {
+                if (p.type === 'tool-add_to_packing_list') return <PackingPill key={p.toolCallId} inv={p} />
+                if (p.type === 'tool-add_idea_to_voting_room') return <VotingPill key={p.toolCallId} inv={p} />
+                if (p.type === 'tool-generate_day_itinerary') return <ItineraryPill key={p.toolCallId} inv={p} />
+                return <BudgetAlertPill key={p.toolCallId} inv={p} />
+              })
             }
           </div>
         ))}

@@ -70,6 +70,14 @@ export const ACTIONS = {
   RESET_PACKING: 'RESET_PACKING',
   ADD_PACKING_SECTION: 'ADD_PACKING_SECTION',
 
+  // Wanda conversation + AI alerts
+  UPDATE_WANDA_CONVERSATION: 'UPDATE_WANDA_CONVERSATION',
+  ADD_WANDA_ALERT: 'ADD_WANDA_ALERT',
+  CLEAR_WANDA_ALERTS: 'CLEAR_WANDA_ALERTS',
+
+  // Itinerary — batch add
+  BATCH_ADD_ACTIVITIES: 'BATCH_ADD_ACTIVITIES',
+
   // Ideas
   ADD_IDEA: 'ADD_IDEA',
   VOTE_IDEA: 'VOTE_IDEA',
@@ -719,6 +727,37 @@ export function tripReducer(state, action) {
           return { ...idea, votes: newVotes }
         }),
       }))
+
+    case ACTIONS.UPDATE_WANDA_CONVERSATION:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        wandaConversation: payload,
+      }))
+
+    case ACTIONS.ADD_WANDA_ALERT:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        wandaAlerts: [...(trip.wandaAlerts || []).slice(-9), { ...payload, id: generateId(), createdAt: Date.now() }],
+      }))
+
+    case ACTIONS.CLEAR_WANDA_ALERTS:
+      return updateTrip(state, activeTripId, trip => ({ ...trip, wandaAlerts: [] }))
+
+    case ACTIONS.BATCH_ADD_ACTIVITIES: {
+      const { dayNumber, activities } = payload
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        itinerary: (trip.itinerary || []).map(day =>
+          day.dayNumber !== dayNumber ? day : {
+            ...day,
+            activities: [
+              ...(day.activities || []),
+              ...activities.map(a => ({ ...a, id: generateId() })),
+            ],
+          }
+        ),
+      }))
+    }
 
     case ACTIONS.UPDATE_IDEA:
       return updateTrip(state, activeTripId, trip => ({

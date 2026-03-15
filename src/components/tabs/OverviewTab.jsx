@@ -360,6 +360,18 @@ function buildAttentionItems(trip) {
     })
   })
 
+  // Wanda AI budget alerts
+  ;(trip.wandaAlerts || []).slice(0, 3).forEach(alert => {
+    items.push({
+      id: `wanda-alert-${alert.id}`,
+      urgency: alert.severity === 'danger' ? URGENCY_HIGH : URGENCY_MED,
+      icon: alert.emoji || '🪄',
+      title: alert.title,
+      subtitle: alert.message,
+      tab: 'budget',
+    })
+  })
+
   return items.sort((a, b) => a.urgency === URGENCY_HIGH ? -1 : b.urgency === URGENCY_HIGH ? 1 : 0).slice(0, 6)
 }
 

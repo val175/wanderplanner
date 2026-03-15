@@ -42,6 +42,38 @@ const WANDA_TOOLS = {
             priceDetails: z.string().describe('Estimated cost as a plain string, e.g. "~$50/person", "Free", or "TBD"'),
         }),
     }),
+    generate_day_itinerary: tool({
+        description: [
+            'Generate a full day itinerary plan for one trip day.',
+            'Call when the user asks to "plan my day", "create a schedule for Day X", "fill in Day N", or "what should I do in [city]".',
+            'Produce 3-6 time-slotted activities in chronological order. The user will confirm before they are added.',
+        ].join(' '),
+        parameters: z.object({
+            dayNumber: z.number().describe('The trip day number (1-based integer) this plan targets, e.g. 3 for "Day 3".'),
+            location: z.string().describe('City or area for this day, e.g. "Kyoto, Japan".'),
+            activities: z.array(z.object({
+                name: z.string().describe('Activity name, e.g. "Visit Fushimi Inari Shrine".'),
+                emoji: z.string().describe('One emoji for this activity.'),
+                time: z.string().describe('Start time in 24-hour HH:MM format, e.g. "09:00".'),
+                duration: z.number().describe('Duration in minutes, e.g. 90.'),
+                category: z.enum(['food', 'sightseeing', 'transport', 'accommodation', 'shopping', 'activity', 'other']),
+                notes: z.string().optional().describe('Optional brief tip for this activity.'),
+            })).describe('3-6 activities in chronological order.'),
+        }),
+    }),
+    add_budget_alert: tool({
+        description: [
+            'Add a persistent budget alert to the trip Overview attention items.',
+            'Call when you identify a budget overrun, spending risk, or cost-saving opportunity during a Budget Check.',
+            'Call once per distinct issue (up to 3 per response).',
+        ].join(' '),
+        parameters: z.object({
+            title: z.string().describe('Short alert title, e.g. "Accommodation over budget".'),
+            message: z.string().describe('1-2 sentences explaining the issue and a concrete suggestion.'),
+            severity: z.enum(['warning', 'danger', 'info']).describe('danger=over budget, warning=approaching limit, info=tip.'),
+            emoji: z.string().describe('One emoji for this alert, e.g. "💸".'),
+        }),
+    }),
 }
 
 export default async function handler(req) {
