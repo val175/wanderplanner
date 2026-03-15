@@ -275,13 +275,6 @@ export default function WrapUpTab() {
                         sub={stats.budgetSub}
                         subColor={stats.budgetSubColor}
                     />
-                ) : stats.countries.length > 0 ? (
-                    <StatCard
-                        emoji={stats.countries[0]}
-                        label="Countries"
-                        value={stats.countries.length}
-                        sub={stats.countries.join('  ')}
-                    />
                 ) : null}
                 {km !== null && km > 0 && (
                     <StatCard
@@ -291,10 +284,18 @@ export default function WrapUpTab() {
                         sub={relatableKm ? `Equivalent to ${relatableKm}` : 'estimated route'}
                     />
                 )}
+                {stats.countries.length > 1 && (
+                    <StatCard
+                        emoji={stats.countries[0]}
+                        label="Countries"
+                        value={stats.countries.length}
+                        sub={stats.countries.join('  ')}
+                    />
+                )}
             </div>
 
             {/* MVP + Vibe row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className={`grid grid-cols-1 gap-3 ${stats.favourite ? 'sm:grid-cols-2' : ''}`}>
                 {/* Trip MVP */}
                 {stats.favourite ? (
                     <div className="rounded-[var(--radius-lg)] border border-success/30 bg-success/5 p-4">
@@ -325,17 +326,7 @@ export default function WrapUpTab() {
                             </div>
                         </div>
                     </div>
-                ) : (
-                    /* Fallback if no MVP: show countries */
-                    stats.countries.length > 0 && (
-                        <StatCard
-                            emoji={stats.countries[0]}
-                            label="Countries"
-                            value={stats.countries.length}
-                            sub={stats.countries.join('  ')}
-                        />
-                    )
-                )}
+                ) : null}
 
                 {/* The Vibe */}
                 <div className="rounded-[var(--radius-lg)] border border-border bg-bg-card p-4 flex flex-col gap-4">
