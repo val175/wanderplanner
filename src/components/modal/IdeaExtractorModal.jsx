@@ -37,7 +37,7 @@ export default function IdeaExtractorModal({ isOpen, onClose }) {
                 if (auth.currentUser) token = await auth.currentUser.getIdToken()
             } catch (_) {}
 
-            const res = await fetch('https://wanderplan-rust.vercel.app/api/extract-pin', {
+            const res = await fetch('/api/extract-pin', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

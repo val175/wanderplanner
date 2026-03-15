@@ -49,59 +49,68 @@ export default async function handler(req, res) {
 
             // ── Branch B: Generic URL — TripAdvisor, Airbnb, Booking.com, blogs, etc. ─
         } else {
-            // Attempt 1: direct scrape with browser-like headers
-            try {
-                const htmlRes = await fetch(url, { headers: BROWSER_HEADERS, redirect: 'follow' })
-                if (htmlRes.ok) {
-                    const html = await htmlRes.text()
-                    const $ = cheerio.load(html)
-                    const ogTitle = $('meta[property="og:title"]').attr('content') || ''
-                    const ogDesc = $('meta[property="og:description"]').attr('content')
-                        || $('meta[name="description"]').attr('content') || ''
-                    // TripAdvisor uses "og: image" with a space — handle both forms
-                    const ogImage = $('meta[property="og:image"]').attr('content')
-                        || $('meta[property="og: image"]').attr('content')
-                        || $('meta[name="twitter:image"]').attr('content') || ''
-                    const pageTitle = $('title').text().trim() || ''
-                    contextText = [ogTitle || pageTitle, ogDesc].filter(Boolean).join('\n')
-                    thumbnail_url = ogImage || null
-                }
-            } catch (_) { /* non-fatal — fall through to Microlink */ }
+            // Social media fast-path
+            const SOCIAL_DOMAINS = {
+                'facebook.com': 'Facebook', 'fb.com': 'Facebook',
+                'instagram.com': 'Instagram', 'twitter.com': 'Twitter', 'x.com': 'Twitter',
+                'youtube.com': 'YouTube', 'youtu.be': 'YouTube', 'threads.net': 'Threads'
+            }
+            const host = new URL(url).hostname.replace('www.', '')
+            const socialPlatform = Object.entries(SOCIAL_DOMAINS).find(([domain]) => host === domain || host.endsWith('.' + domain))?.[1]
 
-            // Attempt 2: Microlink for JS-rendered sites (Agoda, Booking.com, etc.)
-            // Also fills in thumbnail when direct scrape got text but no image
-            if (!contextText || !thumbnail_url) {
+            if (socialPlatform) {
+                sourceName = socialPlatform
                 try {
                     const ml = await fetch(`https://api.microlink.io?url=${encodeURIComponent(url)}`)
                     if (ml.ok) {
                         const mlData = (await ml.json()).data || {}
-                        if (!contextText) {
-                            contextText = [mlData.title, mlData.description].filter(Boolean).join('\n')
-                        }
-                        if (!thumbnail_url) {
-                            thumbnail_url = mlData.image?.url || null
-                        }
+                        contextText = [mlData.title, mlData.description].filter(Boolean).join('\n')
+                        thumbnail_url = mlData.image?.url || mlData.logo?.url || null
                     }
-                } catch (_) { /* non-fatal */ }
-            }
+                } catch (_) {}
+            } else {
+                // Attempt 1: direct scrape with browser-like headers
+                try {
+                    const htmlRes = await fetch(url, { headers: BROWSER_HEADERS, redirect: 'follow' })
+                    if (htmlRes.ok) {
+                        const html = await htmlRes.text()
+                        const $ = cheerio.load(html)
+                        const ogTitle = $('meta[property="og:title"]').attr('content') || ''
+                        const ogDesc = $('meta[property="og:description"]').attr('content')
+                            || $('meta[name="description"]').attr('content') || ''
+                        const ogImage = $('meta[property="og:image"]').attr('content')
+                            || $('meta[property="og: image"]').attr('content')
+                            || $('meta[name="twitter:image"]').attr('content') || ''
+                        const pageTitle = $('title').text().trim() || ''
+                        contextText = [ogTitle || pageTitle, ogDesc].filter(Boolean).join('\n')
+                        thumbnail_url = ogImage || null
+                    }
+                } catch (_) { }
 
-            // Attempt 3: URL-only fallback — AI can still infer from the URL structure
-            if (!contextText) contextText = url
-
-            // Infer source name from hostname
-            try {
-                const host = new URL(url).hostname.replace('www.', '')
-                if (host.includes('tripadvisor')) sourceName = 'TripAdvisor'
-                else if (host.includes('airbnb')) sourceName = 'Airbnb'
-                else if (host.includes('booking.com')) sourceName = 'Booking.com'
-                else if (host.includes('agoda')) sourceName = 'Agoda'
-                else if (host.includes('klook')) sourceName = 'Klook'
-                else if (host.includes('viator')) sourceName = 'Viator'
-                else {
-                    const name = host.split('.')[0]
-                    sourceName = name.charAt(0).toUpperCase() + name.slice(1)
+                // Attempt 2: Microlink fallback
+                if (!contextText || !thumbnail_url) {
+                    try {
+                        const ml = await fetch(`https://api.microlink.io?url=${encodeURIComponent(url)}`)
+                        if (ml.ok) {
+                            const mlData = (await ml.json()).data || {}
+                            if (!contextText) contextText = [mlData.title, mlData.description].filter(Boolean).join('\n')
+                            if (!thumbnail_url) thumbnail_url = mlData.image?.url || null
+                        }
+                    } catch (_) { }
                 }
-            } catch (_) { }
+
+                // Infer source name from hostname
+                try {
+                    if (host.includes('tripadvisor')) sourceName = 'TripAdvisor'
+                    else if (host.includes('airbnb')) sourceName = 'Airbnb'
+                    else if (host.includes('booking.com')) sourceName = 'Booking.com'
+                    else if (host.includes('agoda')) sourceName = 'Agoda'
+                    else {
+                        const name = host.split('.')[0]
+                        sourceName = name.charAt(0).toUpperCase() + name.slice(1)
+                    }
+                } catch (_) { }
+            }
         }
 
         // ── AI Standardisation via Gemini (Native SDK) ───────────────────────────
