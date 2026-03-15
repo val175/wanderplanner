@@ -26,6 +26,7 @@ import JoinTripModal from './components/modal/JoinTripModal'
 import Toast from './components/shared/Toast'
 import AIAssistant from './components/shared/AIAssistant'
 import GlobalSearchModal from './components/modal/GlobalSearchModal'
+import ShortcutsModal from './components/shared/ShortcutsModal'
 
 // Tab components
 import OverviewTab from './components/tabs/OverviewTab'
@@ -140,11 +141,26 @@ function AuthenticatedApp({ user, signOutUser }) {
   const handleOpenSidebar = useCallback(() => dispatch({ type: ACTIONS.SET_SIDEBAR, payload: true }), [dispatch])
 
   const [showSearch, setShowSearch] = useState(false)
+  const [showShortcuts, setShowShortcuts] = useState(false)
   useEffect(() => {
     const handleOpenSearch = () => setShowSearch(true)
     window.addEventListener('open-global-search', handleOpenSearch)
     return () => window.removeEventListener('open-global-search', handleOpenSearch)
   }, [])
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const inInput = document.activeElement?.matches?.('input, textarea') || document.activeElement?.isContentEditable
+      if (e.key === '?' && !inInput && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault()
+        setShowShortcuts(prev => !prev)
+      }
+      if (e.key === 'Escape' && showSearch) {
+        setShowSearch(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showSearch])
 
   const handleTabSwitch = useCallback((tabId) => {
     dispatch({ type: ACTIONS.SET_TAB, payload: tabId })
@@ -276,6 +292,7 @@ function AuthenticatedApp({ user, signOutUser }) {
         />
 
         <GlobalSearchModal isOpen={showSearch} onClose={() => setShowSearch(false)} />
+        <ShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
         <AIAssistant />
 
         <Toast

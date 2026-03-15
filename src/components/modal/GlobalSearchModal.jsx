@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Search, X } from 'lucide-react'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
+import { TAB_CONFIG } from '../../constants/tabs'
 import { hapticImpact, hapticSelection } from '../../utils/haptics'
 import { formatDate } from '../../utils/helpers'
 
@@ -13,6 +14,25 @@ const TABS = {
   budget: { label: 'Budget', emoji: '💰' },
   voting: { label: 'Voting', emoji: '🗳️' }
 }
+
+const COMMANDS = [
+  ...TAB_CONFIG.filter(t => !t.conditional).map(t => ({
+    id: `nav-${t.id}`,
+    isCommand: true,
+    title: `Go to ${t.label}`,
+    subtitle: 'Navigate',
+    emoji: t.emoji,
+    action: (dispatch) => dispatch({ type: ACTIONS.SET_TAB, payload: t.id }),
+  })),
+  {
+    id: 'open-wanda',
+    isCommand: true,
+    title: 'Open Wanda',
+    subtitle: 'AI Assistant',
+    emoji: '🪄',
+    action: () => window.dispatchEvent(new CustomEvent('open-wanda')),
+  },
+]
 
 export default function GlobalSearchModal({ isOpen, onClose }) {
   const { activeTrip, dispatch } = useTripContext()
@@ -39,10 +59,6 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
         e.preventDefault()
         if (!isOpen) {
           hapticImpact('light')
-          // Assuming the parent component manages the open state
-          // This requires passing a prop or using context.
-          // For simplicity, we assume TripHeader handles the listener or we expose an event.
-          // Actually, let's dispatch a custom event that TripHeader listens to.
           window.dispatchEvent(new CustomEvent('open-global-search'))
         } else {
           onClose()
@@ -135,7 +151,7 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
       (poll.options || []).forEach(opt => {
         if (safeStr(opt, ['title', 'description', 'sourceName']).includes(q)) {
           r.push({
-            id: poll.id, // Highlight the poll itself
+            id: poll.id,
             tab: 'voting',
             title: opt.title || 'Unnamed Option',
             subtitle: `In poll: ${poll.title}`,
@@ -158,15 +174,24 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
     return [...r, ...aiResults]
   }, [activeTrip, query, aiResults])
 
-  // Reset selection when results change
-  useEffect(() => setSelectedIndex(0), [results.length])
+  // All selectable items: commands when empty, filtered commands + results when typing
+  const allItems = useMemo(() => {
+    if (query.trim() === '') return COMMANDS
+    const q = query.toLowerCase()
+    return [
+      ...COMMANDS.filter(c => c.title.toLowerCase().includes(q)),
+      ...results,
+    ]
+  }, [query, results])
+
+  // Reset selection when items change
+  useEffect(() => setSelectedIndex(0), [allItems.length])
 
   const handleAISearch = async () => {
     if (!activeTrip || !query.trim() || isSearchingAI) return
     setIsSearchingAI(true)
     hapticImpact('light')
     try {
-      // Send a simplified version of the trip to save tokens
       const tripSummary = {
         itinerary: activeTrip.itinerary || [],
         bookings: activeTrip.bookings || [],
@@ -175,7 +200,7 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
         ideas: activeTrip.ideas || [],
         polls: activeTrip.polls || []
       }
-      
+
       const res = await fetch('https://wanderplan-rust.vercel.app/api/semantic-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -183,7 +208,7 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
       })
       if (!res.ok) throw new Error('Failed AI search')
       const data = await res.json()
-      
+
       if (data && data.results) {
          setAiResults(data.results.map(r => ({ ...r, subtitle: `✨ AI: ${r.subtitle}` })))
       }
@@ -194,16 +219,16 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
     }
   }
 
-  const handleSelect = (result) => {
+  const handleSelect = (item) => {
     hapticSelection()
-    dispatch({ type: ACTIONS.SET_TAB, payload: result.tab })
-    
-    // Add a slight delay to allow the tab to render, then dispatch a custom event
-    // that the specific tab can listen to in order to scroll/highlight the item.
-    setTimeout(() => {
-      window.dispatchEvent(new CustomEvent('highlight-item', { detail: { id: result.id, tab: result.tab } }))
-    }, 150)
-    
+    if (item.isCommand) {
+      item.action(dispatch)
+    } else {
+      dispatch({ type: ACTIONS.SET_TAB, payload: item.tab })
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('highlight-item', { detail: { id: item.id, tab: item.tab } }))
+      }, 150)
+    }
     onClose()
   }
 
@@ -211,14 +236,14 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
   const handleKeyDown = (e) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setSelectedIndex(prev => Math.min(prev + 1, results.length - 1))
+      setSelectedIndex(prev => Math.min(prev + 1, allItems.length - 1))
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       setSelectedIndex(prev => Math.max(prev - 1, 0))
     } else if (e.key === 'Enter') {
       e.preventDefault()
-      if (results[selectedIndex]) {
-        handleSelect(results[selectedIndex])
+      if (allItems[selectedIndex]) {
+        handleSelect(allItems[selectedIndex])
       }
     } else if (e.key === 'Escape') {
       e.preventDefault()
@@ -231,8 +256,8 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-start justify-center pt-20 sm:pt-32 px-4 animate-fade-in" onClick={onClose}>
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-      
-      <div 
+
+      <div
         className="relative w-full max-w-2xl bg-bg-card border border-border rounded-2xl overflow-hidden animate-scale-in"
         onClick={e => e.stopPropagation()}
       >
@@ -244,7 +269,7 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Search bookings, activities, places..."
+            placeholder="Search or jump to..."
             className="flex-1 bg-transparent border-none text-text-primary placeholder:text-text-muted text-base sm:text-lg outline-none"
           />
           {query && (
@@ -260,28 +285,40 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
         {/* Results Body */}
         <div className="max-h-[60vh] overflow-y-auto scrollbar-hide py-2">
           {query.trim() === '' ? (
-            <div className="px-6 py-12 text-center text-text-muted">
-              <p className="text-sm">Type anything to search perfectly across your trip.</p>
-              <div className="flex justify-center gap-4 mt-4 opacity-50">
-                {Object.values(TABS).map((t, idx) => (
-                  <div key={idx} className="flex items-center gap-1.5 text-xs">
-                    <span>{t.emoji}</span>
-                    <span>{t.label}</span>
-                  </div>
-                ))}
-              </div>
+            // Command list (empty state)
+            <div className="flex flex-col px-2 py-2">
+              <p className="px-4 pt-2 pb-1 text-[11px] font-semibold text-text-muted uppercase tracking-wide">Commands</p>
+              {COMMANDS.map((cmd, idx) => {
+                const isSelected = idx === selectedIndex
+                return (
+                  <button
+                    key={cmd.id}
+                    onClick={() => handleSelect(cmd)}
+                    onMouseEnter={() => setSelectedIndex(idx)}
+                    className={`flex items-center gap-4 w-full text-left px-4 py-3 rounded-xl transition-all ${
+                      isSelected ? 'bg-bg-hover border border-border/50' : 'bg-transparent border border-transparent'
+                    }`}
+                  >
+                    <div className="p-2 rounded-lg bg-bg-input shrink-0 border border-border/50 flex items-center justify-center text-lg w-9 h-9">{cmd.emoji}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-text-primary">{cmd.title}</p>
+                      <p className="text-xs text-text-muted mt-0.5">{cmd.subtitle}</p>
+                    </div>
+                  </button>
+                )
+              })}
             </div>
-          ) : results.length === 0 && !isSearchingAI ? (
+          ) : allItems.length === 0 && !isSearchingAI ? (
            <div className="px-6 py-12 text-center">
-             <p className="text-sm text-text-muted mb-2">No local results for "{query}"</p>
-             <button 
+             <p className="text-sm text-text-muted mb-2">No results for "{query}"</p>
+             <button
                onClick={handleAISearch}
                className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/10 border border-accent/20 rounded-[var(--radius-sm)] text-accent text-xs font-medium cursor-pointer hover:bg-accent/20 transition-colors"
              >
                🪄 Ask Wanda to search semantically
              </button>
            </div>
-        ) : results.length === 0 && isSearchingAI ? (
+        ) : allItems.length === 0 && isSearchingAI ? (
            <div className="px-6 py-12 flex flex-col items-center justify-center">
              <div className="flex gap-1.5 mb-3">
                {[0, 1, 2].map(i => (
@@ -292,40 +329,55 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
            </div>
         ) : (
             <div className="flex flex-col px-2 pb-2">
-              {results.map((res, idx) => {
+              {/* Commands section (when typing) */}
+              {allItems.some(i => i.isCommand) && (
+                <p className="px-4 pt-2 pb-1 text-[11px] font-semibold text-text-muted uppercase tracking-wide">Commands</p>
+              )}
+              {allItems.map((item, idx) => {
                 const isSelected = idx === selectedIndex
+                const icon = item.isCommand ? item.emoji : TABS[item.tab]?.emoji
+
+                // Insert "Results" section header before first non-command item
+                const prevIsCommand = idx > 0 && allItems[idx - 1].isCommand
+                const showResultsHeader = !item.isCommand && (idx === 0 || prevIsCommand)
 
                 return (
-                  <button
-                    key={`${res.tab}-${res.id}`}
-                    onClick={() => handleSelect(res)}
-                    onMouseEnter={() => setSelectedIndex(idx)}
-                    className={`flex items-center gap-4 w-full text-left px-4 py-3 rounded-xl transition-all ${
-                      isSelected ? 'bg-bg-hover border border-border/50' : 'bg-transparent border border-transparent'
-                    }`}
-                  >
-                    <div className="p-2 rounded-lg bg-bg-input shrink-0 border border-border/50 flex items-center justify-center text-lg w-9 h-9">
-                      {TABS[res.tab].emoji}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-text-primary truncate">{res.title}</p>
-                      <p className="text-xs text-text-muted truncate mt-0.5 max-w-[90%]">{res.subtitle}</p>
-                    </div>
-                    <div className="shrink-0 text-text-muted opacity-50">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-                    </div>
-                  </button>
+                  <React.Fragment key={item.isCommand ? item.id : `${item.tab}-${item.id}`}>
+                    {showResultsHeader && (
+                      <p className="px-4 pt-3 pb-1 text-[11px] font-semibold text-text-muted uppercase tracking-wide">Results</p>
+                    )}
+                    <button
+                      onClick={() => handleSelect(item)}
+                      onMouseEnter={() => setSelectedIndex(idx)}
+                      className={`flex items-center gap-4 w-full text-left px-4 py-3 rounded-xl transition-all ${
+                        isSelected ? 'bg-bg-hover border border-border/50' : 'bg-transparent border border-transparent'
+                      }`}
+                    >
+                      <div className="p-2 rounded-lg bg-bg-input shrink-0 border border-border/50 flex items-center justify-center text-lg w-9 h-9">
+                        {icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-text-primary truncate">{item.title}</p>
+                        <p className="text-xs text-text-muted truncate mt-0.5 max-w-[90%]">{item.subtitle}</p>
+                      </div>
+                      {!item.isCommand && (
+                        <div className="shrink-0 text-text-muted opacity-50">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                        </div>
+                      )}
+                    </button>
+                  </React.Fragment>
                 )
               })}
             </div>
           )}
         </div>
-        
+
         {/* Footer */}
         <div className="px-4 py-2.5 bg-bg-sidebar border-t border-border flex items-center justify-between text-[11px] text-text-muted">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5"><kbd className="font-sans px-1 py-0.5 rounded bg-bg-input border border-border">↑↓</kbd> to navigate</span>
-            <span className="flex items-center gap-1.5"><kbd className="font-sans px-1 py-0.5 rounded bg-bg-input border border-border">↵</kbd> to jump</span>
+            <span className="flex items-center gap-1.5"><kbd className="font-sans px-1 py-0.5 rounded bg-bg-input border border-border">↵</kbd> to select</span>
           </div>
           <span className="font-medium flex items-center gap-1">Powered by <span className="text-accent">Wanda</span></span>
         </div>
