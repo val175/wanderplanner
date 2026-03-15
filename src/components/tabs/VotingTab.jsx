@@ -1014,7 +1014,7 @@ export default function VotingTab() {
                             <h3 className="text-xl font-semibold font-heading text-text-primary">No active polls yet</h3>
                             <p className="text-sm text-text-secondary mt-2 max-w-[340px] mb-8 leading-relaxed">Select 2 or more conflicting ideas from the pool below to pit them against each other in a formal vote.</p>
                             {!isCreatingPoll && (
-                                <Button variant="primary" onClick={() => setIsCreatingPoll(true)}>
+                                <Button variant="primary" size="sm" onClick={() => setIsCreatingPoll(true)}>
                                     Create Proposal
                                 </Button>
                             )}

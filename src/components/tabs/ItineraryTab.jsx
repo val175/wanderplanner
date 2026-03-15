@@ -1458,11 +1458,11 @@ export default function ItineraryTab() {
           emoji="🗺️"
           title="Build your perfect trip"
           subtitle="Start outlining your days and dragging activities around until your schedule is air-tight."
-          wandaPrompt={`Help me plan my itinerary for ${trip.name || 'this trip'}. Suggest a day-by-day schedule for ${trip.cities?.map(c => c.city).join(', ') || 'my destinations'}.`}
+          wandaPrompt={`Plan Day 1 of my trip to ${trip.cities?.map(c => c.city).join(', ') || 'my destinations'} — use the generate_day_itinerary tool to create a schedule I can add.`}
           action={
             !isReadOnly && (
               <Button variant="primary" size="sm" onClick={handleAddDay}>
-                <span className="text-xl leading-none mr-1">+</span> Add First Day
+                + Add First Day
               </Button>
             )
           }
