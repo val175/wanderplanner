@@ -22,7 +22,6 @@ import { useDrag } from '@use-gesture/react'
 import { useEffect } from 'react'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useSmartLocation } from '../../hooks/useSmartLocation'
-import LocationPill from '../shared/LocationPill'
 import LocationAutocomplete from '../shared/LocationAutocomplete'
 import EmptyState from '../shared/EmptyState'
 import ActivityDrawer from './ActivityDrawer'
@@ -271,7 +270,6 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
   const [dragOverGroup, setDragOverGroup] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [highlightedActivityId, setHighlightedActivityId] = useState(null)
-  const [expandedNoteId, setExpandedNoteId] = useState(null)
 
   useEffect(() => {
     const handleHighlight = (e) => {
@@ -487,30 +485,27 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
                         }}
                         onDragOver={e => e.preventDefault()}
                         onDrop={e => handleDropActivity(e, index)}
+                        onClick={(e) => {
+                          if (!e.target.closest('[data-no-drawer]')) {
+                            onOpenDrawer({ activityId: activity.id, dayId: day.id })
+                          }
+                        }}
                         className="group/row hover:bg-bg-hover/50 transition-colors relative cursor-pointer border-t border-border/20"
                       >
                         {/* Drag Handle */}
-                        <td className="px-2 pt-4 pb-2 align-top">
+                        <td className="px-2 pt-4 pb-2 align-top" data-no-drawer>
                           <div className="cursor-grab active:cursor-grabbing text-text-muted opacity-0 group-hover/row:opacity-100 text-center w-full pt-0.5">⠿</div>
                         </td>
 
                         {/* Time Column (Stacked) */}
                         <td className="px-2 pt-4 pb-2 align-top w-[100px]">
                           <div className="flex flex-col gap-1">
-                            <TimePicker
-                              value={activity.time}
-                              onChange={time => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { time } } })}
-                              className="border-transparent hover:border-border text-text-primary font-mono text-[13px] font-semibold w-full !px-1 bg-transparent text-left"
-                              placeholder="-:-"
-                              disabled={isReadOnly}
-                            />
-                            <TimePicker
-                              value={activity.endTime}
-                              onChange={endTime => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { endTime } } })}
-                              className="text-[10px] text-text-muted font-mono bg-transparent border-transparent hover:border-border h-auto py-0 w-full !px-1"
-                              placeholder="-:-"
-                              disabled={isReadOnly}
-                            />
+                            <span className="font-mono text-[13px] font-semibold text-text-primary">
+                              {activity.time || '—'}
+                            </span>
+                            <span className="text-[10px] text-text-muted font-mono">
+                              {activity.endTime || ''}
+                            </span>
                             {hasConflict && (
                               <span className="text-[9px] font-semibold text-warning bg-warning/10 rounded px-1 py-0.5 leading-none" title="Time overlap with another activity">
                                 ⚠️ overlap
@@ -520,10 +515,11 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
                         </td>
 
                         {/* Timeline */}
-                        <td className="px-0 relative w-[30px] align-top group/timeline">
+                        <td className="px-0 relative w-[30px] align-top group/timeline" data-no-drawer>
                           <div className={`absolute left-1/2 top-0 bottom-0 -ml-[1px] w-[2px] bg-border z-0 ${index === 0 ? 'top-5' : ''} ${index === arr.length - 1 ? 'bottom-[20%]' : ''}`}></div>
                           <div className={`relative z-10 w-2.5 h-2.5 rounded-full ${dotColor} mx-auto ring-4 ring-bg-card mt-5`}></div>
                           <button
+                            data-no-drawer
                             onClick={() => dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId: day.id, activity: {}, index: index } })}
                             className="absolute -top-3 left-1/2 -ml-3 w-6 h-6 rounded-full bg-bg-card border border-border text-lg font-light text-text-muted flex items-center justify-center opacity-0 group-hover/timeline:opacity-100 hover:bg-bg-hover hover:text-accent z-20 transition-all pb-0.5"
                             title="Insert before"
@@ -531,137 +527,84 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
                         </td>
 
                         {/* Activity block */}
-                        <td className="px-2 pt-3 pb-2 align-top group/activity">
-                          <div className="flex items-start gap-3 w-full">
-                            <div className="flex-1 min-w-0">
-                              <EditableText
-                                value={activity.name}
-                                onSave={async (val) => {
-                                  dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { name: val } } })
-                                  // Auto-resolve if location is empty and name is provided
-                                  if (val && !activity.location?.verified) {
-                                    resolveLocation(day.id, activity.id, val, day.location)
-                                  }
-                                }}
-                                className="text-[14px] text-text-primary font-semibold w-full block truncate"
-                                inputClassName="w-full font-semibold px-0 py-0 h-auto min-h-0"
-                                placeholder="Activity name"
-                                readOnly={isReadOnly}
-                              />
-                              <div className="flex flex-col gap-0.5 mt-0.5">
-                                <span className="text-[11px] text-text-muted font-medium truncate uppercase tracking-tight">
-                                  {(activity.location?.placeName || activity.location || 'Unknown')}
-                                </span>
-                                <span className="text-[10px] text-text-muted/60 font-medium">
-                                  {activity.duration || 60} mins
-                                </span>
-                              </div>
-                              {/* Body Clock ghost-text */}
-                              {bodyClockOffsetHours !== null && activity.time && (
-                                FLIGHT_EMOJIS.has(activity.emoji) || FLIGHT_ACTIVITY_PATTERNS.test(activity.name || '')
-                              ) && (() => {
-                                const bodyTime = applyTimezoneOffset(activity.time, bodyClockOffsetHours)
-                                return bodyTime ? (
-                                  <span className="inline-flex items-center gap-1 mt-0.5 text-[10px] text-text-muted/60 italic select-none">
-                                    (that's {bodyTime} your body time 🧟)
-                                  </span>
-                                ) : null
-                              })()}
-                              {(activity.notes !== undefined) && (
-                                <div className={`transition-opacity duration-150 ${!activity.notes ? 'opacity-0 group-hover/row:opacity-100' : ''}`}>
-                                  <EditableText
-                                    value={activity.notes || ''}
-                                    onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { notes: val } } })}
-                                    className="text-[12px] text-text-muted block mt-1 hover:text-text-secondary w-full"
-                                    inputClassName="w-full text-[12px] px-0 py-0"
-                                    placeholder="Add note"
-                                    multiline
-                                    readOnly={isReadOnly}
-                                  />
-                                </div>
-                              )}
+                        <td className="px-2 pt-3 pb-2 align-top">
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[14px] text-text-primary font-semibold block truncate">
+                              {activity.name || 'Untitled'}
+                            </span>
+                            <div className="flex flex-col gap-0.5 mt-0.5">
+                              <span className="text-[11px] text-text-muted font-medium truncate uppercase tracking-tight">
+                                {activity.location?.placeName || (typeof activity.location === 'string' ? activity.location : '') || '—'}
+                              </span>
+                              <span className="text-[10px] text-text-muted/60 font-medium">
+                                {activity.duration || 60} mins
+                              </span>
                             </div>
+                            {/* Body Clock ghost-text */}
+                            {bodyClockOffsetHours !== null && activity.time && (
+                              FLIGHT_EMOJIS.has(activity.emoji) || FLIGHT_ACTIVITY_PATTERNS.test(activity.name || '')
+                            ) && (() => {
+                              const bodyTime = applyTimezoneOffset(activity.time, bodyClockOffsetHours)
+                              return bodyTime ? (
+                                <span className="inline-flex items-center gap-1 mt-0.5 text-[10px] text-text-muted/60 italic select-none">
+                                  (that's {bodyTime} your body time 🧟)
+                                </span>
+                              ) : null
+                            })()}
+                            {activity.notes && (
+                              <span className="text-[11px] text-text-muted/80 italic block mt-1 truncate">
+                                {activity.notes}
+                              </span>
+                            )}
                           </div>
                         </td>
 
                         {/* Category Column */}
                         <td className="px-2 pt-4 pb-2 align-top">
-                          <CategoryPill
-                            value={activity.category || 'other'}
-                            onChange={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { category: val } } })}
-                            disabled={isReadOnly}
-                          />
+                          {(() => {
+                            const cat = GLOBAL_CATEGORIES.find(c => c.id === (activity.category || 'other')) || GLOBAL_CATEGORIES[GLOBAL_CATEGORIES.length - 1]
+                            return (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-pill)] text-xs font-medium border border-border bg-bg-secondary text-text-secondary whitespace-nowrap">
+                                {cat.emoji} <span className="hidden sm:inline">{cat.label}</span>
+                              </span>
+                            )
+                          })()}
                         </td>
 
+                        {/* Location Column */}
                         <td className="px-2 pt-4 pb-2 align-top">
-                          <LocationPill
-                            location={activity.location}
-                            isResolving={isResolving} // Simplified for now
-                            readOnly={isReadOnly}
-                            onClick={() => setActiveSearchActivity({
-                              dayId: day.id,
-                              activityId: activity.id,
-                              initialValue: typeof activity.location === 'string' ? activity.location : (activity.location?.placeName || activity.name)
-                            })}
-                          />
+                          <span className="text-[12px] text-text-muted truncate block max-w-[160px]">
+                            {activity.location?.placeName || (typeof activity.location === 'string' ? activity.location : '') || '—'}
+                          </span>
                         </td>
 
                         {/* Actions */}
-                        <td className="px-2 pt-4 pb-2 align-top text-right pr-4">
+                        <td className="px-2 pt-4 pb-2 align-top text-right pr-4" data-no-drawer>
                           <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => onOpenDrawer({ activityId: activity.id, dayId: day.id })}
-                              className={`p-2 inline-flex rounded transition-colors ${activity.comments?.length ? 'text-accent' : 'text-text-muted hover:text-text-primary'}`}
-                              title={activity.comments?.length ? `${activity.comments.length} update${activity.comments.length > 1 ? 's' : ''}` : 'Open notes & updates'}
-                            >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-                            </button>
-                            <button
-                              onClick={() => setExpandedNoteId(expandedNoteId === activity.id ? null : activity.id)}
-                              className={`p-2 inline-flex rounded transition-colors ${expandedNoteId === activity.id || activity.notes || activity.link ? 'text-accent' : 'text-text-muted hover:text-text-primary'}`}
-                              title={activity.notes || activity.link ? 'Notes/link attached' : 'Add notes or link'}
-                            >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                            </button>
+                            {activity.comments?.length > 0 && (
+                              <span className="text-[10px] font-semibold text-accent px-1">{activity.comments.length}</span>
+                            )}
+                            {(activity.notes || activity.link) && (
+                              <span className="text-accent p-1 inline-flex" title="Has notes/link">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                              </span>
+                            )}
                             {!isReadOnly && (
-                              <button onClick={() => {
-                                triggerHaptic('medium')
-                                dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })
-                              }} className="text-text-muted hover:text-danger p-2 inline-flex" title="Delete">
+                              <button
+                                data-no-drawer
+                                onClick={() => {
+                                  triggerHaptic('medium')
+                                  dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })
+                                }}
+                                className="text-text-muted hover:text-danger p-2 inline-flex"
+                                title="Delete"
+                              >
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                               </button>
                             )}
                           </div>
                         </td>
                       </tr>
-
-                      {/* Notes/Link expansion row */}
-                      {expandedNoteId === activity.id && (
-                        <tr className="border-t border-border/10 bg-bg-secondary/30">
-                          <td></td>
-                          <td></td>
-                          <td></td>
-                          <td colSpan={4} className="px-3 py-2">
-                            <div className="flex flex-col gap-2">
-                              <EditableText
-                                value={activity.notes || ''}
-                                onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { notes: val } } })}
-                                className="text-xs text-text-secondary w-full"
-                                placeholder="📝 Add notes…"
-                                multiline
-                                readOnly={isReadOnly}
-                              />
-                              <EditableText
-                                value={activity.link || ''}
-                                onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { link: val } } })}
-                                className="text-xs text-accent w-full font-mono"
-                                placeholder="🔗 Add link (e.g. reservation URL)…"
-                                readOnly={isReadOnly}
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      )}
 
                       {/* Transit Row between activities */}
                       {index < arr.length - 1 && (

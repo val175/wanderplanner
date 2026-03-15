@@ -7,17 +7,17 @@ import EditableText from '../shared/EditableText'
 import Button from '../shared/Button'
 import TimePicker from '../shared/TimePicker'
 import AvatarCircle from '../shared/AvatarCircle'
+import LocationAutocomplete from '../shared/LocationAutocomplete'
 import { hapticImpact, hapticSelection } from '../../utils/haptics'
 import { GLOBAL_CATEGORIES } from '../../constants/categories'
 
 function CategorySelect({ value, onChange, disabled }) {
-  const cat = GLOBAL_CATEGORIES.find(c => c.id === value) || GLOBAL_CATEGORIES.find(c => c.id === 'other')
   return (
     <select
       value={value || 'other'}
       onChange={e => { hapticSelection(); onChange(e.target.value) }}
       disabled={disabled}
-      className="bg-bg-input border border-border rounded-[var(--radius-sm)] text-xs font-medium text-text-secondary px-2 py-1.5 focus:outline-none focus:border-accent transition-colors"
+      className="bg-bg-input border border-border rounded-[var(--radius-sm)] text-xs font-medium text-text-secondary px-2 py-1.5 focus:outline-none focus:border-accent transition-colors w-full"
     >
       {GLOBAL_CATEGORIES.map(c => (
         <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>
@@ -27,9 +27,10 @@ function CategorySelect({ value, onChange, disabled }) {
 }
 
 export default function ActivityDrawer({ activity, dayId, onClose }) {
-  const { dispatch, isReadOnly } = useTripContext()
+  const { activeTrip, dispatch, isReadOnly } = useTripContext()
   const { currentUserProfile, resolveProfile } = useProfiles()
   const [mounted, setMounted] = useState(false)
+  const [editingLocation, setEditingLocation] = useState(false)
   const [draftComment, setDraftComment] = useState('')
   const [editingCommentId, setEditingCommentId] = useState(null)
   const [editDraft, setEditDraft] = useState('')
@@ -37,6 +38,23 @@ export default function ActivityDrawer({ activity, dayId, onClose }) {
   const [notesDraft, setNotesDraft] = useState('')
   const feedRef = useRef(null)
   const actorId = currentUserProfile?.uid || currentUserProfile?.id
+
+  // Derive day context for display and location proximity
+  const day = useMemo(() =>
+    activeTrip?.itinerary?.find(d => d.id === dayId),
+    [activeTrip?.itinerary, dayId]
+  )
+  const proximity = useMemo(() => {
+    if (!day?.location || !activeTrip?.cities?.length) return ''
+    const city = activeTrip.cities.find(c =>
+      c.city && day.location.toLowerCase().includes(c.city.toLowerCase())
+    ) || activeTrip.cities[0]
+    return city?.lat && city?.lng ? `${city.lng},${city.lat}` : ''
+  }, [day?.location, activeTrip?.cities])
+
+  const locationString = activity.location?.placeName
+    || (typeof activity.location === 'string' ? activity.location : '')
+    || ''
 
   useEffect(() => {
     setMounted(true)
@@ -60,7 +78,8 @@ export default function ActivityDrawer({ activity, dayId, onClose }) {
     feedRef.current.scrollTop = feedRef.current.scrollHeight
   }, [comments.length])
 
-  const update = (updates) => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId, activityId: activity.id, updates } })
+  const update = (updates) =>
+    dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId, activityId: activity.id, updates } })
 
   const handlePost = () => {
     if (isReadOnly) return
@@ -69,12 +88,6 @@ export default function ActivityDrawer({ activity, dayId, onClose }) {
     dispatch({ type: ACTIONS.ADD_ACTIVITY_COMMENT, payload: { dayId, activityId: activity.id, text, actorId } })
     setDraftComment('')
     hapticImpact('medium')
-  }
-
-  const handleStartEdit = (comment) => {
-    if (isReadOnly) return
-    setEditingCommentId(comment.id)
-    setEditDraft(comment.text || '')
   }
 
   const handleSaveEdit = (commentId) => {
@@ -134,15 +147,35 @@ export default function ActivityDrawer({ activity, dayId, onClose }) {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-thin">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin">
 
-          {/* Metadata Row */}
-          <div className="grid grid-cols-3 gap-6 items-start">
+          {/* Day label */}
+          {day && (
+            <div className="flex items-center gap-2 text-sm text-text-muted">
+              <span className="text-base">{day.emoji || '📍'}</span>
+              <span className="font-medium text-text-secondary">Day {day.dayNumber}</span>
+              {day.location && <><span>·</span><span>{day.location}</span></>}
+              {day.date && <><span>·</span><span>{day.date}</span></>}
+            </div>
+          )}
+
+          {/* Time + Duration row */}
+          <div className="grid grid-cols-3 gap-4 items-start">
             <div className="space-y-2">
               <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Start Time</label>
               <TimePicker
                 value={activity.time}
                 onChange={time => update({ time })}
+                className="w-full border border-border bg-bg-input rounded-[var(--radius-sm)] px-2 py-1.5 text-sm font-mono"
+                placeholder="--:--"
+                disabled={isReadOnly}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">End Time</label>
+              <TimePicker
+                value={activity.endTime}
+                onChange={endTime => update({ endTime })}
                 className="w-full border border-border bg-bg-input rounded-[var(--radius-sm)] px-2 py-1.5 text-sm font-mono"
                 placeholder="--:--"
                 disabled={isReadOnly}
@@ -163,34 +196,66 @@ export default function ActivityDrawer({ activity, dayId, onClose }) {
                 <span className="text-xs text-text-muted">min</span>
               </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Category</label>
-              <CategorySelect
-                value={activity.category || 'other'}
-                onChange={val => update({ category: val })}
-                disabled={isReadOnly}
-              />
-            </div>
           </div>
 
-          {/* Location + Link */}
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Location</label>
-              <p className="text-sm text-text-secondary truncate">
-                {activity.location?.placeName || (typeof activity.location === 'string' ? activity.location : '') || '—'}
-              </p>
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Link</label>
-              <EditableText
-                value={activity.link || ''}
-                onSave={val => update({ link: val })}
-                className="text-sm text-accent font-mono block truncate w-full"
-                placeholder="Add reservation URL…"
-                readOnly={isReadOnly}
-              />
-            </div>
+          {/* Category */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Category</label>
+            <CategorySelect
+              value={activity.category || 'other'}
+              onChange={val => update({ category: val })}
+              disabled={isReadOnly}
+            />
+          </div>
+
+          {/* Location */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Location</label>
+            {editingLocation ? (
+              <div>
+                <LocationAutocomplete
+                  initialValue={locationString}
+                  proximity={proximity}
+                  onSelect={(locationData) => {
+                    update({ location: locationData })
+                    setEditingLocation(false)
+                    hapticSelection()
+                  }}
+                />
+                <button
+                  onClick={() => setEditingLocation(false)}
+                  className="mt-2 text-xs text-text-muted hover:text-text-primary"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm text-text-secondary truncate">
+                  {locationString || <span className="italic text-text-muted">No location set</span>}
+                </span>
+                {!isReadOnly && (
+                  <button
+                    onClick={() => setEditingLocation(true)}
+                    className="text-xs text-text-muted hover:text-accent shrink-0 border border-border rounded px-2 py-1 hover:border-accent/40 transition-colors"
+                  >
+                    Change
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Link */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Link</label>
+            <EditableText
+              value={activity.link || ''}
+              onSave={val => update({ link: val })}
+              className="text-sm text-accent font-mono block truncate w-full"
+              placeholder="Add reservation URL…"
+              readOnly={isReadOnly}
+            />
           </div>
 
           <hr className="border-border/30" />
@@ -249,11 +314,11 @@ export default function ActivityDrawer({ activity, dayId, onClose }) {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 text-xs text-text-muted">
                           <span className="font-semibold text-text-primary">{author?.name || 'Unknown'}</span>
-                          <span className="text-text-muted">•</span>
+                          <span>•</span>
                           <span>{formatTimestamp(comment.timestamp)}</span>
                           {!isReadOnly && comment.authorId === actorId && (
                             <div className="flex items-center gap-2 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => handleStartEdit(comment)} className="text-xs text-text-muted hover:text-text-primary">Edit</button>
+                              <button onClick={() => { setEditingCommentId(comment.id); setEditDraft(comment.text || '') }} className="text-xs text-text-muted hover:text-text-primary">Edit</button>
                               <button
                                 onClick={() => dispatch({ type: ACTIONS.DELETE_ACTIVITY_COMMENT, payload: { dayId, activityId: activity.id, commentId: comment.id } })}
                                 className="text-xs text-text-muted hover:text-danger"
