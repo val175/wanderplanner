@@ -437,7 +437,7 @@ function TripHealthCard({ trip, onTabSwitch }) {
   const [destIndex, setDestIndex] = useState(0)
   const currentDest = destinations[destIndex]
   const weather = currentDest ? (weatherCache[currentDest.city] ?? null) : null
-  const effectiveWeatherStatus = effectiveWeatherStatus === 'loading' ? 'loading' : (weather ? 'ok' : 'error')
+  const effectiveWeatherStatus = weatherStatus === 'loading' ? 'loading' : (weather ? 'ok' : 'error')
 
   useEffect(() => { setDestIndex(0) }, [destinations])
 
