@@ -150,9 +150,20 @@ export default async function handler(req, res) {
                 category: z.string().describe('One of: Food, Activity, Nightlife, Lodging, Transport, Shopping, Other'),
                 location: z.string().describe('City or neighborhood extracted from the context'),
                 vibe: z.string().describe('1-2 word mood descriptor, e.g. "Aesthetic", "High-Energy", "Relaxing"'),
-                estimatedCost: z.string().describe('Price estimate. Format: "20 - 50/person" or "500/night" or "Free". NEVER leave blank.'),
+                estimatedCost: z.string().describe('Price estimate. Format: "₱XXX/person" or "₱XXX/night" or "Free". ALWAYS use the ₱ symbol.'),
             }),
-            prompt: `Extract travel idea details from this web content (or URL handle):\n\n${contextText}\n\nURL: ${url}`,
+            prompt: `You are Wanda, a travel expert. Extract travel idea details from this content:
+
+CONTENT:
+${contextText}
+
+URL: ${url}
+
+RULES:
+1. Use the ₱ (Pesos) symbol for estimatedCost. Format: "₱500 - ₱1000/person" or "₱3000/night".
+2. If the content is sparse (e.g. just a social handle), use your INTERNAL KNOWLEDGE about the business or location to make a realistic market-rate estimate.
+3. BE REALISTIC: A "Resort" or "Hotel" in the Philippines is usually ₱2000-₱8000/night. A "Hostel" is ₱800-₱1500. A "Meal" is ₱200-₱800. NEVER guess ₱50-₱150 for lodging unless specifically stated in the text.
+4. If exact prices aren't found, append " (est.)" to your estimate.`,
         })
 
         return res.status(200).json({ ...object, url, thumbnail_url, sourceName })
