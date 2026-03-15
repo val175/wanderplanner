@@ -230,7 +230,7 @@ export default function BookingsTable({
         {
             id: 'actions',
             header: '',
-            size: 44,
+            size: 72,
             cell: info => !isReadOnly && (
                 <div className="flex items-center gap-0 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out">
                     <button
@@ -378,8 +378,7 @@ export default function BookingsTable({
                                 {row.getVisibleCells().map(cell => (
                                     <td
                                         key={cell.id}
-                                        className={`px-2 py-3 align-middle overflow-hidden ${cell.column.id === 'actions' ? 'w-10' : ''
-                                            }`}
+                                        className="px-2 py-3 align-middle overflow-hidden"
                                         style={{ width: cell.column.id === 'name' ? '100%' : cell.column.getSize() }}
                                     >
                                         {flexRender(cell.column.columnDef.cell, cell.getContext())}

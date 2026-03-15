@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Pencil } from 'lucide-react'
+import { Pencil, Check, X } from 'lucide-react'
 import { getCategory, GLOBAL_CATEGORIES } from '../../constants/categories'
 import Card from '../shared/Card'
 import Button from '../shared/Button'
@@ -72,11 +72,86 @@ function SourceIcon({ sourceName }) {
 // ── Idea Table Row ──
 function IdeaTableRow({ idea, resolveProfile, onDelete, onUpdate, isSelectable, isSelected, onSelect }) {
     const [imgError, setImgError] = useState(false)
+    const [isEditing, setIsEditing] = useState(false)
+    const [editData, setEditData] = useState({})
     const isBooked = idea.status === 'booked'
     const proposer = resolveProfile(idea.proposerId)
     const date = idea.createdAt ? formatDate(idea.createdAt) : '—'
-    const priceNum = parseFloat((idea.priceDetails || '').replace(/[^0-9.]/g, '')) || 0
 
+    const startEdit = () => {
+        setEditData({ title: idea.title || '', description: idea.description || '', priceDetails: idea.priceDetails || '' })
+        setIsEditing(true)
+    }
+    const saveEdit = () => {
+        onUpdate?.(idea.id, editData)
+        setIsEditing(false)
+    }
+
+    const inputCls = "w-full bg-bg-input border border-border rounded-[var(--radius-sm)] px-2 py-1 text-text-primary focus:outline-none focus:border-accent"
+
+    // ── Edit mode ──
+    if (isEditing) {
+        return (
+            <tr className="border-t border-border/20 bg-bg-hover/30">
+                <td className="px-2 py-3 w-10"><div className="w-4 h-4" /></td>
+                <td className="px-2 py-3 w-12">
+                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-bg-secondary flex items-center justify-center shrink-0">
+                        <span className="text-xl">{idea.emoji || '✨'}</span>
+                    </div>
+                </td>
+                <td className="px-2 py-3 min-w-0">
+                    <div className="flex flex-col gap-1.5">
+                        <input
+                            autoFocus
+                            value={editData.title}
+                            onChange={e => setEditData(p => ({ ...p, title: e.target.value }))}
+                            onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setIsEditing(false) }}
+                            className={`${inputCls} text-[13px] font-semibold`}
+                            placeholder="Title"
+                        />
+                        <input
+                            value={editData.description}
+                            onChange={e => setEditData(p => ({ ...p, description: e.target.value }))}
+                            onKeyDown={e => { if (e.key === 'Escape') setIsEditing(false) }}
+                            className={`${inputCls} text-[11px]`}
+                            placeholder="Description"
+                        />
+                    </div>
+                </td>
+                <td className="px-2 py-3 whitespace-nowrap"><CategoryPill type={idea.type || 'other'} /></td>
+                <td className="px-2 py-3 whitespace-nowrap">
+                    <input
+                        value={editData.priceDetails}
+                        onChange={e => setEditData(p => ({ ...p, priceDetails: e.target.value }))}
+                        onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setIsEditing(false) }}
+                        className={`${inputCls} text-[13px]`}
+                        placeholder="e.g. $20"
+                    />
+                </td>
+                <td className="px-2 py-3 whitespace-nowrap">
+                    {proposer ? (
+                        <div className="flex items-center gap-1.5">
+                            <AvatarCircle profile={proposer} size={22} />
+                            <span className="text-[12px] text-text-secondary">{proposer.name?.split(' ')[0]}</span>
+                        </div>
+                    ) : <span className="text-text-muted text-xs">—</span>}
+                </td>
+                <td className="px-2 py-3 text-[12px] text-text-muted whitespace-nowrap">{date}</td>
+                <td className="px-2 py-3 w-[80px]">
+                    <div className="flex items-center gap-1.5 justify-center">
+                        <button onClick={saveEdit} className="p-1 text-success hover:text-success/80 transition-colors" title="Save">
+                            <Check size={16} />
+                        </button>
+                        <button onClick={() => setIsEditing(false)} className="p-1 text-text-muted hover:text-danger transition-colors" title="Cancel">
+                            <X size={16} />
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        )
+    }
+
+    // ── View mode ──
     return (
         <tr
             className={`group border-t border-border/20 transition-colors ${isBooked ? 'opacity-40 grayscale' : 'hover:bg-bg-hover/50'
@@ -100,41 +175,24 @@ function IdeaTableRow({ idea, resolveProfile, onDelete, onUpdate, isSelectable, 
             <td className="px-2 py-3 w-12">
                 <div className="w-10 h-10 rounded-lg overflow-hidden bg-bg-secondary flex items-center justify-center shrink-0">
                     {idea.imageUrl && !imgError ? (
-                        <img
-                            src={idea.imageUrl}
-                            alt=""
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                            onError={() => setImgError(true)}
-                        />
+                        <img src={idea.imageUrl} alt="" className="w-full h-full object-cover" loading="lazy" onError={() => setImgError(true)} />
                     ) : (
                         <span className="text-xl">{idea.emoji || '✨'}</span>
                     )}
                 </div>
             </td>
 
-            {/* Name & source */}
+            {/* Name & source — static display */}
             <td className="px-2 py-3 min-w-0">
                 <div className="flex items-center gap-1 min-w-0">
-                    <EditableText
-                        value={idea.title}
-                        onSave={val => onUpdate?.(idea.id, { title: val })}
-                        className="font-semibold text-[14px] text-text-primary leading-tight truncate"
-                        readOnly={isBooked}
-                    />
+                    <span className="font-semibold text-[14px] text-text-primary leading-tight truncate">{idea.title}</span>
                     {idea.url && (
                         <a href={idea.url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-text-muted hover:text-accent transition-colors" title="Open link">
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                         </a>
                     )}
                 </div>
-                <EditableText
-                    value={idea.description || ''}
-                    onSave={val => onUpdate?.(idea.id, { description: val })}
-                    className="text-[11px] text-text-muted mt-0.5 block truncate"
-                    placeholder="Add description…"
-                    readOnly={isBooked}
-                />
+                {idea.description && <span className="text-[11px] text-text-muted mt-0.5 block truncate">{idea.description}</span>}
             </td>
 
             {/* Category */}
@@ -142,15 +200,11 @@ function IdeaTableRow({ idea, resolveProfile, onDelete, onUpdate, isSelectable, 
                 <CategoryPill type={idea.type || 'other'} />
             </td>
 
-            {/* Est. Cost */}
+            {/* Est. Cost — static display */}
             <td className="px-2 py-3 whitespace-nowrap">
-                <EditableText
-                    value={idea.priceDetails || ''}
-                    onSave={val => onUpdate?.(idea.id, { priceDetails: val })}
-                    className="text-[13px] font-semibold text-text-primary"
-                    placeholder="Add price…"
-                    readOnly={isBooked}
-                />
+                <span className="text-[13px] font-semibold text-text-primary">
+                    {idea.priceDetails || <span className="text-text-muted opacity-40 italic text-[12px]">—</span>}
+                </span>
             </td>
 
             {/* Proposed by */}
@@ -166,26 +220,28 @@ function IdeaTableRow({ idea, resolveProfile, onDelete, onUpdate, isSelectable, 
             {/* Date */}
             <td className="px-2 py-3 text-[12px] text-text-muted whitespace-nowrap">{date}</td>
 
-            {/* Actions */}
-            <td className="px-2 py-3 w-10">
-                <div className="flex items-center gap-0 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out">
-                    <button
-                        onClick={(e) => { e.stopPropagation(); /* title EditableText handles inline edit */ }}
-                        className="p-1 text-text-muted hover:text-accent rounded transition-colors"
-                        title="Edit"
-                    >
-                        <Pencil size={13} />
-                    </button>
-                    {onDelete && (
+            {/* Actions — pencil + trash */}
+            <td className="px-2 py-3 w-[80px]">
+                {!isBooked && (
+                    <div className="flex items-center gap-1 justify-center opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out">
                         <button
-                            onClick={(e) => { e.stopPropagation(); onDelete(idea.id) }}
-                            className="p-1 text-text-muted hover:text-danger rounded transition-colors"
-                            title="Delete"
+                            onClick={(e) => { e.stopPropagation(); startEdit() }}
+                            className="p-1.5 text-text-muted hover:text-accent transition-colors"
+                            title="Edit"
                         >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                            <Pencil size={14} />
                         </button>
-                    )}
-                </div>
+                        {onDelete && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onDelete(idea.id) }}
+                                className="p-1.5 text-text-muted hover:text-danger transition-colors"
+                                title="Delete"
+                            >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                            </button>
+                        )}
+                    </div>
+                )}
             </td>
         </tr>
     )
@@ -264,7 +320,7 @@ function IdeaTableView({ ideas, resolveProfile, onDelete, onUpdate, isSelectable
                         <th className={`${thClass} ${sortable}`} onClick={() => toggleSort('date')}>
                             <div className="flex items-center gap-1">DATE <SortIcon col="date" /></div>
                         </th>
-                        <th className="px-2 py-2 w-10" />
+                        <th className="px-2 py-2 w-[80px]" />
                     </tr>
                 </thead>
                 <tbody>

@@ -512,7 +512,7 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
 
         {/* Actions (Edit + Delete) */}
         {!isReadOnly && (
-          <div className="w-[44px] shrink-0 flex items-center justify-end gap-0 pr-2">
+          <div className="w-[60px] shrink-0 flex items-center justify-end gap-1 pr-2">
             <button
               onClick={(e) => { e.stopPropagation(); onClick?.(e) }}
               className="opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out p-1 text-text-muted hover:text-accent rounded-[var(--radius-sm)]"

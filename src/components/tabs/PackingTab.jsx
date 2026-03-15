@@ -585,7 +585,7 @@ export default function PackingTab() {
     {
       id: 'actions',
       header: '',
-      size: 44,
+      size: 72,
       cell: info => !isReadOnly && (
         <div className="flex items-center gap-0 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out">
           <button
