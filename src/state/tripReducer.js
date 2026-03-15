@@ -78,6 +78,11 @@ export const ACTIONS = {
   // Itinerary — batch add
   BATCH_ADD_ACTIVITIES: 'BATCH_ADD_ACTIVITIES',
 
+  // Activity comments
+  ADD_ACTIVITY_COMMENT: 'ADD_ACTIVITY_COMMENT',
+  UPDATE_ACTIVITY_COMMENT: 'UPDATE_ACTIVITY_COMMENT',
+  DELETE_ACTIVITY_COMMENT: 'DELETE_ACTIVITY_COMMENT',
+
   // Ideas
   ADD_IDEA: 'ADD_IDEA',
   VOTE_IDEA: 'VOTE_IDEA',
@@ -396,6 +401,61 @@ export function tripReducer(state, action) {
           d.id === payload.dayId
             ? { ...d, activities: d.activities.filter(a => a.id !== payload.activityId) }
             : d
+        ),
+      }))
+
+    case ACTIONS.ADD_ACTIVITY_COMMENT:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        itinerary: trip.itinerary.map(d =>
+          d.id !== payload.dayId ? d : {
+            ...d,
+            activities: d.activities.map(a => {
+              if (a.id !== payload.activityId) return a
+              if (!payload.text?.trim()) return a
+              const comment = {
+                id: generateId(),
+                authorId: payload.actorId || null,
+                text: payload.text.trim(),
+                timestamp: new Date().toISOString(),
+              }
+              return { ...a, comments: [...(a.comments || []), comment] }
+            }),
+          }
+        ),
+      }))
+
+    case ACTIONS.UPDATE_ACTIVITY_COMMENT:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        itinerary: trip.itinerary.map(d =>
+          d.id !== payload.dayId ? d : {
+            ...d,
+            activities: d.activities.map(a =>
+              a.id !== payload.activityId ? a : {
+                ...a,
+                comments: (a.comments || []).map(c =>
+                  c.id === payload.commentId ? { ...c, text: payload.text?.trim() || c.text } : c
+                ),
+              }
+            ),
+          }
+        ),
+      }))
+
+    case ACTIONS.DELETE_ACTIVITY_COMMENT:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        itinerary: trip.itinerary.map(d =>
+          d.id !== payload.dayId ? d : {
+            ...d,
+            activities: d.activities.map(a =>
+              a.id !== payload.activityId ? a : {
+                ...a,
+                comments: (a.comments || []).filter(c => c.id !== payload.commentId),
+              }
+            ),
+          }
         ),
       }))
 

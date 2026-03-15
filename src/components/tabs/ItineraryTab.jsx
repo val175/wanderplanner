@@ -25,6 +25,7 @@ import { useSmartLocation } from '../../hooks/useSmartLocation'
 import LocationPill from '../shared/LocationPill'
 import LocationAutocomplete from '../shared/LocationAutocomplete'
 import EmptyState from '../shared/EmptyState'
+import ActivityDrawer from './ActivityDrawer'
 
 // ── Utilities ──────────────────────────────────────────────────────────────
 function getActivityAccent(emoji) {
@@ -264,7 +265,7 @@ function AddActivityModal({ isOpen, onClose, itinerary, onAdd }) {
   )
 }
 
-function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, setActiveSearchActivity }) {
+function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, setActiveSearchActivity, onOpenDrawer }) {
   const { dispatch, isReadOnly } = useTripContext()
   const [expanded, setExpanded] = useState(true)
   const [dragOverGroup, setDragOverGroup] = useState(false)
@@ -609,6 +610,13 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
                         <td className="px-2 pt-4 pb-2 align-top text-right pr-4">
                           <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity">
                             <button
+                              onClick={() => onOpenDrawer({ activityId: activity.id, dayId: day.id })}
+                              className={`p-2 inline-flex rounded transition-colors ${activity.comments?.length ? 'text-accent' : 'text-text-muted hover:text-text-primary'}`}
+                              title={activity.comments?.length ? `${activity.comments.length} update${activity.comments.length > 1 ? 's' : ''}` : 'Open notes & updates'}
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                            </button>
+                            <button
                               onClick={() => setExpandedNoteId(expandedNoteId === activity.id ? null : activity.id)}
                               className={`p-2 inline-flex rounded transition-colors ${expandedNoteId === activity.id || activity.notes || activity.link ? 'text-accent' : 'text-text-muted hover:text-text-primary'}`}
                               title={activity.notes || activity.link ? 'Notes/link attached' : 'Add notes or link'}
@@ -725,7 +733,7 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
   )
 }
 
-function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearchActivity }) {
+function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearchActivity, onOpenDrawer }) {
   const { dispatch, isReadOnly } = useTripContext()
   const [dragOverCol, setDragOverCol] = useState(false)
   const [highlightedActivityId, setHighlightedActivityId] = useState(null)
@@ -842,6 +850,13 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
                     readOnly={isReadOnly}
                   />
                 </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onOpenDrawer({ activityId: activity.id, dayId: day.id }) }}
+                  className={`absolute top-3 ${isReadOnly ? 'right-3' : 'right-10'} opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out p-1 rounded hover:bg-bg-hover ${activity.comments?.length ? 'text-accent' : 'text-text-muted hover:text-text-primary'}`}
+                  title={activity.comments?.length ? `${activity.comments.length} update${activity.comments.length > 1 ? 's' : ''}` : 'Open notes & updates'}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                </button>
                 {!isReadOnly && (
                   <button
                     onClick={() => {
@@ -907,7 +922,7 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
   )
 }
 
-function CalendarActivityBlock({ activity, day, dayActivities, startOfDayMinutes, hourHeight, timeToMinutes, isReadOnly }) {
+function CalendarActivityBlock({ activity, day, dayActivities, startOfDayMinutes, hourHeight, timeToMinutes, isReadOnly, onOpenDrawer }) {
   const { dispatch } = useTripContext()
   const minutes = timeToMinutes(activity.time)
 
@@ -1055,8 +1070,18 @@ function CalendarActivityBlock({ activity, day, dayActivities, startOfDayMinutes
         {localHeight > 100 && <div className="mt-auto" />}
       </div>
 
+      {/* Notes button — pointer-events-auto to intercept before drag */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onOpenDrawer({ activityId: activity.id, dayId: day.id }) }}
+        onPointerDown={(e) => e.stopPropagation()}
+        className={`absolute top-2 right-2 z-30 opacity-0 group-hover:opacity-100 pointer-events-auto p-1 rounded-md bg-bg-card/80 border border-border/50 transition-all ${activity.comments?.length ? 'text-accent' : 'text-text-muted hover:text-text-primary'}`}
+        title={activity.comments?.length ? `${activity.comments.length} update${activity.comments.length > 1 ? 's' : ''}` : 'Open notes & updates'}
+        style={{ touchAction: 'none' }}
+      >
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+      </button>
       {!isReadOnly && (
-        <div 
+        <div
           {...bindResize()}
           className="absolute bottom-0 left-0 right-0 h-4 cursor-ns-resize flex items-end justify-center pb-1 opacity-0 group-hover:opacity-100 hover:bg-bg-hover transition-colors z-20"
           style={{ touchAction: 'none' }}
@@ -1068,7 +1093,7 @@ function CalendarActivityBlock({ activity, day, dayActivities, startOfDayMinutes
   )
 }
 
-function CalendarView({ trip, isMobile, activeDayIndex }) {
+function CalendarView({ trip, isMobile, activeDayIndex, onOpenDrawer }) {
   const timeToMinutes = (timeStr) => {
     if (!timeStr) return null
     let hours, mins
@@ -1178,6 +1203,7 @@ function CalendarView({ trip, isMobile, activeDayIndex }) {
                         hourHeight={hourHeight}
                         timeToMinutes={timeToMinutes}
                         isReadOnly={isReadOnly}
+                        onOpenDrawer={onOpenDrawer}
                       />
                     )
                   })}
@@ -1199,6 +1225,7 @@ export default function ItineraryTab() {
   const [activeDayIndex, setActiveDayIndex] = useState(0) // For mobile swipe view context
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [activeSearchActivity, setActiveSearchActivity] = useState(null) // { dayId, activityId, initialValue }
+  const [selectedActivity, setSelectedActivity] = useState(null) // { activityId, dayId }
   const { resolveLocation, isResolving } = useSmartLocation()
 
   if (!activeTrip) return null
@@ -1364,6 +1391,20 @@ export default function ItineraryTab() {
         document.body
       )}
 
+      {/* Activity Drawer */}
+      {selectedActivity && (() => {
+        const liveActivity = trip.itinerary
+          .find(d => d.id === selectedActivity.dayId)
+          ?.activities?.find(a => a.id === selectedActivity.activityId)
+        return liveActivity ? (
+          <ActivityDrawer
+            activity={liveActivity}
+            dayId={selectedActivity.dayId}
+            onClose={() => setSelectedActivity(null)}
+          />
+        ) : null
+      })()}
+
       {/* Content Area */}
       {trip.itinerary && trip.itinerary.length > 0 ? (
         <div className="flex-1 w-full relative animate-tab-enter stagger-3">
@@ -1384,6 +1425,7 @@ export default function ItineraryTab() {
                       isResolving={isResolving}
                       setActiveSearchActivity={setActiveSearchActivity}
                       onReorderDay={(from, to) => dispatch({ type: ACTIONS.REORDER_DAYS, payload: { fromIndex: from, toIndex: to } })}
+                      onOpenDrawer={setSelectedActivity}
                     />
                   )}
 
@@ -1408,6 +1450,7 @@ export default function ItineraryTab() {
                       isResolving={isResolving}
                       setActiveSearchActivity={setActiveSearchActivity}
                       onReorderDay={(from, to) => dispatch({ type: ACTIONS.REORDER_DAYS, payload: { fromIndex: from, toIndex: to } })}
+                      onOpenDrawer={setSelectedActivity}
                     />
                   ))}
                   {!isReadOnly && (
@@ -1432,6 +1475,7 @@ export default function ItineraryTab() {
                     resolveLocation={resolveLocation}
                     isResolving={isResolving}
                     setActiveSearchActivity={setActiveSearchActivity}
+                    onOpenDrawer={setSelectedActivity}
                   />
                 ))}
                 {!isReadOnly && (
@@ -1446,10 +1490,11 @@ export default function ItineraryTab() {
               </div>
             </div>
           ) : (
-            <CalendarView 
-              trip={trip} 
-              isMobile={isMobile} 
-              activeDayIndex={activeDayIndex} 
+            <CalendarView
+              trip={trip}
+              isMobile={isMobile}
+              activeDayIndex={activeDayIndex}
+              onOpenDrawer={setSelectedActivity}
             />
           )}
         </div>
