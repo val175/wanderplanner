@@ -245,8 +245,12 @@ export default function TodoDrawer({ todo, travelers, onUpdate, onAddComment, on
 
       {/* Drawer */}
       <div
-        className={`fixed inset-y-0 right-0 w-full max-w-xl bg-bg-card border-l border-border shadow-none transform transition-transform duration-300 ease-out flex flex-col ${mounted ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed w-full flex flex-col bg-bg-card border-border transform transition-transform duration-300 ease-out inset-x-0 bottom-0 rounded-t-2xl max-h-[92dvh] border-t md:inset-y-0 md:right-0 md:bottom-auto md:left-auto md:max-w-xl md:rounded-none md:max-h-none md:border-t-0 md:border-l ${mounted ? 'translate-y-0 md:translate-x-0' : 'translate-y-full md:translate-y-0 md:translate-x-full'}`}
       >
+        {/* Mobile drag handle */}
+        <div className="flex justify-center pt-2.5 pb-1 md:hidden shrink-0">
+          <div className="w-8 h-1 rounded-full bg-border" />
+        </div>
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border/30">
           <div className="flex-1 min-w-0 mr-4">

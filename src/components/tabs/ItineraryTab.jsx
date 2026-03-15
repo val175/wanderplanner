@@ -1088,7 +1088,7 @@ function CalendarView({ trip, isMobile, activeDayIndex, onOpenDrawer }) {
   const totalMinHeight = Math.max(600, (numHours + 1) * hourHeight);
 
   return (
-    <div className="flex-1 overflow-y-auto bg-bg-card rounded-[var(--radius-lg)] border border-border relative select-none custom-scrollbar h-[calc(100vh-250px)]">
+    <div className="flex-1 overflow-y-auto bg-bg-card rounded-[var(--radius-lg)] border border-border relative select-none custom-scrollbar h-[calc(100dvh-250px)]">
       <div className="flex min-w-fit relative" style={{ minHeight: totalMinHeight }}>
         {/* Time Axis */}
         <div className="w-16 sticky left-0 z-20 bg-bg-card/95 border-r border-border/20 shrink-0">
