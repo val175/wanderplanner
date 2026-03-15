@@ -105,6 +105,15 @@ export default function AIAssistant() {
     return () => window.removeEventListener('open-wanda', handleOpen);
   }, []);
 
+  useEffect(() => {
+    const handlePrefill = (e) => {
+      setIsOpen(true);
+      if (e.detail?.text) setInput(e.detail.text);
+    };
+    window.addEventListener('wanda-prefill', handlePrefill);
+    return () => window.removeEventListener('wanda-prefill', handlePrefill);
+  }, []);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const text = input.trim();

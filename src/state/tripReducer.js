@@ -73,6 +73,7 @@ export const ACTIONS = {
   // Ideas
   ADD_IDEA: 'ADD_IDEA',
   VOTE_IDEA: 'VOTE_IDEA',
+  UPDATE_IDEA: 'UPDATE_IDEA',
   UPDATE_IDEA_STATUS: 'UPDATE_IDEA_STATUS',
   DELETE_IDEA: 'DELETE_IDEA',
 
@@ -717,6 +718,12 @@ export function tripReducer(state, action) {
           }
           return { ...idea, votes: newVotes }
         }),
+      }))
+
+    case ACTIONS.UPDATE_IDEA:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        ideas: (trip.ideas || []).map(idea => idea.id === payload.ideaId ? { ...idea, ...payload.updates } : idea),
       }))
 
     case ACTIONS.UPDATE_IDEA_STATUS:

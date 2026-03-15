@@ -339,7 +339,28 @@ function buildAttentionItems(trip) {
     items.push({ id: 'packing', urgency: daysOut <= 7 ? URGENCY_HIGH : URGENCY_MED, icon: '🧳', title: 'Packing not started', subtitle: `${daysOut}d to go`, tab: 'packing' })
   }
 
-  return items.sort((a, b) => a.urgency === URGENCY_HIGH ? -1 : b.urgency === URGENCY_HIGH ? 1 : 0).slice(0, 5)
+  // Budget overruns — show over-100% first, then 80%+ approaching
+  const sym = { USD: '$', EUR: '€', GBP: '£', JPY: '¥', PHP: '₱', AUD: 'A$', CAD: 'C$', SGD: 'S$' }[trip.currency] || trip.currency || '₱'
+  ;(trip.budget || []).filter(b => b.max > 0 && (b.actual || 0) > b.max).slice(0, 2).forEach(b => {
+    items.push({
+      id: `budget-over-${b.name}`, urgency: URGENCY_HIGH,
+      icon: b.emoji || '💸',
+      title: `${b.name} over budget`,
+      subtitle: `${sym}${Math.round(b.actual || 0).toLocaleString()} of ${sym}${Math.round(b.max).toLocaleString()} (${Math.round((b.actual || 0) / b.max * 100)}%)`,
+      tab: 'budget',
+    })
+  })
+  ;(trip.budget || []).filter(b => b.max > 0 && (b.actual || 0) >= b.max * 0.8 && (b.actual || 0) <= b.max).slice(0, 1).forEach(b => {
+    items.push({
+      id: `budget-near-${b.name}`, urgency: URGENCY_MED,
+      icon: b.emoji || '⚠️',
+      title: `${b.name} at ${Math.round((b.actual || 0) / b.max * 100)}%`,
+      subtitle: `${sym}${Math.round(b.max - (b.actual || 0)).toLocaleString()} remaining`,
+      tab: 'budget',
+    })
+  })
+
+  return items.sort((a, b) => a.urgency === URGENCY_HIGH ? -1 : b.urgency === URGENCY_HIGH ? 1 : 0).slice(0, 6)
 }
 
 function AttentionCell({ trip, onTabSwitch }) {

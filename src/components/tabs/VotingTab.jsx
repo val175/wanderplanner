@@ -12,6 +12,8 @@ import { triggerHaptic, hapticImpact } from '../../utils/haptics'
 import IdeaExtractorModal from '../modal/IdeaExtractorModal'
 import TabHeader from '../common/TabHeader'
 import Select, { SelectItem } from '../shared/Select'
+import EditableText from '../shared/EditableText'
+import EmptyState from '../shared/EmptyState'
 
 // ── Category helpers ──
 
@@ -67,7 +69,7 @@ function SourceIcon({ sourceName }) {
 }
 
 // ── Idea Table Row ──
-function IdeaTableRow({ idea, resolveProfile, onDelete, isSelectable, isSelected, onSelect }) {
+function IdeaTableRow({ idea, resolveProfile, onDelete, onUpdate, isSelectable, isSelected, onSelect }) {
     const [menuOpen, setMenuOpen] = useState(false)
     const [imgError, setImgError] = useState(false)
     const isBooked = idea.status === 'booked'
@@ -113,21 +115,26 @@ function IdeaTableRow({ idea, resolveProfile, onDelete, isSelectable, isSelected
 
             {/* Name & source */}
             <td className="px-2 py-3 min-w-0">
-                <a
-                    href={idea.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-semibold text-[14px] text-text-primary hover:text-accent transition-colors line-clamp-1 leading-tight block"
-                    onClick={e => isSelectable && e.preventDefault()}
-                >
-                    {idea.title}
-                </a>
-                {idea.sourceName && (
-                    <span className="text-[11px] text-text-muted flex items-center gap-0.5 mt-0.5">
-                        <SourceIcon sourceName={idea.sourceName} />{idea.sourceName}
-                        {idea.description && <span className="ml-1 opacity-60">· {idea.description.slice(0, 40)}{idea.description.length > 40 ? '…' : ''}</span>}
-                    </span>
-                )}
+                <div className="flex items-center gap-1 min-w-0">
+                    <EditableText
+                        value={idea.title}
+                        onSave={val => onUpdate?.(idea.id, { title: val })}
+                        className="font-semibold text-[14px] text-text-primary leading-tight truncate"
+                        readOnly={isBooked}
+                    />
+                    {idea.url && (
+                        <a href={idea.url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-text-muted hover:text-accent transition-colors" title="Open link">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        </a>
+                    )}
+                </div>
+                <EditableText
+                    value={idea.description || ''}
+                    onSave={val => onUpdate?.(idea.id, { description: val })}
+                    className="text-[11px] text-text-muted mt-0.5 block truncate"
+                    placeholder="Add description…"
+                    readOnly={isBooked}
+                />
             </td>
 
             {/* Category */}
@@ -137,18 +144,13 @@ function IdeaTableRow({ idea, resolveProfile, onDelete, isSelectable, isSelected
 
             {/* Est. Cost */}
             <td className="px-2 py-3 whitespace-nowrap">
-                {(() => {
-                    const { amount, unit } = formatIdeaPrice(idea.priceDetails)
-                    if (amount === 'TBD') return <span className="text-text-muted text-xs">—</span>
-                    return (
-                        <span className="text-[13px] font-semibold text-text-primary">
-                            {amount}
-                            <span className="text-[10px] font-semibold text-text-muted ml-0.5 uppercase">
-                                /{unit}
-                            </span>
-                        </span>
-                    )
-                })()}
+                <EditableText
+                    value={idea.priceDetails || ''}
+                    onSave={val => onUpdate?.(idea.id, { priceDetails: val })}
+                    className="text-[13px] font-semibold text-text-primary"
+                    placeholder="Add price…"
+                    readOnly={isBooked}
+                />
             </td>
 
             {/* Proposed by */}
@@ -193,7 +195,7 @@ function IdeaTableRow({ idea, resolveProfile, onDelete, isSelectable, isSelected
 }
 
 // ── Idea Table View ──
-function IdeaTableView({ ideas, resolveProfile, onDelete, isSelectable, selectedIdeaIds, onSelect, isExtracting, onSelectAll }) {
+function IdeaTableView({ ideas, resolveProfile, onDelete, onUpdate, isSelectable, selectedIdeaIds, onSelect, isExtracting, onSelectAll }) {
     const [sortCol, setSortCol] = useState('date')
     const [sortDir, setSortDir] = useState('desc')
     const allSelected = ideas.length > 0 && ideas.every(i => selectedIdeaIds.has(i.id))
@@ -282,6 +284,7 @@ function IdeaTableView({ ideas, resolveProfile, onDelete, isSelectable, selected
                             idea={idea}
                             resolveProfile={resolveProfile}
                             onDelete={onDelete}
+                            onUpdate={onUpdate}
                             isSelectable={isSelectable}
                             isSelected={selectedIdeaIds.has(idea.id)}
                             onSelect={onSelect}
@@ -791,6 +794,10 @@ export default function VotingTab() {
         showToast("Idea removed")
     }
 
+    const handleUpdateIdea = (ideaId, updates) => {
+        dispatch({ type: ACTIONS.UPDATE_IDEA, payload: { ideaId, updates } })
+    }
+
     // ── Proposal Pipeline Handlers ──
     const toggleIdeaSelection = (idea) => {
         if (idea.status === 'booked') return // cannot select booked ideas
@@ -1041,15 +1048,13 @@ export default function VotingTab() {
 
                 {/* Idea Pool: Grid or Table */}
                 {ideas.length === 0 ? (
-                    <div className="py-24 mt-8 text-center flex flex-col items-center justify-center border-2 border-dashed border-border rounded-[var(--radius-xl)] bg-bg-secondary/30">
-                        <span className="text-5xl opacity-50 mb-4 saturate-0">📦</span>
-                        <h3 className="font-heading font-semibold text-lg text-text-primary">The board is empty</h3>
-                        <p className="text-sm text-text-secondary max-w-sm mt-1 mb-6 leading-relaxed">Paste a link to any hotel, Airbnb, or tour, and Wanda will generate an idea card for the group to vote on.</p>
-                        <ul className="text-xs text-text-muted space-y-2 text-left bg-bg-card px-6 py-4 rounded-xl border border-border">
-                            <li className="flex items-center gap-2">✅ Extracts titles, images, and prices</li>
-                            <li className="flex items-center gap-2">✅ Works with most travel websites</li>
-                            <li className="flex items-center gap-2">✅ Group ideas into Proposals for voting</li>
-                        </ul>
+                    <div className="mt-8 border-2 border-dashed border-border rounded-[var(--radius-xl)] bg-bg-secondary/30">
+                        <EmptyState
+                            emoji="📦"
+                            title="The board is empty"
+                            subtitle="Paste a link to any hotel, Airbnb, or tour — or ask Wanda for recommendations your group can vote on."
+                            wandaPrompt="Give me 3 hotel recommendations and 3 activity ideas for our trip that I can add to the voting room."
+                        />
                     </div>
                 ) : ideaView === 'table' ? (
                     <div className="mt-4">
@@ -1057,6 +1062,7 @@ export default function VotingTab() {
                             ideas={visibleIdeas}
                             resolveProfile={resolveProfile}
                             onDelete={handleDeleteIdea}
+                            onUpdate={handleUpdateIdea}
                             isSelectable={isCreatingPoll}
                             selectedIdeaIds={selectedIdeaIds}
                             onSelect={toggleIdeaSelection}

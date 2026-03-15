@@ -24,6 +24,7 @@ import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useSmartLocation } from '../../hooks/useSmartLocation'
 import LocationPill from '../shared/LocationPill'
 import LocationAutocomplete from '../shared/LocationAutocomplete'
+import EmptyState from '../shared/EmptyState'
 
 // ── Utilities ──────────────────────────────────────────────────────────────
 function getActivityAccent(emoji) {
@@ -269,6 +270,7 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
   const [dragOverGroup, setDragOverGroup] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [highlightedActivityId, setHighlightedActivityId] = useState(null)
+  const [expandedNoteId, setExpandedNoteId] = useState(null)
 
   useEffect(() => {
     const handleHighlight = (e) => {
@@ -605,16 +607,53 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
 
                         {/* Actions */}
                         <td className="px-2 pt-4 pb-2 align-top text-right pr-4">
-                          {!isReadOnly && (
-                            <button onClick={() => {
-                              triggerHaptic('medium')
-                              dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })
-                            }} className="text-text-muted hover:text-danger opacity-0 group-hover/row:opacity-100 transition-opacity mt-0.5 p-2 inline-flex" title="Delete">
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                          <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => setExpandedNoteId(expandedNoteId === activity.id ? null : activity.id)}
+                              className={`p-2 inline-flex rounded transition-colors ${expandedNoteId === activity.id || activity.notes || activity.link ? 'text-accent' : 'text-text-muted hover:text-text-primary'}`}
+                              title={activity.notes || activity.link ? 'Notes/link attached' : 'Add notes or link'}
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                             </button>
-                          )}
+                            {!isReadOnly && (
+                              <button onClick={() => {
+                                triggerHaptic('medium')
+                                dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })
+                              }} className="text-text-muted hover:text-danger p-2 inline-flex" title="Delete">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
+
+                      {/* Notes/Link expansion row */}
+                      {expandedNoteId === activity.id && (
+                        <tr className="border-t border-border/10 bg-bg-secondary/30">
+                          <td></td>
+                          <td></td>
+                          <td></td>
+                          <td colSpan={4} className="px-3 py-2">
+                            <div className="flex flex-col gap-2">
+                              <EditableText
+                                value={activity.notes || ''}
+                                onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { notes: val } } })}
+                                className="text-xs text-text-secondary w-full"
+                                placeholder="📝 Add notes…"
+                                multiline
+                                readOnly={isReadOnly}
+                              />
+                              <EditableText
+                                value={activity.link || ''}
+                                onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { link: val } } })}
+                                className="text-xs text-accent w-full font-mono"
+                                placeholder="🔗 Add link (e.g. reservation URL)…"
+                                readOnly={isReadOnly}
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      )}
 
                       {/* Transit Row between activities */}
                       {index < arr.length - 1 && (
@@ -1415,17 +1454,20 @@ export default function ItineraryTab() {
           )}
         </div>
       ) : (
-        <Card className="text-center py-10 px-4 flex flex-col items-center max-w-2xl mx-auto">
-          <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mb-5 text-3xl">
-            🗺️
-          </div>
-          <h3 className="text-2xl font-heading font-semibold text-text-primary mb-2 text-balance">Build your perfect trip</h3>
-          <p className="text-text-muted mb-8 text-sm leading-relaxed text-balance">
-            Start outlining your days and dragging activities around until your schedule is air-tight.
-          </p>
-          <Button variant="primary" size="lg" onClick={handleAddDay}>
-            <span className="text-xl leading-none mr-2">+</span> Add First Day
-          </Button>
+        <Card className="max-w-2xl mx-auto">
+          <EmptyState
+            emoji="🗺️"
+            title="Build your perfect trip"
+            subtitle="Start outlining your days and dragging activities around until your schedule is air-tight."
+            wandaPrompt={`Help me plan my itinerary for ${trip.name || 'this trip'}. Suggest a day-by-day schedule for ${trip.cities?.map(c => c.city).join(', ') || 'my destinations'}.`}
+            action={
+              !isReadOnly && (
+                <Button variant="primary" size="lg" onClick={handleAddDay}>
+                  <span className="text-xl leading-none mr-1">+</span> Add First Day
+                </Button>
+              )
+            }
+          />
         </Card>
       )}
     </div>
