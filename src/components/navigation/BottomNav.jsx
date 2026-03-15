@@ -33,7 +33,7 @@ function useBadges(trip) {
 export default function BottomNav() {
     const { state, dispatch } = useTripContext()
     const isMobile = useMediaQuery('(max-width: 767px)')
-    const activeTrip = state.trips?.find(t => t.id === state.activeTripId) || null
+    const activeTrip = (state.activeTripId && state.trips?.[state.activeTripId]) || null
     const badges = useBadges(activeTrip)
 
     // Only render on mobile
