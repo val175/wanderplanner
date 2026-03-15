@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { Pencil } from 'lucide-react'
 import { DndContext, DragOverlay, closestCorners, KeyboardSensor, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -507,22 +508,28 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
           />
         </div>
 
-        {/* No chevron needed anymore */}
-        <div className="w-[30px] shrink-0"></div>
+        {/* Spacer removed — actions column now w-[72px] */}
 
-        {/* Actions (Delete) */}
+        {/* Actions (Edit + Delete) */}
         {!isReadOnly && (
-          <div className="w-[40px] shrink-0 flex justify-end pr-2">
+          <div className="w-[72px] shrink-0 flex items-center justify-end gap-0.5 pr-2">
+            <button
+              onClick={(e) => { e.stopPropagation(); onClick?.(e) }}
+              className="opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out p-1.5 text-text-muted hover:text-accent rounded-[var(--radius-sm)]"
+              title="Edit task"
+            >
+              <Pencil size={13} />
+            </button>
             <button
               onClick={(e) => {
                 e.stopPropagation()
                 triggerHaptic('medium')
                 onDelete()
               }}
-              className="opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out p-1 text-text-muted hover:text-danger rounded-[var(--radius-sm)] shrink-0"
+              className="opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out p-1.5 text-text-muted hover:text-danger rounded-[var(--radius-sm)]"
               title="Delete task"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             </button>
           </div>
         )}

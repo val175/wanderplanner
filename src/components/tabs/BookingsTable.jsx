@@ -5,6 +5,7 @@ import {
     flexRender,
     getSortedRowModel,
 } from '@tanstack/react-table'
+import { Pencil } from 'lucide-react'
 import EditableText from '../shared/EditableText'
 import DatePicker from '../shared/DatePicker'
 import { BOOKING_CATEGORIES } from '../../constants/tabs'
@@ -229,19 +230,28 @@ export default function BookingsTable({
         {
             id: 'actions',
             header: '',
-            size: 40,
+            size: 72,
             cell: info => !isReadOnly && (
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation()
-                        triggerHaptic('medium')
-                        onDelete(info.row.original.id)
-                    }}
-                    className="text-text-muted hover:text-danger opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out p-2"
-                    title="Delete Booking"
-                >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                </button>
+                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out">
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onRowClick?.(info.row.original) }}
+                        className="p-1.5 text-text-muted hover:text-accent rounded transition-colors"
+                        title="Edit Booking"
+                    >
+                        <Pencil size={14} />
+                    </button>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            triggerHaptic('medium')
+                            onDelete(info.row.original.id)
+                        }}
+                        className="p-1.5 text-text-muted hover:text-danger rounded transition-colors"
+                        title="Delete Booking"
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                </div>
             )
         }
     ], [currency, onUpdate, onDelete, isReadOnly, onRowClick])

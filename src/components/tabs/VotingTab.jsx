@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { Pencil } from 'lucide-react'
 import { getCategory, GLOBAL_CATEGORIES } from '../../constants/categories'
 import Card from '../shared/Card'
 import Button from '../shared/Button'
@@ -70,7 +71,6 @@ function SourceIcon({ sourceName }) {
 
 // ── Idea Table Row ──
 function IdeaTableRow({ idea, resolveProfile, onDelete, onUpdate, isSelectable, isSelected, onSelect }) {
-    const [menuOpen, setMenuOpen] = useState(false)
     const [imgError, setImgError] = useState(false)
     const isBooked = idea.status === 'booked'
     const proposer = resolveProfile(idea.proposerId)
@@ -167,28 +167,25 @@ function IdeaTableRow({ idea, resolveProfile, onDelete, onUpdate, isSelectable, 
             <td className="px-2 py-3 text-[12px] text-text-muted whitespace-nowrap">{date}</td>
 
             {/* Actions */}
-            <td className="px-2 py-3 w-10 relative">
-                {onDelete && (
-                    <div className="relative">
+            <td className="px-2 py-3 w-16">
+                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out">
+                    <button
+                        onClick={(e) => { e.stopPropagation(); /* title EditableText handles inline edit */ }}
+                        className="p-1.5 text-text-muted hover:text-accent rounded transition-colors"
+                        title="Edit"
+                    >
+                        <Pencil size={13} />
+                    </button>
+                    {onDelete && (
                         <button
-                            onClick={() => setMenuOpen(v => !v)}
-                            className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-bg-secondary transition-all opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none duration-150 ease-out"
+                            onClick={(e) => { e.stopPropagation(); onDelete(idea.id) }}
+                            className="p-1.5 text-text-muted hover:text-danger rounded transition-colors"
+                            title="Delete"
                         >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></svg>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                         </button>
-                        {menuOpen && (
-                            <div className="absolute right-0 top-8 z-50 bg-bg-card border border-border rounded-[var(--radius-md)] py-1 min-w-[120px] animate-fade-in">
-                                <button
-                                    onClick={() => { setMenuOpen(false); onDelete(idea.id) }}
-                                    className="w-full text-left px-3 py-2 text-[13px] text-danger hover:bg-bg-hover transition-colors flex items-center gap-2"
-                                >
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /></svg>
-                                    Delete
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                )}
+                    )}
+                </div>
             </td>
         </tr>
     )
