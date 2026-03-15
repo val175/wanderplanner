@@ -868,10 +868,10 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
   )
 }
 
-function CalendarActivityBlock({ activity, day, startOfDayMinutes, hourHeight, timeToMinutes, isReadOnly }) {
+function CalendarActivityBlock({ activity, day, dayActivities, startOfDayMinutes, hourHeight, timeToMinutes, isReadOnly }) {
   const { dispatch } = useTripContext()
   const minutes = timeToMinutes(activity.time)
-  
+
   const initialTop = (minutes - startOfDayMinutes) * (hourHeight / 60)
   const initialHeight = (activity.duration || 60) * (hourHeight / 60)
 
@@ -904,6 +904,19 @@ function CalendarActivityBlock({ activity, day, startOfDayMinutes, hourHeight, t
     h = h ? h : 12
     return `${h}:${m.toString().padStart(2, '0')} ${ampm}`
   }
+
+  // Live conflict detection — compares current pixel position against siblings
+  const hasCalendarConflict = useMemo(() => {
+    const curStart = startOfDayMinutes + pixelsToMinutes(localTop)
+    const curEnd = curStart + Math.max(15, pixelsToMinutes(localHeight))
+    return (dayActivities || []).some(a => {
+      if (a.id === activity.id) return false
+      const aStart = timeToMinutes(a.time)
+      if (aStart === null) return false
+      const aEnd = aStart + (a.duration || 60)
+      return curStart < aEnd && curEnd > aStart
+    })
+  }, [localTop, localHeight, dayActivities, activity.id, startOfDayMinutes, timeToMinutes])
 
   // Bind drag for moving the whole block
   const bindDrag = useDrag(({ movement: [, my], first, last, memo = localTop }) => {
@@ -970,28 +983,33 @@ function CalendarActivityBlock({ activity, day, startOfDayMinutes, hourHeight, t
     <div
       {...bindDrag()}
       className={`absolute left-2 right-2 rounded-[var(--radius-md)] transition-[background,border,opacity] z-0 hover:z-50 flex flex-col group overflow-hidden border ${
-        activity.category 
-          ? `${CAT_THEME_CLASSES[catColor]?.bg || 'bg-bg-card'} ${CAT_THEME_CLASSES[catColor]?.border || 'border-border'}`
-          : 'bg-bg-card border-border'
-      } ${isDragging || (isResizing && false) ? 'opacity-80 scale-[0.98] ring-2 ring-accent/30' : ''} ${!isReadOnly ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
+        hasCalendarConflict
+          ? 'bg-warning/10 border-warning/50 ring-1 ring-warning/30'
+          : activity.category
+            ? `${CAT_THEME_CLASSES[catColor]?.bg || 'bg-bg-card'} ${CAT_THEME_CLASSES[catColor]?.border || 'border-border'}`
+            : 'bg-bg-card border-border'
+      } ${isDragging || isResizing ? 'opacity-80 scale-[0.98] ring-2 ring-accent/30' : ''} ${!isReadOnly ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
       style={{ top: localTop + 4, height: localHeight - 8, touchAction: 'none' }}
     >
       <div className="flex flex-col h-full relative z-10 p-2.5 pointer-events-none gap-0.5">
-        {/* Header: Emoji + Name */}
+        {/* Header: Emoji + Name + optional conflict badge */}
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="text-[13px] shrink-0">{activity.emoji || '📍'}</span>
-          <h4 className="text-sm font-semibold font-heading leading-tight text-text-primary transition-colors truncate">
+          <h4 className="text-sm font-semibold font-heading leading-tight text-text-primary transition-colors truncate flex-1">
             {activity.name}
           </h4>
+          {hasCalendarConflict && (
+            <span className="text-[9px] font-bold text-warning shrink-0" title="Time overlap">⚠️</span>
+          )}
         </div>
-        
+
         {/* Sub-header: Location • Duration */}
         <div className="text-[11px] text-text-muted font-medium truncate uppercase tracking-tight">
           {(activity.location?.placeName || activity.location || 'Unknown')} • {activity.duration || 60}m
         </div>
 
         {/* Time Row: Start - End */}
-        <div className={`text-[11px] font-mono font-medium transition-colors ${isDragging || isResizing ? 'text-accent' : 'text-text-secondary'}`}>
+        <div className={`text-[11px] font-mono font-medium transition-colors ${isDragging || isResizing ? 'text-accent' : hasCalendarConflict ? 'text-warning' : 'text-text-secondary'}`}>
           {displayTime} – {displayEndTime}
         </div>
 
@@ -1116,6 +1134,7 @@ function CalendarView({ trip, isMobile, activeDayIndex }) {
                         key={activity.id}
                         activity={activity}
                         day={day}
+                        dayActivities={day.activities}
                         startOfDayMinutes={startOfDayMinutes}
                         hourHeight={hourHeight}
                         timeToMinutes={timeToMinutes}
