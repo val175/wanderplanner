@@ -1,21 +1,5 @@
 import { useState, useEffect } from 'react'
 
-function WandSVG() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true"
-      style={{ color: 'var(--color-accent)' }}>
-      {/* Stick: tip (upper-right) → handle (lower-left) */}
-      <line x1="21" y1="7" x2="5" y2="23" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      {/* 4-pointed star at the tip */}
-      <path d="M21 1.5 L22.5 5.5 L26.5 7 L22.5 8.5 L21 12.5 L19.5 8.5 L15.5 7 L19.5 5.5 Z"
-        fill="currentColor" />
-      {/* Sparkle dots along the stick */}
-      <circle cx="14" cy="14" r="1.1" fill="currentColor" opacity="0.45" />
-      <circle cx="9"  cy="19" r="0.85" fill="currentColor" opacity="0.3" />
-    </svg>
-  )
-}
-
 /**
  * Animated Wanderplan wordmark.
  *
@@ -60,7 +44,7 @@ export default function WandWordmark({ onComplete }) {
             transition: 'opacity 0.4s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
             animation: phase === 3 ? 'wand-tap 0.55s ease-in-out' : 'none',
           }}>
-            <WandSVG />
+            <span style={{ fontSize: '1.6rem', lineHeight: 1 }} aria-hidden="true">🪄</span>
           </div>
         </div>
 

@@ -202,33 +202,29 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
 
       {/* Footer / Global Actions */}
       <div className="px-4 py-4 border-t border-border mt-auto">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-1 px-1">
-            <span className="text-sm" aria-hidden="true">🪄</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 px-1">
+            <span style={{ fontSize: '1.5rem', lineHeight: 1 }} aria-hidden="true">🪄</span>
             <span style={{
               fontFamily: "'Instrument Serif', Georgia, serif",
               fontWeight: 400,
-              fontSize: '1rem',
+              fontSize: '1.25rem',
               color: 'var(--color-text-primary)',
-              letterSpacing: '-0.01em',
+              letterSpacing: '-0.02em',
               lineHeight: 1,
             }}>
               <span style={{ fontStyle: 'italic' }}>Wander</span>plan
             </span>
           </div>
           <div className="flex items-center gap-1">
+            {/* Avatar — opens profile + wanderers modal */}
             <button
               onClick={() => setShowProfiles(true)}
-              className="p-1.5 rounded-[var(--radius-md)] text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
-              aria-label="Manage wanderer profiles"
-              title="Wanderer profiles"
+              className="rounded-full hover:ring-2 hover:ring-accent/40 transition-all"
+              aria-label="Your profile and wanderers"
+              title="Profile & Wanderers"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
+              <AvatarCircle profile={currentUserProfile || { name: user?.displayName, photo: user?.photoURL }} size={28} />
             </button>
             <button
               onClick={handleToggleDarkMode}
@@ -255,15 +251,6 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
             </button>
           </div>
         </div>
-        <button
-          onClick={signOutUser}
-          className="w-full flex items-center gap-2.5 text-left px-2 py-1.5 text-xs font-medium text-text-muted hover:text-text-danger hover:bg-bg-hover rounded-[var(--radius-sm)] transition-colors group"
-        >
-          <div className="grayscale group-hover:grayscale-0 transition-all">
-            <AvatarCircle profile={currentUserProfile || { name: user?.displayName, photo: user?.photoURL }} size={20} />
-          </div>
-          Sign out
-        </button>
       </div>
     </aside>
   )

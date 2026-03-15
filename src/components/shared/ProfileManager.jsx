@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { useProfiles } from '../../context/ProfileContext'
+import { useAuth } from '../../hooks/useAuth'
 import Modal from './Modal'
 import AvatarCircle from './AvatarCircle'
 
@@ -25,6 +26,7 @@ function resizeImage(file, maxSize = 300) {
 /* ── Your Profile (current logged-in user) ───────────────────────────── */
 function MyProfileCard() {
   const { currentUserProfile, updateCurrentUserProfile } = useProfiles()
+  const { signOutUser } = useAuth()
   const fileRef = useRef()
   const [editingName, setEditingName] = useState(false)
   const [name, setName] = useState(currentUserProfile?.name || '')
@@ -89,16 +91,13 @@ function MyProfileCard() {
           <p className="text-xs text-text-muted mt-0.5 truncate">{currentUserProfile.email}</p>
         </div>
 
-        {currentUserProfile.customPhoto && (
-          <button
-            type="button"
-            onClick={() => updateCurrentUserProfile({ customPhoto: null })}
-            className="text-xs text-text-muted hover:text-danger transition-colors shrink-0"
-            title="Remove custom photo, use Google photo"
-          >
-            Reset
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={signOutUser}
+          className="text-xs text-text-muted hover:text-danger transition-colors shrink-0 whitespace-nowrap"
+        >
+          Sign out
+        </button>
       </div>
     </div>
   )
