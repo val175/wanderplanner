@@ -59,6 +59,9 @@ function StepBasics({ form, setForm }) {
   const [importUrl, setImportUrl] = useState('')
   const [isImporting, setIsImporting] = useState(false)
   const [importError, setImportError] = useState('')
+  const [nlDescription, setNlDescription] = useState('')
+  const [isParsingNL, setIsParsingNL] = useState(false)
+  const [nlError, setNlError] = useState('')
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0)
   const { profiles, currentUserProfile } = useProfiles()
 
@@ -71,7 +74,7 @@ function StepBasics({ form, setForm }) {
   ]
 
   useEffect(() => {
-    if (isImporting) {
+    if (isImporting || isParsingNL) {
       const id = setInterval(() => {
         setLoadingMessageIndex(idx => (idx + 1) % LOADING_MESSAGES.length)
       }, 2500)
@@ -79,7 +82,7 @@ function StepBasics({ form, setForm }) {
     } else {
       setLoadingMessageIndex(0)
     }
-  }, [isImporting])
+  }, [isImporting, isParsingNL])
 
   const handleImport = async () => {
     if (!importUrl) return
@@ -152,6 +155,33 @@ function StepBasics({ form, setForm }) {
     }
   }
 
+  const handleNLParse = async () => {
+    if (!nlDescription.trim()) return
+    setIsParsingNL(true)
+    setNlError('')
+    try {
+      let token = ''
+      if (auth.currentUser) token = await auth.currentUser.getIdToken()
+      const res = await fetch('https://wanderplan-rust.vercel.app/api/parse-trip', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        body: JSON.stringify({ description: nlDescription }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to parse trip')
+      if (data.success && data.data) {
+        setForm(f => ({ ...f, ...data.data, __forceStep: 4 }))
+      }
+    } catch (err) {
+      setNlError(err.message)
+    } finally {
+      setIsParsingNL(false)
+    }
+  }
+
   const handleCustomEmoji = (val) => {
     const match = val.match(/\p{Emoji}/u)
     if (match) {
@@ -178,13 +208,13 @@ function StepBasics({ form, setForm }) {
     ...profiles,
   ]
 
-  if (isImporting) {
+  if (isImporting || isParsingNL) {
     return (
       <div className="flex flex-col items-center justify-center py-16 space-y-5 animate-fade-in text-center">
         <div className="relative w-16 h-16 flex items-center justify-center">
           <div className="absolute inset-0 border-4 border-accent/20 rounded-full"></div>
           <div className="absolute inset-0 border-4 border-accent rounded-full border-t-transparent animate-spin"></div>
-          <span className="text-2xl animate-pulse">✨</span>
+          <span className="text-2xl animate-pulse">🪄</span>
         </div>
         <div>
           <h3 className="text-lg font-heading font-semibold text-text-primary mb-1">
@@ -236,6 +266,29 @@ function StepBasics({ form, setForm }) {
       <div>
         <h2 className="font-heading font-semibold text-xl text-text-primary mb-1">Name your adventure</h2>
         <p className="text-sm text-text-muted font-medium">What should we call this trip?</p>
+      </div>
+
+      <div className="mb-5">
+        <label className="block text-sm font-medium text-text-secondary mb-1.5">
+          🪄 Describe your trip
+        </label>
+        <textarea
+          className="w-full rounded-[var(--radius-sm)] border border-border bg-bg-secondary px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:ring-2 focus:ring-accent/40"
+          rows={2}
+          placeholder="e.g. 10 days in Japan with my partner, end of April, budget around $3000"
+          value={nlDescription}
+          onChange={e => setNlDescription(e.target.value)}
+        />
+        {nlError && <p className="mt-1 text-xs text-danger">{nlError}</p>}
+        <Button
+          variant="secondary"
+          size="sm"
+          className="mt-2"
+          onClick={handleNLParse}
+          disabled={!nlDescription.trim() || isParsingNL}
+        >
+          {isParsingNL ? 'Parsing…' : '🪄 Auto-fill from description'}
+        </Button>
       </div>
 
       <div>

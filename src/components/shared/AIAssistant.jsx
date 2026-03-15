@@ -54,6 +54,7 @@ const PILLS = [
   { emoji: '🍜', label: 'Food spots' },
   { emoji: '✈️', label: 'Packing list' },
   { emoji: '🚗', label: 'Getting around' },
+  { emoji: '🏆', label: 'Pick Winners' },
 ];
 
 const MAGIC_SPELLS = [
@@ -176,6 +177,8 @@ export default function AIAssistant() {
       instruction = `Please look at our itinerary and suggest 3 improvements or additions. For any specific new place or activity, you MUST call the "add_idea_to_voting_room" tool.`;
     } else if (label.includes('Getting around')) {
       instruction = `Give me 3 specific transport tips for this destination (e.g. local apps, rail passes). If there's a specific service to book, use the "add_idea_to_voting_room" tool.`;
+    } else if (label.includes('Pick Winners')) {
+      instruction = `Look at the VOTING ROOM ideas in the system context. Call "recommend_from_voting_room" ONCE with the best 2-4 picks (one per category: lodging, activity, food, etc). Also write a conversational summary of your reasoning.`;
     }
     
     const text = instruction ? `${label}${PILL_INSTRUCTION_MARKER}${instruction}` : label;

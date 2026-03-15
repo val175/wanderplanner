@@ -5,6 +5,10 @@ import { createOpenAI } from '@ai-sdk/openai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { verifyFirebaseToken } from './_auth.js'
 import { getCorsHeaders } from './_cors.js'
+const rateLimitMap = new Map() // uid → timestamp[]
+const RATE_LIMIT = 10
+const WINDOW_MS = 60_000
+
 
 // THIS IS THE MAGIC LINE: Bypasses the 10s timeout on Vercel Hobby tier
 export const config = {
@@ -74,6 +78,21 @@ const WANDA_TOOLS = {
             emoji: z.string().describe('One emoji for this alert, e.g. "💸".'),
         }),
     }),
+    recommend_from_voting_room: tool({
+        description: [
+            'Synthesize the trip voting room ideas and recommend the best 2-4 picks, one per category.',
+            'Call when the user asks to "Pick Winners", "narrow down options", or "which should we choose".',
+            'Call ONCE. Wanda must also write a full text recommendation alongside this call.',
+        ].join(' '),
+        parameters: z.object({
+            picks: z.array(z.object({
+                title: z.string(),
+                type: z.string(),
+                emoji: z.string(),
+                reason: z.string().describe('1 sentence why this is the best pick in its category'),
+            })).describe('2-4 best ideas, one per category (lodging, activity, food, etc.)'),
+        }),
+    }),
 }
 
 export default async function handler(req) {
@@ -97,6 +116,17 @@ export default async function handler(req) {
                 headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
             })
         }
+
+        const uid = userPayload.uid
+        const now = Date.now()
+        const hits = (rateLimitMap.get(uid) || []).filter(t => now - t < WINDOW_MS)
+        if (hits.length >= RATE_LIMIT) {
+          return new Response(JSON.stringify({ error: 'Too many requests. Please wait a moment.' }), {
+            status: 429,
+            headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+          })
+        }
+        rateLimitMap.set(uid, [...hits, now])
 
         if (!userPayload) {
             return new Response(JSON.stringify({ error: 'Unauthorized' }), {

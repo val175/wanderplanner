@@ -60,6 +60,11 @@ PERSONALITY: Start every response with "🪄 [Magic Word]!" using words like Ala
   const packingList = trip.packingList || []
   const packed = packingList.filter(p => p.packed).length
 
+  const votingIdeas = (trip.ideas || []).slice(0, 20)
+  const votingContext = votingIdeas.length
+    ? votingIdeas.map(i => `${i.emoji || ''} ${i.title} (${i.type}${i.priceDetails ? ', ' + i.priceDetails : ''})`).join(' | ')
+    : 'No ideas yet'
+
   const itinerarySummary = (() => {
     const itinerary = trip.itinerary || []
     if (!itinerary.length) return 'No itinerary yet'
@@ -100,6 +105,7 @@ Total: ${sym}${totalBudget} budget, ${sym}${totalSpent} spent, ${sym}${totalBudg
 ✈️ BOOKINGS: ${confirmedBookings} confirmed, ${pendingBookings} pending
 ✅ TODOS: ${doneTodos}/${todos.length} done
 🧳 PACKING: ${packed}/${packingList.length} packed
+🗳️ VOTING ROOM (${votingIdeas.length} ideas): ${votingContext}
 
 📋 ITINERARY PREVIEW:
 ${itinerarySummary}
@@ -144,7 +150,12 @@ Example — for Kyoto recommendations, make 3 separate calls:
   call 1: { title: "Fushimi Inari Hike", type: "activity", description: "Famous torii gate trail through thousands of torii", emoji: "⛩️", priceDetails: "Free" }
   call 2: { title: "Arashiyama Bamboo Grove", type: "activity", description: "Iconic bamboo forest walk in western Kyoto", emoji: "🎋", priceDetails: "Free" }
   call 3: { title: "Nishiki Market", type: "food", description: "Street food and local snacks in narrow arcade", emoji: "🍜", priceDetails: "~$15/person" }
-Do not call it for generic suggestions like "find a hotel" — only specific named places.`
+Do not call it for generic suggestions like "find a hotel" — only specific named places.
+
+🔧 TOOL: recommend_from_voting_room
+Call when asked to "Pick Winners" or choose the best idea. Analyze the VOTING ROOM above.
+Call ONCE with picks array. Each pick: best of its type with a 1-sentence reason.
+Example: { picks: [{ title: "The Peninsula Hotel", type: "lodging", emoji: "🏨", reason: "Best value in lodging — under budget with strong reviews" }] }`
 }
 
 /**
