@@ -789,11 +789,7 @@ export default function TodoTab() {
         }
         rightSlot={
           <>
-            <div className="flex-1">
-              {/* No category filters for Todo */}
-            </div>
-
-            <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
+            <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible pb-2 md:pb-0 items-center gap-2 shrink-0">
               <button
                 onClick={() => setHideCompleted(prev => !prev)}
                 className={`text-[11px] font-semibold px-2 py-1 rounded-[var(--radius-sm)] border transition-colors flex items-center gap-1.5 shrink-0 ${hideCompleted ? 'bg-bg-card border-border text-text-primary' : 'bg-transparent border-transparent text-text-muted hover:text-text-secondary hover:bg-bg-secondary'}`}

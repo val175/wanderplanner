@@ -1036,7 +1036,7 @@ function CalendarActivityBlock({ activity, day, dayActivities, startOfDayMinutes
   )
 }
 
-function CalendarView({ trip, isMobile, activeDayIndex, onOpenDrawer }) {
+function CalendarView({ trip, isMobile, activeDayIndex, onOpenDrawer, onDayChange }) {
   const canvasRef = useRef(null)
   const panState = useRef({ active: false, startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0 })
 
@@ -1111,6 +1111,34 @@ function CalendarView({ trip, isMobile, activeDayIndex, onOpenDrawer }) {
       onPointerUp={handleCanvasPointerUp}
       onPointerLeave={handleCanvasPointerUp}
     >
+      {/* Mobile day navigator */}
+      {isMobile && trip.itinerary?.length > 1 && (() => {
+        const day = trip.itinerary[activeDayIndex]
+        return (
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border/20 bg-bg-card sticky top-0 left-0 z-30 w-full">
+            <button
+              onClick={() => onDayChange(Math.max(0, activeDayIndex - 1))}
+              disabled={activeDayIndex === 0}
+              className="p-2 text-text-muted hover:text-text-primary disabled:opacity-25 transition-colors rounded-lg hover:bg-bg-hover"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+            </button>
+            <div className="text-center leading-tight">
+              <p className="text-sm font-semibold text-text-primary font-heading">
+                {day?.emoji} Day {day?.dayNumber}{day?.location ? ` · ${day.location}` : ''}
+              </p>
+              {day?.date && <p className="text-[11px] text-text-muted mt-0.5">{day.date}</p>}
+            </div>
+            <button
+              onClick={() => onDayChange(Math.min(trip.itinerary.length - 1, activeDayIndex + 1))}
+              disabled={activeDayIndex === trip.itinerary.length - 1}
+              className="p-2 text-text-muted hover:text-text-primary disabled:opacity-25 transition-colors rounded-lg hover:bg-bg-hover"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+            </button>
+          </div>
+        )
+      })()}
       <div className="flex min-w-fit relative" style={{ minHeight: totalMinHeight }}>
         {/* Time Axis */}
         <div className="w-16 sticky left-0 z-20 bg-bg-card/95 border-r border-border/20 shrink-0">
@@ -1460,6 +1488,7 @@ export default function ItineraryTab() {
               isMobile={isMobile}
               activeDayIndex={activeDayIndex}
               onOpenDrawer={setSelectedActivity}
+              onDayChange={setActiveDayIndex}
             />
           )}
         </div>
