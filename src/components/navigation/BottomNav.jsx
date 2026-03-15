@@ -3,9 +3,38 @@ import { ACTIONS } from '../../state/tripReducer'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { TAB_CONFIG } from '../../constants/tabs'
 
+function useBadges(trip) {
+    if (!trip) return {}
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+
+    // Overview: overdue todos + high-priority unconfirmed bookings
+    const overdueTodos = (trip.todos || []).filter(t => {
+        if (t.done) return false
+        if (t.priority === 'high') return true
+        if (t.dueDate) return new Date(t.dueDate + 'T00:00:00') < today
+        return false
+    }).length
+
+    const urgentBookings = (trip.bookings || []).filter(b => {
+        if (b.status === 'booked' || b.status === 'confirmed') return false
+        if (b.priority) return true
+        if (b.bookByDate) return Math.ceil((new Date(b.bookByDate + 'T00:00:00') - today) / 86400000) <= 7
+        return false
+    }).length
+
+    const overviewCount = overdueTodos + urgentBookings
+
+    // Budget: dot if any category is over its max
+    const overBudget = (trip.budget || []).some(b => (b.actual || 0) > (b.max || 0))
+
+    return { overview: overviewCount > 0 ? overviewCount : null, budget: overBudget }
+}
+
 export default function BottomNav() {
     const { state, dispatch } = useTripContext()
     const isMobile = useMediaQuery('(max-width: 767px)')
+    const activeTrip = state.trips?.find(t => t.id === state.activeTripId) || null
+    const badges = useBadges(activeTrip)
 
     // Only render on mobile
     if (!isMobile) return null
@@ -43,7 +72,17 @@ export default function BottomNav() {
                             className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-colors ${isActive ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
                                 }`}
                         >
-                            <span className={`text-xl ${isActive ? 'scale-110' : ''} transition-transform`}>{tab.emoji}</span>
+                            <span className="relative inline-flex">
+                                <span className={`text-xl ${isActive ? 'scale-110' : ''} transition-transform`}>{tab.emoji}</span>
+                                {tabId === 'overview' && badges.overview && (
+                                    <span className="absolute -top-1 -right-2 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-danger text-[9px] font-bold text-white px-[3px] leading-none">
+                                        {badges.overview > 9 ? '9+' : badges.overview}
+                                    </span>
+                                )}
+                                {tabId === 'budget' && badges.budget && (
+                                    <span className="absolute -top-0.5 -right-1 w-2 h-2 rounded-full bg-warning" />
+                                )}
+                            </span>
                             <span className="text-[10px] font-medium tracking-tight">{tab.label}</span>
                         </button>
                     )

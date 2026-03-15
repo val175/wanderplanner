@@ -18,8 +18,23 @@ export default async function handler(req, res) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
-        const { city, country } = req.body;
+        const { city, country, tripStartDate, tripEndDate } = req.body;
         if (!city) return res.status(400).json({ error: 'City name is required' });
+
+        // Derive travel month(s) from trip dates, fall back to current month
+        const tripMonth = (() => {
+            if (tripStartDate) {
+                const start = new Date(tripStartDate + 'T12:00:00')
+                const startMonth = start.toLocaleString('en-US', { month: 'long' })
+                if (tripEndDate) {
+                    const end = new Date(tripEndDate + 'T12:00:00')
+                    const endMonth = end.toLocaleString('en-US', { month: 'long' })
+                    return startMonth === endMonth ? startMonth : `${startMonth}–${endMonth}`
+                }
+                return startMonth
+            }
+            return new Date().toLocaleString('en-US', { month: 'long' })
+        })()
 
         const geminiKey = process.env.GEMINI_API_KEY
         const openrouterKey = process.env.OPENROUTER_API_KEY
@@ -52,9 +67,9 @@ export default async function handler(req, res) {
                 currencyTip: z.string().describe('A simple, rounded conversion rate against PHP (e.g., "1 USD = ₱58" or "1 EUR = ₱62"). ALWAYS use PHP as the target currency. Use the ₱ symbol. Do not include decimals.'),
                 language: z.string().describe('primary local language'),
                 flagEmoji: z.string().describe('the unicode flag emoji for the destination'),
-                weatherTip: z.string().describe('The typical weather for this city during the month of March. Format exactly like this example: "🌤️ 18°C / 9°C (March)". Always include a relevant weather emoji at the start.')
+                weatherTip: z.string().describe(`The typical weather for this city during ${tripMonth}. Format exactly like this example: "🌤️ 18°C / 9°C (${tripMonth})". Always include a relevant weather emoji at the start.`)
             }),
-            prompt: `Generate travel details for ${city}${country ? `, ${country}` : ''}. The trip will take place in March. Base the weather tip on typical historical data for March. The travelers use PHP (Philippine Peso) as their home currency.`
+            prompt: `Generate travel details for ${city}${country ? `, ${country}` : ''}. The trip will take place in ${tripMonth}. Base the weather tip on typical historical data for ${tripMonth}. The travelers use PHP (Philippine Peso) as their home currency.`
         })
 
         return res.status(200).json(object)

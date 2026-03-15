@@ -93,6 +93,27 @@ function CategoryPill({ value, onChange, disabled }) {
     </DropdownMenu.Root>
   )
 }
+// ── Time Conflict Utilities ────────────────────────────────────────────────
+function timeToMins(t) {
+  if (!t) return null
+  const [h, m] = t.split(':').map(Number)
+  return isNaN(h) || isNaN(m) ? null : h * 60 + m
+}
+
+/** Returns activities from `list` that overlap with the given time range. */
+function getConflicts(list, startTime, endTime, excludeId = null) {
+  const s = timeToMins(startTime)
+  const e = timeToMins(endTime)
+  if (s === null || e === null || s >= e) return []
+  return list.filter(a => {
+    if (a.id === excludeId) return false
+    const as = timeToMins(a.time)
+    const ae = timeToMins(a.endTime)
+    if (as === null || ae === null || as >= ae) return false
+    return s < ae && e > as
+  })
+}
+
 function AddActivityModal({ isOpen, onClose, itinerary, onAdd }) {
   const [activityData, setActivityData] = useState({ name: '', time: '', dayId: '', duration: 60, endTime: '' })
 
@@ -119,13 +140,20 @@ function AddActivityModal({ isOpen, onClose, itinerary, onAdd }) {
     }
   }, [isOpen, itinerary])
 
+  // Detect time conflicts against the selected day's existing activities
+  const conflicts = useMemo(() => {
+    if (!activityData.dayId || !activityData.time || !activityData.endTime) return []
+    const day = itinerary.find(d => d.id === activityData.dayId)
+    return getConflicts(day?.activities || [], activityData.time, activityData.endTime)
+  }, [activityData.dayId, activityData.time, activityData.endTime, itinerary])
+
   const handleSubmit = (e) => {
     e?.preventDefault()
     if (!activityData.name.trim() || !activityData.dayId) return
     onAdd({
       dayId: activityData.dayId,
-      activity: { 
-        name: activityData.name.trim(), 
+      activity: {
+        name: activityData.name.trim(),
         time: activityData.time,
         duration: activityData.duration,
         endTime: activityData.endTime,
@@ -211,6 +239,16 @@ function AddActivityModal({ isOpen, onClose, itinerary, onAdd }) {
             className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors"
           />
         </div>
+
+        {conflicts.length > 0 && (
+          <div className="flex items-start gap-2 px-3 py-2 rounded-[var(--radius-md)] bg-warning/10 border border-warning/20 text-warning text-xs">
+            <span className="mt-0.5">⚠️</span>
+            <span>
+              <span className="font-semibold">Time overlap</span> with{' '}
+              {conflicts.map(c => c.name).join(', ')} — you can still add it.
+            </span>
+          </div>
+        )}
 
         <div className="pt-4 flex justify-end gap-3 border-t border-border mt-6">
           <Button variant="secondary" onClick={onClose} type="button">
@@ -434,6 +472,7 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
                 {day.activities?.map((activity, index, arr) => {
                   const accentMatch = getActivityAccent(activity.emoji).match(/text-([a-z]+)/)
                   const dotColor = accentMatch ? `bg-${accentMatch[1]}` : 'bg-border-strong'
+                  const hasConflict = getConflicts(arr, activity.time, activity.endTime, activity.id).length > 0
 
                   return (
                     <Fragment key={activity.id}>
@@ -469,6 +508,11 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
                               placeholder="-:-"
                               disabled={isReadOnly}
                             />
+                            {hasConflict && (
+                              <span className="text-[9px] font-semibold text-warning bg-warning/10 rounded px-1 py-0.5 leading-none" title="Time overlap with another activity">
+                                ⚠️ overlap
+                              </span>
+                            )}
                           </div>
                         </td>
 

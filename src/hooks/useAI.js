@@ -36,9 +36,16 @@ PERSONALITY: Start every response with "🪄 [Magic Word]!" using words like Ala
   const daysCount = trip.itinerary?.length || 0
   const activitiesCount = trip.itinerary?.reduce((sum, d) => sum + (d.activities?.length || 0), 0) || 0
 
-  const budgetSummary = trip.budget?.length
-    ? trip.budget.map(b => `${b.emoji || ''} ${b.name}: ${sym}${b.max} budget (${sym}${b.actual || 0} spent)`).join(', ')
-    : 'No budget set'
+  const budgetSummary = (() => {
+    const cats = trip.budget || []
+    if (!cats.length) return 'No budget set'
+    const sorted = [...cats].sort((a, b) => (b.actual || 0) - (a.actual || 0))
+    const shown = sorted.slice(0, 4)
+    const rest = sorted.slice(4)
+    const lines = shown.map(b => `${b.emoji || ''} ${b.name}: ${sym}${b.max} (${sym}${b.actual || 0} spent)`)
+    if (rest.length) lines.push(`+ ${rest.length} more categories (${sym}${rest.reduce((s, b) => s + (b.max || 0), 0)} total)`)
+    return lines.join(', ')
+  })()
 
   const totalBudget = trip.budget?.reduce((s, b) => s + (b.max || 0), 0) || 0
   const totalSpent = trip.budget?.reduce((s, b) => s + (b.actual || 0), 0) || 0
@@ -53,9 +60,30 @@ PERSONALITY: Start every response with "🪄 [Magic Word]!" using words like Ala
   const packingList = trip.packingList || []
   const packed = packingList.filter(p => p.packed).length
 
-  const itinerarySummary = trip.itinerary?.slice(0, 5).map(d =>
-    `Day ${d.dayNumber} (${d.location || 'location TBD'}): ${d.activities?.map(a => a.name).join(', ') || 'no activities yet'}`
-  ).join('\n') || 'No itinerary yet'
+  const itinerarySummary = (() => {
+    const itinerary = trip.itinerary || []
+    if (!itinerary.length) return 'No itinerary yet'
+
+    // Find "current" day index by matching today's date, or default to day 0
+    const todayStr = new Date().toISOString().split('T')[0]
+    let pivot = itinerary.findIndex(d => d.date >= todayStr)
+    if (pivot === -1) pivot = itinerary.length - 1
+
+    const past = itinerary.slice(0, pivot)
+    const focus = itinerary.slice(pivot, pivot + 3)  // current + next 2 days
+    const future = itinerary.slice(pivot + 3)
+
+    const lines = []
+    if (past.length) {
+      const locs = [...new Set(past.map(d => d.location).filter(Boolean))]
+      lines.push(`Days 1–${past.length} (completed): ${locs.join(' → ') || 'various locations'}`)
+    }
+    focus.forEach(d =>
+      lines.push(`Day ${d.dayNumber} (${d.location || 'TBD'}): ${d.activities?.map(a => a.name).join(', ') || 'no activities yet'}`)
+    )
+    if (future.length) lines.push(`+ ${future.length} more days planned ahead`)
+    return lines.join('\n')
+  })()
 
   return `You are Wanda, a friendly AI travel assistant built into Wanderplan.
 You are helping plan this specific trip:
@@ -172,7 +200,7 @@ export async function generateCityGuide(city, trip) {
         'Content-Type': 'application/json',
         ...(token && { 'Authorization': `Bearer ${token}` })
       },
-      body: JSON.stringify({ city: city.city, country: city.country }),
+      body: JSON.stringify({ city: city.city, country: city.country, tripStartDate: trip?.startDate, tripEndDate: trip?.endDate }),
     });
 
     if (!res.ok) {
