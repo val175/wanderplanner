@@ -558,7 +558,7 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                    <div className="flex items-center gap-1">Payer <SortIcon col="payer" /></div>
                  </th>
                )}
-              <th className="w-[40px]" />
+              <th className="w-[80px]" />
             </tr>
           </thead>
           <tbody>

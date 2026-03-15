@@ -930,7 +930,7 @@ export default function TodoTab() {
                 <div className="w-[140px] text-left px-2 text-xs font-bold uppercase tracking-wider text-text-muted">DUE DATE</div>
                 <div className="w-[100px] shrink-0 text-center text-xs font-bold uppercase tracking-wider text-text-muted">ASSIGNED</div>
                 <div className="w-[30px]"></div>
-                {!isReadOnly && <div className="w-[40px]"></div>}
+                {!isReadOnly && <div className="w-[60px]"></div>}
               </div>
 
               <div className="divide-y divide-border/30 h-full flex flex-col">

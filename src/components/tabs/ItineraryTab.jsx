@@ -467,7 +467,7 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
                   <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-auto text-left overflow-hidden">ACTIVITY</th>
                   <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[140px] text-left overflow-hidden">CATEGORY</th>
                   <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[25%] text-left overflow-hidden">LOCATION</th>
-                  <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[40px] overflow-hidden"></th>
+                  <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[80px] overflow-hidden"></th>
                 </tr>
               </thead>
               <tbody>
