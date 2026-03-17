@@ -283,14 +283,14 @@ export default function WrapUpTab() {
                     top: '-9999px',
                     width: '1080px',
                     height: '1920px',
-                    backgroundColor: '#F4F2EF',
+                    backgroundColor: '#f7ede8',
                     color: '#1A1A18',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center', // Perfect vertical centering
                     textAlign: 'center',
-                    padding: '0 100px', // Removed vertical padding to let flex centering handle it
+                    padding: '0 100px',
                     zIndex: -100,
                     fontFamily: '"Anthropic Sans", sans-serif',
                 }}
@@ -315,15 +315,15 @@ export default function WrapUpTab() {
                             {trip.name}
                         </h1>
 
-                        {/* Date & Avatars - Vertically Aligned */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', height: '40px' }}>
-                            <span style={{ fontSize: '24px', fontWeight: 500, color: '#9B9A93', lineHeight: 1 }}>
+                        {/* Date & Avatars - Refined Alignment */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            <span style={{ fontSize: '24px', fontWeight: 500, color: '#9B9A93' }}>
                                 {formatDateRange(trip.startDate, trip.endDate) || 'Dates TBA'}
                             </span>
                             {travelerProfiles.length > 0 && (
-                                <>
-                                    <span style={{ color: '#E0DDD6', fontSize: '20px', lineHeight: 1 }}>•</span>
-                                    <div style={{ display: 'flex', alignItems: 'center', height: '40px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                    <span style={{ color: '#E0DDD6', fontSize: '20px' }}>•</span>
+                                    <div style={{ display: 'flex', alignItems: 'center' }}>
                                         {travelerProfiles.map((p, i) => (
                                             <div 
                                                 key={p.id} 
@@ -331,7 +331,7 @@ export default function WrapUpTab() {
                                                     width: '40px', 
                                                     height: '40px', 
                                                     borderRadius: '50%', 
-                                                    border: '2px solid #F4F2EF',
+                                                    border: '2px solid #f7ede8',
                                                     marginLeft: i > 0 ? '-12px' : '0',
                                                     overflow: 'hidden',
                                                     backgroundColor: '#ECEAE5',
@@ -343,23 +343,23 @@ export default function WrapUpTab() {
                                                 {p.customPhoto || p.photo ? (
                                                     <img src={p.customPhoto || p.photo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 ) : (
-                                                    <span style={{ fontSize: '16px', fontWeight: 700, color: '#D97757', lineHeight: 1 }}>
+                                                    <span style={{ fontSize: '16px', fontWeight: 700, color: '#D97757' }}>
                                                         {p.name?.[0].toUpperCase()}
                                                     </span>
                                                 )}
                                             </div>
                                         ))}
                                     </div>
-                                </>
+                                </div>
                             )}
                         </div>
 
                         {/* Rating */}
-                        <div style={{ display: 'flex', gap: '4px', height: '32px', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                             {[1, 2, 3, 4, 5].map(n => (
                                 <span 
                                     key={n} 
-                                    style={{ fontSize: '32px', color: n <= (trip.rating || 0) ? '#facc15' : '#E0DDD6', lineHeight: 1 }}
+                                    style={{ fontSize: '32px', color: n <= (trip.rating || 0) ? '#facc15' : '#E0DDD6' }}
                                 >
                                     ★
                                 </span>
@@ -367,16 +367,16 @@ export default function WrapUpTab() {
                         </div>
                     </div>
 
-                    {/* Summary Text Section - Increased by 30% (~42px), Connected paragraph */}
+                    {/* Summary Text Section - Increased by ~30% from the baseline, now 48px */}
                     <div style={{ 
-                        fontSize: '42px', 
+                        fontSize: '48px', 
                         fontWeight: 600, 
                         lineHeight: 1.5, 
                         letterSpacing: '-0.01em', 
                         maxWidth: '880px',
                         color: '#1A1A18',
                         textAlign: 'center',
-                        marginBottom: '48px'
+                        marginBottom: '64px'
                     }}>
                         🏃 {stats.totalActivities} activities in total? That's around {Math.round(stats.stopsPerDay)} stops per day! {paceLabel}. 
                         {" "}💰 Daily average spend of {formatCurrency(stats.costPerDay, trip.currency)}? {stats.budgetSub}!
@@ -387,7 +387,7 @@ export default function WrapUpTab() {
                         )}
                     </div>
 
-                    {/* Vibe Pills - NOW BELOW SUMMARY */}
+                    {/* Vibe Pills - FIXED RENDERING (label match) */}
                     {trip.vibes && trip.vibes.length > 0 && (
                         <div style={{ 
                             display: 'flex', 
@@ -396,12 +396,12 @@ export default function WrapUpTab() {
                             gap: '12px', 
                             maxWidth: '800px'
                         }}>
-                            {trip.vibes.map(vibeId => {
-                                const vibe = VIBE_TAGS.find(v => v.id === vibeId)
+                            {trip.vibes.map(vibeLabel => {
+                                const vibe = VIBE_TAGS.find(v => v.label === vibeLabel)
                                 if (!vibe) return null
                                 return (
                                     <div 
-                                        key={vibeId}
+                                        key={vibeLabel}
                                         style={{
                                             backgroundColor: '#FFFFFF',
                                             color: '#3D3929',
@@ -409,7 +409,7 @@ export default function WrapUpTab() {
                                             borderRadius: '999px',
                                             fontSize: '18px',
                                             fontWeight: 600,
-                                            border: '1px solid #E0DDD6',
+                                            border: '1px solid #E3E1DB',
                                             display: 'flex',
                                             alignItems: 'center',
                                             gap: '8px',
@@ -425,7 +425,7 @@ export default function WrapUpTab() {
                     )}
                 </div>
 
-                {/* Brand Watermark Bottom - Opaque #1A1A18 */}
+                {/* Brand Watermark Bottom */}
                 <div style={{ position: 'absolute', bottom: '120px', transform: 'scale(1)' }}>
                     <WandWordmark static={true} color="#1A1A18" />
                 </div>
