@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { auth } from '../firebase/config'
+import { triggerHaptic } from '../utils/haptics'
 
 const TTS_URL = 'https://wanderplan-rust.vercel.app/api/tts'
 const MAX_TTS_SENTENCES = 3
@@ -171,6 +172,13 @@ export function useWalkieTalkie({ onTranscriptReady }) {
     try {
       recognition.start()
       setIsListening(true)
+
+      // Fire the haptic buzz to confirm the mic is ready
+      if (typeof triggerHaptic === 'function') {
+        triggerHaptic()
+      } else if (navigator.vibrate) {
+        navigator.vibrate(50)
+      }
     } catch (err) {
       console.error('[WT] recognition.start() error:', err)
     }
