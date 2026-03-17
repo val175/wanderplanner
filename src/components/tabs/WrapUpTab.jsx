@@ -288,141 +288,146 @@ export default function WrapUpTab() {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    justifyContent: 'center',
+                    justifyContent: 'center', // Perfect vertical centering
                     textAlign: 'center',
-                    padding: '160px 100px',
+                    padding: '0 100px', // Removed vertical padding to let flex centering handle it
                     zIndex: -100,
                     fontFamily: '"Anthropic Sans", sans-serif',
                 }}
             >
-                {/* Hero Section */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '32px', marginBottom: '64px' }}>
-                    {/* Emoji - 72px as requested */}
-                    <div style={{ fontSize: '72px', lineHeight: 1 }}>{trip.emoji || '🎉'}</div>
+                {/* Main Content Wrapper for Centering */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     
-                    {/* Title - 48px bold as requested */}
-                    <h1 style={{ 
-                        fontSize: '48px', 
-                        fontWeight: 700, 
-                        letterSpacing: '-0.02em', 
-                        lineHeight: 1.2, 
-                        margin: 0,
-                        color: '#1A1A18'
-                    }}>
-                        {trip.name}
-                    </h1>
+                    {/* Hero Section */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '32px', marginBottom: '80px' }}>
+                        {/* Emoji */}
+                        <div style={{ fontSize: '72px', lineHeight: 1 }}>{trip.emoji || '🎉'}</div>
+                        
+                        {/* Title */}
+                        <h1 style={{ 
+                            fontSize: '48px', 
+                            fontWeight: 700, 
+                            letterSpacing: '-0.02em', 
+                            lineHeight: 1.2, 
+                            margin: 0,
+                            color: '#1A1A18'
+                        }}>
+                            {trip.name}
+                        </h1>
 
-                    {/* Date & Avatars */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <span style={{ fontSize: '24px', fontWeight: 500, color: '#9B9A93' }}>
-                            {formatDateRange(trip.startDate, trip.endDate) || 'Dates TBA'}
-                        </span>
-                        {travelerProfiles.length > 0 && (
+                        {/* Date & Avatars - Vertically Aligned */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', height: '40px' }}>
+                            <span style={{ fontSize: '24px', fontWeight: 500, color: '#9B9A93', lineHeight: 1 }}>
+                                {formatDateRange(trip.startDate, trip.endDate) || 'Dates TBA'}
+                            </span>
+                            {travelerProfiles.length > 0 && (
+                                <>
+                                    <span style={{ color: '#E0DDD6', fontSize: '20px', lineHeight: 1 }}>•</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', height: '40px' }}>
+                                        {travelerProfiles.map((p, i) => (
+                                            <div 
+                                                key={p.id} 
+                                                style={{ 
+                                                    width: '40px', 
+                                                    height: '40px', 
+                                                    borderRadius: '50%', 
+                                                    border: '2px solid #F4F2EF',
+                                                    marginLeft: i > 0 ? '-12px' : '0',
+                                                    overflow: 'hidden',
+                                                    backgroundColor: '#ECEAE5',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center'
+                                                }}
+                                            >
+                                                {p.customPhoto || p.photo ? (
+                                                    <img src={p.customPhoto || p.photo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                ) : (
+                                                    <span style={{ fontSize: '16px', fontWeight: 700, color: '#D97757', lineHeight: 1 }}>
+                                                        {p.name?.[0].toUpperCase()}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Rating */}
+                        <div style={{ display: 'flex', gap: '4px', height: '32px', alignItems: 'center' }}>
+                            {[1, 2, 3, 4, 5].map(n => (
+                                <span 
+                                    key={n} 
+                                    style={{ fontSize: '32px', color: n <= (trip.rating || 0) ? '#facc15' : '#E0DDD6', lineHeight: 1 }}
+                                >
+                                    ★
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Summary Text Section - Increased by 30% (~42px), Connected paragraph */}
+                    <div style={{ 
+                        fontSize: '42px', 
+                        fontWeight: 600, 
+                        lineHeight: 1.5, 
+                        letterSpacing: '-0.01em', 
+                        maxWidth: '880px',
+                        color: '#1A1A18',
+                        textAlign: 'center',
+                        marginBottom: '48px'
+                    }}>
+                        🏃 {stats.totalActivities} activities in total? That's around {Math.round(stats.stopsPerDay)} stops per day! {paceLabel}. 
+                        {" "}💰 Daily average spend of {formatCurrency(stats.costPerDay, trip.currency)}? {stats.budgetSub}!
+                        {km !== null && km > 0 && (
                             <>
-                                <span style={{ color: '#E0DDD6', fontSize: '20px' }}>•</span>
-                                <div style={{ display: 'flex', alignItems: 'center', marginLeft: '-4px' }}>
-                                    {travelerProfiles.map((p, i) => (
-                                        <div 
-                                            key={p.id} 
-                                            style={{ 
-                                                width: '40px', 
-                                                height: '40px', 
-                                                borderRadius: '50%', 
-                                                border: '2px solid #F4F2EF',
-                                                marginLeft: i > 0 ? '-12px' : '0',
-                                                overflow: 'hidden',
-                                                backgroundColor: '#ECEAE5',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center'
-                                            }}
-                                        >
-                                            {p.customPhoto || p.photo ? (
-                                                <img src={p.customPhoto || p.photo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                            ) : (
-                                                <span style={{ fontSize: '16px', fontWeight: 700, color: '#D97757' }}>
-                                                    {p.name?.[0].toUpperCase()}
-                                                </span>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
+                                {" "}✈️ You traveled {km.toLocaleString()} km in total, equivalent to <span style={{ opacity: 0.7 }}>≈ {relatableKm}</span>.
                             </>
                         )}
                     </div>
 
-                    {/* Rating - Reduced size */}
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                        {[1, 2, 3, 4, 5].map(n => (
-                            <span 
-                                key={n} 
-                                style={{ fontSize: '32px', color: n <= (trip.rating || 0) ? '#facc15' : '#E0DDD6' }}
-                            >
-                                ★
-                            </span>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Vibe Pills */}
-                {trip.vibes && trip.vibes.length > 0 && (
-                    <div style={{ 
-                        display: 'flex', 
-                        flexWrap: 'wrap', 
-                        justifyContent: 'center', 
-                        gap: '12px', 
-                        maxWidth: '800px',
-                        marginBottom: '80px'
-                    }}>
-                        {trip.vibes.map(vibeId => {
-                            const vibe = VIBE_TAGS.find(v => v.id === vibeId)
-                            if (!vibe) return null
-                            return (
-                                <div 
-                                    key={vibeId}
-                                    style={{
-                                        backgroundColor: '#FFFFFF',
-                                        color: '#3D3929',
-                                        padding: '8px 16px',
-                                        borderRadius: '999px',
-                                        fontSize: '18px',
-                                        fontWeight: 600,
-                                        border: '1px solid #E0DDD6',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px'
-                                    }}
-                                >
-                                    <span>{vibe.emoji}</span>
-                                    <span>{vibe.label}</span>
-                                </div>
-                            )
-                        })}
-                    </div>
-                )}
-
-                {/* Summary Text Section - Connected paragraph, not extra bold */}
-                <div style={{ 
-                    fontSize: '32px', 
-                    fontWeight: 600, 
-                    lineHeight: 1.6, 
-                    letterSpacing: '-0.01em', 
-                    maxWidth: '880px',
-                    color: '#1A1A18',
-                    textAlign: 'center'
-                }}>
-                    🏃 {stats.totalActivities} activities in total? That's around {Math.round(stats.stopsPerDay)} stops per day! {paceLabel}. 
-                    {" "}💰 Daily average spend of {formatCurrency(stats.costPerDay, trip.currency)}? {stats.budgetSub}!
-                    {km !== null && km > 0 && (
-                        <>
-                            {" "}✈️ You traveled {km.toLocaleString()} km in total, equivalent to <span style={{ opacity: 0.7 }}>≈ {relatableKm}</span>.
-                        </>
+                    {/* Vibe Pills - NOW BELOW SUMMARY */}
+                    {trip.vibes && trip.vibes.length > 0 && (
+                        <div style={{ 
+                            display: 'flex', 
+                            flexWrap: 'wrap', 
+                            justifyContent: 'center', 
+                            gap: '12px', 
+                            maxWidth: '800px'
+                        }}>
+                            {trip.vibes.map(vibeId => {
+                                const vibe = VIBE_TAGS.find(v => v.id === vibeId)
+                                if (!vibe) return null
+                                return (
+                                    <div 
+                                        key={vibeId}
+                                        style={{
+                                            backgroundColor: '#FFFFFF',
+                                            color: '#3D3929',
+                                            padding: '8px 16px',
+                                            borderRadius: '999px',
+                                            fontSize: '18px',
+                                            fontWeight: 600,
+                                            border: '1px solid #E0DDD6',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+                                        }}
+                                    >
+                                        <span>{vibe.emoji}</span>
+                                        <span>{vibe.label}</span>
+                                    </div>
+                                )
+                            })}
+                        </div>
                     )}
                 </div>
 
-                {/* Brand Watermark Bottom - Scaled down */}
-                <div style={{ position: 'absolute', bottom: '100px', transform: 'scale(1)', opacity: 0.6 }}>
-                    <WandWordmark static={true} color="#9B9A93" />
+                {/* Brand Watermark Bottom - Opaque #1A1A18 */}
+                <div style={{ position: 'absolute', bottom: '120px', transform: 'scale(1)' }}>
+                    <WandWordmark static={true} color="#1A1A18" />
                 </div>
             </div>
 
