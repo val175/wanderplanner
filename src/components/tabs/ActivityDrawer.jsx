@@ -122,7 +122,7 @@ export default function ActivityDrawer({ activity, dayId, onClose }) {
 
       {/* Drawer */}
       <div
-        className={`fixed w-full flex flex-col bg-bg-card border-border transform transition-transform duration-300 ease-out inset-x-0 bottom-0 rounded-t-2xl max-h-[92dvh] border-t md:inset-y-0 md:right-0 md:bottom-auto md:left-auto md:max-w-xl md:rounded-none md:max-h-none md:border-t-0 md:border-l ${mounted ? 'translate-y-0 md:translate-x-0' : 'translate-y-full md:translate-y-0 md:translate-x-full'}`}
+        className={`fixed w-full flex flex-col bg-bg-card border-border transform transition-transform duration-300 ease-out inset-x-0 bottom-0 rounded-t-2xl h-[92dvh] border-t md:inset-y-0 md:right-0 md:bottom-auto md:left-auto md:max-w-xl md:rounded-none md:h-auto md:border-t-0 md:border-l ${mounted ? 'translate-y-0 md:translate-x-0' : 'translate-y-full md:translate-y-0 md:translate-x-full'}`}
       >
         {/* Mobile drag handle */}
         <div className="flex justify-center pt-2.5 pb-1 md:hidden shrink-0">
