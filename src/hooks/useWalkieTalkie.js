@@ -6,7 +6,8 @@ const TTS_URL = 'https://wanderplan-rust.vercel.app/api/tts'
 const MAX_TTS_SENTENCES = 3
 
 function truncateForSpeech(text) {
-  const sentences = text.match(/[^.!?]+[.!?]+(?:\s|$)/g) || []
+  // Matches complete sentences ending in punctuation, OR the remaining unpunctuated fragment at the end
+  const sentences = text.match(/[^.!?]+[.!?]*(?:\s|$)/g) || []
   if (sentences.length <= MAX_TTS_SENTENCES) return text
   return sentences.slice(0, MAX_TTS_SENTENCES).join('').trim()
 }

@@ -56,7 +56,9 @@ export default async function handler(req) {
     
     // Backend enforcement of character limits
     if (cleanText.length > MAX_CHARS) {
-      cleanText = cleanText.substring(0, MAX_CHARS)
+      const chopped = cleanText.substring(0, MAX_CHARS)
+      // Find the last space to ensure we don't cut a word in half
+      cleanText = chopped.substring(0, chopped.lastIndexOf(' ')).trim()
     }
 
     if (!cleanText) {
