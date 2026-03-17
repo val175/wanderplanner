@@ -104,7 +104,7 @@ export default function WalkieTalkieModal() {
   useEffect(() => {
     if (isWalkieTalkieMode && isOpen && !isListening && !isSpeaking && !isLoading) {
       // Small delay so the audio unlock from toggleWalkieTalkieMode settles
-      const t = setTimeout(() => startListening(), 300)
+      const t = setTimeout(() => startListening(), 700)
       return () => clearTimeout(t)
     }
   }, [isWalkieTalkieMode]) // eslint-disable-line react-hooks/exhaustive-deps

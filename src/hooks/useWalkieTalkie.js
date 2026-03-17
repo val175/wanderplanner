@@ -32,6 +32,8 @@ export function useWalkieTalkie({ onTranscriptReady }) {
   const audioRef = useRef(null)
   const isModeRef = useRef(false)
   const finalTranscriptRef = useRef('')
+  // Tracks consecutive STT errors to prevent infinite retry loops on persistent failures
+  const sttRetryCountRef = useRef(0)
 
   // Keep isModeRef in sync with state
   useEffect(() => { isModeRef.current = isWalkieTalkieMode }, [isWalkieTalkieMode])
@@ -77,6 +79,7 @@ export function useWalkieTalkie({ onTranscriptReady }) {
     finalTranscriptRef.current = ''
 
     recognition.onresult = (event) => {
+      sttRetryCountRef.current = 0  // reset retry counter on successful audio capture
       let interim = ''
       let final = ''
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -90,6 +93,7 @@ export function useWalkieTalkie({ onTranscriptReady }) {
 
     recognition.onend = () => {
       setIsListening(false)
+      if (!isModeRef.current) return  // mode turned off while recognizing — discard transcript
       const final = finalTranscriptRef.current.trim()
       if (final) {
         setTranscript('')
@@ -102,6 +106,12 @@ export function useWalkieTalkie({ onTranscriptReady }) {
         console.warn('[useWalkieTalkie] STT error:', event.error)
       }
       setIsListening(false)
+      // Auto-retry transient errors (e.g. iOS mic not released yet after abort)
+      const fatal = event.error === 'not-allowed' || event.error === 'service-not-allowed'
+      if (isModeRef.current && !fatal && sttRetryCountRef.current < 3) {
+        sttRetryCountRef.current++
+        setTimeout(() => startListening(), 800)
+      }
     }
 
     recognition.start()
@@ -176,7 +186,9 @@ export function useWalkieTalkie({ onTranscriptReady }) {
     if (recognitionRef.current) {
       try { recognitionRef.current.stop() } catch (_) {}
     }
-    setIsListening(false)
+    // Do NOT set isListening(false) here — onend is the single source of truth.
+    // Setting it here creates a race: if the user taps Mic again before onend fires,
+    // the old onend will stomp setIsListening(false) over the new session's true state.
   }, [])
 
   const toggleWalkieTalkieMode = useCallback(() => {
