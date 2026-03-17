@@ -1,79 +1,71 @@
 // api/tts.js — Google Cloud TTS proxy (Chirp3-HD voices, FREE tier)
 // Free: $0.00 per 1M characters. Requires GOOGLE_TTS_API_KEY (GCP API key
-// with Cloud Text-to-Speech API enabled).
-//
-// Voice options (all free Chirp3-HD): Aoede (warm F), Kore (bright F),
-// Puck (friendly M), Charon (calm M), Fenrir (expressive M), Zephyr, Orbit
+// with Cloud Text-to-Speech API enabled, Application restrictions: None).
 import { verifyFirebaseToken } from './_auth.js'
 import { getCorsHeaders } from './_cors.js'
 
-const rateLimitMap = new Map() // uid → timestamp[]
-const RATE_LIMIT = 30
-const WINDOW_MS = 60_000
+// Edge runtime = near-zero cold start (same as api/chat.js)
+export const config = { runtime: 'edge' }
 
 const VOICE_NAME = 'en-US-Chirp3-HD-Aoede'
 
 function stripMarkdown(text) {
   return text
-    .replace(/```[\s\S]*?```/g, '')              // code blocks
-    .replace(/`[^`]+`/g, '')                     // inline code
-    .replace(/\*{1,3}([^*\n]+)\*{1,3}/g, '$1')  // bold/italic
-    .replace(/_{1,3}([^_\n]+)_{1,3}/g, '$1')    // underscores
-    .replace(/^#{1,6}\s+/gm, '')                 // headings
-    .replace(/!\[[^\]]*\]\([^)]+\)/g, '')        // images
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')    // links → display text
-    .replace(/^[-*+]\s+/gm, '')                  // unordered lists
-    .replace(/^\d+\.\s+/gm, '')                  // ordered lists
-    .replace(/^-{3,}$/gm, '')                    // horizontal rules
-    .replace(/\n{3,}/g, '\n\n')                  // extra newlines
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/`[^`]+`/g, '')
+    .replace(/\*{1,3}([^*\n]+)\*{1,3}/g, '$1')
+    .replace(/_{1,3}([^_\n]+)_{1,3}/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/^[-*+]\s+/gm, '')
+    .replace(/^\d+\.\s+/gm, '')
+    .replace(/^-{3,}$/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
     .trim()
 }
 
-export default async function handler(req, res) {
+export default async function handler(req) {
   if (req.method === 'OPTIONS') {
-    const cors = getCorsHeaders(req)
-    Object.entries(cors).forEach(([k, v]) => res.setHeader(k, v))
-    return res.status(200).end()
+    return new Response(null, { status: 200, headers: getCorsHeaders(req) })
   }
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' })
+    return new Response('Method Not Allowed', { status: 405, headers: getCorsHeaders(req) })
   }
 
-  const cors = getCorsHeaders(req)
-  Object.entries(cors).forEach(([k, v]) => res.setHeader(k, v))
-
   try {
-    // Auth
-    const authHeader = req.headers['authorization'] || req.headers['Authorization']
-    let userPayload
+    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization')
     try {
-      userPayload = await verifyFirebaseToken(authHeader)
+      await verifyFirebaseToken(authHeader)
     } catch (authError) {
-      return res.status(401).json({ error: authError.message })
+      return new Response(JSON.stringify({ error: authError.message }), {
+        status: 401,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
     }
 
-    // Rate limit
-    const uid = userPayload.uid
-    const now = Date.now()
-    const hits = (rateLimitMap.get(uid) || []).filter(t => now - t < WINDOW_MS)
-    if (hits.length >= RATE_LIMIT) {
-      return res.status(429).json({ error: 'Too many requests. Please wait a moment.' })
-    }
-    rateLimitMap.set(uid, [...hits, now])
-
-    const { text } = req.body
+    const { text } = await req.json()
     if (!text || typeof text !== 'string') {
-      return res.status(400).json({ error: 'Missing text' })
+      return new Response(JSON.stringify({ error: 'Missing text' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
     }
 
     const cleanText = stripMarkdown(text)
     if (!cleanText) {
-      return res.status(400).json({ error: 'No speakable text' })
+      return new Response(JSON.stringify({ error: 'No speakable text' }), {
+        status: 400,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
     }
 
     const apiKey = process.env.GOOGLE_TTS_API_KEY
     if (!apiKey) {
-      return res.status(500).json({ error: 'TTS not configured' })
+      return new Response(JSON.stringify({ error: 'TTS not configured' }), {
+        status: 500,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
     }
 
     const response = await fetch(
@@ -92,21 +84,29 @@ export default async function handler(req, res) {
     if (!response.ok) {
       const err = await response.text()
       console.error('[tts] Google Cloud TTS error:', err)
-      return res.status(502).json({ error: 'TTS service error' })
+      return new Response(JSON.stringify({ error: 'TTS service error' }), {
+        status: 502,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
     }
 
     const data = await response.json()
     if (!data.audioContent) {
-      console.error('[tts] No audioContent in response')
-      return res.status(502).json({ error: 'No audio returned' })
+      return new Response(JSON.stringify({ error: 'No audio returned' }), {
+        status: 502,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
     }
 
-    return res.status(200).json({
-      audioContent: data.audioContent,
-      mimeType: 'audio/mpeg',
+    return new Response(JSON.stringify({ audioContent: data.audioContent, mimeType: 'audio/mpeg' }), {
+      status: 200,
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   } catch (err) {
     console.error('[tts] Unexpected error:', err)
-    return res.status(500).json({ error: 'Internal server error' })
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+    })
   }
 }

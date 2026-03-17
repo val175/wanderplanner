@@ -2,6 +2,15 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { auth } from '../firebase/config'
 
 const TTS_URL = 'https://wanderplan-rust.vercel.app/api/tts'
+const MAX_TTS_SENTENCES = 3
+
+// Speak only the first few sentences — keeps latency low and sounds natural
+// when walking around. The full response is still visible in the chat.
+function truncateForSpeech(text) {
+  const sentences = text.match(/[^.!?]+[.!?]+(?:\s|$)/g) || []
+  if (sentences.length <= MAX_TTS_SENTENCES) return text
+  return sentences.slice(0, MAX_TTS_SENTENCES).join('').trim()
+}
 
 const isSTTSupported =
   typeof window !== 'undefined' &&
@@ -113,7 +122,7 @@ export function useWalkieTalkie({ onTranscriptReady }) {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text: truncateForSpeech(text) }),
       })
 
       if (!res.ok) {
