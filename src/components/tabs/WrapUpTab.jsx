@@ -1,9 +1,11 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useTripContext } from '../../context/TripContext'
-import { formatCurrency, haversineDistance, geocodeCity } from '../../utils/helpers'
+import { formatCurrency, haversineDistance, geocodeCity, formatDateRange } from '../../utils/helpers'
 import { ACTIONS } from '../../state/tripReducer'
 import { useProfiles } from '../../context/ProfileContext'
+import { useTripTravelers } from '../../hooks/useTripTravelers'
 import Button from '../shared/Button'
+import AvatarCircle from '../shared/AvatarCircle'
 
 const VIBE_TAGS = [
     { label: 'Surf & Chill', emoji: '🏄' },
@@ -76,6 +78,7 @@ function useRouteDistance(destinations) {
 export default function WrapUpTab() {
     const { activeTrip, dispatch, showToast } = useTripContext()
     const { currentUserProfile } = useProfiles()
+    const travelerProfiles = useTripTravelers()
 
     if (!activeTrip) return null
     const trip = activeTrip
@@ -143,21 +146,40 @@ export default function WrapUpTab() {
             {/* 1. Hero Section */}
             <div className="space-y-4">
                 <div className="text-8xl animate-fade-in">{trip.emoji || '🎉'}</div>
-                <h1 className="font-heading text-5xl font-bold tracking-tighter text-text-primary uppercase leading-tight">
+                <h1 className="font-heading text-5xl font-bold tracking-tighter text-text-primary leading-tight">
                     {trip.name}
                 </h1>
 
-                {/* Star Rating */}
-                <div className="flex items-center justify-center gap-1">
-                    {[1, 2, 3, 4, 5].map(n => (
-                        <button
-                            key={n}
-                            onClick={() => handleRating(n)}
-                            className="text-3xl transition-transform hover:scale-110 active:scale-95"
-                        >
-                            <span className={n <= (trip.rating || 0) ? 'text-yellow-400' : 'text-text-muted/20'}>★</span>
-                        </button>
-                    ))}
+                {/* Date & Travelers */}
+                <div className="flex flex-col items-center gap-3">
+                    <div className="text-sm font-medium text-text-muted flex items-center gap-2">
+                        <span>{formatDateRange(trip.startDate, trip.endDate) || 'Dates TBA'}</span>
+                        {travelerProfiles.length > 0 && (
+                            <>
+                                <span className="opacity-30">•</span>
+                                <div className="flex items-center -space-x-2">
+                                    {travelerProfiles.map((p, i) => (
+                                        <div key={p.id} className="border-2 border-bg-primary rounded-full overflow-hidden">
+                                            <AvatarCircle profile={p} size={24} />
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Star Rating */}
+                    <div className="flex items-center justify-center gap-1">
+                        {[1, 2, 3, 4, 5].map(n => (
+                            <button
+                                key={n}
+                                onClick={() => handleRating(n)}
+                                className="text-3xl transition-transform hover:scale-110 active:scale-95"
+                            >
+                                <span className={n <= (trip.rating || 0) ? 'text-yellow-400' : 'text-text-muted/20'}>★</span>
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -182,7 +204,7 @@ export default function WrapUpTab() {
             </div>
 
             {/* 3. The "Word Cloud" Summary (Paragraph style) */}
-            <div className="text-2xl sm:text-4xl font-semibold leading-relaxed tracking-tight max-w-3xl text-text-primary">
+            <div className="text-2xl sm:text-4xl font-semibold leading-relaxed tracking-tight max-w-[868px] text-text-primary px-4">
                 🏃 {stats.totalActivities} activities in total? That's around {Math.round(stats.stopsPerDay)} stops per day! {paceLabel}. 
                 {" "}💰 Daily average spend of {formatCurrency(stats.costPerDay, trip.currency)}? {stats.budgetSub}!
                 {km !== null && km > 0 && (
