@@ -6,6 +6,7 @@ import { useProfiles } from '../../context/ProfileContext'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
 import Button from '../shared/Button'
 import AvatarCircle from '../shared/AvatarCircle'
+import WandWordmark from '../shared/WandWordmark'
 import html2canvas from 'html2canvas'
 
 const VIBE_TAGS = [
@@ -81,6 +82,7 @@ export default function WrapUpTab() {
     const { currentUserProfile } = useProfiles()
     const travelerProfiles = useTripTravelers()
     const [isExporting, setIsExporting] = useState(false)
+    const exportRef = useMemo(() => ({ current: null }), [])
 
     if (!activeTrip) return null
     const trip = activeTrip
@@ -140,74 +142,27 @@ export default function WrapUpTab() {
     }
 
     const handleExportStory = async () => {
-        if (isExporting) return
+        if (isExporting || !exportRef.current) return
         setIsExporting(true)
 
         try {
-            // Create a hidden container for the 1080x1920 export
-            const container = document.createElement('div')
-            container.style.position = 'fixed'
-            container.style.top = '-9999px'
-            container.style.left = '-9999px'
-            container.style.width = '1080px'
-            container.style.height = '1920px'
-            container.style.backgroundColor = 'var(--bg-primary)'
-            container.style.color = 'var(--text-primary)'
-            container.style.display = 'flex'
-            container.style.flexDirection = 'column'
-            container.style.alignItems = 'center'
-            container.style.justifyContent = 'center'
-            container.style.padding = '80px'
-            container.style.textAlign = 'center'
-            container.style.gap = '60px'
-            container.style.zIndex = '-100'
+            // Wait a tiny bit for any potential re-renders
+            await new Promise(r => setTimeout(r, 100))
 
-            // Build the content for the story
-            container.innerHTML = `
-                <div style="display: flex; flex-direction: column; align-items: center; gap: 40px; transform: scale(1.8);">
-                    <div style="font-size: 160px;">${trip.emoji || '🎉'}</div>
-                    <h1 style="font-family: var(--font-heading); font-size: 80px; font-weight: 800; letter-spacing: -0.05em; margin: 0; line-height: 1;">
-                        ${trip.name}
-                    </h1>
-                    <div style="font-size: 40px; color: var(--text-muted); font-weight: 500;">
-                        ${formatDateRange(trip.startDate, trip.endDate) || 'Dates TBA'}
-                    </div>
-                    <div style="display: flex; gap: 8px; font-size: 60px;">
-                        ${[1, 2, 3, 4, 5].map(n => `
-                            <span style="color: ${n <= (trip.rating || 0) ? '#facc15' : 'rgba(var(--text-muted-rgb), 0.2)'}">★</span>
-                        `).join('')}
-                    </div>
-                </div>
-
-                <div style="font-size: 64px; font-weight: 600; line-height: 1.4; letter-spacing: -0.02em; max-width: 920px; margin-top: 40px; transform: scale(1.1);">
-                    🏃 ${stats.totalActivities} activities in total? That's around ${Math.round(stats.stopsPerDay)} stops per day! ${paceLabel}. 
-                    <br/><br/>
-                    💰 Daily average spend of ${formatCurrency(stats.costPerDay, trip.currency)}? ${stats.budgetSub}!
-                    ${km !== null && km > 0 ? `<br/><br/>✈️ You traveled ${km.toLocaleString()} km in total, which is equivalent to ${relatableKm}.` : ''}
-                </div>
-
-                <div style="position: absolute; bottom: 80px; font-size: 28px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.1em; opacity: 0.6;">
-                    PLANNED WITH SIDEQUEST
-                </div>
-            `
-
-            document.body.appendChild(container)
-
-            // Capture the container
-            const canvas = await html2canvas(container, {
+            const canvas = await html2canvas(exportRef.current, {
                 scale: 2,
                 useCORS: true,
                 backgroundColor: null,
                 logging: false,
+                width: 1080,
+                height: 1920,
             })
 
-            // Trigger download
             const link = document.createElement('a')
-            link.download = `${trip.name.replace(/\s+/g, '-')}-Story.png`
+            link.download = `${trip.name.replace(/\s+/g, '-')}-WanderTrip-Story.png`
             link.href = canvas.toDataURL('image/png')
             link.click()
 
-            document.body.removeChild(container)
             showToast('📸 Story saved!', 'success')
         } catch (err) {
             console.error('[Export] Failed to generate story:', err)
@@ -318,6 +273,70 @@ export default function WrapUpTab() {
                 >
                     🪄 <span className="wanda-serif">Wanda</span> Recap
                 </Button>
+            </div>
+            {/* ── HIDDEN STORY CANVAS FOR EXPORT ── */}
+            <div 
+                ref={el => exportRef.current = el}
+                style={{
+                    position: 'absolute',
+                    left: '-9999px',
+                    top: '-9999px',
+                    width: '1080px',
+                    height: '1920px',
+                    backgroundColor: '#F4F2EF',
+                    color: '#111827', // slate-900 equivalent for primary text
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textAlign: 'center',
+                    padding: '128px 96px',
+                    gap: '80px',
+                    zIndex: -100,
+                }}
+            >
+                {/* Hero */}
+                <div className="flex flex-col items-center gap-10">
+                    <div className="text-[240px] leading-none mb-4">{trip.emoji || '🎉'}</div>
+                    <h1 className="font-heading text-8xl font-black tracking-tighter leading-tight mb-12">
+                        {trip.name}
+                    </h1>
+                    <div className="text-4xl font-semibold text-gray-500 mb-6">
+                        {formatDateRange(trip.startDate, trip.endDate) || 'Dates TBA'}
+                    </div>
+                    <div className="flex gap-2">
+                        {[1, 2, 3, 4, 5].map(n => (
+                            <span 
+                                key={n} 
+                                className="text-6xl"
+                                style={{ color: n <= (trip.rating || 0) ? '#facc15' : 'rgba(107, 114, 128, 0.2)' }}
+                            >
+                                ★
+                            </span>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Summary */}
+                <div className="text-5xl font-bold leading-relaxed tracking-tight max-w-[900px]">
+                    🏃 {stats.totalActivities} activities in total? <br/>
+                    That's around {Math.round(stats.stopsPerDay)} stops per day! <br/>
+                    {paceLabel}. 
+                    <br/><br/>
+                    💰 Daily average spend of {formatCurrency(stats.costPerDay, trip.currency)}? <br/>
+                    {stats.budgetSub}!
+                    {km !== null && km > 0 && (
+                        <>
+                            <br/><br/>
+                            ✈️ You traveled {km.toLocaleString()} km in total, equivalent to {relatableKm}.
+                        </>
+                    )}
+                </div>
+
+                {/* Watermark */}
+                <div className="absolute bottom-20 scale-[1.5]">
+                    <WandWordmark static={true} />
+                </div>
             </div>
 
         </div>

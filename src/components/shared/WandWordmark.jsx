@@ -9,10 +9,11 @@ import { useState, useEffect } from 'react'
  * 1550ms → Wand taps the "W" (shake animation)
  * 2400ms → "Wander" cross-fades to italic
  */
-export default function WandWordmark({ onComplete }) {
-  const [phase, setPhase] = useState(0)
+export default function WandWordmark({ onComplete, static: isStatic = false }) {
+  const [phase, setPhase] = useState(isStatic ? 4 : 0)
 
   useEffect(() => {
+    if (isStatic) return
     const timers = [
       setTimeout(() => setPhase(1), 200),
       setTimeout(() => setPhase(2), 950),
