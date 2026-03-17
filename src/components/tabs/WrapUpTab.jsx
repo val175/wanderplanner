@@ -40,10 +40,10 @@ function getRelatableRoute(km) {
 }
 
 function getPaceLabel(stopsPerDay) {
-    if (stopsPerDay >= 6) return 'Marathon'
-    if (stopsPerDay >= 4) return 'High Energy'
-    if (stopsPerDay >= 2) return 'Well-Balanced'
-    return 'Easy Pace'
+    if (stopsPerDay >= 6) return 'marathon'
+    if (stopsPerDay >= 4) return 'high energy'
+    if (stopsPerDay >= 2) return 'well-balanced'
+    return 'easy pace'
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -183,8 +183,8 @@ export default function WrapUpTab() {
 
             {/* 3. The "Word Cloud" Summary (Paragraph style) */}
             <div className="text-2xl sm:text-4xl font-semibold leading-relaxed tracking-tight max-w-3xl text-text-primary">
-                🏃 {stats.stopsPerDay.toFixed(1)} stops/day that's {paceLabel} — {stats.totalActivities} total activities. 
-                {" "}💰 {formatCurrency(stats.costPerDay, trip.currency)}/day — {stats.budgetSub}.
+                {stats.totalActivities} activities in total? That's around {Math.round(stats.stopsPerDay)} stops per day! {paceLabel}. 
+                {" "}Daily average spend of {formatCurrency(stats.costPerDay, trip.currency)}? {stats.budgetSub}!
                 {km !== null && km > 0 && (
                   <>
                     {" "}✈️ {km.toLocaleString()} km traveled, equivalent to {relatableKm}.
