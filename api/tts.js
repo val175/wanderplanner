@@ -7,7 +7,7 @@ import { getCorsHeaders } from './_cors.js'
 // Edge runtime = near-zero cold start (same as api/chat.js)
 export const config = { runtime: 'edge' }
 
-const VOICE_NAME = 'en-US-Chirp3-HD-Aoede'
+const VOICE_NAME = 'en-US-Chirp3-HD-Achernar'
 
 function stripMarkdown(text) {
   return text
@@ -21,6 +21,7 @@ function stripMarkdown(text) {
     .replace(/^[-*+]\s+/gm, '')
     .replace(/^\d+\.\s+/gm, '')
     .replace(/^-{3,}$/gm, '')
+    .replace(/\p{Extended_Pictographic}/gu, '') // strip emojis
     .replace(/\n{3,}/g, '\n\n')
     .trim()
 }
