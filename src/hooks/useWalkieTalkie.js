@@ -81,12 +81,11 @@ export function useWalkieTalkie({ onTranscriptReady }) {
     recognitionRef.current = recognition
     finalTranscriptRef.current = ''
 
-    // Watchdog: if iOS recognition hangs (no onend/onerror for 10s), force-restart
+    // Watchdog: if iOS recognition hangs (no onend/onerror for 10s), reset state
     let watchdog = setTimeout(() => {
       if (recognitionRef.current === recognition) {
         try { recognition.abort() } catch (_) {}
         setIsListening(false)
-        if (isModeRef.current) setTimeout(() => startListening(), 300)
       }
     }, 10000)
     const clearWatchdog = () => { clearTimeout(watchdog); watchdog = null }
@@ -124,13 +123,6 @@ export function useWalkieTalkie({ onTranscriptReady }) {
         console.warn('[useWalkieTalkie] STT error:', event.error)
       }
       setIsListening(false)
-      if (ignorable) return
-      // Auto-retry transient errors (e.g. iOS mic not released yet after abort)
-      const fatal = event.error === 'not-allowed' || event.error === 'service-not-allowed'
-      if (isModeRef.current && !fatal && sttRetryCountRef.current < 3) {
-        sttRetryCountRef.current++
-        setTimeout(() => startListening(), 800)
-      }
     }
 
     recognition.start()
@@ -158,7 +150,6 @@ export function useWalkieTalkie({ onTranscriptReady }) {
         const errText = await res.text().catch(() => res.status)
         console.warn('[useWalkieTalkie] TTS failed:', res.status, errText)
         setIsSpeaking(false)
-        if (isModeRef.current) startListening()
         return
       }
 
@@ -166,7 +157,6 @@ export function useWalkieTalkie({ onTranscriptReady }) {
       if (!audioContent) {
         console.warn('[useWalkieTalkie] Empty audioContent')
         setIsSpeaking(false)
-        if (isModeRef.current) startListening()
         return
       }
 
@@ -187,7 +177,6 @@ export function useWalkieTalkie({ onTranscriptReady }) {
         audio.load()
         URL.revokeObjectURL(blobUrl)
         setIsSpeaking(false)
-        if (isModeRef.current) startListening()
       }
       audio.onerror = (e) => {
         console.warn('[useWalkieTalkie] Audio playback error:', e)
@@ -195,16 +184,14 @@ export function useWalkieTalkie({ onTranscriptReady }) {
         audio.load()
         URL.revokeObjectURL(blobUrl)
         setIsSpeaking(false)
-        if (isModeRef.current) startListening()
       }
 
       await audio.play()
     } catch (err) {
       console.error('[useWalkieTalkie] speak error:', err)
       setIsSpeaking(false)
-      if (isModeRef.current) startListening()
     }
-  }, [stopAudio, startListening, getAudio])
+  }, [stopAudio, getAudio])
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {

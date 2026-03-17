@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
 import { X, Mic, MicOff } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
 import { auth } from '../../firebase/config'
 import { TripContext } from '../../context/TripContext'
 import { buildTripSystemPrompt } from '../../hooks/useAI'
@@ -100,15 +101,6 @@ export default function WalkieTalkieModal() {
     prevOpenRef.current = isOpen
   }, [isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-start listening once walkie mode is on
-  useEffect(() => {
-    if (isWalkieTalkieMode && isOpen && !isListening && !isSpeaking && !isLoading) {
-      // Small delay so the audio unlock from toggleWalkieTalkieMode settles
-      const t = setTimeout(() => startListening(), 700)
-      return () => clearTimeout(t)
-    }
-  }, [isWalkieTalkieMode]) // eslint-disable-line react-hooks/exhaustive-deps
-
   const handleClose = useCallback(() => {
     hapticSelection()
     setIsOpen(false)
@@ -169,9 +161,11 @@ export default function WalkieTalkieModal() {
           </p>
         )}
         {!isLoading && lastAssistantText && (
-          <p className="text-[var(--color-text-primary)] text-[15px] leading-relaxed max-w-[320px]">
-            {lastAssistantText.length > 200 ? lastAssistantText.slice(0, 200) + '…' : lastAssistantText}
-          </p>
+          <div className="text-[var(--color-text-primary)] text-[15px] leading-relaxed max-w-[320px] prose prose-sm prose-neutral dark:prose-invert">
+            <ReactMarkdown>
+              {lastAssistantText.length > 200 ? lastAssistantText.slice(0, 200) + '…' : lastAssistantText}
+            </ReactMarkdown>
+          </div>
         )}
         {!isLoading && !lastAssistantText && !isListening && !isSpeaking && (
           <p className="text-[var(--color-text-muted)] text-sm">
