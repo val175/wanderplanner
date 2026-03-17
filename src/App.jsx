@@ -46,9 +46,7 @@ import WrapUpTab from './components/tabs/WrapUpTab'
    Tab panel renderer
 ───────────────────────────────────────────────────────────── */
 function TabPanel({ activeTab, onTabSwitch }) {
-  const { isReadOnly } = useTripContext()
-  const effectiveTab = isReadOnly && activeTab === 'overview' ? 'wrap-up' : activeTab
-  switch (effectiveTab) {
+  switch (activeTab) {
     case 'overview': return <OverviewTab onTabSwitch={onTabSwitch} />
     case 'wandermap': return <WanderMapTab />
     case 'itinerary': return <ItineraryTab />
@@ -132,6 +130,7 @@ function AuthenticatedApp({ user, signOutUser }) {
   // Read-only mode: active when the trip is completed or manually archived
   const effectiveStatus = getEffectiveStatus(activeTrip)
   const isReadOnly = effectiveStatus === 'completed' || effectiveStatus === 'archived'
+  const effectiveTab = isReadOnly && state.activeTab === 'overview' ? 'wrap-up' : state.activeTab
 
   const handleNewTrip = useCallback(() => {
     setShowNewTripModal(true)
@@ -255,16 +254,16 @@ function AuthenticatedApp({ user, signOutUser }) {
           >
             {activeTrip ? (
               <>
-                {state.activeTab !== 'wrap-up' && (
+                {effectiveTab !== 'wrap-up' && (
                   <TripHeader onOpenSidebar={handleOpenSidebar} isMobile={isMobile} />
                 )}
                 <div
-                  id={`panel-${state.activeTab}`}
+                  id={`panel-${effectiveTab}`}
                   role="tabpanel"
-                  className={`flex-1 overflow-y-auto overflow-x-hidden pb-[env(safe-area-inset-bottom)] md:pb-0 mb-14 md:mb-0 ${state.activeTab === 'wandermap' ? '' : 'px-4 sm:px-8 py-5 sm:py-7'}`}
+                  className={`flex-1 overflow-y-auto overflow-x-hidden pb-[env(safe-area-inset-bottom)] md:pb-0 mb-14 md:mb-0 ${effectiveTab === 'wandermap' ? '' : 'px-4 sm:px-8 py-5 sm:py-7'}`}
                 >
-                  <div className={state.activeTab === 'wandermap' ? 'h-full w-full relative' : 'max-w-[1400px] mx-auto'}>
-                    <TabPanel activeTab={state.activeTab} onTabSwitch={handleTabSwitch} />
+                  <div className={effectiveTab === 'wandermap' ? 'h-full w-full relative' : 'max-w-[1400px] mx-auto'}>
+                    <TabPanel activeTab={effectiveTab} onTabSwitch={handleTabSwitch} />
                   </div>
                 </div>
                 <BottomNav />
