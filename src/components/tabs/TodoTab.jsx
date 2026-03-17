@@ -935,6 +935,7 @@ export default function TodoTab() {
                     emoji="✅"
                     title="No tasks yet."
                     subtitle="Add your first to-do above."
+                    wandaPrompt="Help me plan tasks for this trip"
                     compact
                     className="border-none bg-transparent"
                   />

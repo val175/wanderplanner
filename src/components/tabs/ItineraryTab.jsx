@@ -420,7 +420,7 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
           </div>
         </div>
 
-        <div className="hidden sm:flex items-center gap-4 text-xs font-medium text-text-muted">
+        <div className="flex items-center gap-4 text-xs font-medium text-text-muted">
           <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-bg-secondary/30">
             <span className="text-danger">📍</span>
             {day.activities?.length || 0} activities/locations
@@ -1169,15 +1169,23 @@ function CalendarView({ trip, isMobile, activeDayIndex, onOpenDrawer, onDayChang
               >
                 {/* Day Header */}
                 {!isMobile && (
-                  <div 
-                    className="h-14 border-b border-border/20 flex flex-col items-center justify-center sticky top-0 z-10 px-4 transition-all bg-bg-card"
+                  <div
+                    className="h-14 border-b border-border/20 flex items-center justify-between sticky top-0 z-10 px-3 transition-all bg-bg-card"
                   >
-                    <span className="text-[10px] font-semibold font-heading uppercase tracking-widest text-text-muted">
-                      Day {day.dayNumber}
-                    </span>
-                    <span className="text-sm font-semibold font-heading text-text-primary truncate max-w-full">
-                      {day.location || 'Untitled'}
-                    </span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[10px] font-semibold font-heading uppercase tracking-widest text-text-muted">
+                        Day {day.dayNumber}
+                      </span>
+                      <span className="text-sm font-semibold font-heading text-text-primary truncate max-w-full">
+                        {day.location || 'Untitled'}
+                      </span>
+                    </div>
+                    {(() => {
+                      const count = day.activities?.length || 0
+                      if (count < 5) return <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-success/10 text-success shrink-0">🔋</div>
+                      if (count <= 8) return <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-info/10 text-info shrink-0">⚡</div>
+                      return <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#E27D60]/10 text-[#E27D60] shrink-0">🪫</div>
+                    })()}
                   </div>
                 )}
                 

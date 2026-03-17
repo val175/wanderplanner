@@ -815,13 +815,22 @@ export default function BudgetTab() {
 
       {/* FAB — mobile only */}
       {!isReadOnly && createPortal(
-        <button
-          onClick={() => { hapticImpact('medium'); setIsAddModalOpen(true) }}
-          className="fixed bottom-24 right-4 z-40 block md:hidden bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
-          Log Expense
-        </button>,
+        <div className="fixed bottom-24 right-4 z-40 md:hidden flex flex-col-reverse items-end gap-2">
+          <button
+            onClick={() => { hapticImpact('medium'); setIsAddModalOpen(true) }}
+            className="bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2 shadow-lg"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+            Log Expense
+          </button>
+          <button
+            onClick={() => { hapticImpact('light'); setShowScanModal(true) }}
+            className="bg-bg-card border border-border text-text-secondary rounded-full px-4 py-3 font-semibold flex items-center gap-2 shadow-md text-sm"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            Extract Receipt
+          </button>
+        </div>,
         document.body
       )}
 

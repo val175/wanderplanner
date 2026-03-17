@@ -322,6 +322,7 @@ export default function BookingsTab() {
           emoji="🎫"
           title={filter !== 'all' ? `No ${filter} bookings yet.` : 'No bookings added yet.'}
           subtitle={filter === 'all' ? 'Enter one below or drop a booking board.' : undefined}
+          className="mt-4"
         />
       )}
     </div>

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { MONDAY_STATUSES, migrateStatus } from './BookingsTable'
 import { BOOKING_CATEGORIES } from '../../constants/tabs'
 import EditableText from '../shared/EditableText'
+import Select, { SelectItem } from '../shared/Select'
 import Button from '../shared/Button'
 import DatePicker from '../shared/DatePicker'
 import AvatarCircle from '../shared/AvatarCircle'
@@ -162,16 +163,21 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Status</label>
-              <select
+              <Select
                 value={migrateStatus(booking.status)}
-                onChange={e => { hapticSelection(); onUpdate(booking.id, { status: e.target.value }, actorId) }}
+                onValueChange={val => { hapticSelection(); onUpdate(booking.id, { status: val }, actorId) }}
                 disabled={isReadOnly}
-                className="bg-bg-input border border-border rounded-[var(--radius-sm)] text-xs font-medium text-text-secondary px-2 py-1.5 focus:outline-none focus:border-accent transition-colors w-full"
+                className={`text-left font-semibold text-xs ${(MONDAY_STATUSES.find(s => s.value === migrateStatus(booking.status)) || MONDAY_STATUSES[0]).colors}`}
               >
                 {MONDAY_STATUSES.map(s => (
-                  <option key={s.value} value={s.value}>{s.label}</option>
+                  <SelectItem key={s.value} value={s.value}>
+                    <span className="inline-flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full ${s.value === 'confirmed' ? 'bg-success' : s.value === 'cancelled' ? 'bg-danger' : s.value === 'requested' ? 'bg-blue-500' : 'bg-warning'}`} />
+                      {s.label}
+                    </span>
+                  </SelectItem>
                 ))}
-              </select>
+              </Select>
             </div>
             <div className="space-y-2">
               <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Category</label>

@@ -29,7 +29,7 @@ export default function TabHeader({ leftSlot, rightSlot }) {
         {leftSlot}
       </div>
       {rightSlot && (
-        <div className="flex items-center gap-2 flex-nowrap justify-end min-w-0 flex-1 overflow-x-auto scrollbar-hide">
+        <div className="flex items-center gap-2 flex-wrap justify-end min-w-0 flex-1 md:flex-nowrap gap-y-1.5">
           {rightSlot}
         </div>
       )}

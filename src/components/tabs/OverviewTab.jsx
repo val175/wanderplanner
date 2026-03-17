@@ -584,7 +584,7 @@ function TripHealthCard({ trip, onTabSwitch }) {
             <ProgressBar value={breakdown.todos.done} max={breakdown.todos.total}
               label="To-Dos" showLabel height="h-1.5" colorClass="bg-success" />
             <ProgressBar value={breakdown.packing.done} max={breakdown.packing.total}
-              label="Packing" showLabel height="h-1.5" colorClass="bg-border-strong" />
+              label="Packing" showLabel height="h-1.5" colorClass="bg-warning" />
           </div>
         </div>
 
