@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { createPortal } from 'react-dom';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
@@ -86,7 +87,11 @@ const SmoothStream = ({ content, isStreaming }) => {
     }
   }, [content, displayed, isStreaming]);
 
-  return <span>{displayed}</span>;
+  return (
+    <div className="wanda-markdown">
+      <ReactMarkdown>{displayed}</ReactMarkdown>
+    </div>
+  );
 };
 
 export default function AIAssistant() {
@@ -392,6 +397,11 @@ export default function AIAssistant() {
         .animate-msg-fade {
           animation: wanda-msg-fade 0.25s ease-out forwards;
         }
+        .wanda-markdown p { margin-bottom: 0.75rem; }
+        .wanda-markdown p:last-child { margin-bottom: 0; }
+        .wanda-markdown ul, .wanda-markdown ol { margin-bottom: 0.75rem; padding-left: 1.25rem; }
+        .wanda-markdown li { margin-bottom: 0.25rem; }
+        .wanda-markdown strong { font-weight: 700; color: var(--color-accent, inherit); }
       `}</style>
 
       {/* Header */}
@@ -477,9 +487,9 @@ export default function AIAssistant() {
                 <div className="mr-2 mt-0.5 text-sm">🪄</div>
               )}
               <div
-                className={`text-sm leading-relaxed max-w-[82%] whitespace-pre-wrap ${
+                className={`text-sm leading-relaxed max-w-[82%] ${
                   m.role === 'user'
-                    ? 'bg-bg-secondary text-text-primary rounded-[var(--radius-md)] px-3 py-2'
+                    ? 'bg-bg-secondary text-text-primary rounded-[var(--radius-md)] px-3 py-2 whitespace-pre-wrap'
                     : 'text-text-primary'
                 }`}
               >
