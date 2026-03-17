@@ -102,10 +102,13 @@ export function useWalkieTalkie({ onTranscriptReady }) {
     }
 
     recognition.onerror = (event) => {
-      if (event.error !== 'no-speech') {
+      // 'aborted' = intentional stop (or race from previous session's abort); never retry
+      const ignorable = event.error === 'no-speech' || event.error === 'aborted'
+      if (!ignorable) {
         console.warn('[useWalkieTalkie] STT error:', event.error)
       }
       setIsListening(false)
+      if (ignorable) return
       // Auto-retry transient errors (e.g. iOS mic not released yet after abort)
       const fatal = event.error === 'not-allowed' || event.error === 'service-not-allowed'
       if (isModeRef.current && !fatal && sttRetryCountRef.current < 3) {
