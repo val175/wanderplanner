@@ -1,10 +1,8 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useTripContext } from '../../context/TripContext'
-import { formatCurrency, formatDate, haversineDistance, geocodeCity } from '../../utils/helpers'
+import { formatCurrency, haversineDistance, geocodeCity } from '../../utils/helpers'
 import { ACTIONS } from '../../state/tripReducer'
 import { useProfiles } from '../../context/ProfileContext'
-import Button from '../shared/Button'
-import { auth } from '../../firebase/config'
 
 const VIBE_TAGS = [
     { label: 'Surf & Chill', emoji: '🏄' },
@@ -47,53 +45,6 @@ function getPaceLabel(stopsPerDay) {
     return 'Easy Pace'
 }
 
-const BAR_COLORS = ['#e07b54', '#22c55e', '#f59e0b', '#8b5cf6', '#64748b']
-
-const POSTCARD_SPELLS = [
-    'Painting your memories…',
-    'Mixing colors…',
-    'Adding the skyline…',
-    'Capturing the vibes…',
-    'Almost there…',
-]
-
-/* ─────────────────────────────────────────────────────────────
-   Stat Card
-───────────────────────────────────────────────────────────── */
-function StatCard({ emoji, label, value, valueSuffix, sub, subColor, color = 'default' }) {
-    const wrapperStyles = {
-        default: 'border-border bg-bg-card',
-        success: 'border-success/30 bg-success/5',
-        danger:  'border-danger/30 bg-danger/5',
-        accent:  'border-accent/30 bg-accent/5',
-    }
-    const valueStyles = {
-        default: 'text-text-primary',
-        success: 'text-success',
-        danger:  'text-danger',
-        accent:  'text-accent',
-    }
-    const subColorStyles = {
-        success: 'text-success',
-        danger:  'text-danger',
-        muted:   'text-text-muted',
-    }
-    return (
-        <div className={`rounded-[var(--radius-lg)] border p-4 flex flex-col gap-2 ${wrapperStyles[color] || wrapperStyles.default}`}>
-            <span className="text-xl leading-none">{emoji}</span>
-            <div>
-                <p className={`font-heading text-2xl font-semibold leading-tight ${valueStyles[color] || valueStyles.default}`}>
-                    {value}{valueSuffix && <span className="text-sm font-normal text-text-muted ml-1">{valueSuffix}</span>}
-                </p>
-                {sub && (
-                    <p className={`text-xs mt-0.5 ${subColorStyles[subColor] || 'text-text-muted'}`}>{sub}</p>
-                )}
-            </div>
-            <p className="text-[10px] font-semibold text-text-muted uppercase tracking-widest mt-auto">{label}</p>
-        </div>
-    )
-}
-
 /* ─────────────────────────────────────────────────────────────
    Distance Hook
 ───────────────────────────────────────────────────────────── */
@@ -122,38 +73,13 @@ function useRouteDistance(destinations) {
    Main WrapUpTab
 ───────────────────────────────────────────────────────────── */
 export default function WrapUpTab() {
-    const { activeTrip, dispatch, showToast, effectiveStatus } = useTripContext()
+    const { activeTrip, dispatch, showToast } = useTripContext()
     const { currentUserProfile } = useProfiles()
 
     if (!activeTrip) return null
     const trip = activeTrip
 
     const km = useRouteDistance(trip.destinations)
-
-    // Postcard generator
-    const [isGeneratingPostcard, setIsGeneratingPostcard] = useState(false)
-    const [postcardDataUrl, setPostcardDataUrl] = useState(null)
-    const [spellIndex, setSpellIndex] = useState(0)
-
-    useEffect(() => {
-        const stored = localStorage.getItem(`postcard_${trip.id}`)
-        if (stored) setPostcardDataUrl(stored)
-    }, [trip.id])
-
-    useEffect(() => {
-        if (!isGeneratingPostcard) return
-        const id = setInterval(() => setSpellIndex(i => (i + 1) % POSTCARD_SPELLS.length), 2200)
-        return () => clearInterval(id)
-    }, [isGeneratingPostcard])
-
-    // Editable unfinished note — syncs when trip changes
-    const [unfinishedNote, setUnfinishedNote] = useState(trip.unfinishedNote || '')
-    useEffect(() => { setUnfinishedNote(trip.unfinishedNote || '') }, [trip.id])
-    const handleNoteSave = () => {
-        if (unfinishedNote !== (trip.unfinishedNote || '')) {
-            dispatch({ type: ACTIONS.UPDATE_TRIP, payload: { id: trip.id, updates: { unfinishedNote } } })
-        }
-    }
 
     const stats = useMemo(() => {
         const itinerary = trip.itinerary || []
@@ -167,49 +93,16 @@ export default function WrapUpTab() {
         const totalSpent = budget.reduce((s, b) => s + (b.actual || 0), 0)
         const costPerDay = totalSpent > 0 ? Math.round(totalSpent / safeDays) : 0
 
-        let budgetSubColor = 'muted'
-        let budgetSub = null
+        let budgetSub = 'no budget set'
         if (budgetMax > 0) {
             const delta = ((budgetMax - totalSpent) / budgetMax) * 100
             const absDelta = Math.abs(Math.round(delta))
-            budgetSub = delta >= 0 ? `${absDelta}% under total budget` : `${absDelta}% over total budget`
-            budgetSubColor = delta >= 0 ? 'success' : 'danger'
+            budgetSub = delta >= 0 ? `${absDelta}% under budget` : `${absDelta}% over budget`
         }
-
-        // Top spending categories
-        const spentCats = budget
-            .filter(b => (b.actual || 0) > 0)
-            .sort((a, b) => (b.actual || 0) - (a.actual || 0))
-            .slice(0, 4)
-
-        // Group's favourite (MVP)
-        const ideas = trip.ideas || []
-        let favourite = null
-        if (ideas.length > 0) {
-            const ranked = ideas.map(idea => ({
-                ...idea,
-                score: Object.values(idea.votes || {}).reduce((s, v) => s + v, 0),
-            })).sort((a, b) => b.score - a.score)
-            if (ranked[0]?.score > 0) favourite = ranked[0]
-        }
-        if (!favourite) {
-            const resolved = (trip.polls || []).filter(p => p.status === 'resolved')
-            if (resolved.length > 0) {
-                const poll = resolved[0]
-                const winner = (poll.options || []).map(opt => ({
-                    ...opt,
-                    score: Object.values(poll.votes || {}).reduce((s, uv) => s + ((uv.tokens || {})[opt.id] || 0), 0),
-                })).sort((a, b) => b.score - a.score)[0]
-                if (winner) favourite = { title: winner.title, emoji: winner.emoji, description: winner.description }
-            }
-        }
-
-        const countries = [...new Set((trip.destinations || []).map(d => d.flag).filter(Boolean))]
 
         return {
             totalDays, totalActivities, stopsPerDay,
-            costPerDay, budgetSub, budgetSubColor, totalSpent, spentCats,
-            favourite, countries,
+            costPerDay, budgetSub, totalSpent,
         }
     }, [trip])
 
@@ -231,11 +124,6 @@ export default function WrapUpTab() {
         showToast('✈️ Template created — dates & expenses stripped', 'success')
     }
 
-    const handleUnarchive = () => {
-        dispatch({ type: ACTIONS.UNARCHIVE_TRIP, payload: trip.id })
-        showToast('Trip restored to active', 'success')
-    }
-
     const handleWandaRecap = () => {
         const cities = trip.destinations?.map(d => d.city).join(', ') || trip.name
         window.dispatchEvent(new CustomEvent('wanda-prefill', {
@@ -245,273 +133,78 @@ export default function WrapUpTab() {
         }))
     }
 
-    const handleGeneratePostcard = async () => {
-        if (isGeneratingPostcard) return
-        setIsGeneratingPostcard(true)
-        try {
-            const token = await auth.currentUser?.getIdToken()
-            if (!token) throw new Error('Not authenticated')
-
-            const city = trip.destinations?.[0]?.city || trip.name
-            const year = trip.startDate ? new Date(trip.startDate).getFullYear() : new Date().getFullYear()
-
-            const res = await fetch('https://wanderplan-rust.vercel.app/api/generate-postcard', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ tripName: trip.name, city, year })
-            })
-            if (!res.ok) {
-                const body = await res.json().catch(() => ({}))
-                throw new Error(body.detail || body.error || 'Generation failed')
-            }
-            const { dataUrl } = await res.json()
-            localStorage.setItem(`postcard_${trip.id}`, dataUrl)
-            setPostcardDataUrl(dataUrl)
-            showToast('Souvenir postcard ready! 🖼️', 'success')
-        } catch (err) {
-            console.error('[WrapUpTab] Postcard error:', err)
-            showToast('Could not generate postcard. Try again.', 'error')
-        } finally {
-            setIsGeneratingPostcard(false)
-        }
-    }
-
     const relatableKm = getRelatableRoute(km)
     const paceLabel = getPaceLabel(stats.stopsPerDay)
-    const isArchived = effectiveStatus === 'archived'
 
     return (
-        <div className="space-y-6 animate-fade-in pb-24">
-            {/* Hero */}
-            <div className="text-center py-6">
-                <div className="text-5xl mb-4 animate-pulse-warm">{trip.emoji || '🎉'}</div>
-                <h1 className="font-heading text-3xl font-semibold text-text-primary">{trip.name}</h1>
-
-                {/* Status badge + dates */}
-                <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${isArchived ? 'bg-bg-secondary text-text-muted' : 'bg-success/10 text-success'}`}>
-                        {isArchived ? '📁' : '✓'} {isArchived ? 'Archived' : 'Trip Completed'}
-                    </span>
-                    {trip.startDate && trip.endDate && (
-                        <span className="text-sm text-text-muted">
-                            • {formatDate(trip.startDate)} – {formatDate(trip.endDate)}
-                        </span>
-                    )}
-                </div>
+        <div className="flex flex-col items-center text-center p-6 space-y-8 animate-fade-in pb-24 max-w-4xl mx-auto">
+            
+            {/* 1. Hero Section */}
+            <div className="space-y-4">
+                <div className="text-8xl animate-fade-in">{trip.emoji || '🎉'}</div>
+                <h1 className="text-5xl font-black tracking-tighter text-text-primary uppercase">
+                    {trip.name}
+                </h1>
 
                 {/* Star Rating */}
-                <div className="flex items-center justify-center gap-0.5 mt-4">
+                <div className="flex items-center justify-center gap-1">
                     {[1, 2, 3, 4, 5].map(n => (
                         <button
                             key={n}
                             onClick={() => handleRating(n)}
-                            className="text-2xl leading-none px-1 transition-transform hover:scale-125 active:scale-95"
+                            className="text-3xl transition-transform hover:scale-110 active:scale-95"
                         >
-                            <span className={n <= (trip.rating || 0) ? 'text-yellow-400' : 'text-text-muted/30'}>★</span>
+                            <span className={n <= (trip.rating || 0) ? 'text-yellow-400' : 'text-text-muted/20'}>★</span>
                         </button>
                     ))}
                 </div>
-                {!trip.rating && <p className="text-xs text-text-muted mt-1">Rate this trip</p>}
-
-                {/* Hero CTAs */}
-                {isGeneratingPostcard && false ? (
-                    <div className="flex flex-col items-center gap-3 mt-4 py-2">
-                        <div className="wanda-orbit-ring">
-                            <span className="wanda-orbit-wand">🪄</span>
-                        </div>
-                        <p className="text-xs text-text-muted animate-pulse-warm">
-                            <span className="wanda-serif text-text-secondary">Wanda</span> is casting · {POSTCARD_SPELLS[spellIndex]}
-                        </p>
-                    </div>
-                ) : (
-                    <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
-                        <Button variant="primary" size="sm" onClick={handleUseAsTemplate}>
-                            📋 Clone Itinerary
-                        </Button>
-                        <Button variant="secondary" size="sm" onClick={handleWandaRecap}>
-                            🪄 <span className="wanda-serif">Wanda</span> Recap
-                        </Button>
-                        {/* Postcard feature hidden — pending API fix
-                        <Button variant="ghost" size="sm" onClick={handleGeneratePostcard}>
-                            🖼️ Souvenir Postcard
-                        </Button>
-                        */}
-                    </div>
-                )}
             </div>
 
-            {/* Souvenir Postcard — hidden pending API fix */}
-            {false && postcardDataUrl && (
-                <div className="rounded-[var(--radius-lg)] border border-border bg-bg-card overflow-hidden">
-                    <div className="p-3 flex items-center justify-between">
-                        <p className="text-[10px] font-semibold text-text-muted uppercase tracking-widest">🖼️ Souvenir Postcard</p>
-                        <div className="flex gap-2">
-                            <a
-                                href={postcardDataUrl}
-                                download={`${trip.name.replace(/\s+/g, '-')}-postcard.png`}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-[var(--radius-md)] bg-bg-secondary text-text-secondary border border-border hover:text-text-primary transition-all"
-                            >
-                                ↓ Download
-                            </a>
-                            <button
-                                onClick={handleGeneratePostcard}
-                                disabled={isGeneratingPostcard}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-[var(--radius-md)] bg-bg-secondary text-text-secondary border border-border hover:text-text-primary transition-all disabled:opacity-50"
-                            >
-                                ↺ Regenerate
-                            </button>
-                        </div>
-                    </div>
-                    <img
-                        src={postcardDataUrl}
-                        alt={`${trip.name} souvenir postcard`}
-                        className="w-full object-cover"
-                        style={{ aspectRatio: '9/16', maxHeight: '480px', objectFit: 'cover' }}
-                    />
-                </div>
-            )}
+            {/* 2. Vibes Section (Simple pills, no header) */}
+            <div className="flex flex-wrap justify-center gap-2 max-w-2xl px-4">
+                {VIBE_TAGS.map(({ label, emoji }) => {
+                    const active = (trip.vibes || []).includes(label)
+                    return (
+                        <button
+                            key={label}
+                            onClick={() => handleVibe(label)}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold transition-all ${
+                                active
+                                    ? 'bg-text-primary text-bg-primary'
+                                    : 'bg-bg-secondary text-text-secondary border border-border/50 hover:border-text-primary/30'
+                            }`}
+                        >
+                            <span>{emoji}</span> {label}
+                        </button>
+                    )
+                })}
+            </div>
 
-            {/* Stats row — Trip Pace · Daily Average · Distance */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <StatCard
-                    emoji="🏃"
-                    label="Trip Pace"
-                    value={stats.stopsPerDay.toFixed(1)}
-                    valueSuffix="stops/day"
-                    sub={`"${paceLabel}" — ${stats.totalActivities} total activities`}
-                />
-                {stats.costPerDay > 0 ? (
-                    <StatCard
-                        emoji="💰"
-                        label="Daily Average"
-                        value={formatCurrency(stats.costPerDay, trip.currency)}
-                        valueSuffix="/ day"
-                        sub={stats.budgetSub}
-                        subColor={stats.budgetSubColor}
-                    />
-                ) : null}
+            {/* 3. The "Word Cloud" Summary */}
+            <div className="flex flex-wrap justify-center items-center gap-x-4 gap-y-3 text-2xl sm:text-3xl font-bold leading-tight max-w-3xl text-text-primary">
+                <span className="inline-block">🏃 {stats.stopsPerDay.toFixed(1)} stops/day that's {paceLabel} — {stats.totalActivities} total activities</span>
+                <span className="inline-block">💰 {formatCurrency(stats.costPerDay, trip.currency)}/day — {stats.budgetSub}</span>
                 {km !== null && km > 0 && (
-                    <StatCard
-                        emoji="✈️"
-                        label="Distance"
-                        value={`${km.toLocaleString()} km`}
-                        sub={relatableKm ? `Equivalent to ${relatableKm}` : 'estimated route'}
-                    />
-                )}
-                {stats.countries.length > 1 && (
-                    <StatCard
-                        emoji={stats.countries[0]}
-                        label="Countries"
-                        value={stats.countries.length}
-                        sub={stats.countries.join('  ')}
-                    />
+                  <span className="inline-block">✈️ {km.toLocaleString()} km traveled, equivalent to {relatableKm}</span>
                 )}
             </div>
 
-            {/* MVP + Vibe row */}
-            <div className={`grid grid-cols-1 gap-3 ${stats.favourite ? 'sm:grid-cols-2' : ''}`}>
-                {/* Trip MVP */}
-                {stats.favourite ? (
-                    <div className="rounded-[var(--radius-lg)] border border-success/30 bg-success/5 p-4">
-                        <p className="text-[10px] font-semibold text-success uppercase tracking-widest mb-3">
-                            Trip MVP 🏆
-                        </p>
-                        <div className="flex items-start gap-3">
-                            {stats.favourite.imageUrl ? (
-                                <img
-                                    src={stats.favourite.imageUrl}
-                                    alt={stats.favourite.title}
-                                    className="w-16 h-16 rounded-[var(--radius-md)] object-cover shrink-0"
-                                />
-                            ) : (
-                                <div className="w-16 h-16 rounded-[var(--radius-md)] bg-bg-secondary flex items-center justify-center text-2xl shrink-0 border border-border">
-                                    {stats.favourite.emoji || '🏆'}
-                                </div>
-                            )}
-                            <div className="min-w-0">
-                                <p className="text-sm font-semibold text-text-primary leading-snug">
-                                    {stats.favourite.title || stats.favourite.name}
-                                </p>
-                                {stats.favourite.description && (
-                                    <p className="text-xs text-text-muted mt-1 leading-relaxed italic">
-                                        "{stats.favourite.description}"
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                ) : null}
-
-                {/* The Vibe */}
-                <div className="rounded-[var(--radius-lg)] border border-border bg-bg-card p-4 flex flex-col gap-4">
-                    <div>
-                        <p className="text-[10px] font-semibold text-text-muted uppercase tracking-widest mb-2.5">The Vibe</p>
-                        <div className="flex flex-wrap gap-1.5">
-                            {VIBE_TAGS.map(({ label, emoji }) => {
-                                const active = (trip.vibes || []).includes(label)
-                                return (
-                                    <button
-                                        key={label}
-                                        onClick={() => handleVibe(label)}
-                                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-all ${
-                                            active
-                                                ? 'bg-accent text-white border border-transparent'
-                                                : 'bg-bg-secondary text-text-secondary border border-border hover:border-accent/40 hover:text-accent'
-                                        }`}
-                                    >
-                                        {emoji} {label}
-                                    </button>
-                                )
-                            })}
-                        </div>
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-semibold text-text-muted uppercase tracking-widest mb-1.5">Unfinished Business</p>
-                        <textarea
-                            value={unfinishedNote}
-                            onChange={e => setUnfinishedNote(e.target.value)}
-                            onBlur={handleNoteSave}
-                            placeholder="What did you miss? Save for next time…"
-                            rows={3}
-                            className="w-full text-xs text-text-secondary bg-transparent border-none outline-none resize-none placeholder:text-text-muted/50 leading-relaxed"
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* Spend Breakdown */}
-            {stats.spentCats.length > 1 && (
-                <div className="rounded-[var(--radius-lg)] border border-border bg-bg-card p-4">
-                    <p className="text-[10px] font-semibold text-text-muted uppercase tracking-widest mb-3">💳 Spend Breakdown</p>
-                    <div className="flex h-2.5 rounded-full overflow-hidden gap-px mb-3">
-                        {stats.spentCats.map((cat, i) => (
-                            <div
-                                key={cat.name}
-                                style={{ flex: cat.actual, backgroundColor: BAR_COLORS[i % BAR_COLORS.length] }}
-                                className="opacity-80"
-                            />
-                        ))}
-                    </div>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-                        {stats.spentCats.map((cat, i) => (
-                            <div key={cat.name} className="flex items-center gap-1.5 text-xs text-text-secondary">
-                                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: BAR_COLORS[i % BAR_COLORS.length] }} />
-                                {cat.emoji ? `${cat.emoji} ` : ''}{cat.name} · {formatCurrency(cat.actual, trip.currency)}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* Restore Trip (archived only) */}
-            {isArchived && (
-                <button
-                    onClick={handleUnarchive}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 text-sm font-medium rounded-[var(--radius-md)] border border-border text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-all"
+            {/* 4. The CTAs */}
+            <div className="flex items-center justify-center gap-3 pt-6 w-full">
+                <button 
+                  onClick={handleUseAsTemplate}
+                  className="px-6 py-3 rounded-2xl bg-bg-secondary border border-border font-bold text-text-primary hover:bg-bg-hover transition-colors"
                 >
-                    Restore Trip
+                    📋 Clone Itinerary
                 </button>
-            )}
+                <button 
+                  onClick={handleWandaRecap}
+                  className="px-6 py-3 rounded-2xl bg-text-primary text-bg-primary font-bold hover:opacity-90 transition-opacity"
+                >
+                    🪄 Wanda Recap
+                </button>
+            </div>
+
         </div>
     )
 }
