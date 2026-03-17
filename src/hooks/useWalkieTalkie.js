@@ -160,33 +160,39 @@ export function useWalkieTalkie({ onTranscriptReady }) {
         return
       }
 
-      // Build a Blob URL from the base64 audio (more compatible than data URIs on iOS)
-      const binary = atob(audioContent)
-      const bytes = new Uint8Array(binary.length)
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-      const blob = new Blob([bytes], { type: mimeType || 'audio/mpeg' })
-      const blobUrl = URL.createObjectURL(blob)
+      // Data URI avoids iOS Blob/object-URL garbage-collection bugs that cause MediaError
+      // on the second+ TTS call when reusing the same <audio> element.
+      const dataUrl = `data:${mimeType || 'audio/mpeg'};base64,${audioContent}`
 
       const audio = getAudio()
-      audio.src = blobUrl
-      audio.load()     // required on iOS to reinitialize after src change
+      // Hard-reset before assigning new source
+      audio.pause()
+      audio.removeAttribute('src')
+      audio.load()
+
+      audio.src = dataUrl
+      audio.load()
       audio.volume = 1
 
       audio.onended = () => {
-        audio.removeAttribute('src')  // detach before revoking — prevents MediaError
+        audio.removeAttribute('src')
         audio.load()
-        URL.revokeObjectURL(blobUrl)
         setIsSpeaking(false)
       }
       audio.onerror = (e) => {
-        console.warn('[useWalkieTalkie] Audio playback error:', e)
+        console.warn('[useWalkieTalkie] Audio playback error code:', audio.error?.code, audio.error?.message)
         audio.removeAttribute('src')
         audio.load()
-        URL.revokeObjectURL(blobUrl)
         setIsSpeaking(false)
       }
 
-      await audio.play()
+      const playPromise = audio.play()
+      if (playPromise !== undefined) {
+        playPromise.catch(err => {
+          console.warn('[useWalkieTalkie] Play promise rejected:', err)
+          setIsSpeaking(false)
+        })
+      }
     } catch (err) {
       console.error('[useWalkieTalkie] speak error:', err)
       setIsSpeaking(false)
