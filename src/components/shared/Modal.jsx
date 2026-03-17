@@ -11,7 +11,7 @@ export default function Modal({ isOpen, onClose, children, className = '', maxWi
         <Dialog.Content
           aria-describedby={undefined}
           onEscapeKeyDown={onClose}
-          onPointerDownOutside={onClose}
+          onPointerDownOutside={e => e.preventDefault()}
           className={`
             fixed z-[9999] w-full ${maxWidth}
             bg-bg-card border border-border
