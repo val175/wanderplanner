@@ -60,10 +60,21 @@ export function useWalkieTalkie({ onTranscriptReady }) {
     }
   }, [])
 
-  const startListening = useCallback(() => {
+  // probeStream: a live MediaStream from getUserMedia — kept open to hold the iOS
+  // audio session in PlayAndRecord mode for the duration of recognition. Stopped
+  // in onend/onerror so the session isn't released before speech capture finishes.
+  const startListening = useCallback((probeStream = null) => {
     if (!isSTTSupported || !isModeRef.current) {
       console.log('[WT] startListening blocked — isSTTSupported:', isSTTSupported, 'isModeRef:', isModeRef.current)
+      if (probeStream) probeStream.getTracks().forEach(t => t.stop())
       return
+    }
+
+    const releaseProbe = () => {
+      if (probeStream) {
+        probeStream.getTracks().forEach(t => t.stop())
+        console.log('[WT] probe stream released')
+      }
     }
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
@@ -106,6 +117,7 @@ export function useWalkieTalkie({ onTranscriptReady }) {
 
     recognition.onend = () => {
       clearWatchdog()
+      releaseProbe()
       const final = finalTranscriptRef.current.trim()
       console.log('[WT] onend — final transcript:', final ? `"${final}"` : '(empty)')
       setIsListening(false)
@@ -118,9 +130,10 @@ export function useWalkieTalkie({ onTranscriptReady }) {
 
     recognition.onerror = (event) => {
       clearWatchdog()
+      releaseProbe()
       const msSinceStart = Date.now() - startedAt
       if (event.error === 'aborted' && msSinceStart < 500) {
-        console.warn(`[WT] onerror: aborted ${msSinceStart}ms after start — iOS audio session still locked (getUserMedia probe did not help or was skipped)`)
+        console.warn(`[WT] onerror: aborted ${msSinceStart}ms after start — iOS audio session still locked`)
       } else {
         const ignorable = event.error === 'no-speech' || event.error === 'aborted'
         console.warn('[WT] onerror:', event.error, `(${msSinceStart}ms after start)`, ignorable ? '(ignorable)' : '(unexpected)')
@@ -291,7 +304,8 @@ export function useWalkieTalkie({ onTranscriptReady }) {
     // Show listening UI immediately for instant tap feedback.
     setIsListening(true)
 
-    const kickoff = () => { if (isModeRef.current) startListening() }
+    // stream arg: pass live probe stream through so startListening keeps it open
+    const kickoff = (stream = null) => { if (isModeRef.current) startListening(stream) }
 
     // After TTS playback, iOS holds the AVAudioSession in Playback mode during
     // deactivation. recognition.start() during this window gets immediately aborted
@@ -299,6 +313,9 @@ export function useWalkieTalkie({ onTranscriptReady }) {
     // requests PlayAndRecord mode, forcing iOS to complete the session transition
     // before we call recognition.start(). On iOS with mic permission already granted,
     // getUserMedia does NOT require a user gesture.
+    // IMPORTANT: the stream is passed into startListening and kept alive until
+    // recognition ends — stopping it immediately would release the session and
+    // cause a deferred abort (seen as onerror: aborted ~4s into recognition).
     if (lastTTSEndTimeRef.current > 0 && navigator.mediaDevices?.getUserMedia) {
       const msSinceLastTTS = Date.now() - lastTTSEndTimeRef.current
       console.log(`[WT] mic tap — ${msSinceLastTTS}ms since last TTS — using getUserMedia probe to force audio session transition`)
@@ -309,21 +326,20 @@ export function useWalkieTalkie({ onTranscriptReady }) {
       listenerDelayTimeoutRef.current = { cancel: () => { cancelled = true } }
       navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
-          stream.getTracks().forEach(t => t.stop())
-          if (cancelled) { console.log('[WT] getUserMedia probe result ignored (superseded)'); return }
+          if (cancelled) { stream.getTracks().forEach(t => t.stop()); console.log('[WT] getUserMedia probe superseded — stream released'); return }
           listenerDelayTimeoutRef.current = null
-          console.log('[WT] getUserMedia probe OK — starting recognition')
-          kickoff()
+          console.log('[WT] getUserMedia probe OK — passing live stream to recognition')
+          kickoff(stream)
         })
         .catch(err => {
           if (cancelled) return
           listenerDelayTimeoutRef.current = null
           console.warn('[WT] getUserMedia probe failed:', err.name, '— trying recognition directly')
-          kickoff()
+          kickoff(null)
         })
     } else {
       console.log('[WT] mic tap — no prior TTS, starting recognition directly')
-      kickoff()
+      kickoff(null)
     }
   }, [startListening, stopAudio])
 
