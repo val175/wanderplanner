@@ -196,17 +196,17 @@ export default function WrapUpTab() {
             <div className="flex items-center justify-center gap-4 pt-6 w-full">
                 <Button 
                     variant="secondary"
-                    size="lg"
+                    size="sm"
                     onClick={handleUseAsTemplate}
-                    className="rounded-2xl font-bold"
+                    className="font-bold uppercase tracking-tight"
                 >
                     📋 Clone Itinerary
                 </Button>
                 <Button 
                     variant="primary"
-                    size="lg"
+                    size="sm"
                     onClick={handleWandaRecap}
-                    className="rounded-2xl font-bold"
+                    className="font-bold uppercase tracking-tight"
                 >
                     🪄 Wanda Recap
                 </Button>
