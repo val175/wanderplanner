@@ -224,13 +224,11 @@ export default function BookingsTab() {
         }
         rightSlot={
           <>
-            <div className="flex-1">
-              <Select value={filter} onValueChange={setFilter} className="min-w-[140px] h-7 text-xs" size="sm">
-                {filters.map(f => (
-                  <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
-                ))}
-              </Select>
-            </div>
+            <Select value={filter} onValueChange={setFilter} className="!w-auto min-w-[140px] h-7 text-xs shrink-0" size="sm">
+              {filters.map(f => (
+                <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
+              ))}
+            </Select>
 
             <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide md:overflow-visible shrink-0 pb-2 md:pb-0">
               <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">

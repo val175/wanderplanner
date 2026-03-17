@@ -645,15 +645,13 @@ export default function PackingTab() {
         }
         rightSlot={
           <>
-            <div className="flex-1">
-              <Select value={categoryFilter} onValueChange={setCategoryFilter} className="min-w-[140px] h-7 text-xs" size="sm">
-                {filters.map(f => (
-                  <SelectItem key={f.id} value={f.id}>
-                    {f.label === 'All' ? 'All Items' : f.label}
-                  </SelectItem>
-                ))}
-              </Select>
-            </div>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter} className="!w-auto min-w-[140px] h-7 text-xs shrink-0" size="sm">
+              {filters.map(f => (
+                <SelectItem key={f.id} value={f.id}>
+                  {f.label === 'All' ? 'All Items' : f.label}
+                </SelectItem>
+              ))}
+            </Select>
 
             <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
               <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
