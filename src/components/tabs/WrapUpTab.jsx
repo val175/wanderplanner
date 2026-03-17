@@ -6,6 +6,7 @@ import { useProfiles } from '../../context/ProfileContext'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
 import Button from '../shared/Button'
 import AvatarCircle from '../shared/AvatarCircle'
+import html2canvas from 'html2canvas'
 
 const VIBE_TAGS = [
     { label: 'Surf & Chill', emoji: '🏄' },
@@ -79,6 +80,7 @@ export default function WrapUpTab() {
     const { activeTrip, dispatch, showToast } = useTripContext()
     const { currentUserProfile } = useProfiles()
     const travelerProfiles = useTripTravelers()
+    const [isExporting, setIsExporting] = useState(false)
 
     if (!activeTrip) return null
     const trip = activeTrip
@@ -135,6 +137,84 @@ export default function WrapUpTab() {
                 text: `Write a short travel recap for my ${trip.name} trip to ${cities} — highlight the best moments, what I spent, and what I'd do differently. Make it feel like a travel journal entry.`
             }
         }))
+    }
+
+    const handleExportStory = async () => {
+        if (isExporting) return
+        setIsExporting(true)
+
+        try {
+            // Create a hidden container for the 1080x1920 export
+            const container = document.createElement('div')
+            container.style.position = 'fixed'
+            container.style.top = '-9999px'
+            container.style.left = '-9999px'
+            container.style.width = '1080px'
+            container.style.height = '1920px'
+            container.style.backgroundColor = 'var(--bg-primary)'
+            container.style.color = 'var(--text-primary)'
+            container.style.display = 'flex'
+            container.style.flexDirection = 'column'
+            container.style.alignItems = 'center'
+            container.style.justifyContent = 'center'
+            container.style.padding = '80px'
+            container.style.textAlign = 'center'
+            container.style.gap = '60px'
+            container.style.zIndex = '-100'
+
+            // Build the content for the story
+            container.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 40px; transform: scale(1.8);">
+                    <div style="font-size: 160px;">${trip.emoji || '🎉'}</div>
+                    <h1 style="font-family: var(--font-heading); font-size: 80px; font-weight: 800; letter-spacing: -0.05em; margin: 0; line-height: 1;">
+                        ${trip.name}
+                    </h1>
+                    <div style="font-size: 40px; color: var(--text-muted); font-weight: 500;">
+                        ${formatDateRange(trip.startDate, trip.endDate) || 'Dates TBA'}
+                    </div>
+                    <div style="display: flex; gap: 8px; font-size: 60px;">
+                        ${[1, 2, 3, 4, 5].map(n => `
+                            <span style="color: ${n <= (trip.rating || 0) ? '#facc15' : 'rgba(var(--text-muted-rgb), 0.2)'}">★</span>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div style="font-size: 64px; font-weight: 600; line-height: 1.4; letter-spacing: -0.02em; max-width: 920px; margin-top: 40px; transform: scale(1.1);">
+                    🏃 ${stats.totalActivities} activities in total? That's around ${Math.round(stats.stopsPerDay)} stops per day! ${paceLabel}. 
+                    <br/><br/>
+                    💰 Daily average spend of ${formatCurrency(stats.costPerDay, trip.currency)}? ${stats.budgetSub}!
+                    ${km !== null && km > 0 ? `<br/><br/>✈️ You traveled ${km.toLocaleString()} km in total, which is equivalent to ${relatableKm}.` : ''}
+                </div>
+
+                <div style="position: absolute; bottom: 80px; font-size: 28px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.1em; opacity: 0.6;">
+                    PLANNED WITH SIDEQUEST
+                </div>
+            `
+
+            document.body.appendChild(container)
+
+            // Capture the container
+            const canvas = await html2canvas(container, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: null,
+                logging: false,
+            })
+
+            // Trigger download
+            const link = document.createElement('a')
+            link.download = `${trip.name.replace(/\s+/g, '-')}-Story.png`
+            link.href = canvas.toDataURL('image/png')
+            link.click()
+
+            document.body.removeChild(container)
+            showToast('📸 Story saved!', 'success')
+        } catch (err) {
+            console.error('[Export] Failed to generate story:', err)
+            showToast('Failed to generate story', 'error')
+        } finally {
+            setIsExporting(false)
+        }
     }
 
     const relatableKm = getRelatableRoute(km)
@@ -215,7 +295,15 @@ export default function WrapUpTab() {
             </div>
 
             {/* 4. The CTAs */}
-            <div className="flex items-center justify-center gap-4 pt-6 w-full">
+            <div className="flex flex-wrap items-center justify-center gap-4 pt-6 w-full">
+                <Button 
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleExportStory}
+                    disabled={isExporting}
+                >
+                    {isExporting ? '📸 Generating...' : '📸 Generate Story'}
+                </Button>
                 <Button 
                     variant="secondary"
                     size="sm"
