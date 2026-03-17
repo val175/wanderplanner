@@ -104,6 +104,8 @@ export default function AIAssistant() {
   const prevStatusRef = useRef('ready');
   const prevTripIdRef = useRef(null);
   const sendMessageRef = useRef(null);
+  const speakRef = useRef(null);
+  const walkieTalkieModeRef = useRef(false);
 
   const { state, activeTrip, dispatch, showToast } = useContext(TripContext);
 
@@ -126,6 +128,11 @@ export default function AIAssistant() {
     isWalkieTalkieMode, isListening, isSpeaking, transcript, isSTTSupported,
     toggleWalkieTalkieMode, startListening, stopListening, speak,
   } = useWalkieTalkie({ onTranscriptReady: handleTranscriptReady });
+
+  // Keep refs up-to-date so the status effect (which only watches [status]) can
+  // always read the latest speak and isWalkieTalkieMode without stale closures.
+  speakRef.current = speak;
+  walkieTalkieModeRef.current = isWalkieTalkieMode;
 
   // Load saved conversation when active trip changes
   useEffect(() => {
@@ -153,15 +160,15 @@ export default function AIAssistant() {
         .slice(-50);
       dispatch({ type: ACTIONS.UPDATE_WANDA_CONVERSATION, payload: simplified });
     }
-    if (prev === 'streaming' && status === 'ready' && isWalkieTalkieMode) {
+    if (prev === 'streaming' && status === 'ready' && walkieTalkieModeRef.current) {
       const lastMsg = [...messages].reverse().find(m => m.role === 'assistant');
       if (lastMsg) {
         const textParts = lastMsg.parts?.filter(p => p.type === 'text') ?? [];
         const text = textParts.map(p => p.text).join('').trim() || lastMsg.content || '';
-        if (text) speak(text);
+        if (text) speakRef.current?.(text);
       }
     }
-  }, [status, isWalkieTalkieMode, speak]);
+  }, [status]);
 
   // Mirror live STT transcript into input field
   useEffect(() => {
