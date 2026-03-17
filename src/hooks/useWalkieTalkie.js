@@ -61,11 +61,11 @@ export function useWalkieTalkie({ onTranscriptReady }) {
   const stopAudio = useCallback(() => {
     const audio = audioRef.current
     if (audio) {
+      audio.onended = null          // clear handlers FIRST — before any calls that may emit events
+      audio.onerror = null
       audio.pause()
       audio.removeAttribute('src')  // detach old source before flushing
       audio.load()                  // flush the buffer so iOS reinitializes cleanly
-      audio.onended = null
-      audio.onerror = null
       // Don't null out audioRef — keep the unlocked element alive
     }
   }, [])
