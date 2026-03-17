@@ -199,13 +199,15 @@ function MagicImportFlow({ onPlanReady, onBack }) {
 const WANDA_QUESTIONS = [
   { key: 'name_and_destinations', text: "Hi! I'm Wanda 🪄 Let's plan your trip! First — what should we call it, and where are you headed?" },
   { key: 'dates', text: "Wonderful! When are you traveling? Exact dates or a rough timeframe like 'end of April for 10 days' both work." },
-  { key: 'travelers', text: "How many people are going on this trip?" },
+  { key: 'travelers', text: "Who's coming along on this trip?" },
   { key: 'trip_style', text: "What's the vibe? (e.g. adventure, relaxation, food & culture, family-friendly — or a mix!)" },
   { key: 'budget', text: "What's your rough budget and preferred currency? (e.g. 'around $3000 USD total' or '₱150,000')" },
   { key: 'special_requirements', text: "Any must-dos or special requirements? Dietary needs, places you definitely want to visit, things to avoid — anything goes!" },
 ]
+const TRAVELERS_Q_INDEX = 2
 
 function WandaChatFlow({ onPlanReady, onBack }) {
+  const { profiles, currentUserProfile } = useProfiles()
   const [messages, setMessages] = useState([{ role: 'assistant', content: WANDA_QUESTIONS[0].text }])
   const [input, setInput] = useState('')
   const [questionIndex, setQuestionIndex] = useState(0)
@@ -213,27 +215,39 @@ function WandaChatFlow({ onPlanReady, onBack }) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [showGenerateButton, setShowGenerateButton] = useState(false)
   const [generateError, setGenerateError] = useState('')
+  const [selectedTravelerIds, setSelectedTravelerIds] = useState(
+    () => currentUserProfile?.uid ? [currentUserProfile.uid] : []
+  )
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
+
+  // Keep current user always pre-selected when profile loads
+  useEffect(() => {
+    if (currentUserProfile?.uid) {
+      setSelectedTravelerIds(ids => ids.includes(currentUserProfile.uid) ? ids : [currentUserProfile.uid, ...ids])
+    }
+  }, [currentUserProfile?.uid])
+
+  const allTravelers = [
+    ...(currentUserProfile ? [{ ...currentUserProfile, id: currentUserProfile.uid, isMe: true }] : []),
+    ...profiles,
+  ]
+
+  const toggleWandaTraveler = (id) => {
+    if (id === currentUserProfile?.uid) return // current user always included
+    setSelectedTravelerIds(ids =>
+      ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]
+    )
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isGenerating, showGenerateButton])
 
-  const handleSend = (e) => {
-    e?.preventDefault()
-    const trimmed = input.trim()
-    if (!trimmed) return
-
-    const currentQuestion = WANDA_QUESTIONS[questionIndex]
-    const newGatheredInfo = { ...gatheredInfo, [currentQuestion.key]: trimmed }
+  const advanceQuestion = (answerText, newGatheredInfo) => {
     const nextIndex = questionIndex + 1
-
-    setMessages(m => [...m, { role: 'user', content: trimmed }])
-    setInput('')
     setGatheredInfo(newGatheredInfo)
     setQuestionIndex(nextIndex)
-
     if (nextIndex < WANDA_QUESTIONS.length) {
       setTimeout(() => {
         setMessages(m => [...m, { role: 'assistant', content: WANDA_QUESTIONS[nextIndex].text }])
@@ -247,6 +261,29 @@ function WandaChatFlow({ onPlanReady, onBack }) {
         setShowGenerateButton(true)
       }, 300)
     }
+  }
+
+  const handleSend = (e) => {
+    e?.preventDefault()
+    const trimmed = input.trim()
+    if (!trimmed) return
+    const currentQuestion = WANDA_QUESTIONS[questionIndex]
+    const newGatheredInfo = { ...gatheredInfo, [currentQuestion.key]: trimmed }
+    setMessages(m => [...m, { role: 'user', content: trimmed }])
+    setInput('')
+    advanceQuestion(trimmed, newGatheredInfo)
+  }
+
+  const handleTravelersConfirm = () => {
+    const names = allTravelers
+      .filter(t => selectedTravelerIds.includes(t.id))
+      .map(t => t.isMe ? (t.name || 'Me') : t.name)
+    const answerText = names.length > 0
+      ? names.join(', ')
+      : `${selectedTravelerIds.length} traveler${selectedTravelerIds.length !== 1 ? 's' : ''}`
+    const newGatheredInfo = { ...gatheredInfo, travelers: answerText }
+    setMessages(m => [...m, { role: 'user', content: answerText }])
+    advanceQuestion(answerText, newGatheredInfo)
   }
 
   const handleGeneratePlan = async () => {
@@ -268,7 +305,7 @@ function WandaChatFlow({ onPlanReady, onBack }) {
       })
       const data = await res.json()
       if (!res.ok || !data.success) throw new Error(data.error || 'Failed to generate plan')
-      onPlanReady(data.data)
+      onPlanReady(data.data, { travelerIds: selectedTravelerIds })
     } catch (err) {
       const errMsg = `Sorry, something went wrong: ${err.message}. Want to try again?`
       setMessages(m => [...m, { role: 'assistant', content: errMsg }])
@@ -280,7 +317,9 @@ function WandaChatFlow({ onPlanReady, onBack }) {
   }
 
   const allQuestionsAnswered = questionIndex >= WANDA_QUESTIONS.length
-  const showInput = !allQuestionsAnswered && !isGenerating
+  const isTravelersQuestion = questionIndex === TRAVELERS_Q_INDEX
+  const showInput = !allQuestionsAnswered && !isGenerating && !isTravelersQuestion
+  const showTravelerPicker = isTravelersQuestion && !isGenerating
 
   return (
     <div className="flex flex-col h-[500px] animate-fade-in">
@@ -339,7 +378,50 @@ function WandaChatFlow({ onPlanReady, onBack }) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
+      {/* Traveler picker — shown instead of text input for the travelers question */}
+      {showTravelerPicker && (
+        <div className="border-t border-border px-4 py-3 shrink-0 space-y-2.5">
+          <div className="flex flex-wrap gap-2">
+            {allTravelers.map(t => {
+              const isSelected = selectedTravelerIds.includes(t.id)
+              const isMe = t.isMe
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => toggleWandaTraveler(t.id)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium transition-all
+                    ${isSelected
+                      ? 'bg-accent/15 border-accent/40 text-accent'
+                      : 'bg-bg-secondary border-border text-text-muted hover:border-accent/30 hover:text-text-primary'
+                    }
+                    ${isMe ? 'cursor-default' : 'cursor-pointer'}`}
+                >
+                  <AvatarCircle profile={t} size={18} />
+                  <span>{isMe ? (t.name || 'Me') : t.name}</span>
+                  {isSelected && (
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </button>
+              )
+            })}
+            {allTravelers.length === 0 && (
+              <p className="text-xs text-text-muted">No saved travelers. Just you!</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={handleTravelersConfirm}
+            className="w-full px-3 py-1.5 text-xs font-semibold bg-accent hover:bg-accent-hover text-text-inverse rounded-[var(--radius-md)] transition-colors"
+          >
+            Confirm — {selectedTravelerIds.length} traveler{selectedTravelerIds.length !== 1 ? 's' : ''}
+          </button>
+        </div>
+      )}
+
+      {/* Text input — shown for all non-traveler questions */}
       {showInput && (
         <form onSubmit={handleSend} className="border-t border-border px-4 py-3 flex gap-2 shrink-0">
           <input
@@ -924,10 +1006,14 @@ export default function NewTripModal({ isOpen, onClose }) {
   }
 
   // Shared handler: called by MagicImportFlow and WandaChatFlow after AI generates trip data
-  const handlePlanReady = (tripData) => {
+  const handlePlanReady = (tripData, extra = {}) => {
     setForm(f => ({
       ...f,
       name: tripData.name || f.name,
+      ...(extra.travelerIds !== undefined && {
+        travelerIds: extra.travelerIds,
+        travelers: Math.max(extra.travelerIds.length, 1),
+      }),
       emoji: tripData.emoji || f.emoji,
       startDate: tripData.startDate || f.startDate,
       endDate: tripData.endDate || f.endDate,
