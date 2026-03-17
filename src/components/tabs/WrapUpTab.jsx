@@ -183,11 +183,11 @@ export default function WrapUpTab() {
 
             {/* 3. The "Word Cloud" Summary (Paragraph style) */}
             <div className="text-2xl sm:text-4xl font-semibold leading-relaxed tracking-tight max-w-3xl text-text-primary">
-                {stats.totalActivities} activities in total? That's around {Math.round(stats.stopsPerDay)} stops per day! {paceLabel}. 
-                {" "}Daily average spend of {formatCurrency(stats.costPerDay, trip.currency)}? {stats.budgetSub}!
+                🏃 {stats.totalActivities} activities in total? That's around {Math.round(stats.stopsPerDay)} stops per day! {paceLabel}. 
+                {" "}💰 Daily average spend of {formatCurrency(stats.costPerDay, trip.currency)}? {stats.budgetSub}!
                 {km !== null && km > 0 && (
                   <>
-                    {" "}You traveled {km.toLocaleString()} km in total, which is equivalent to {relatableKm}.
+                    {" "}✈️ You traveled {km.toLocaleString()} km in total, which is equivalent to {relatableKm}.
                   </>
                 )}
             </div>
