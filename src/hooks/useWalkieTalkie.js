@@ -61,6 +61,7 @@ export function useWalkieTalkie({ onTranscriptReady }) {
     const audio = audioRef.current
     if (audio) {
       audio.pause()
+      audio.src = ''   // clear old source so iOS reinitializes on next play
       audio.onended = null
       audio.onerror = null
       // Don't null out audioRef — keep the unlocked element alive
@@ -78,7 +79,18 @@ export function useWalkieTalkie({ onTranscriptReady }) {
     recognitionRef.current = recognition
     finalTranscriptRef.current = ''
 
+    // Watchdog: if iOS recognition hangs (no onend/onerror for 10s), force-restart
+    let watchdog = setTimeout(() => {
+      if (recognitionRef.current === recognition) {
+        try { recognition.abort() } catch (_) {}
+        setIsListening(false)
+        if (isModeRef.current) setTimeout(() => startListening(), 300)
+      }
+    }, 10000)
+    const clearWatchdog = () => { clearTimeout(watchdog); watchdog = null }
+
     recognition.onresult = (event) => {
+      clearWatchdog()
       sttRetryCountRef.current = 0  // reset retry counter on successful audio capture
       let interim = ''
       let final = ''
@@ -92,6 +104,7 @@ export function useWalkieTalkie({ onTranscriptReady }) {
     }
 
     recognition.onend = () => {
+      clearWatchdog()
       setIsListening(false)
       if (!isModeRef.current) return  // mode turned off while recognizing — discard transcript
       const final = finalTranscriptRef.current.trim()
@@ -102,6 +115,7 @@ export function useWalkieTalkie({ onTranscriptReady }) {
     }
 
     recognition.onerror = (event) => {
+      clearWatchdog()
       // 'aborted' = intentional stop (or race from previous session's abort); never retry
       const ignorable = event.error === 'no-speech' || event.error === 'aborted'
       if (!ignorable) {
@@ -163,6 +177,7 @@ export function useWalkieTalkie({ onTranscriptReady }) {
 
       const audio = getAudio()
       audio.src = blobUrl
+      audio.load()     // required on iOS to reinitialize after src change
       audio.volume = 1
 
       audio.onended = () => {
