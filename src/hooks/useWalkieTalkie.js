@@ -44,6 +44,10 @@ export function useWalkieTalkie({ onTranscriptReady }) {
   const isModeRef = useRef(false)
   const finalTranscriptRef = useRef('')
   const sttRetryCountRef = useRef(0)
+  // Timestamp of when the last TTS audio ended — used to enforce iOS cooldown
+  const lastTTSEndTimeRef = useRef(0)
+  // Pending handle for a delayed recognition.start() post-TTS
+  const listenerDelayTimeoutRef = useRef(null)
 
   useEffect(() => { isModeRef.current = isWalkieTalkieMode }, [isWalkieTalkieMode])
 
@@ -167,6 +171,7 @@ export function useWalkieTalkie({ onTranscriptReady }) {
 
       audio.onended = () => {
         URL.revokeObjectURL(blobUrl)
+        lastTTSEndTimeRef.current = Date.now()
         setIsSpeaking(false)
       }
       audio.onerror = () => {
@@ -190,6 +195,10 @@ export function useWalkieTalkie({ onTranscriptReady }) {
   }, [stopAudio])
 
   const stopListening = useCallback(() => {
+    if (listenerDelayTimeoutRef.current) {
+      clearTimeout(listenerDelayTimeoutRef.current)
+      listenerDelayTimeoutRef.current = null
+    }
     if (recognitionRef.current) {
       try { recognitionRef.current.stop() } catch (_) {}
     }
@@ -198,6 +207,10 @@ export function useWalkieTalkie({ onTranscriptReady }) {
   const toggleWalkieTalkieMode = useCallback(() => {
     setIsWalkieTalkieMode(prev => {
       if (prev) {
+        if (listenerDelayTimeoutRef.current) {
+          clearTimeout(listenerDelayTimeoutRef.current)
+          listenerDelayTimeoutRef.current = null
+        }
         if (recognitionRef.current) {
           try { recognitionRef.current.abort() } catch (_) {}
         }
@@ -226,28 +239,54 @@ export function useWalkieTalkie({ onTranscriptReady }) {
     stopAudio()
     setIsSpeaking(false)
 
+    // Cancel any previously scheduled delayed start
+    if (listenerDelayTimeoutRef.current) {
+      clearTimeout(listenerDelayTimeoutRef.current)
+      listenerDelayTimeoutRef.current = null
+    }
+
     // Discard any stale pre-activated element from a previous tap
     if (nextTTSAudioRef.current) {
       nextTTSAudioRef.current.pause()
       nextTTSAudioRef.current = null
     }
 
-    // Start recognition FIRST — before any audio output — so iOS audio session
-    // is in record mode when the mic opens. Playing the silent MP3 afterward
-    // avoids a conflict where audio playback interrupts mic initialization.
-    startListening()
-
     // Pre-activate a fresh Audio element for the upcoming TTS response.
-    // Happens after startListening() so the silent MP3 doesn't compete with
-    // mic startup for the iOS audio session.
+    // MUST be synchronous in the user gesture — activates the element so
+    // speak() can call play() on it asynchronously after the TTS fetch.
     const ttsAudio = new Audio()
     activateAudio(ttsAudio)
     nextTTSAudioRef.current = ttsAudio
+
+    // iOS audio session cooldown: after TTS playback, iOS holds the audio session
+    // in playback mode briefly. If recognition.start() is called too soon, the mic
+    // is silently deaf until the watchdog fires (10s). Delay recognition.start() by
+    // however much of the 1500ms window remains since the last TTS ended.
+    const TTS_COOLDOWN_MS = 1500
+    const msSinceLastTTS = Date.now() - lastTTSEndTimeRef.current
+    const delay = msSinceLastTTS < TTS_COOLDOWN_MS ? TTS_COOLDOWN_MS - msSinceLastTTS : 0
+
+    // Show listening UI immediately — gives instant tap feedback even when
+    // recognition.start() is deferred by the cooldown.
+    setIsListening(true)
+
+    if (delay > 0) {
+      listenerDelayTimeoutRef.current = setTimeout(() => {
+        listenerDelayTimeoutRef.current = null
+        if (isModeRef.current) startListening()
+      }, delay)
+    } else {
+      startListening()
+    }
   }, [startListening, stopAudio])
 
   useEffect(() => {
     return () => {
       isModeRef.current = false
+      if (listenerDelayTimeoutRef.current) {
+        clearTimeout(listenerDelayTimeoutRef.current)
+        listenerDelayTimeoutRef.current = null
+      }
       try { recognitionRef.current?.abort() } catch (_) {}
       stopAudio()
       if (nextTTSAudioRef.current) {
