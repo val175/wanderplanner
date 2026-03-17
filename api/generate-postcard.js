@@ -59,7 +59,7 @@ export default async function handler(req, res) {
         }
 
         const prompt = `A beautiful artistic postcard for a trip to ${city}. The text "${tripName} ${year}" is elegantly integrated into the scenery as if part of the landscape or a classic travel poster.`
-        const apiKey = process.env.GEMINI_API_KEY
+        const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY
 
         let results = []
         for (const model of IMAGEN_MODELS) {
