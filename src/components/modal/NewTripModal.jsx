@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import Modal from '../shared/Modal'
 import DatePicker from '../shared/DatePicker'
 import Select, { SelectItem } from '../shared/Select'
@@ -21,6 +21,347 @@ const DEFAULT_BUDGET_CATEGORIES = GLOBAL_CATEGORIES.map(c => ({
   name: c.label,
   emoji: c.emoji
 }))
+
+/* ─────────────────── Mode Chooser ─────────────────── */
+function ModeChooser({ onSelect }) {
+  const options = [
+    {
+      id: 'magic',
+      icon: '✨',
+      title: 'Magic Import',
+      description: 'Paste a travel blog or guide link — we\'ll build your trip from it.',
+      accent: false,
+    },
+    {
+      id: 'manual',
+      icon: '✏️',
+      title: 'Manual',
+      description: 'Build your trip step by step with full control.',
+      accent: false,
+    },
+    {
+      id: 'wanda',
+      icon: '🪄',
+      title: 'Ask Wanda',
+      description: 'Let Wanda ask you smart questions and generate your full trip plan.',
+      accent: true,
+    },
+  ]
+
+  return (
+    <div className="px-6 pt-4 pb-6 space-y-3 animate-fade-in">
+      <div className="text-center mb-5">
+        <h2 className="font-heading font-semibold text-xl text-text-primary mb-1">Plan a new trip</h2>
+        <p className="text-sm text-text-muted">How would you like to get started?</p>
+      </div>
+      {options.map(opt => (
+        <button
+          key={opt.id}
+          type="button"
+          onClick={() => onSelect(opt.id)}
+          className={`w-full flex items-center gap-4 p-4 rounded-[var(--radius-lg)] border text-left transition-all duration-150
+            ${opt.accent
+              ? 'border-accent/30 bg-accent-muted/10 hover:border-accent/60 hover:bg-accent-muted/20'
+              : 'border-border hover:border-accent/30 hover:bg-bg-hover'
+            }`}
+        >
+          <span className="text-2xl w-10 h-10 flex items-center justify-center rounded-[var(--radius-md)] bg-bg-secondary border border-border shrink-0">
+            {opt.icon}
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className={`text-sm font-semibold ${opt.accent ? 'text-accent' : 'text-text-primary'}`}>{opt.title}</p>
+            <p className="text-xs text-text-muted mt-0.5 leading-snug">{opt.description}</p>
+          </div>
+          <svg className="text-text-muted shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/* ─────────────────── Magic Import Flow ─────────────────── */
+function MagicImportFlow({ onPlanReady, onBack }) {
+  const [importUrl, setImportUrl] = useState('')
+  const [isImporting, setIsImporting] = useState(false)
+  const [importError, setImportError] = useState('')
+  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0)
+
+  const LOADING_MESSAGES = [
+    "Reading the travel blog...",
+    "Whipping up your itinerary...",
+    "Finding the best destinations...",
+    "Estimating budget costs...",
+    "Packing your bags..."
+  ]
+
+  useEffect(() => {
+    if (isImporting) {
+      const id = setInterval(() => {
+        setLoadingMessageIndex(idx => (idx + 1) % LOADING_MESSAGES.length)
+      }, 2500)
+      return () => clearInterval(id)
+    } else {
+      setLoadingMessageIndex(0)
+    }
+  }, [isImporting])
+
+  const handleImport = async () => {
+    if (!importUrl) return
+    setIsImporting(true)
+    setImportError('')
+    try {
+      let token = ''
+      if (auth.currentUser) token = await auth.currentUser.getIdToken()
+      const res = await fetch('https://wanderplan-rust.vercel.app/api/extract-trip', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        body: JSON.stringify({ url: importUrl })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to extract trip data')
+      if (data.success && data.data) {
+        onPlanReady(data.data)
+      }
+    } catch (err) {
+      setImportError(err.message)
+    } finally {
+      setIsImporting(false)
+    }
+  }
+
+  if (isImporting) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 space-y-5 animate-fade-in text-center">
+        <div className="relative w-16 h-16 flex items-center justify-center">
+          <div className="absolute inset-0 border-4 border-accent/20 rounded-full"></div>
+          <div className="absolute inset-0 border-4 border-accent rounded-full border-t-transparent animate-spin"></div>
+          <span className="text-2xl animate-pulse">✨</span>
+        </div>
+        <div>
+          <h3 className="text-lg font-heading font-semibold text-text-primary mb-1">
+            {LOADING_MESSAGES[loadingMessageIndex]}
+          </h3>
+          <p className="text-sm text-text-muted">This usually takes about 10-15 seconds.</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="px-6 pt-4 pb-6 space-y-5 animate-fade-in">
+      <div className="flex items-center gap-3">
+        <button type="button" onClick={onBack}
+          className="p-1.5 rounded-[var(--radius-sm)] text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+        <div>
+          <h2 className="font-heading font-semibold text-xl text-text-primary">✨ Magic Import</h2>
+          <p className="text-sm text-text-muted">Paste a travel blog URL and we'll draft your trip.</p>
+        </div>
+      </div>
+
+      <div className="p-4 bg-accent-muted/20 border border-accent/20 rounded-[var(--radius-lg)]">
+        <p className="text-xs text-text-muted mb-3">Works great with Nomadic Matt, The Blonde Abroad, Travel + Leisure, and more.</p>
+        <div className="flex gap-2">
+          <input
+            type="url"
+            value={importUrl}
+            onChange={e => setImportUrl(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleImport()}
+            placeholder="e.g. nomadicmatt.com/japan-itinerary"
+            autoFocus
+            className="flex-1 px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
+          />
+          <button
+            type="button"
+            onClick={handleImport}
+            disabled={isImporting || !importUrl}
+            className="px-4 py-2 text-sm font-medium bg-accent hover:bg-accent-hover text-text-inverse rounded-[var(--radius-md)] disabled:opacity-50 transition-colors shrink-0 flex items-center gap-2"
+          >
+            Generate
+          </button>
+        </div>
+        {importError && <p className="text-xs text-danger mt-2">{importError}</p>}
+      </div>
+    </div>
+  )
+}
+
+/* ─────────────────── Ask Wanda Flow ─────────────────── */
+const WANDA_QUESTIONS = [
+  { key: 'name_and_destinations', text: "Hi! I'm Wanda 🪄 Let's plan your trip! First — what should we call it, and where are you headed?" },
+  { key: 'dates', text: "Wonderful! When are you traveling? Exact dates or a rough timeframe like 'end of April for 10 days' both work." },
+  { key: 'travelers', text: "How many people are going on this trip?" },
+  { key: 'trip_style', text: "What's the vibe? (e.g. adventure, relaxation, food & culture, family-friendly — or a mix!)" },
+  { key: 'budget', text: "What's your rough budget and preferred currency? (e.g. 'around $3000 USD total' or '₱150,000')" },
+  { key: 'special_requirements', text: "Any must-dos or special requirements? Dietary needs, places you definitely want to visit, things to avoid — anything goes!" },
+]
+
+function WandaChatFlow({ onPlanReady, onBack }) {
+  const [messages, setMessages] = useState([{ role: 'assistant', content: WANDA_QUESTIONS[0].text }])
+  const [input, setInput] = useState('')
+  const [questionIndex, setQuestionIndex] = useState(0)
+  const [gatheredInfo, setGatheredInfo] = useState({})
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [showGenerateButton, setShowGenerateButton] = useState(false)
+  const [generateError, setGenerateError] = useState('')
+  const bottomRef = useRef(null)
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, isGenerating, showGenerateButton])
+
+  const handleSend = (e) => {
+    e?.preventDefault()
+    const trimmed = input.trim()
+    if (!trimmed) return
+
+    const currentQuestion = WANDA_QUESTIONS[questionIndex]
+    const newGatheredInfo = { ...gatheredInfo, [currentQuestion.key]: trimmed }
+    const nextIndex = questionIndex + 1
+
+    setMessages(m => [...m, { role: 'user', content: trimmed }])
+    setInput('')
+    setGatheredInfo(newGatheredInfo)
+    setQuestionIndex(nextIndex)
+
+    if (nextIndex < WANDA_QUESTIONS.length) {
+      setTimeout(() => {
+        setMessages(m => [...m, { role: 'assistant', content: WANDA_QUESTIONS[nextIndex].text }])
+      }, 300)
+    } else {
+      setTimeout(() => {
+        setMessages(m => [...m, {
+          role: 'assistant',
+          content: "Perfect, I have everything I need! Tap the button below and I'll put together your complete trip plan. ✨"
+        }])
+        setShowGenerateButton(true)
+      }, 300)
+    }
+  }
+
+  const handleGeneratePlan = async () => {
+    setIsGenerating(true)
+    setShowGenerateButton(false)
+    setGenerateError('')
+    setMessages(m => [...m, { role: 'assistant', content: 'Working my magic... give me a moment! 🪄' }])
+
+    try {
+      let token = ''
+      if (auth.currentUser) token = await auth.currentUser.getIdToken()
+      const res = await fetch('https://wanderplan-rust.vercel.app/api/wanda-plan-trip', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        body: JSON.stringify({ gatheredInfo })
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to generate plan')
+      onPlanReady(data.data)
+    } catch (err) {
+      const errMsg = `Sorry, something went wrong: ${err.message}. Want to try again?`
+      setMessages(m => [...m, { role: 'assistant', content: errMsg }])
+      setGenerateError(err.message)
+      setShowGenerateButton(true)
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const allQuestionsAnswered = questionIndex >= WANDA_QUESTIONS.length
+  const showInput = !allQuestionsAnswered && !isGenerating
+
+  return (
+    <div className="flex flex-col h-[500px] animate-fade-in">
+      {/* Header */}
+      <div className="px-6 pt-4 pb-3 border-b border-border flex items-center gap-3 shrink-0">
+        <button type="button" onClick={onBack}
+          className="p-1.5 rounded-[var(--radius-sm)] text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+        <span className="text-sm font-semibold text-text-primary">🪄 Ask Wanda</span>
+        <span className="text-xs text-text-muted ml-auto">{Math.min(questionIndex, WANDA_QUESTIONS.length)}/{WANDA_QUESTIONS.length} answered</span>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3" style={{ scrollbarWidth: 'thin' }}>
+        {messages.map((msg, i) => (
+          <div key={i} className={`flex items-end gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            {msg.role === 'assistant' && (
+              <span className="text-base shrink-0 mb-0.5">🪄</span>
+            )}
+            <div className={`max-w-[82%] text-sm rounded-[var(--radius-lg)] px-3.5 py-2.5 leading-relaxed
+              ${msg.role === 'user'
+                ? 'bg-accent/15 text-text-primary rounded-br-sm'
+                : 'bg-bg-secondary border border-border text-text-primary rounded-bl-sm'
+              }`}
+            >
+              {msg.content}
+            </div>
+          </div>
+        ))}
+
+        {isGenerating && (
+          <div className="flex items-end gap-2 justify-start">
+            <span className="text-base shrink-0 mb-0.5">🪄</span>
+            <div className="bg-bg-secondary border border-border rounded-[var(--radius-lg)] rounded-bl-sm px-3.5 py-2.5">
+              <div className="flex gap-1 items-center h-4">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showGenerateButton && !isGenerating && (
+          <div className="flex justify-center pt-2">
+            <Button size="md" onClick={handleGeneratePlan}>
+              🪄 Generate My Trip Plan
+            </Button>
+          </div>
+        )}
+
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      {showInput && (
+        <form onSubmit={handleSend} className="border-t border-border px-4 py-3 flex gap-2 shrink-0">
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder="Type your answer…"
+            autoFocus
+            className="flex-1 bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-muted px-1"
+          />
+          <button
+            type="submit"
+            disabled={!input.trim()}
+            className="px-3 py-1.5 text-xs font-medium bg-accent hover:bg-accent-hover text-text-inverse rounded-[var(--radius-md)] disabled:opacity-40 transition-colors shrink-0"
+          >
+            Send
+          </button>
+        </form>
+      )}
+    </div>
+  )
+}
 
 /* ─────────────────── Step Indicator ─────────────────── */
 function StepIndicator({ currentStep }) {
@@ -56,131 +397,7 @@ function StepIndicator({ currentStep }) {
 /* ─────────────────── Step 1: Basics ─────────────────── */
 function StepBasics({ form, setForm }) {
   const [customEmoji, setCustomEmoji] = useState('')
-  const [importUrl, setImportUrl] = useState('')
-  const [isImporting, setIsImporting] = useState(false)
-  const [importError, setImportError] = useState('')
-  const [nlDescription, setNlDescription] = useState('')
-  const [isParsingNL, setIsParsingNL] = useState(false)
-  const [nlError, setNlError] = useState('')
-  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0)
   const { profiles, currentUserProfile } = useProfiles()
-
-  const LOADING_MESSAGES = [
-    "Reading the travel blog...",
-    "Whipping up your itinerary...",
-    "Finding the best destinations...",
-    "Estimating budget costs...",
-    "Packing your bags..."
-  ]
-
-  useEffect(() => {
-    if (isImporting || isParsingNL) {
-      const id = setInterval(() => {
-        setLoadingMessageIndex(idx => (idx + 1) % LOADING_MESSAGES.length)
-      }, 2500)
-      return () => clearInterval(id)
-    } else {
-      setLoadingMessageIndex(0)
-    }
-  }, [isImporting, isParsingNL])
-
-  const handleImport = async () => {
-    if (!importUrl) return
-    setIsImporting(true)
-    setImportError('')
-    try {
-      let token = '';
-      if (auth.currentUser) token = await auth.currentUser.getIdToken();
-
-      const res = await fetch('https://wanderplan-rust.vercel.app/api/extract-trip', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        },
-        body: JSON.stringify({ url: importUrl })
-      })
-
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to extract trip data')
-
-      if (data.success && data.data) {
-        const tripData = data.data
-        setForm(f => ({
-          ...f,
-          name: tripData.name || f.name,
-          emoji: tripData.emoji || f.emoji,
-          startDate: tripData.startDate || f.startDate,
-          endDate: tripData.endDate || f.endDate,
-          currency: tripData.currency || f.currency,
-          destinations: tripData.destinations?.length > 0
-            ? tripData.destinations.map(d => ({ ...d, selected: true }))
-            : f.destinations,
-          budgetCategories: tripData.budgetCategories?.length > 0
-            ? tripData.budgetCategories.map(c => ({ ...c, selected: true }))
-            : f.budgetCategories,
-          todos: tripData.todos?.length > 0
-            ? tripData.todos.map(t => ({ ...t, selected: true }))
-            : f.todos,
-          itinerary: tripData.itinerary?.length > 0
-            ? tripData.itinerary.map(day => ({
-              id: 'day-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6) + '-' + day.dayNumber,
-              date: day.date || '',
-              dayNumber: day.dayNumber,
-              location: day.location || '',
-              emoji: '',
-              notes: '',
-              activities: (day.activities || []).map(a => ({
-                id: 'act-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6),
-                time: a.time || '',
-                name: a.name || 'Activity',
-                emoji: a.emoji || '📌',
-                location: a.location || '',
-                estCost: a.estCost || '',
-                transit: a.transit || '',
-                transitEmoji: a.transitEmoji || '🚕',
-                notes: a.notes || '',
-                done: false
-              }))
-            }))
-            : f.itinerary || []
-        }))
-        // Automatically skip to the review step (Step 4) so they can see the draft
-        setForm(f => ({ ...f, __forceStep: 4 }))
-      }
-    } catch (err) {
-      setImportError(err.message)
-    } finally {
-      setIsImporting(false)
-    }
-  }
-
-  const handleNLParse = async () => {
-    if (!nlDescription.trim()) return
-    setIsParsingNL(true)
-    setNlError('')
-    try {
-      let token = ''
-      if (auth.currentUser) token = await auth.currentUser.getIdToken()
-      const res = await fetch('https://wanderplan-rust.vercel.app/api/parse-trip', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` })
-        },
-        body: JSON.stringify({ description: nlDescription }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to parse trip')
-      if (data.success && data.data) {
-        setForm(f => ({ ...f, ...data.data, __forceStep: 4 }))
-      }
-    } catch (err) {
-      setNlError(err.message)
-    } finally {
-      setIsParsingNL(false)
-    }
-  }
 
   const handleCustomEmoji = (val) => {
     const match = val.match(/\p{Emoji}/u)
@@ -195,100 +412,22 @@ function StepBasics({ form, setForm }) {
   const toggleTraveler = (id) => {
     setForm(f => {
       const ids = f.travelerIds || []
-      // Don't allow de-selecting yourself
       if (id === currentUserProfile?.uid) return f
       const next = ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]
       return { ...f, travelerIds: next, travelers: Math.max(next.length, 1) }
     })
   }
 
-  // All selectable travelers: current user first, then shared profiles
   const allTravelers = [
     ...(currentUserProfile ? [{ ...currentUserProfile, id: currentUserProfile.uid, isMe: true }] : []),
     ...profiles,
   ]
 
-  if (isImporting || isParsingNL) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 space-y-5 animate-fade-in text-center">
-        <div className="relative w-16 h-16 flex items-center justify-center">
-          <div className="absolute inset-0 border-4 border-accent/20 rounded-full"></div>
-          <div className="absolute inset-0 border-4 border-accent rounded-full border-t-transparent animate-spin"></div>
-          <span className="text-2xl animate-pulse">🪄</span>
-        </div>
-        <div>
-          <h3 className="text-lg font-heading font-semibold text-text-primary mb-1">
-            {LOADING_MESSAGES[loadingMessageIndex]}
-          </h3>
-          <p className="text-sm text-text-muted">This usually takes about 10-15 seconds.</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-5 animate-fade-in">
-      {/* AI Import Option */}
-      <div className="p-4 bg-accent-muted/20 border border-accent/20 rounded-[var(--radius-lg)]">
-        <h3 className="font-heading text-sm font-semibold text-accent mb-2 flex items-center gap-2">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-          Magic Import
-        </h3>
-        <p className="text-xs text-text-muted mb-3">Paste a travel blog URL and we'll automatically draft your itinerary.</p>
-        <div className="flex gap-2">
-          <input
-            type="url"
-            value={importUrl}
-            onChange={e => setImportUrl(e.target.value)}
-            placeholder="e.g. nomadicmatt.com/japan-itinerary"
-            className="flex-1 px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
-          />
-          <button
-            type="button"
-            onClick={handleImport}
-            disabled={isImporting || !importUrl}
-            className="px-4 py-2 text-sm font-medium bg-accent hover:bg-accent-hover text-text-inverse rounded-[var(--radius-md)] disabled:opacity-50 transition-colors shrink-0 flex items-center gap-2"
-          >
-            {isImporting ? (
-              <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            ) : 'Generate'}
-          </button>
-        </div>
-        {importError && <p className="text-xs text-danger mt-2">{importError}</p>}
-      </div>
-
-      <div className="relative flex items-center py-2">
-        <div className="flex-grow border-t border-border"></div>
-        <span className="flex-shrink-0 mx-4 text-xs text-text-muted font-medium uppercase tracking-wider">Or create manually</span>
-        <div className="flex-grow border-t border-border"></div>
-      </div>
-
       <div>
         <h2 className="font-heading font-semibold text-xl text-text-primary mb-1">Name your adventure</h2>
         <p className="text-sm text-text-muted font-medium">What should we call this trip?</p>
-      </div>
-
-      <div className="mb-5">
-        <label className="block text-sm font-medium text-text-secondary mb-1.5">
-          🪄 Describe your trip
-        </label>
-        <textarea
-          className="w-full rounded-[var(--radius-sm)] border border-border bg-bg-secondary px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:ring-2 focus:ring-accent/40"
-          rows={2}
-          placeholder="e.g. 10 days in Japan with my partner, end of April, budget around $3000"
-          value={nlDescription}
-          onChange={e => setNlDescription(e.target.value)}
-        />
-        {nlError && <p className="mt-1 text-xs text-danger">{nlError}</p>}
-        <Button
-          variant="secondary"
-          size="sm"
-          className="mt-2"
-          onClick={handleNLParse}
-          disabled={!nlDescription.trim() || isParsingNL}
-        >
-          {isParsingNL ? 'Parsing…' : '🪄 Auto-fill from description'}
-        </Button>
       </div>
 
       <div>
@@ -305,7 +444,7 @@ function StepBasics({ form, setForm }) {
         />
       </div>
 
-      {/* Emoji Picker — grid + free-type input */}
+      {/* Emoji Picker */}
       <div>
         <label className="block text-sm font-medium text-text-secondary mb-1.5">Trip Emoji</label>
         <div className="grid grid-cols-10 gap-1.5 mb-2">
@@ -340,7 +479,7 @@ function StepBasics({ form, setForm }) {
         </div>
       </div>
 
-      {/* Travelers — avatar picker using allTravelers (current user always first + selected) */}
+      {/* Travelers */}
       <div>
         <label className="block text-sm font-medium text-text-secondary mb-2">Wanderers</label>
         <div className="flex flex-wrap gap-2">
@@ -431,25 +570,18 @@ function StepDestinations({ form, setForm }) {
       <div className="space-y-3">
         {form.destinations.map((dest, index) => (
           <div key={index} className="flex items-start gap-2 p-3 bg-bg-secondary border border-border rounded-[var(--radius-md)]">
-            {/* Step number */}
             <div className="w-6 h-6 rounded-full bg-accent/10 text-accent flex items-center justify-center text-xs font-semibold shrink-0 mt-2">
               {index + 1}
             </div>
-
-            {/* Flag preview */}
             <span className="text-xl flex-shrink-0 mt-1.5 w-7 text-center">
               {dest.flag || <span className="text-text-muted text-sm">📍</span>}
             </span>
-
-            {/* City combobox — shared component */}
             <CityCombobox
               value={dest.city}
               country={dest.country}
               flag={dest.flag}
               onChange={updates => handleDestChange(index, updates)}
             />
-
-            {/* Country text input */}
             <input
               type="text"
               value={dest.country}
@@ -459,8 +591,6 @@ function StepDestinations({ form, setForm }) {
                          text-text-primary placeholder:text-text-muted text-sm
                          focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
             />
-
-            {/* Remove */}
             <button type="button" onClick={() => handleRemove(index)}
               disabled={form.destinations.length <= 1}
               className="p-1.5 rounded-[var(--radius-sm)] text-text-muted hover:text-danger hover:bg-danger/10 disabled:opacity-0 disabled:pointer-events-none transition-all shrink-0 mt-0.5"
@@ -507,7 +637,6 @@ function StepBudget({ form, setForm }) {
         <p className="text-sm text-text-muted font-medium">Optional. You can always add this later.</p>
       </div>
 
-      {/* Currency */}
       <div>
         <label className="block text-sm font-medium text-text-secondary mb-1.5">Currency</label>
         <Select value={form.currency} onValueChange={v => setForm(f => ({ ...f, currency: v }))} size="lg">
@@ -515,7 +644,6 @@ function StepBudget({ form, setForm }) {
         </Select>
       </div>
 
-      {/* Budget Categories */}
       <div>
         <label className="block text-sm font-medium text-text-secondary mb-2">Budget Categories</label>
         <div className="space-y-2">
@@ -589,12 +717,19 @@ function StepReview({ form, setForm }) {
     })
   }
 
-  // Group Todos by category
   const todosByCategory = (form.todos || []).reduce((acc, todo, idx) => {
     if (!todo.text) return acc
     const cat = todo.category || 'Tasks'
     if (!acc[cat]) acc[cat] = []
     acc[cat].push({ ...todo, originalIndex: idx })
+    return acc
+  }, {})
+
+  const packingBySection = (form.packingList || []).reduce((acc, item, idx) => {
+    if (!item.name) return acc
+    const sec = item.section || 'Misc'
+    if (!acc[sec]) acc[sec] = []
+    acc[sec].push({ ...item, originalIndex: idx })
     return acc
   }, {})
 
@@ -623,6 +758,7 @@ function StepReview({ form, setForm }) {
           </div>
         </div>
         <div className="px-5 py-4 space-y-5">
+          {/* Dates */}
           <div>
             <p className="text-xs text-text-muted uppercase tracking-wider font-medium mb-1.5">Dates</p>
             <div className="flex items-center gap-3">
@@ -643,6 +779,7 @@ function StepReview({ form, setForm }) {
             </div>
           </div>
 
+          {/* Destinations */}
           {form.destinations.some(d => d.city.trim()) && (
             <div>
               <p className="text-xs text-text-muted uppercase tracking-wider font-medium mb-2">Destinations</p>
@@ -660,6 +797,7 @@ function StepReview({ form, setForm }) {
             </div>
           )}
 
+          {/* Todos */}
           {Object.keys(todosByCategory).length > 0 && (
             <div>
               <p className="text-xs text-text-muted uppercase tracking-wider font-medium mb-2">Activities & Tasks</p>
@@ -684,6 +822,7 @@ function StepReview({ form, setForm }) {
             </div>
           )}
 
+          {/* Budget */}
           {(form.budgetCategories || []).some(c => c.min > 0 || c.max > 0) && (
             <div>
               <p className="text-xs text-text-muted uppercase tracking-wider font-medium mb-2">Budget Estimates</p>
@@ -698,7 +837,7 @@ function StepReview({ form, setForm }) {
                       </span>
                     </div>
                     <span className={`text-sm font-medium ${c.selected === false ? 'text-text-muted line-through' : 'text-text-secondary'}`}>
-                      {symbol}{c.min.toLocaleString()} – {symbol}{c.max.toLocaleString()}
+                      {symbol}{(c.min || 0).toLocaleString()} – {symbol}{(c.max || 0).toLocaleString()}
                     </span>
                   </label>
                 ) : null)}
@@ -708,6 +847,31 @@ function StepReview({ form, setForm }) {
                 <span className="text-sm font-heading font-semibold text-accent">
                   {symbol}{totalMin.toLocaleString()} – {symbol}{totalMax.toLocaleString()} {form.currency}
                 </span>
+              </div>
+            </div>
+          )}
+
+          {/* Packing List (only shown when Wanda or import populates it) */}
+          {Object.keys(packingBySection).length > 0 && (
+            <div>
+              <p className="text-xs text-text-muted uppercase tracking-wider font-medium mb-2">Packing List</p>
+              <div className="space-y-3">
+                {Object.entries(packingBySection).map(([section, items]) => (
+                  <div key={section}>
+                    <p className="text-xs font-semibold text-text-secondary mb-1">{section}</p>
+                    <div className="space-y-1.5 pl-1.5 border-l-2 border-border/50">
+                      {items.map(item => (
+                        <label key={item.originalIndex} className="flex items-center gap-2.5 p-1.5 rounded-[var(--radius-sm)] hover:bg-bg-hover cursor-pointer transition-colors">
+                          <input type="checkbox" className="w-4 h-4 text-accent bg-bg-input border-border rounded focus:ring-accent focus:ring-2 shrink-0"
+                            checked={item.selected !== false} onChange={() => toggleItem('packingList', item.originalIndex)} />
+                          <span className={`text-sm ${item.selected === false ? 'text-text-muted line-through' : 'text-text-primary'}`}>
+                            {item.name}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -721,11 +885,11 @@ function StepReview({ form, setForm }) {
 export default function NewTripModal({ isOpen, onClose }) {
   const { dispatch, showToast } = useTripContext()
   const { currentUserProfile, resolveProfile, profiles } = useProfiles()
+  const [mode, setMode] = useState('chooser')
   const [step, setStep] = useState(1)
   const [form, setForm] = useState(() => getInitialForm())
 
   function getInitialForm() {
-    // Auto-include the current user in the traveler list
     const myId = currentUserProfile?.uid
     return {
       name: '',
@@ -739,11 +903,10 @@ export default function NewTripModal({ isOpen, onClose }) {
       budgetCategories: DEFAULT_BUDGET_CATEGORIES.map(c => ({ ...c, min: 0, max: 0, selected: true })),
       todos: [],
       itinerary: [],
+      packingList: [],
     }
   }
 
-  // If the modal mounted before currentUserProfile loaded (async Firestore),
-  // inject the user's UID into travelerIds as soon as the profile arrives.
   useEffect(() => {
     const myId = currentUserProfile?.uid
     if (!myId) return
@@ -753,18 +916,60 @@ export default function NewTripModal({ isOpen, onClose }) {
     })
   }, [currentUserProfile?.uid])
 
-  useEffect(() => {
-    if (form.__forceStep) {
-      setStep(form.__forceStep)
-      setForm(f => {
-        const copy = { ...f }
-        delete copy.__forceStep
-        return copy
-      })
-    }
-  }, [form.__forceStep])
+  const handleClose = () => {
+    setMode('chooser')
+    setStep(1)
+    setForm(getInitialForm())
+    onClose()
+  }
 
-  const handleClose = () => { setStep(1); setForm(getInitialForm()); onClose() }
+  // Shared handler: called by MagicImportFlow and WandaChatFlow after AI generates trip data
+  const handlePlanReady = (tripData) => {
+    setForm(f => ({
+      ...f,
+      name: tripData.name || f.name,
+      emoji: tripData.emoji || f.emoji,
+      startDate: tripData.startDate || f.startDate,
+      endDate: tripData.endDate || f.endDate,
+      currency: tripData.currency || f.currency,
+      destinations: tripData.destinations?.length > 0
+        ? tripData.destinations.map(d => ({ ...d, selected: true }))
+        : f.destinations,
+      budgetCategories: tripData.budgetCategories?.length > 0
+        ? tripData.budgetCategories.map(c => ({ ...c, selected: true }))
+        : f.budgetCategories,
+      todos: tripData.todos?.length > 0
+        ? tripData.todos.map(t => ({ ...t, selected: true }))
+        : f.todos,
+      itinerary: tripData.itinerary?.length > 0
+        ? tripData.itinerary.map(day => ({
+          id: 'day-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6) + '-' + day.dayNumber,
+          date: day.date || '',
+          dayNumber: day.dayNumber,
+          location: day.location || '',
+          emoji: '',
+          notes: '',
+          activities: (day.activities || []).map(a => ({
+            id: 'act-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6),
+            time: a.time || '',
+            name: a.name || 'Activity',
+            emoji: a.emoji || '📌',
+            location: a.location || '',
+            estCost: a.estCost || '',
+            transit: a.transit || '',
+            transitEmoji: a.transitEmoji || '🚕',
+            notes: a.notes || '',
+            done: false
+          }))
+        }))
+        : f.itinerary || [],
+      packingList: tripData.packingList?.length > 0
+        ? tripData.packingList.map(p => ({ ...p, selected: true }))
+        : f.packingList || [],
+    }))
+    setMode('manual')
+    setStep(4)
+  }
 
   const canProceed = useMemo(() => {
     if (step === 1) return form.name.trim().length > 0
@@ -777,7 +982,6 @@ export default function NewTripModal({ isOpen, onClose }) {
       .filter(d => d.city.trim() && d.selected !== false)
       .map(d => resolveCity(d.city, d.country, d.flag))
 
-    // Mirror destinations into CitiesTab city cards (deduplicated by city name)
     const seen = new Map()
     destinations.forEach(d => {
       const key = d.city.toLowerCase()
@@ -816,13 +1020,20 @@ export default function NewTripModal({ isOpen, onClose }) {
         dueDate: ''
       }))
 
+    const importedPacking = (form.packingList || [])
+      .filter(p => p.selected !== false && p.name)
+      .map((p, idx) => ({
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8) + idx,
+        name: p.name,
+        section: p.section || 'Misc',
+        packed: false,
+      }))
+
     const memberIds = Array.from(new Set([
       currentUserProfile?.uid,
       ...(form.travelerIds || []).map(tid => resolveProfile(tid)?.uid).filter(Boolean)
     ])).filter(Boolean)
 
-    // Build a snapshot of traveler profiles so TripHeader can show avatars
-    // even before the external profiles list loads from Firestore
     const allAvailableProfiles = [
       ...(currentUserProfile ? [{ ...currentUserProfile, id: currentUserProfile.uid }] : []),
       ...profiles,
@@ -847,6 +1058,7 @@ export default function NewTripModal({ isOpen, onClose }) {
       budget: budgetItems,
       todos: importedTodos,
       itinerary: form.itinerary || [],
+      packingList: importedPacking,
     })
 
     dispatch({ type: ACTIONS.ADD_TRIP, payload: newTrip })
@@ -854,9 +1066,11 @@ export default function NewTripModal({ isOpen, onClose }) {
     handleClose()
   }
 
+  const maxWidth = mode === 'wanda' ? 'max-w-xl' : 'max-w-lg'
+
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} maxWidth="max-w-lg">
-      <div className="px-6 pt-6 pb-2">
+    <Modal isOpen={isOpen} onClose={handleClose} maxWidth={maxWidth}>
+      <div className={mode === 'wanda' ? '' : 'px-6 pt-6 pb-2'}>
         <button type="button" onClick={handleClose}
           className="absolute top-4 right-4 p-1.5 rounded-[var(--radius-sm)] text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors z-10"
         >
@@ -865,50 +1079,83 @@ export default function NewTripModal({ isOpen, onClose }) {
           </svg>
         </button>
 
-        <StepIndicator currentStep={step} />
+        {/* Chooser mode */}
+        {mode === 'chooser' && <ModeChooser onSelect={setMode} />}
 
-        <div className="min-h-[320px]">
-          {step === 1 && <StepBasics form={form} setForm={setForm} />}
-          {step === 2 && <StepDestinations form={form} setForm={setForm} />}
-          {step === 3 && <StepBudget form={form} setForm={setForm} />}
-          {step === 4 && <StepReview form={form} setForm={setForm} />}
-        </div>
+        {/* Magic Import mode */}
+        {mode === 'magic' && (
+          <MagicImportFlow
+            onPlanReady={handlePlanReady}
+            onBack={() => setMode('chooser')}
+          />
+        )}
+
+        {/* Ask Wanda mode */}
+        {mode === 'wanda' && (
+          <WandaChatFlow
+            onPlanReady={handlePlanReady}
+            onBack={() => setMode('chooser')}
+          />
+        )}
+
+        {/* Manual mode — full 4-step wizard */}
+        {mode === 'manual' && (
+          <>
+            <StepIndicator currentStep={step} />
+            <div className="min-h-[320px]">
+              {step === 1 && <StepBasics form={form} setForm={setForm} />}
+              {step === 2 && <StepDestinations form={form} setForm={setForm} />}
+              {step === 3 && <StepBudget form={form} setForm={setForm} />}
+              {step === 4 && <StepReview form={form} setForm={setForm} />}
+            </div>
+          </>
+        )}
       </div>
 
-      <div className="flex items-center justify-between px-6 py-4 border-t border-border mt-2">
-        <div>
-          {step > 1 && (
-            <Button variant="ghost" size="md" onClick={() => setStep(s => s - 1)}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-              Back
-            </Button>
-          )}
+      {/* Footer — only for manual mode */}
+      {mode === 'manual' && (
+        <div className="flex items-center justify-between px-6 py-4 border-t border-border mt-2">
+          <div>
+            {step > 1 ? (
+              <Button variant="ghost" size="md" onClick={() => setStep(s => s - 1)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+                Back
+              </Button>
+            ) : (
+              <Button variant="ghost" size="md" onClick={() => setMode('chooser')}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+                Options
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {step === 3 && (
+              <Button variant="ghost" size="md" onClick={() => { setForm(f => ({ ...f, budgetCategories: DEFAULT_BUDGET_CATEGORIES.map(c => ({ ...c, min: 0, max: 0 })) })); setStep(4) }}>
+                Skip
+              </Button>
+            )}
+            {step < TOTAL_STEPS ? (
+              <Button size="md" onClick={() => setStep(s => s + 1)} disabled={!canProceed}>
+                Next
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </Button>
+            ) : (
+              <Button size="lg" onClick={handleCreate}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Create Trip
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {step === 3 && (
-            <Button variant="ghost" size="md" onClick={() => { setForm(f => ({ ...f, budgetCategories: DEFAULT_BUDGET_CATEGORIES.map(c => ({ ...c, min: 0, max: 0 })) })); setStep(4) }}>
-              Skip
-            </Button>
-          )}
-          {step < TOTAL_STEPS ? (
-            <Button size="md" onClick={() => setStep(s => s + 1)} disabled={!canProceed}>
-              Next
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </Button>
-          ) : (
-            <Button size="lg" onClick={handleCreate}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              Create Trip
-            </Button>
-          )}
-        </div>
-      </div>
+      )}
     </Modal>
   )
 }
