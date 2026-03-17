@@ -300,7 +300,6 @@ function BudgetHealthCard({ budget, totals, currency, isReadOnly }) {
           emoji="💰"
           title="No budget limits defined"
           compact
-          className="border-none bg-transparent"
         />
       )}
     </Card>

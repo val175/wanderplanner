@@ -833,18 +833,6 @@ export default function TodoTab() {
                 </button>
               </div>
 
-              <div className="hidden md:block shrink-0">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleGenerateChecklist}
-                  disabled={isGenerating}
-                  className="shrink-0"
-                >
-                  {isGenerating ? 'Generating...' : '🪄 Generate with Wanda'}
-                </Button>
-              </div>
-
               {!isReadOnly && (
                 <div className="hidden md:block shrink-0">
                   <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="shrink-0">
@@ -935,9 +923,12 @@ export default function TodoTab() {
                     emoji="✅"
                     title="No tasks yet."
                     subtitle="Add your first to-do above."
-                    wandaPrompt="Help me plan tasks for this trip"
+                    action={
+                      <Button variant="secondary" size="sm" onClick={handleGenerateChecklist} disabled={isGenerating}>
+                        {isGenerating ? 'Generating...' : '🪄 Generate with Wanda'}
+                      </Button>
+                    }
                     compact
-                    className="border-none bg-transparent"
                   />
                 ) : (
                   filteredTodos.map(todo => (
