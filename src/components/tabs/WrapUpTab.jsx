@@ -187,7 +187,7 @@ export default function WrapUpTab() {
                 {" "}Daily average spend of {formatCurrency(stats.costPerDay, trip.currency)}? {stats.budgetSub}!
                 {km !== null && km > 0 && (
                   <>
-                    {" "}✈️ {km.toLocaleString()} km traveled, equivalent to {relatableKm}.
+                    {" "}You traveled {km.toLocaleString()} km in total, which is equivalent to {relatableKm}.
                   </>
                 )}
             </div>
