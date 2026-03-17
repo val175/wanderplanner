@@ -25,7 +25,7 @@ function activateAudio(audio) {
   audio.src = SILENT_MP3
   audio.volume = 0
   const p = audio.play()
-  if (p) p.then(() => { audio.pause(); audio.src = ''; audio.volume = 1 }).catch(() => { audio.volume = 1 })
+  if (p) p.then(() => { audio.pause(); audio.src = ''; audio.volume = 1 }).catch(err => { console.warn('[WT] activateAudio play rejected:', err.name, err.message); audio.volume = 1 })
 }
 
 export function useWalkieTalkie({ onTranscriptReady }) {
@@ -61,7 +61,11 @@ export function useWalkieTalkie({ onTranscriptReady }) {
   }, [])
 
   const startListening = useCallback(() => {
-    if (!isSTTSupported || !isModeRef.current) return
+    if (!isSTTSupported || !isModeRef.current) {
+      console.log('[WT] startListening blocked — isSTTSupported:', isSTTSupported, 'isModeRef:', isModeRef.current)
+      return
+    }
+    console.log('[WT] recognition.start() called')
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
     const recognition = new SpeechRecognition()
@@ -74,6 +78,7 @@ export function useWalkieTalkie({ onTranscriptReady }) {
     // Watchdog: if iOS recognition hangs silently for 10s, reset state
     let watchdog = setTimeout(() => {
       if (recognitionRef.current === recognition) {
+        console.warn('[WT] watchdog fired — recognition got no events for 10s')
         try { recognition.abort() } catch (_) {}
         setIsListening(false)
       }
@@ -90,15 +95,21 @@ export function useWalkieTalkie({ onTranscriptReady }) {
         if (event.results[i].isFinal) final += t
         else interim += t
       }
-      if (final) finalTranscriptRef.current = final
+      if (final) {
+        finalTranscriptRef.current = final
+        console.log('[WT] onresult FINAL:', final)
+      } else {
+        console.log('[WT] onresult interim:', interim)
+      }
       setTranscript(finalTranscriptRef.current || interim)
     }
 
     recognition.onend = () => {
       clearWatchdog()
+      const final = finalTranscriptRef.current.trim()
+      console.log('[WT] onend — final transcript:', final ? `"${final}"` : '(empty)')
       setIsListening(false)
       if (!isModeRef.current) return
-      const final = finalTranscriptRef.current.trim()
       if (final) {
         setTranscript('')
         onTranscriptReady(final)
@@ -108,7 +119,7 @@ export function useWalkieTalkie({ onTranscriptReady }) {
     recognition.onerror = (event) => {
       clearWatchdog()
       const ignorable = event.error === 'no-speech' || event.error === 'aborted'
-      if (!ignorable) console.warn('[useWalkieTalkie] STT error:', event.error)
+      console.warn('[WT] onerror:', event.error, ignorable ? '(ignorable)' : '(unexpected)')
       setIsListening(false)
     }
 
@@ -172,6 +183,7 @@ export function useWalkieTalkie({ onTranscriptReady }) {
       audio.onended = () => {
         URL.revokeObjectURL(blobUrl)
         lastTTSEndTimeRef.current = Date.now()
+        console.log('[WT] TTS audio ended naturally — stamped lastTTSEndTime')
         setIsSpeaking(false)
       }
       audio.onerror = () => {
@@ -264,15 +276,20 @@ export function useWalkieTalkie({ onTranscriptReady }) {
     // however much of the 1500ms window remains since the last TTS ended.
     const TTS_COOLDOWN_MS = 1500
     const msSinceLastTTS = Date.now() - lastTTSEndTimeRef.current
-    const delay = msSinceLastTTS < TTS_COOLDOWN_MS ? TTS_COOLDOWN_MS - msSinceLastTTS : 0
+    const delay = lastTTSEndTimeRef.current > 0 && msSinceLastTTS < TTS_COOLDOWN_MS
+      ? TTS_COOLDOWN_MS - msSinceLastTTS
+      : 0
+    console.log(`[WT] mic tap — msSinceLastTTS: ${lastTTSEndTimeRef.current > 0 ? msSinceLastTTS + 'ms' : 'n/a (no TTS yet)'}, cooldown delay: ${delay}ms`)
 
     // Show listening UI immediately — gives instant tap feedback even when
     // recognition.start() is deferred by the cooldown.
     setIsListening(true)
 
     if (delay > 0) {
+      console.log(`[WT] deferring recognition.start() by ${delay}ms`)
       listenerDelayTimeoutRef.current = setTimeout(() => {
         listenerDelayTimeoutRef.current = null
+        console.log('[WT] cooldown elapsed — calling recognition.start() now')
         if (isModeRef.current) startListening()
       }, delay)
     } else {
