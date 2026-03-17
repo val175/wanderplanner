@@ -314,7 +314,7 @@ export default function WrapUpTab() {
                 {!trip.rating && <p className="text-xs text-text-muted mt-1">Rate this trip</p>}
 
                 {/* Hero CTAs */}
-                {isGeneratingPostcard ? (
+                {isGeneratingPostcard && false ? (
                     <div className="flex flex-col items-center gap-3 mt-4 py-2">
                         <div className="wanda-orbit-ring">
                             <span className="wanda-orbit-wand">🪄</span>
@@ -331,15 +331,17 @@ export default function WrapUpTab() {
                         <Button variant="secondary" size="sm" onClick={handleWandaRecap}>
                             🪄 <span className="wanda-serif">Wanda</span> Recap
                         </Button>
+                        {/* Postcard feature hidden — pending API fix
                         <Button variant="ghost" size="sm" onClick={handleGeneratePostcard}>
                             🖼️ Souvenir Postcard
                         </Button>
+                        */}
                     </div>
                 )}
             </div>
 
-            {/* Souvenir Postcard */}
-            {postcardDataUrl && (
+            {/* Souvenir Postcard — hidden pending API fix */}
+            {false && postcardDataUrl && (
                 <div className="rounded-[var(--radius-lg)] border border-border bg-bg-card overflow-hidden">
                     <div className="p-3 flex items-center justify-between">
                         <p className="text-[10px] font-semibold text-text-muted uppercase tracking-widest">🖼️ Souvenir Postcard</p>
