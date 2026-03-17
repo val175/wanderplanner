@@ -52,6 +52,7 @@ export function useWalkieTalkie({ onTranscriptReady }) {
   const unlockAudio = useCallback(() => {
     const audio = getAudio()
     audio.src = SILENT_MP3
+    audio.load()         // force load to prevent caching issues
     audio.volume = 0
     const p = audio.play()
     if (p) p.then(() => { audio.pause(); audio.volume = 1 }).catch(() => { audio.volume = 1 })
@@ -61,7 +62,8 @@ export function useWalkieTalkie({ onTranscriptReady }) {
     const audio = audioRef.current
     if (audio) {
       audio.pause()
-      audio.src = ''   // clear old source so iOS reinitializes on next play
+      audio.removeAttribute('src')  // detach old source before flushing
+      audio.load()                  // flush the buffer so iOS reinitializes cleanly
       audio.onended = null
       audio.onerror = null
       // Don't null out audioRef — keep the unlocked element alive
@@ -181,12 +183,16 @@ export function useWalkieTalkie({ onTranscriptReady }) {
       audio.volume = 1
 
       audio.onended = () => {
+        audio.removeAttribute('src')  // detach before revoking — prevents MediaError
+        audio.load()
         URL.revokeObjectURL(blobUrl)
         setIsSpeaking(false)
         if (isModeRef.current) startListening()
       }
       audio.onerror = (e) => {
         console.warn('[useWalkieTalkie] Audio playback error:', e)
+        audio.removeAttribute('src')
+        audio.load()
         URL.revokeObjectURL(blobUrl)
         setIsSpeaking(false)
         if (isModeRef.current) startListening()
