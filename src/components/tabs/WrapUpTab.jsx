@@ -4,6 +4,7 @@ import { formatCurrency, formatDate, haversineDistance, geocodeCity } from '../.
 import { ACTIONS } from '../../state/tripReducer'
 import { useProfiles } from '../../context/ProfileContext'
 import Button from '../shared/Button'
+import { auth } from '../../firebase/config'
 
 const VIBE_TAGS = [
     { label: 'Surf & Chill', emoji: '🏄' },
@@ -47,6 +48,14 @@ function getPaceLabel(stopsPerDay) {
 }
 
 const BAR_COLORS = ['#e07b54', '#22c55e', '#f59e0b', '#8b5cf6', '#64748b']
+
+const POSTCARD_SPELLS = [
+    'Painting your memories…',
+    'Mixing colors…',
+    'Adding the skyline…',
+    'Capturing the vibes…',
+    'Almost there…',
+]
 
 /* ─────────────────────────────────────────────────────────────
    Stat Card
@@ -120,6 +129,22 @@ export default function WrapUpTab() {
     const trip = activeTrip
 
     const km = useRouteDistance(trip.destinations)
+
+    // Postcard generator
+    const [isGeneratingPostcard, setIsGeneratingPostcard] = useState(false)
+    const [postcardDataUrl, setPostcardDataUrl] = useState(null)
+    const [spellIndex, setSpellIndex] = useState(0)
+
+    useEffect(() => {
+        const stored = localStorage.getItem(`postcard_${trip.id}`)
+        if (stored) setPostcardDataUrl(stored)
+    }, [trip.id])
+
+    useEffect(() => {
+        if (!isGeneratingPostcard) return
+        const id = setInterval(() => setSpellIndex(i => (i + 1) % POSTCARD_SPELLS.length), 2200)
+        return () => clearInterval(id)
+    }, [isGeneratingPostcard])
 
     // Editable unfinished note — syncs when trip changes
     const [unfinishedNote, setUnfinishedNote] = useState(trip.unfinishedNote || '')
@@ -220,6 +245,34 @@ export default function WrapUpTab() {
         }))
     }
 
+    const handleGeneratePostcard = async () => {
+        if (isGeneratingPostcard) return
+        setIsGeneratingPostcard(true)
+        try {
+            const token = await auth.currentUser?.getIdToken()
+            if (!token) throw new Error('Not authenticated')
+
+            const city = trip.destinations?.[0]?.city || trip.name
+            const year = trip.startDate ? new Date(trip.startDate).getFullYear() : new Date().getFullYear()
+
+            const res = await fetch('https://wanderplan-rust.vercel.app/api/generate-postcard', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ tripName: trip.name, city, year })
+            })
+            if (!res.ok) throw new Error('Generation failed')
+            const { dataUrl } = await res.json()
+            localStorage.setItem(`postcard_${trip.id}`, dataUrl)
+            setPostcardDataUrl(dataUrl)
+            showToast('Souvenir postcard ready! 🖼️', 'success')
+        } catch (err) {
+            console.error('[WrapUpTab] Postcard error:', err)
+            showToast('Could not generate postcard. Try again.', 'error')
+        } finally {
+            setIsGeneratingPostcard(false)
+        }
+    }
+
     const relatableKm = getRelatableRoute(km)
     const paceLabel = getPaceLabel(stats.stopsPerDay)
     const isArchived = effectiveStatus === 'archived'
@@ -258,15 +311,60 @@ export default function WrapUpTab() {
                 {!trip.rating && <p className="text-xs text-text-muted mt-1">Rate this trip</p>}
 
                 {/* Hero CTAs */}
-                <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
-                    <Button variant="primary" size="sm" onClick={handleUseAsTemplate}>
-                        📋 Clone Itinerary
-                    </Button>
-                    <Button variant="secondary" size="sm" onClick={handleWandaRecap}>
-                        🪄 <span className="wanda-serif">Wanda</span> Recap
-                    </Button>
-                </div>
+                {isGeneratingPostcard ? (
+                    <div className="flex flex-col items-center gap-3 mt-4 py-2">
+                        <div className="wanda-orbit-ring">
+                            <span className="wanda-orbit-wand">🪄</span>
+                        </div>
+                        <p className="text-xs text-text-muted animate-pulse-warm">
+                            <span className="wanda-serif text-text-secondary">Wanda</span> is casting · {POSTCARD_SPELLS[spellIndex]}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
+                        <Button variant="primary" size="sm" onClick={handleUseAsTemplate}>
+                            📋 Clone Itinerary
+                        </Button>
+                        <Button variant="secondary" size="sm" onClick={handleWandaRecap}>
+                            🪄 <span className="wanda-serif">Wanda</span> Recap
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={handleGeneratePostcard}>
+                            🖼️ Souvenir Postcard
+                        </Button>
+                    </div>
+                )}
             </div>
+
+            {/* Souvenir Postcard */}
+            {postcardDataUrl && (
+                <div className="rounded-[var(--radius-lg)] border border-border bg-bg-card overflow-hidden">
+                    <div className="p-3 flex items-center justify-between">
+                        <p className="text-[10px] font-semibold text-text-muted uppercase tracking-widest">🖼️ Souvenir Postcard</p>
+                        <div className="flex gap-2">
+                            <a
+                                href={postcardDataUrl}
+                                download={`${trip.name.replace(/\s+/g, '-')}-postcard.png`}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-[var(--radius-md)] bg-bg-secondary text-text-secondary border border-border hover:text-text-primary transition-all"
+                            >
+                                ↓ Download
+                            </a>
+                            <button
+                                onClick={handleGeneratePostcard}
+                                disabled={isGeneratingPostcard}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-[var(--radius-md)] bg-bg-secondary text-text-secondary border border-border hover:text-text-primary transition-all disabled:opacity-50"
+                            >
+                                ↺ Regenerate
+                            </button>
+                        </div>
+                    </div>
+                    <img
+                        src={postcardDataUrl}
+                        alt={`${trip.name} souvenir postcard`}
+                        className="w-full object-cover"
+                        style={{ aspectRatio: '9/16', maxHeight: '480px', objectFit: 'cover' }}
+                    />
+                </div>
+            )}
 
             {/* Stats row — Trip Pace · Daily Average · Distance */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
