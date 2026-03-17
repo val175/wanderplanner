@@ -108,7 +108,7 @@ function AssigneePill({ value, onChange, tripTravelers, resolveProfile, currentU
       {open && coords && createPortal(
         <div
           ref={dropdownRef}
-          className="absolute z-[100] rounded-[var(--radius-md)] border border-border bg-bg-card min-w-[170px] py-1"
+          className="absolute z-[10000] rounded-[var(--radius-md)] border border-border bg-bg-card min-w-[170px] py-1"
           style={{ top: coords.top, left: coords.left - 150 }}
         >
           <button

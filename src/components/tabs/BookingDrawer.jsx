@@ -11,6 +11,7 @@ import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { formatCurrency } from '../../utils/helpers'
 import { hapticImpact, hapticSelection } from '../../utils/haptics'
+import LocationAutocomplete from '../shared/LocationAutocomplete'
 
 // ── Cost Input ──────────────────────────────────────────────────────────────
 function CostInput({ value, currency, onChange, disabled }) {
@@ -41,6 +42,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
   const [mounted, setMounted] = useState(false)
   const [isEditingNotes, setIsEditingNotes] = useState(false)
   const [notesDraft, setNotesDraft] = useState('')
+  const [editingLocation, setEditingLocation] = useState(false)
   const [draftComment, setDraftComment] = useState('')
   const [editingCommentId, setEditingCommentId] = useState(null)
   const [editDraft, setEditDraft] = useState('')
@@ -57,6 +59,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
   useEffect(() => {
     setNotesDraft(booking?.notes || '')
     setIsEditingNotes(false)
+    setEditingLocation(false)
   }, [booking?.id, booking?.notes])
 
   const comments = useMemo(() => {
@@ -216,6 +219,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
                 value={booking.confirmationNumber || ''}
                 onSave={val => onUpdate(booking.id, { confirmationNumber: val }, actorId)}
                 className="text-accent font-mono text-sm block"
+                inputClassName="w-full"
                 placeholder="Add confirmation…"
                 readOnly={isReadOnly}
               />
@@ -226,6 +230,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
                 value={booking.providerLink || ''}
                 onSave={val => onUpdate(booking.id, { providerLink: val }, actorId)}
                 className="text-accent text-sm block truncate"
+                inputClassName="w-full"
                 placeholder="Add URL…"
                 readOnly={isReadOnly}
               />
@@ -235,13 +240,38 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
           {/* Location */}
           <div className="space-y-2">
             <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Location</label>
-            <EditableText
-              value={booking.location || ''}
-              onSave={val => onUpdate(booking.id, { location: val }, actorId)}
-              className="text-text-primary text-sm block"
-              placeholder="e.g. 1-2-3 Shinjuku, Tokyo"
-              readOnly={isReadOnly}
-            />
+            {editingLocation && !isReadOnly ? (
+              <div>
+                <LocationAutocomplete
+                  initialValue={booking.location || ''}
+                  onSelect={(locationData) => {
+                    onUpdate(booking.id, { location: locationData.placeName }, actorId)
+                    setEditingLocation(false)
+                    hapticSelection()
+                  }}
+                />
+                <button
+                  onClick={() => setEditingLocation(false)}
+                  className="mt-2 text-xs text-text-muted hover:text-text-primary"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm text-text-secondary truncate">
+                  {booking.location || <span className="italic text-text-muted">No location set</span>}
+                </span>
+                {!isReadOnly && (
+                  <button
+                    onClick={() => setEditingLocation(true)}
+                    className="text-xs text-text-muted hover:text-accent shrink-0 border border-border rounded px-2 py-1 hover:border-accent/40 transition-colors"
+                  >
+                    Change
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           <hr className="border-border/30" />
