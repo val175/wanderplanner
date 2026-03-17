@@ -14,8 +14,6 @@ const isSTTSupported =
   typeof window !== 'undefined' &&
   ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
 
-const SILENT_MP3 = 'data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsgU291bmQgRWZmZWN0cyBMaWJyYXJ5//uQwAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA//////////////////////////////////////////////////////////////////8AAAA5TFNBTUU9My45OXIxAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
-
 const MAX_STT_RETRIES = 12
 const RETRY_DELAY_MS = 2000
 
@@ -27,8 +25,11 @@ export function useWalkieTalkie({ onTranscriptReady }) {
   const [transcript, setTranscript] = useState('')
 
   const recognitionRef = useRef(null)
-  const nextTTSAudioRef = useRef(null)
-  const playbackRef = useRef(null)
+  
+  // Replace HTML5 Audio with Web Audio API context and source refs
+  const audioCtxRef = useRef(null)
+  const audioSourceRef = useRef(null)
+  
   const isModeRef = useRef(false)
   const finalTranscriptRef = useRef('')
   const sttRetryCountRef = useRef(0)
@@ -46,14 +47,15 @@ export function useWalkieTalkie({ onTranscriptReady }) {
   }, [])
 
   const stopAudio = useCallback(() => {
-    if (playbackRef.current) {
-      playbackRef.current.onended = null
-      playbackRef.current.onerror = null
-      playbackRef.current.pause()
-      // Aggressively detach the media source to release the iOS audio session
-      playbackRef.current.removeAttribute('src')
-      playbackRef.current.load()
-      playbackRef.current = null
+    if (audioSourceRef.current) {
+      try {
+        audioSourceRef.current.onended = null
+        audioSourceRef.current.stop()
+        audioSourceRef.current.disconnect()
+      } catch (e) {
+        // Ignore if already stopped
+      }
+      audioSourceRef.current = null
     }
   }, [])
 
@@ -166,8 +168,12 @@ export function useWalkieTalkie({ onTranscriptReady }) {
     }
 
     console.log('[WT] recognition.start() called')
-    recognition.start()
-    setIsListening(true)
+    try {
+      recognition.start()
+      setIsListening(true)
+    } catch (err) {
+      console.error('[WT] recognition.start() error:', err)
+    }
   }, [onTranscriptReady])
 
   useEffect(() => { startListeningRef.current = startListening }, [startListening])
@@ -195,60 +201,47 @@ export function useWalkieTalkie({ onTranscriptReady }) {
         return
       }
 
-      const { audioContent, mimeType } = await res.json()
+      const { audioContent } = await res.json()
       if (!audioContent) {
         console.warn('[useWalkieTalkie] Empty audioContent')
         setIsSpeaking(false)
         return
       }
 
+      // Safeguard: Initialize AudioContext if it wasn't captured on gesture
+      if (!audioCtxRef.current) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext
+        audioCtxRef.current = new AudioContext()
+      }
+
+      const ctx = audioCtxRef.current
+      if (ctx.state === 'suspended') {
+        await ctx.resume()
+      }
+
+      // Convert Base64 string directly to an ArrayBuffer for the Web Audio API
       const binary = atob(audioContent)
       const bytes = new Uint8Array(binary.length)
       for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-      const blob = new Blob([bytes], { type: mimeType || 'audio/mpeg' })
-      const blobUrl = URL.createObjectURL(blob)
 
-      const audio = nextTTSAudioRef.current
-      nextTTSAudioRef.current = null
+      // Decode the audio data asynchronously
+      const audioBuffer = await ctx.decodeAudioData(bytes.buffer)
 
-      if (!audio) {
-        console.warn('[useWalkieTalkie] No pre-activated audio element — mic was not tapped')
-        URL.revokeObjectURL(blobUrl)
-        setIsSpeaking(false)
-        return
-      }
+      // Create a buffer source and connect it to the destination (speakers)
+      const source = ctx.createBufferSource()
+      source.buffer = audioBuffer
+      source.connect(ctx.destination)
+      audioSourceRef.current = source
 
-      playbackRef.current = audio
-      audio.src = blobUrl
-      audio.volume = 1
-
-      audio.onended = () => {
-        URL.revokeObjectURL(blobUrl)
-        // Aggressively detach the media source to release the iOS audio session
-        audio.removeAttribute('src')
-        audio.load()
+      source.onended = () => {
         lastTTSEndTimeRef.current = Date.now()
-        console.log('[WT] TTS audio ended naturally — stamped lastTTSEndTime')
+        console.log('[WT] AudioContext playback ended naturally')
         setIsSpeaking(false)
-      }
-      audio.onerror = () => {
-        console.warn('[useWalkieTalkie] Audio playback error code:', audio.error?.code, audio.error?.message)
-        URL.revokeObjectURL(blobUrl)
-        audio.removeAttribute('src')
-        audio.load()
-        setIsSpeaking(false)
+        audioSourceRef.current = null
       }
 
-      const playPromise = audio.play()
-      if (playPromise !== undefined) {
-        playPromise.catch(err => {
-          console.warn('[useWalkieTalkie] Play rejected:', err.name, err.message)
-          URL.revokeObjectURL(blobUrl)
-          audio.removeAttribute('src')
-          audio.load()
-          setIsSpeaking(false)
-        })
-      }
+      source.start(0)
+
     } catch (err) {
       console.error('[useWalkieTalkie] speak error:', err)
       setIsSpeaking(false)
@@ -274,12 +267,13 @@ export function useWalkieTalkie({ onTranscriptReady }) {
           try { recognitionRef.current.abort() } catch (_) {}
         }
         stopAudio()
-        if (nextTTSAudioRef.current) {
-          nextTTSAudioRef.current.pause()
-          nextTTSAudioRef.current.removeAttribute('src')
-          nextTTSAudioRef.current.load()
-          nextTTSAudioRef.current = null
+        
+        // Clean up the AudioContext entirely when exiting Walkie Talkie mode
+        if (audioCtxRef.current) {
+          audioCtxRef.current.close().catch(() => {})
+          audioCtxRef.current = null
         }
+        
         setIsListening(false)
         setIsSpeaking(false)
         setIsMicPreparing(false)
@@ -298,30 +292,19 @@ export function useWalkieTalkie({ onTranscriptReady }) {
     cancelRetry()
     sttRetryCountRef.current = 0
 
-    if (nextTTSAudioRef.current) {
-      nextTTSAudioRef.current.pause()
-      nextTTSAudioRef.current.removeAttribute('src')
-      nextTTSAudioRef.current.load()
-      nextTTSAudioRef.current = null
-    }
-
     setIsListening(true)
     setIsMicPreparing(false)
 
-    const ttsAudio = new Audio()
-    ttsAudio.src = SILENT_MP3
-    ttsAudio.volume = 0
+    // INITIALIZE AUDIO CONTEXT ON GESTURE
+    // This unlocks the audio capabilities for iOS Safari immediately during the tap
+    if (!audioCtxRef.current) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext
+      audioCtxRef.current = new AudioContext()
+    }
 
-    // Called *after* the audio session successfully unlocks
+    const ctx = audioCtxRef.current
+
     const proceed = () => {
-      ttsAudio.pause()
-      // Safely detach the silent source so it doesn't hold the Playback category
-      ttsAudio.removeAttribute('src')
-      ttsAudio.load()
-      ttsAudio.volume = 1
-      nextTTSAudioRef.current = ttsAudio
-
-      // Safely probe the microphone now that we know play() is finished locking the session
       if (lastTTSEndTimeRef.current > 0 && navigator.mediaDevices?.getUserMedia) {
         const msSinceLastTTS = Date.now() - lastTTSEndTimeRef.current
         console.log(`[WT] mic tap — ${msSinceLastTTS}ms since last TTS — probing session sequentially`)
@@ -339,10 +322,10 @@ export function useWalkieTalkie({ onTranscriptReady }) {
       }
     }
 
-    const playPromise = ttsAudio.play()
-    if (playPromise !== undefined) {
-      playPromise.then(proceed).catch(err => {
-        console.warn('[WT] activateAudio play rejected:', err.name, err.message)
+    // iOS requires AudioContext to be resumed during a user gesture if it starts suspended
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(proceed).catch(err => {
+        console.warn('[WT] AudioContext resume rejected:', err)
         proceed()
       })
     } else {
@@ -357,11 +340,9 @@ export function useWalkieTalkie({ onTranscriptReady }) {
       sttRetryCountRef.current = 0
       try { recognitionRef.current?.abort() } catch (_) {}
       stopAudio()
-      if (nextTTSAudioRef.current) {
-        nextTTSAudioRef.current.pause()
-        nextTTSAudioRef.current.removeAttribute('src')
-        nextTTSAudioRef.current.load()
-        nextTTSAudioRef.current = null
+      if (audioCtxRef.current) {
+        audioCtxRef.current.close().catch(() => {})
+        audioCtxRef.current = null
       }
     }
   }, [stopAudio, cancelRetry])
