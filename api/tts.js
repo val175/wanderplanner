@@ -1,4 +1,9 @@
-// api/tts.js — Gemini TTS proxy (Chirp HD voices, free via GEMINI_API_KEY)
+// api/tts.js — Google Cloud TTS proxy (Chirp3-HD voices, FREE tier)
+// Free: $0.00 per 1M characters. Requires GOOGLE_TTS_API_KEY (GCP API key
+// with Cloud Text-to-Speech API enabled).
+//
+// Voice options (all free Chirp3-HD): Aoede (warm F), Kore (bright F),
+// Puck (friendly M), Charon (calm M), Fenrir (expressive M), Zephyr, Orbit
 import { verifyFirebaseToken } from './_auth.js'
 import { getCorsHeaders } from './_cors.js'
 
@@ -6,9 +11,7 @@ const rateLimitMap = new Map() // uid → timestamp[]
 const RATE_LIMIT = 30
 const WINDOW_MS = 60_000
 
-// Voice options: Aoede (warm female), Kore (bright female), Puck (friendly male),
-// Charon (calm male), Fenrir (expressive male), Zephyr, Orbit, etc.
-const VOICE_NAME = 'Aoede'
+const VOICE_NAME = 'en-US-Chirp3-HD-Aoede'
 
 function stripMarkdown(text) {
   return text
@@ -68,46 +71,39 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'No speakable text' })
     }
 
-    const apiKey = process.env.GEMINI_API_KEY
+    const apiKey = process.env.GOOGLE_TTS_API_KEY
     if (!apiKey) {
       return res.status(500).json({ error: 'TTS not configured' })
     }
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`,
+      `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: cleanText }] }],
-          generationConfig: {
-            responseModalities: ['AUDIO'],
-            speechConfig: {
-              voiceConfig: {
-                prebuiltVoiceConfig: { voiceName: VOICE_NAME },
-              },
-            },
-          },
+          input: { text: cleanText },
+          voice: { languageCode: 'en-US', name: VOICE_NAME },
+          audioConfig: { audioEncoding: 'MP3' },
         }),
       }
     )
 
     if (!response.ok) {
       const err = await response.text()
-      console.error('[tts] Gemini TTS error:', err)
+      console.error('[tts] Google Cloud TTS error:', err)
       return res.status(502).json({ error: 'TTS service error' })
     }
 
     const data = await response.json()
-    const inlineData = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData
-    if (!inlineData?.data) {
-      console.error('[tts] No audio data in response:', JSON.stringify(data))
+    if (!data.audioContent) {
+      console.error('[tts] No audioContent in response')
       return res.status(502).json({ error: 'No audio returned' })
     }
 
     return res.status(200).json({
-      audioContent: inlineData.data,
-      mimeType: inlineData.mimeType || 'audio/wav',
+      audioContent: data.audioContent,
+      mimeType: 'audio/mpeg',
     })
   } catch (err) {
     console.error('[tts] Unexpected error:', err)
