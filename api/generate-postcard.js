@@ -2,9 +2,9 @@ import { verifyFirebaseToken } from './_auth.js'
 import { setCorsHeaders } from './_cors.js'
 
 const IMAGEN_MODELS = [
-    'imagen-4.0-generate-001',
-    'imagen-4.0-ultra-generate-001',
+    'gemini-2.5-flash-image',
     'imagen-4.0-fast-generate-001',
+    'imagen-4.0-generate-001',
 ]
 
 async function tryImagenModel(model, prompt, apiKey) {
@@ -61,18 +61,23 @@ export default async function handler(req, res) {
         const prompt = `A beautiful artistic postcard for a trip to ${city}. The text "${tripName} ${year}" is elegantly integrated into the scenery as if part of the landscape or a classic travel poster.`
         const apiKey = process.env.GEMINI_API_KEY
 
-        let lastError = null
+        let results = []
         for (const model of IMAGEN_MODELS) {
+            console.log(`[generate-postcard] Trying model: ${model}`)
             const result = await tryImagenModel(model, prompt, apiKey)
             if (result.ok) {
                 console.log(`[generate-postcard] Success with ${result.model}`)
                 return res.status(200).json({ dataUrl: result.dataUrl })
             }
-            lastError = result
+            results.push({ model, status: result.status, detail: result.detail })
         }
 
+        const lastError = results[results.length - 1]
+        console.error(`[generate-postcard] All models failed. Tried: ${results.map(r => r.model).join(', ')}`)
+        
         return res.status(lastError.status || 500).json({
             error: 'All Imagen models failed',
+            tried: results.map(r => `${r.model} (${r.status}): ${r.detail}`),
             detail: lastError.detail,
         })
     } catch (error) {
