@@ -284,32 +284,31 @@ export default function WrapUpTab() {
                     width: '1080px',
                     height: '1920px',
                     backgroundColor: '#F4F2EF',
-                    color: '#111827', // slate-900 equivalent for primary text
+                    color: '#111827',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
                     textAlign: 'center',
                     padding: '128px 96px',
-                    gap: '80px',
                     zIndex: -100,
+                    fontFamily: '"Anthropic Sans", sans-serif',
                 }}
             >
                 {/* Hero */}
-                <div className="flex flex-col items-center gap-10">
-                    <div className="text-[240px] leading-none mb-4">{trip.emoji || '🎉'}</div>
-                    <h1 className="font-heading text-8xl font-black tracking-tighter leading-tight mb-12">
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '40px', marginBottom: '80px' }}>
+                    <div style={{ fontSize: '240px', lineHeight: 1, marginBottom: '20px' }}>{trip.emoji || '🎉'}</div>
+                    <h1 style={{ fontSize: '96px', fontWeight: 900, letterSpacing: '-0.05em', lineHeight: 1.1, marginBottom: '32px' }}>
                         {trip.name}
                     </h1>
-                    <div className="text-4xl font-semibold text-gray-500 mb-6">
+                    <div style={{ fontSize: '36px', fontWeight: 600, color: '#6B7280', marginBottom: '24px' }}>
                         {formatDateRange(trip.startDate, trip.endDate) || 'Dates TBA'}
                     </div>
-                    <div className="flex gap-2">
+                    <div style={{ display: 'flex', gap: '12px' }}>
                         {[1, 2, 3, 4, 5].map(n => (
                             <span 
                                 key={n} 
-                                className="text-6xl"
-                                style={{ color: n <= (trip.rating || 0) ? '#facc15' : 'rgba(107, 114, 128, 0.2)' }}
+                                style={{ fontSize: '72px', color: n <= (trip.rating || 0) ? '#facc15' : 'rgba(107, 114, 128, 0.15)' }}
                             >
                                 ★
                             </span>
@@ -318,7 +317,7 @@ export default function WrapUpTab() {
                 </div>
 
                 {/* Summary */}
-                <div className="text-5xl font-bold leading-relaxed tracking-tight max-w-[900px]">
+                <div style={{ fontSize: '48px', fontWeight: 700, lineHeight: 1.6, letterSpacing: '-0.02em', maxWidth: '900px' }}>
                     🏃 {stats.totalActivities} activities in total? <br/>
                     That's around {Math.round(stats.stopsPerDay)} stops per day! <br/>
                     {paceLabel}. 
@@ -328,14 +327,14 @@ export default function WrapUpTab() {
                     {km !== null && km > 0 && (
                         <>
                             <br/><br/>
-                            ✈️ You traveled {km.toLocaleString()} km in total, equivalent to {relatableKm}.
+                            ✈️ You traveled {km.toLocaleString()} km in total, <br/> equivalent to {relatableKm}.
                         </>
                     )}
                 </div>
 
                 {/* Watermark */}
-                <div className="absolute bottom-20 scale-[1.5]">
-                    <WandWordmark static={true} />
+                <div style={{ position: 'absolute', bottom: '120px', transform: 'scale(1.8)' }}>
+                    <WandWordmark static={true} color="#111827" />
                 </div>
             </div>
 

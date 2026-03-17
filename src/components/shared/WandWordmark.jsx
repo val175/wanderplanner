@@ -23,7 +23,7 @@ export default function WandWordmark({ onComplete, static: isStatic = false }) {
       setTimeout(() => onComplete?.(), 2850),
     ]
     return () => timers.forEach(clearTimeout)
-  }, [])
+  }, [isStatic])
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -55,7 +55,7 @@ export default function WandWordmark({ onComplete, static: isStatic = false }) {
           fontSize: '2.5rem',
           fontWeight: 400,
           margin: 0,
-          color: 'var(--color-text-primary)',
+          color: color,
           letterSpacing: '-0.01em',
           lineHeight: 1.1,
           opacity: phase >= 1 ? 1 : 0,
