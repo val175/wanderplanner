@@ -25,6 +25,7 @@ import JoinTripModal from './components/modal/JoinTripModal'
 // Shared
 import Toast from './components/shared/Toast'
 import AIAssistant from './components/shared/AIAssistant'
+import WalkieTalkieModal from './components/shared/WalkieTalkieModal'
 import GlobalSearchModal from './components/modal/GlobalSearchModal'
 import ShortcutsModal from './components/shared/ShortcutsModal'
 
@@ -294,6 +295,7 @@ function AuthenticatedApp({ user, signOutUser }) {
         <GlobalSearchModal isOpen={showSearch} onClose={() => setShowSearch(false)} />
         <ShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
         <AIAssistant />
+        <WalkieTalkieModal />
 
         <Toast
           message={state.toast.message}

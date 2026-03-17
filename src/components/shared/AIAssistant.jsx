@@ -1,9 +1,9 @@
-import React, { useState, useRef, useEffect, useContext, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useContext } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { createPortal } from 'react-dom';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { PanelRightClose, PanelRightOpen, Send, X, Mic, MicOff, Radio } from 'lucide-react';
+import { PanelRightClose, PanelRightOpen, Send, X } from 'lucide-react';
 import { auth } from '../../firebase/config';
 import { TripContext } from '../../context/TripContext';
 import { buildTripSystemPrompt } from '../../hooks/useAI';
@@ -11,7 +11,6 @@ import { generateId } from '../../utils/helpers';
 import { ACTIONS } from '../../state/tripReducer';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { hapticSelection } from '../../utils/haptics';
-import { useWalkieTalkie } from '../../hooks/useWalkieTalkie';
 
 let _systemPromptRef = buildTripSystemPrompt(null);
 
@@ -104,8 +103,6 @@ export default function AIAssistant() {
   const prevStatusRef = useRef('ready');
   const prevTripIdRef = useRef(null);
   const sendMessageRef = useRef(null);
-  const speakRef = useRef(null);
-  const walkieTalkieModeRef = useRef(false);
 
   const { state, activeTrip, dispatch, showToast } = useContext(TripContext);
 
@@ -117,22 +114,6 @@ export default function AIAssistant() {
     transport: chatTransport,
   });
   useEffect(() => { sendMessageRef.current = sendMessage; }, [sendMessage]);
-
-  const handleTranscriptReady = useCallback((text) => {
-    if (!text.trim() || status === 'submitted' || status === 'streaming') return;
-    sendMessage({ text });
-    setInput('');
-  }, [status, sendMessage]);
-
-  const {
-    isWalkieTalkieMode, isListening, isSpeaking, transcript, isSTTSupported,
-    toggleWalkieTalkieMode, startListening, stopListening, speak,
-  } = useWalkieTalkie({ onTranscriptReady: handleTranscriptReady });
-
-  // Keep refs up-to-date so the status effect (which only watches [status]) can
-  // always read the latest speak and isWalkieTalkieMode without stale closures.
-  speakRef.current = speak;
-  walkieTalkieModeRef.current = isWalkieTalkieMode;
 
   // Load saved conversation when active trip changes
   useEffect(() => {
@@ -160,20 +141,7 @@ export default function AIAssistant() {
         .slice(-50);
       dispatch({ type: ACTIONS.UPDATE_WANDA_CONVERSATION, payload: simplified });
     }
-    if (prev === 'streaming' && status === 'ready' && walkieTalkieModeRef.current) {
-      const lastMsg = [...messages].reverse().find(m => m.role === 'assistant');
-      if (lastMsg) {
-        const textParts = lastMsg.parts?.filter(p => p.type === 'text') ?? [];
-        const text = textParts.map(p => p.text).join('').trim() || lastMsg.content || '';
-        if (text) speakRef.current?.(text);
-      }
-    }
   }, [status]);
-
-  // Mirror live STT transcript into input field
-  useEffect(() => {
-    if (isWalkieTalkieMode && transcript) setInput(transcript);
-  }, [transcript, isWalkieTalkieMode]);
 
   const isLoading = status === 'submitted' || status === 'streaming';
 
@@ -449,19 +417,6 @@ export default function AIAssistant() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {isSTTSupported && (
-            <button
-              onClick={() => { hapticSelection(); toggleWalkieTalkieMode(); }}
-              className={`w-7 h-7 rounded-[var(--radius-sm)] border transition-colors flex items-center justify-center ${
-                isWalkieTalkieMode
-                  ? 'border-accent bg-accent text-text-inverse'
-                  : 'border-border text-text-secondary hover:text-text-primary hover:bg-bg-hover'
-              }`}
-              title={isWalkieTalkieMode ? 'Exit voice mode' : 'Voice mode (Walkie Talkie)'}
-            >
-              <Radio size={14} />
-            </button>
-          )}
           {!isMobile && (
             <button
               onClick={() => {
@@ -643,16 +598,6 @@ export default function AIAssistant() {
         </div>
       )}
 
-      {/* Walkie Talkie status strip */}
-      {isWalkieTalkieMode && (
-        <div className="px-3 py-1 flex items-center gap-2 text-[11px] text-text-muted bg-accent/5 border-t border-accent/20">
-          <Radio size={10} className="text-accent flex-shrink-0" />
-          {isListening && <span className="text-accent font-medium animate-pulse">Listening...</span>}
-          {isSpeaking && <span>Wanda is speaking...</span>}
-          {!isListening && !isSpeaking && <span>Tap mic to speak</span>}
-        </div>
-      )}
-
       {/* Input */}
       <form
         onSubmit={handleSubmit}
@@ -662,33 +607,16 @@ export default function AIAssistant() {
           ref={inputRef}
           value={input}
           onChange={e => setInput(e.target.value)}
-          placeholder={isListening ? 'Listening...' : isSpeaking ? 'Wanda is speaking...' : 'Ask Wanda...'}
-          readOnly={isListening}
-          className={`flex-1 bg-transparent border-none outline-none text-sm placeholder:text-text-muted px-1 ${isListening ? 'text-accent' : 'text-text-primary'}`}
+          placeholder="Ask Wanda..."
+          className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-text-muted px-1 text-text-primary"
         />
-        {isWalkieTalkieMode && (
-          <button
-            type="button"
-            onClick={() => { hapticSelection(); isListening ? stopListening() : startListening(); }}
-            disabled={isSpeaking || isLoading}
-            className={`h-9 w-9 rounded-[var(--radius-sm)] border flex items-center justify-center transition-colors ${
-              isListening
-                ? 'border-accent bg-accent text-text-inverse animate-pulse'
-                : 'border-border bg-bg-secondary text-text-secondary hover:bg-bg-hover disabled:opacity-50'
-            }`}
-          >
-            {isListening ? <MicOff size={14} /> : <Mic size={14} />}
-          </button>
-        )}
-        {!isListening && (
-          <button
-            type="submit"
-            disabled={isLoading || !input.trim()}
-            className="h-9 w-9 rounded-[var(--radius-sm)] border border-border bg-bg-secondary text-text-primary flex items-center justify-center hover:bg-bg-hover disabled:opacity-50 transition-colors"
-          >
-            <Send size={14} />
-          </button>
-        )}
+        <button
+          type="submit"
+          disabled={isLoading || !input.trim()}
+          className="h-9 w-9 rounded-[var(--radius-sm)] border border-border bg-bg-secondary text-text-primary flex items-center justify-center hover:bg-bg-hover disabled:opacity-50 transition-colors"
+        >
+          <Send size={14} />
+        </button>
       </form>
     </div>
   ) : null
