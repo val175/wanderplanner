@@ -206,7 +206,7 @@ export default function WrapUpTab() {
                     size="sm"
                     onClick={handleWandaRecap}
                 >
-                    🪄 <span className="wanda-serif text-lg">Wanda</span> Recap
+                    🪄 <span className="wanda-serif">Wanda</span> Recap
                 </Button>
             </div>
 
