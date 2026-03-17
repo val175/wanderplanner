@@ -30,6 +30,11 @@ export default function Modal({ isOpen, onClose, children, className = '', maxWi
             <div className="w-12 h-1.5 bg-border rounded-full opacity-60" />
           </div>
 
+          {/* Accessibility: always render a DialogTitle; visually hidden when no title prop */}
+          {!title && (
+            <Dialog.Title className="sr-only">Dialog</Dialog.Title>
+          )}
+
           {/* Optional title header */}
           {title && (
             <div className="flex items-center justify-between px-6 pt-5 pb-1">

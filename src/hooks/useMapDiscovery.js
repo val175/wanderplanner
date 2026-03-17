@@ -12,9 +12,11 @@ export function useMapDiscovery(trip) {
     const [itineraryCoords, setItineraryCoords] = useState([]); // Array of { activityId, coords: [lng, lat], activity }
     const [isLoading, setIsLoading] = useState(false);
 
-    const destinations = trip?.destinations || [];
-    const ideas = trip?.ideas || [];
-    const itinerary = trip?.itinerary || [];
+    // Memoize derived arrays so `|| []` doesn't create a new reference on every render,
+    // which would cause the useEffects below to fire in an infinite loop.
+    const destinations = useMemo(() => trip?.destinations || [], [trip]);
+    const ideas = useMemo(() => trip?.ideas || [], [trip]);
+    const itinerary = useMemo(() => trip?.itinerary || [], [trip]);
 
     // 1. Geocode all destinations (Macro markers)
     useEffect(() => {

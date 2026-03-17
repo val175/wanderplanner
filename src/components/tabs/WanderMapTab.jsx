@@ -117,13 +117,14 @@ export default function WanderMapTab() {
         },
     }), [destCoords]);
 
-    // Static paint — animation handled via direct Mapbox API in the useEffect above
-    const routePaint = {
+    // Memoize to avoid passing a new object reference to <Layer> on every render,
+    // which would cause react-map-gl to re-apply paint properties and emit camera events.
+    const routePaint = useMemo(() => ({
         'line-color': '#D97757',
         'line-width': 2.5,
         'line-dasharray': [2, 2.5],
         'line-opacity': isMicroView ? 0.45 : 0.85,
-    };
+    }), [isMicroView]);
 
     const toggleLayer = (key) => {
         hapticSelection();
