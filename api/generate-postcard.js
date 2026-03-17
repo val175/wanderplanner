@@ -32,9 +32,11 @@ export default async function handler(req, res) {
         })
 
         if (!response.ok) {
-            const err = await response.text()
-            console.error('[generate-postcard] Imagen API error:', err)
-            return res.status(response.status).json({ error: 'Image generation failed' })
+            const errText = await response.text()
+            console.error('[generate-postcard] Imagen API error:', errText)
+            let errDetail = errText
+            try { errDetail = JSON.parse(errText)?.error?.message || errText } catch {}
+            return res.status(response.status).json({ error: 'Image generation failed', detail: errDetail })
         }
 
         const data = await response.json()

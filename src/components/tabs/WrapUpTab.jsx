@@ -260,7 +260,10 @@ export default function WrapUpTab() {
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ tripName: trip.name, city, year })
             })
-            if (!res.ok) throw new Error('Generation failed')
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({}))
+                throw new Error(body.detail || body.error || 'Generation failed')
+            }
             const { dataUrl } = await res.json()
             localStorage.setItem(`postcard_${trip.id}`, dataUrl)
             setPostcardDataUrl(dataUrl)
