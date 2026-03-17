@@ -144,26 +144,16 @@ export default function DatePicker({
         >
           {/* Month / year nav */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <button type="button" onClick={prevMonth} style={{
-              width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: 'var(--radius-sm)', border: 'none', background: 'transparent',
-              color: 'var(--color-text-muted)', fontSize: 18, cursor: 'pointer', transition: 'background 100ms',
-            }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--color-bg-hover)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            <button type="button" onClick={prevMonth}
+              className="w-7 h-7 flex items-center justify-center rounded-[var(--radius-sm)] bg-transparent hover:bg-bg-hover text-text-muted text-lg cursor-pointer transition-colors border-none"
             >‹</button>
 
-            <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)' }}>
+            <span className="text-sm font-medium text-text-primary">
               {MONTHS[viewMonth]} {viewYear}
             </span>
 
-            <button type="button" onClick={nextMonth} style={{
-              width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: 'var(--radius-sm)', border: 'none', background: 'transparent',
-              color: 'var(--color-text-muted)', fontSize: 18, cursor: 'pointer', transition: 'background 100ms',
-            }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--color-bg-hover)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            <button type="button" onClick={nextMonth}
+              className="w-7 h-7 flex items-center justify-center rounded-[var(--radius-sm)] bg-transparent hover:bg-bg-hover text-text-muted text-lg cursor-pointer transition-colors border-none"
             >›</button>
           </div>
 

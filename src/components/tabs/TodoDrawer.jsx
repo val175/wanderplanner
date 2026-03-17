@@ -274,7 +274,7 @@ export default function TodoDrawer({ todo, travelers, onUpdate, onAddComment, on
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-thin">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin">
           {/* Metadata Row */}
           <div className="grid grid-cols-[160px_200px_auto] gap-8 items-start">
             <div className="space-y-2">
@@ -324,7 +324,7 @@ export default function TodoDrawer({ todo, travelers, onUpdate, onAddComment, on
                   onChange={e => setNotesDraft(e.target.value)}
                   rows={4}
                   placeholder="Add context, links, or instructions here..."
-                  className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors resize-none leading-relaxed font-heading"
+                  className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-2 py-1.5 focus:outline-none focus:border-accent transition-colors resize-none leading-relaxed font-heading"
                   autoFocus
                 />
                 <div className="flex items-center gap-2">
@@ -350,7 +350,7 @@ export default function TodoDrawer({ todo, travelers, onUpdate, onAddComment, on
                   hapticSelection()
                   setIsEditingNotes(true)
                 }}
-                className={`text-sm leading-relaxed border border-border/30 rounded-[var(--radius-md)] px-3 py-2 min-h-[64px] ${isReadOnly ? 'cursor-default' : 'cursor-text'} ${notesDraft ? 'text-text-secondary' : 'text-text-muted italic'}`}
+                className={`text-sm leading-relaxed border border-border/30 rounded-[var(--radius-md)] px-2 py-1.5 min-h-[64px] ${isReadOnly ? 'cursor-default' : 'cursor-text'} ${notesDraft ? 'text-text-secondary' : 'text-text-muted italic'}`}
               >
                 {notesDraft || 'Click to add notes...'}
               </div>
@@ -408,7 +408,7 @@ export default function TodoDrawer({ todo, travelers, onUpdate, onAddComment, on
                               value={editDraft}
                               onChange={e => setEditDraft(e.target.value)}
                               rows={3}
-                              className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors resize-none leading-relaxed font-heading"
+                              className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-2 py-1.5 focus:outline-none focus:border-accent transition-colors resize-none leading-relaxed font-heading"
                             />
                             <div className="flex items-center gap-2">
                               <Button size="sm" onClick={() => handleSaveEdit(comment.id)}>

@@ -1128,7 +1128,7 @@ function CalendarView({ trip, isMobile, activeDayIndex, onOpenDrawer, onDayChang
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
             </button>
             <div className="text-center leading-tight py-1">
-              <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest font-heading mb-0.5">
+              <p className="text-xs font-semibold text-text-muted uppercase tracking-wider font-heading mb-0.5">
                 {day?.emoji} Day {day?.dayNumber}
               </p>
               <p className="text-sm font-bold text-text-primary font-heading truncate max-w-[200px]">

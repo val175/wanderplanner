@@ -21,6 +21,7 @@ import TabHeader from '../common/TabHeader'
 import Modal from '../shared/Modal'
 import Select, { SelectItem } from '../shared/Select'
 import TodoDrawer from './TodoDrawer'
+import EmptyState from '../shared/EmptyState'
 
 function AddTodoModal({ isOpen, onClose, onAdd, travelers, statuses }) {
   const [todoData, setTodoData] = useState({
@@ -188,7 +189,7 @@ function TodoStatusBadge({ value }) {
   const current = TODO_STATUSES.find(s => s.id === value) || TODO_STATUSES[0]
   const label = value === 'done' ? `${current.label} ✅` : current.label
   return (
-    <span className={`inline-flex items-center text-xs font-semibold rounded-[var(--radius-sm)] border px-2 py-1 ${current.colors}`}>
+    <span className={`inline-flex items-center text-xs font-semibold rounded-[var(--radius-pill)] border px-2.5 py-0.5 ${current.colors}`}>
       {label}
     </span>
   )
@@ -402,7 +403,7 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
         {(todo.dueDate || todo.assigneeId) && (
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
             {todo.dueDate ? (
-              <span className={`text-[11px] ${pastDue ? 'text-danger font-medium' : 'text-text-muted'}`}>
+              <span className={`text-xs ${pastDue ? 'text-danger font-medium' : 'text-text-muted'}`}>
                 {formatDate(todo.dueDate)}
               </span>
             ) : <span />}
@@ -782,7 +783,7 @@ export default function TodoTab() {
                 style={{ width: `${safeTodos.length > 0 ? (safeTodos.filter(t => getTodoStatus(t) === 'done').length / safeTodos.length) * 100 : 0}%` }}
               />
             </div>
-            <span className="text-[11px] font-semibold font-heading text-text-muted tabular-nums">
+            <span className="text-xs font-semibold font-heading text-text-muted tabular-nums">
               {safeTodos.filter(t => getTodoStatus(t) === 'done').length}/{safeTodos.length} completed
             </span>
           </div>
@@ -792,7 +793,7 @@ export default function TodoTab() {
             <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible pb-2 md:pb-0 items-center gap-2 shrink-0">
               <button
                 onClick={() => setHideCompleted(prev => !prev)}
-                className={`text-[11px] font-semibold px-2 py-1 rounded-[var(--radius-sm)] border transition-colors flex items-center gap-1.5 shrink-0 ${hideCompleted ? 'bg-bg-card border-border text-text-primary' : 'bg-transparent border-transparent text-text-muted hover:text-text-secondary hover:bg-bg-secondary'}`}
+                className={`text-xs font-semibold px-2 py-1 rounded-[var(--radius-sm)] border transition-colors flex items-center gap-1.5 shrink-0 ${hideCompleted ? 'bg-bg-card border-border text-text-primary' : 'bg-transparent border-transparent text-text-muted hover:text-text-secondary hover:bg-bg-secondary'}`}
               >
                 <div className={`w-2.5 h-2.5 rounded-sm border flex items-center justify-center shrink-0 transition-colors ${hideCompleted ? 'bg-accent border-accent text-white' : 'border-text-muted'}`}>
                   {hideCompleted && <svg viewBox="0 0 14 14" fill="none" className="w-2 h-2"><path d="M3 7.5L5.5 10L11 4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
@@ -921,18 +922,22 @@ export default function TodoTab() {
           <div className="overflow-x-auto">
             <div className="min-w-[900px]">
               <div className="flex items-center gap-2 px-0 py-2 border-b border-border/40 bg-bg-secondary/10">
-                <div className="flex-1 px-2 text-xs font-bold uppercase tracking-wider text-text-muted">TASK</div>
-                <div className="w-[140px] shrink-0 text-xs font-bold uppercase tracking-wider text-text-muted text-left">STATUS</div>
-                <div className="w-[140px] text-left px-2 text-xs font-bold uppercase tracking-wider text-text-muted">DUE DATE</div>
-                <div className="w-[100px] shrink-0 text-center text-xs font-bold uppercase tracking-wider text-text-muted">ASSIGNED</div>
+                <div className="flex-1 px-2 text-xs font-semibold uppercase tracking-wider text-text-muted">TASK</div>
+                <div className="w-[140px] shrink-0 text-xs font-semibold uppercase tracking-wider text-text-muted text-left">STATUS</div>
+                <div className="w-[140px] text-left px-2 text-xs font-semibold uppercase tracking-wider text-text-muted">DUE DATE</div>
+                <div className="w-[100px] shrink-0 text-center text-xs font-semibold uppercase tracking-wider text-text-muted">ASSIGNED</div>
                 {!isReadOnly && <div className="w-[60px]"></div>}
               </div>
 
               <div className="divide-y divide-border/30 h-full flex flex-col">
                 {filteredTodos.length === 0 ? (
-                  <div className="py-10 text-center text-sm font-medium text-text-muted bg-bg-secondary/20 italic">
-                    No tasks yet.
-                  </div>
+                  <EmptyState
+                    emoji="✅"
+                    title="No tasks yet."
+                    subtitle="Add your first to-do above."
+                    compact
+                    className="border-none bg-transparent"
+                  />
                 ) : (
                   filteredTodos.map(todo => (
                     <TodoItem

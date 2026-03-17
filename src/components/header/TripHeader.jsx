@@ -258,7 +258,7 @@ function CityBreadcrumbs({ destinations }) {
       {visible.map((dest, i) => (
         <span key={i} className="flex items-center">
           {i > 0 && <span className="text-text-muted/40 mx-1">&middot;</span>}
-          <span className="inline-flex items-center gap-1 text-[13px] text-text-secondary whitespace-nowrap font-medium">
+          <span className="inline-flex items-center gap-1 text-sm text-text-secondary whitespace-nowrap font-medium">
             <span>{dest.flag}</span>
             <span>{dest.city}</span>
           </span>
@@ -267,7 +267,7 @@ function CityBreadcrumbs({ destinations }) {
       {overflow > 0 && (
         <span className="flex items-center">
           <span className="text-text-muted/40 mx-1">&middot;</span>
-          <span className="text-[11px] text-text-muted font-medium whitespace-nowrap">+{overflow} more</span>
+          <span className="text-xs text-text-muted font-medium whitespace-nowrap">+{overflow} more</span>
         </span>
       )}
     </div>

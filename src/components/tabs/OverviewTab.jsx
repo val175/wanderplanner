@@ -11,17 +11,7 @@ import { buildTripSystemPrompt } from '../../hooks/useAI'
 
 import Card from '../shared/Card'
 import Button from '../shared/Button'
-
-/* Consistent label style used across all cells */
-
-/* Consistent label style used across all cells */
-function Label({ children, className = '' }) {
-  return (
-    <span className={`text-xs font-semibold text-text-muted uppercase tracking-wider ${className}`}>
-      {children}
-    </span>
-  )
-}
+import Label from '../shared/Label'
 
 /* ─────────────────────────────────────────────────────────────
    WMO weather code → emoji + label
@@ -118,7 +108,7 @@ function TodayAtAGlance({ trip }) {
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <Label className="text-accent">Today at a Glance</Label>
-          <span className="text-[10px] font-bold px-2.5 py-1 rounded-[var(--radius-pill)] font-heading flex items-center gap-1.5"
+          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-[var(--radius-pill)] flex items-center gap-1.5"
             style={{ background: 'rgba(76,175,118,0.10)', color: '#4CAF76', border: '1px solid rgba(76,175,118,0.20)' }}>
             🪄 Wanda Summary
           </span>
@@ -385,7 +375,7 @@ function AttentionCell({ trip, onTabSwitch }) {
           <Label className="text-danger">NEEDS ATTENTION</Label>
         </div>
         {items.length > 0 && (
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-[var(--radius-pill)] bg-danger/10 text-danger border border-danger/10 font-heading">
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-[var(--radius-pill)] bg-danger/10 text-danger border border-danger/10">
             {items.length} items
           </span>
         )}
@@ -504,15 +494,15 @@ function TripHealthCard({ trip, onTabSwitch }) {
     if (!hasBudget) return null
     if (totalSpent >= budgetMax) return {
       color: 'bg-danger/10 text-danger border-danger/20',
-      label: `⚠️ ₱${Math.round(totalSpent).toLocaleString()} spent`
+      label: `⚠️ ${formatCurrency(totalSpent, trip.currency)} spent`
     }
     if (totalSpent >= budgetMax * 0.5) return {
       color: 'bg-warning/10 text-warning border-warning/20',
-      label: `₱${Math.round(totalSpent).toLocaleString()} spent`
+      label: `${formatCurrency(totalSpent, trip.currency)} spent`
     }
     return {
       color: 'bg-success/10 text-success border-success/20',
-      label: `₱${Math.round(totalSpent).toLocaleString()} spent`
+      label: `${formatCurrency(totalSpent, trip.currency)} spent`
     }
   })()
 
@@ -525,7 +515,7 @@ function TripHealthCard({ trip, onTabSwitch }) {
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
               <Label>Right Now</Label>
-              {currentDest && <span className="text-[10px] text-text-muted font-heading">{currentDest.city}</span>}
+              {currentDest && <span className="text-xs text-text-muted font-heading">{currentDest.city}</span>}
             </div>
             {destinations.length > 1 && (
               <div className="flex items-center gap-1">
@@ -564,7 +554,7 @@ function TripHealthCard({ trip, onTabSwitch }) {
                 </div>
                 <div className="text-right">
                   <div className="text-xs text-text-muted font-heading uppercase tracking-wider">{label}</div>
-                  <div className="text-[10px] text-text-muted mt-1 opacity-50">{weather.flag} {weather.city}</div>
+                  <div className="text-xs text-text-muted mt-1 opacity-50">{weather.flag} {weather.city}</div>
                 </div>
               </div>
             )
@@ -583,7 +573,7 @@ function TripHealthCard({ trip, onTabSwitch }) {
         >
           <div className="flex items-center justify-between">
             <Label>TRIP READINESS</Label>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-[var(--radius-pill)] font-heading tabular-nums border ${readinessPill.color}`}>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-[var(--radius-pill)] tabular-nums border ${readinessPill.color}`}>
               {readinessPill.label}
             </span>
           </div>
@@ -603,7 +593,7 @@ function TripHealthCard({ trip, onTabSwitch }) {
           <div className="flex items-center justify-between">
             <Label>Budget</Label>
             {hasBudget && budgetPill && (
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-[var(--radius-pill)] font-heading tabular-nums border ${budgetPill.color}`}>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-[var(--radius-pill)] tabular-nums border ${budgetPill.color}`}>
                 {budgetPill.label}
               </span>
             )}
@@ -616,9 +606,9 @@ function TripHealthCard({ trip, onTabSwitch }) {
             <div className="flex flex-col mt-4 gap-3">
               <ProgressBar value={totalSpent} max={budgetMax}
                 colorClass={overBudget ? 'bg-danger' : 'bg-accent'} height="h-1.5" />
-              <div className="flex justify-between text-[10px] text-text-muted font-bold uppercase tracking-tighter">
-                <span>₱0</span>
-                <span>₱{Math.round(budgetMax).toLocaleString()}</span>
+              <div className="flex justify-between text-xs text-text-muted font-semibold uppercase tracking-tighter">
+                <span>{formatCurrency(0, trip.currency)}</span>
+                <span>{formatCurrency(budgetMax, trip.currency)}</span>
               </div>
             </div>
           )}

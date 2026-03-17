@@ -5,7 +5,7 @@
  */
 import Button from './Button'
 
-export default function EmptyState({ emoji, title, subtitle, wandaPrompt, action, className }) {
+export default function EmptyState({ emoji, title, subtitle, wandaPrompt, action, className, compact }) {
   const handleWanda = () => {
     if (wandaPrompt) {
       window.dispatchEvent(new CustomEvent('wanda-prefill', { detail: { text: wandaPrompt } }))
@@ -14,7 +14,7 @@ export default function EmptyState({ emoji, title, subtitle, wandaPrompt, action
 
   return (
     <div className={`border-2 border-dashed border-border rounded-[var(--radius-xl)] bg-bg-secondary/30 ${className || ''}`}>
-      <div className="py-16 flex flex-col items-center gap-3 text-center px-4">
+      <div className={`${compact ? 'py-6' : 'py-16'} flex flex-col items-center gap-3 text-center px-4`}>
         <span className="text-4xl">{emoji}</span>
         <div>
           <p className="font-semibold text-text-primary font-heading text-balance">{title}</p>

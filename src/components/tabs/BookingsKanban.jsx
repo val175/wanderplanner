@@ -56,7 +56,7 @@ function KanbanColumn({ id, title, bookings, currency, onRowClick, isMobile, isE
                 >
                     <div className="flex items-center gap-2">
                         <h3 className="font-semibold text-[15px] text-text-primary">{title}</h3>
-                        <span className="text-xs font-medium text-text-muted bg-bg-card px-2 py-0.5 rounded-full border border-border/50">
+                        <span className="text-xs font-medium text-text-muted bg-bg-card px-2 py-0.5 rounded-[var(--radius-pill)] border border-border/50">
                             {bookings.length}
                         </span>
                     </div>
@@ -99,7 +99,7 @@ function KanbanColumn({ id, title, bookings, currency, onRowClick, isMobile, isE
         >
             <div className="px-3 py-2 mb-2 flex items-center justify-between border-b border-border/30">
                 <h3 className="font-semibold text-sm text-text-primary">{title}</h3>
-                <span className="text-xs font-medium text-text-muted bg-bg-card px-2 py-0.5 rounded-full border border-border/50">
+                <span className="text-xs font-medium text-text-muted bg-bg-card px-2 py-0.5 rounded-[var(--radius-pill)] border border-border/50">
                     {bookings.length}
                 </span>
             </div>

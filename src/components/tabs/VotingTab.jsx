@@ -287,7 +287,7 @@ function IdeaTableView({ ideas, resolveProfile, onDelete, onUpdate, isSelectable
             : <svg className="w-3 h-3 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12l7 7 7-7" /></svg>
     }
 
-    const thClass = "px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted text-left select-none"
+    const thClass = "px-2 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted text-left select-none"
     const sortable = "cursor-pointer hover:text-text-primary transition-colors"
 
     return (

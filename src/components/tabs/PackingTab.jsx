@@ -638,7 +638,7 @@ export default function PackingTab() {
                 style={{ width: `${total > 0 ? (packed / total) * 100 : 0}%` }}
               />
             </div>
-            <span className="text-[11px] font-semibold font-heading text-text-muted tabular-nums">
+            <span className="text-xs font-semibold font-heading text-text-muted tabular-nums">
               {packed}/{total} packed
             </span>
           </div>
@@ -789,7 +789,7 @@ export default function PackingTab() {
                 {table.getHeaderGroups()[0].headers.map(header => (
                   <th
                     key={header.id}
-                    className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted overflow-hidden"
+                    className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted overflow-hidden"
                     style={{ width: header.column.columnDef.size === 999 ? 'auto' : header.column.columnDef.size }}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}

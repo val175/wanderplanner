@@ -10,6 +10,7 @@ import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { formatCurrency, formatDate } from '../../utils/helpers'
 import Button from '../shared/Button'
+import EmptyState from '../shared/EmptyState'
 import DatePicker from '../shared/DatePicker'
 import AvatarCircle from '../shared/AvatarCircle'
 import { calculateBalances, simplifyDebts, buildSplits } from '../../utils/splitwise'
@@ -250,7 +251,7 @@ function BudgetHealthCard({ budget, totals, currency, isReadOnly }) {
           <div className="group pt-2 animate-in fade-in slide-in-from-top-1 border-t border-border/20 mt-2">
             <div className="flex flex-col gap-2.5 mb-2">
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Pick Category</label>
+                <label className="text-xs font-semibold uppercase tracking-wider text-text-muted">Pick Category</label>
                 <Select value={newCategoryId || 'none'} onValueChange={v => setNewCategoryId(v === 'none' ? '' : v)}>
                   <SelectItem value="none">Select a category...</SelectItem>
                   {GLOBAL_CATEGORIES.map(c => (
@@ -261,7 +262,7 @@ function BudgetHealthCard({ budget, totals, currency, isReadOnly }) {
               
               <div className="flex items-end gap-2">
                 <div className="flex-1 flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Limit ({currency})</label>
+                  <label className="text-xs font-semibold uppercase tracking-wider text-text-muted">Limit ({currency})</label>
                   <input
                     value={newMax}
                     onChange={e => setNewMax(e.target.value)}
@@ -295,7 +296,12 @@ function BudgetHealthCard({ budget, totals, currency, isReadOnly }) {
       </div>
 
       {budget.length === 0 && !isAdding && (
-        <p className="text-[11px] text-text-muted text-center py-4 italic">No budget limits defined</p>
+        <EmptyState
+          emoji="💰"
+          title="No budget limits defined"
+          compact
+          className="border-none bg-transparent"
+        />
       )}
     </Card>
   )
@@ -541,20 +547,20 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
         <table className="w-full text-sm">
           <thead>
              <tr className="border-b border-border/50">
-               <th className={`py-2 px-3 w-[160px] text-left text-xs font-bold uppercase tracking-wider text-text-muted select-none cursor-pointer hover:text-text-primary transition-colors`} onClick={() => toggleSort('date')}>
+               <th className={`py-2 px-3 w-[160px] text-left text-xs font-semibold uppercase tracking-wider text-text-muted select-none cursor-pointer hover:text-text-primary transition-colors`} onClick={() => toggleSort('date')}>
                  <div className="flex items-center gap-1 whitespace-nowrap">Date <SortIcon col="date" /></div>
                </th>
-               <th className={`py-2 px-2 text-left text-xs font-bold uppercase tracking-wider text-text-muted select-none`}>
+               <th className={`py-2 px-2 text-left text-xs font-semibold uppercase tracking-wider text-text-muted select-none`}>
                  <div className="flex items-center gap-1">Expense</div>
                </th>
-               <th className={`py-2 px-2 text-right w-[120px] text-xs font-bold uppercase tracking-wider text-text-muted select-none cursor-pointer hover:text-text-primary transition-colors`} onClick={() => toggleSort('amount')}>
+               <th className={`py-2 px-2 text-right w-[120px] text-xs font-semibold uppercase tracking-wider text-text-muted select-none cursor-pointer hover:text-text-primary transition-colors`} onClick={() => toggleSort('amount')}>
                  <div className="flex items-center justify-end gap-1">Amount <SortIcon col="amount" /></div>
                </th>
-               <th className={`py-2 px-2 w-[160px] text-left text-xs font-bold uppercase tracking-wider text-text-muted select-none cursor-pointer hover:text-text-primary transition-colors`} onClick={() => toggleSort('category')}>
+               <th className={`py-2 px-2 w-[160px] text-left text-xs font-semibold uppercase tracking-wider text-text-muted select-none cursor-pointer hover:text-text-primary transition-colors`} onClick={() => toggleSort('category')}>
                  <div className="flex items-center gap-1">Category <SortIcon col="category" /></div>
                </th>
                {showPaidBy && (
-                 <th className={`py-2 px-2 w-[140px] text-left text-xs font-bold uppercase tracking-wider text-text-muted select-none cursor-pointer hover:text-text-primary transition-colors`} onClick={() => toggleSort('payer')}>
+                 <th className={`py-2 px-2 w-[140px] text-left text-xs font-semibold uppercase tracking-wider text-text-muted select-none cursor-pointer hover:text-text-primary transition-colors`} onClick={() => toggleSort('payer')}>
                    <div className="flex items-center gap-1">Payer <SortIcon col="payer" /></div>
                  </th>
                )}
@@ -761,52 +767,51 @@ export default function BudgetTab() {
         categories={budget}
       />
 
-      {/* ── Layer 2: The Toolbar (Unified Filters & Actions) ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between pb-3 mb-4 gap-2">
-        {/* Left: Search only */}
-        <div className="w-full md:max-w-[240px]">
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search expenses..."
-            className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] px-3 py-[7px] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors"
-          />
-        </div>
-
-        {/* Right: Category Filter + Actions */}
-        <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
-          <Select value={categoryFilter} onValueChange={setCategoryFilter} className="!w-auto min-w-[140px] h-[30px] text-xs shrink-0" size="sm">
-            <SelectItem value="all">All Categories</SelectItem>
-            {budget.map(cat => (
-              <SelectItem key={cat.id} value={cat.name}>
-                {cat.emoji} {cat.name}
-              </SelectItem>
-            ))}
-          </Select>
-          {!isReadOnly && (
-            <>
-              <Button
-                onClick={() => setShowScanModal(true)}
-                variant="secondary"
-                size="sm"
-                className="shrink-0"
-              >
-                Extract Receipt
-              </Button>
-
-              <div className="hidden md:block shrink-0">
+      <TabHeader
+        leftSlot={
+          <div className="w-full md:max-w-[240px]">
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search expenses..."
+              className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] px-3 py-[7px] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors"
+            />
+          </div>
+        }
+        rightSlot={
+          <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
+            <Select value={categoryFilter} onValueChange={setCategoryFilter} className="!w-auto min-w-[140px] h-[30px] text-xs shrink-0" size="sm">
+              <SelectItem value="all">All Categories</SelectItem>
+              {budget.map(cat => (
+                <SelectItem key={cat.id} value={cat.name}>
+                  {cat.emoji} {cat.name}
+                </SelectItem>
+              ))}
+            </Select>
+            {!isReadOnly && (
+              <>
                 <Button
-                  onClick={() => setIsAddModalOpen(true)}
+                  onClick={() => setShowScanModal(true)}
+                  variant="secondary"
                   size="sm"
                   className="shrink-0"
                 >
-                  ➕ Log Expense
+                  Extract Receipt
                 </Button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+                <div className="hidden md:block shrink-0">
+                  <Button
+                    onClick={() => setIsAddModalOpen(true)}
+                    size="sm"
+                    className="shrink-0"
+                  >
+                    ➕ Log Expense
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        }
+      />
 
       {/* FAB — mobile only */}
       {!isReadOnly && createPortal(

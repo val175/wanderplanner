@@ -13,6 +13,7 @@ import { hapticImpact } from '../../utils/haptics'
 
 import BookingsTable from './BookingsTable'
 import BookingsKanban from './BookingsKanban'
+import EmptyState from '../shared/EmptyState'
 import BookingDrawer from './BookingDrawer'
 import SnapToAddZone from '../shared/SnapToAddZone'
 
@@ -216,7 +217,7 @@ export default function BookingsTab() {
                 style={{ width: `${totalCount > 0 ? (confirmedCount / totalCount) * 100 : 0}%` }}
               />
             </div>
-            <span className="text-[11px] font-semibold font-heading text-text-muted tabular-nums">
+            <span className="text-xs font-semibold font-heading text-text-muted tabular-nums">
               {confirmedCount}/{totalCount} confirmed
             </span>
           </div>
@@ -319,12 +320,11 @@ export default function BookingsTab() {
       )}
 
       {filteredBookings.length === 0 && (
-        <Card className="text-center py-8">
-          <p className="text-3xl mb-2">🎫</p>
-          <p className="text-text-muted text-sm tracking-wide">
-            {filter !== 'all' ? `No ${filter} bookings yet.` : 'No bookings added yet. Enter one below or drop a board.'}
-          </p>
-        </Card>
+        <EmptyState
+          emoji="🎫"
+          title={filter !== 'all' ? `No ${filter} bookings yet.` : 'No bookings added yet.'}
+          subtitle={filter === 'all' ? 'Enter one below or drop a booking board.' : undefined}
+        />
       )}
     </div>
   )

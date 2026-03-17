@@ -109,7 +109,7 @@ export default function BookingsTable({
             cell: info => {
                 const s = MONDAY_STATUSES.find(s => s.value === migrateStatus(info.getValue())) || MONDAY_STATUSES[0]
                 return (
-                    <span className={`text-[10px] px-2 py-0.5 rounded-[var(--radius-pill)] uppercase tracking-wider font-semibold border ${s.colors}`}>
+                    <span className={`text-xs px-2.5 py-0.5 rounded-[var(--radius-pill)] uppercase tracking-wider font-semibold border ${s.colors}`}>
                         {s.label}
                     </span>
                 )
@@ -263,7 +263,7 @@ export default function BookingsTable({
 
                             <div className="grid grid-cols-2 gap-2 mt-1 pt-2 border-t border-border/30">
                                 <div>
-                                    <span className="text-xs font-bold uppercase tracking-wider text-text-muted block mb-0.5">Date</span>
+                                    <span className="text-xs font-semibold uppercase tracking-wider text-text-muted block mb-0.5">Date</span>
                                     <div onClick={e => e.stopPropagation()}>
                                         <DatePicker
                                             value={booking.bookByDate || booking.startDate || ''}
@@ -274,7 +274,7 @@ export default function BookingsTable({
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <span className="text-xs font-bold uppercase tracking-wider text-text-muted block mb-0.5">Cost</span>
+                                    <span className="text-xs font-semibold uppercase tracking-wider text-text-muted block mb-0.5">Cost</span>
                                     <div onClick={e => e.stopPropagation()}>
                                         <EditableText
                                             value={booking.amountPaid ? String(booking.amountPaid) : ''}
@@ -305,7 +305,7 @@ export default function BookingsTable({
                             {table.getHeaderGroups()[0].headers.map(header => (
                                 <th
                                     key={header.id}
-                                    className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted overflow-hidden"
+                                    className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted overflow-hidden"
                                     style={{ width: header.column.id === 'name' ? '100%' : header.column.getSize() }}
                                 >
                                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}

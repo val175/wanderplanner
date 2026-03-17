@@ -145,7 +145,7 @@ function CityRow({ city, isEditing, editData, onEditChange, onStartEdit, onSave,
           <input
             value={editData.weather}
             onChange={e => onEditChange({ weather: e.target.value })}
-            className="w-full text-[13px] bg-bg-input border border-border rounded-[var(--radius-sm)] px-2 py-1 text-text-primary focus:outline-none focus:border-accent"
+            className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-sm)] px-2 py-1 text-text-primary focus:outline-none focus:border-accent"
             placeholder="e.g. 14°C / 5°C"
           />
         </td>
@@ -161,7 +161,7 @@ function CityRow({ city, isEditing, editData, onEditChange, onStartEdit, onSave,
           <textarea
             value={editData.mustDo}
             onChange={e => onEditChange({ mustDo: e.target.value })}
-            className="w-full text-[13px] bg-bg-input border border-border rounded-[var(--radius-sm)] px-2 py-1 text-text-primary focus:outline-none focus:border-accent min-h-[80px] resize-none leading-relaxed"
+            className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-sm)] px-2 py-1 text-text-primary focus:outline-none focus:border-accent min-h-[80px] resize-none leading-relaxed"
             placeholder="Neon lights, ancient temples..."
           />
         </td>
@@ -208,7 +208,7 @@ function CityRow({ city, isEditing, editData, onEditChange, onStartEdit, onSave,
       </td>
       <td className="px-2 py-4 align-top" style={{ width: '22%' }}>
         <div className="flex flex-col pr-2">
-          <span className="text-[14px] font-semibold text-text-primary truncate block w-full">
+          <span className="text-sm font-semibold text-text-primary truncate block w-full">
             {city.city}
           </span>
           <span className="text-xs text-text-muted truncate block w-full mt-0.5">
@@ -217,7 +217,7 @@ function CityRow({ city, isEditing, editData, onEditChange, onStartEdit, onSave,
         </div>
       </td>
       <td className="px-2 py-4 align-top" style={{ width: '18%' }}>
-        <p className="text-[13px] text-text-secondary leading-snug">
+        <p className="text-sm text-text-secondary leading-snug">
           {city.weather || <span className="text-text-muted italic opacity-40">Weather info...</span>}
         </p>
       </td>
@@ -236,7 +236,7 @@ function CityRow({ city, isEditing, editData, onEditChange, onStartEdit, onSave,
         })()}
       </td>
       <td className="px-2 py-4 align-top" style={{ width: '28%' }}>
-        <p className={`text-[13px] text-text-secondary leading-relaxed w-full pr-2 whitespace-pre-wrap ${!city.mustDo ? 'italic opacity-40' : ''}`}>
+        <p className={`text-sm text-text-secondary leading-relaxed w-full pr-2 whitespace-pre-wrap ${!city.mustDo ? 'italic opacity-40' : ''}`}>
           {city.mustDo || 'Vibe & highlights...'}
         </p>
       </td>
@@ -253,7 +253,7 @@ function CityRow({ city, isEditing, editData, onEditChange, onStartEdit, onSave,
               }`}
               title={!needsInspiration ? "Guide already generated" : "Generate city guide with Wanda"}
             >
-              {loading ? <span className="text-[10px] font-bold animate-pulse">...</span> : <span className="text-base leading-none">🪄</span>}
+              {loading ? <span className="text-xs font-semibold animate-pulse">...</span> : <span className="text-base leading-none">🪄</span>}
             </button>
             <button
               onClick={() => onStartEdit(city)}
@@ -342,7 +342,7 @@ function CityMobileCard({ city }) {
             <button
               onClick={handleWandaFill}
               disabled={loading}
-              className="mt-2 flex items-center gap-1 px-2 py-1 rounded bg-accent/10 text-accent font-semibold hover:bg-accent/20 transition-colors text-[10px] uppercase tracking-widest disabled:opacity-50"
+              className="mt-2 flex items-center gap-1 px-2 py-1 rounded bg-accent/10 text-accent font-semibold hover:bg-accent/20 transition-colors text-xs uppercase tracking-wider disabled:opacity-50"
             >
               {loading ? '...' : '🪄 Auto-fill'}
             </button>
@@ -396,7 +396,7 @@ export default function CitiesTab() {
 
       <TabHeader
         leftSlot={
-          <span className="text-[11px] font-semibold font-heading text-text-muted tabular-nums">
+          <span className="text-xs font-semibold font-heading text-text-muted tabular-nums">
             {cities.length} {cities.length === 1 ? 'destination' : 'destinations'}
           </span>
         }
@@ -454,13 +454,13 @@ export default function CitiesTab() {
                 {!isReadOnly && (
                   <th className="px-1 py-2 w-6 shrink-0"></th>
                 )}
-                <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted" style={{ width: '48px' }}></th>
-                <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted" style={{ width: '22%' }}>City</th>
-                <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted" style={{ width: '18%' }}>Weather</th>
-                <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted" style={{ width: '18%' }}>Currency</th>
-                <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted" style={{ width: '28%' }}>Vibe & Must Do</th>
+                <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted" style={{ width: '48px' }}></th>
+                <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted" style={{ width: '22%' }}>City</th>
+                <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted" style={{ width: '18%' }}>Weather</th>
+                <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted" style={{ width: '18%' }}>Currency</th>
+                <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted" style={{ width: '28%' }}>Vibe & Must Do</th>
                 {!isReadOnly && (
-                  <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted text-center" style={{ width: '124px' }}>Actions</th>
+                  <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted text-center" style={{ width: '124px' }}>Actions</th>
                 )}
               </tr>
             </thead>
