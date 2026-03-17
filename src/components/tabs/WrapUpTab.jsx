@@ -3,6 +3,7 @@ import { useTripContext } from '../../context/TripContext'
 import { formatCurrency, haversineDistance, geocodeCity } from '../../utils/helpers'
 import { ACTIONS } from '../../state/tripReducer'
 import { useProfiles } from '../../context/ProfileContext'
+import Button from '../shared/Button'
 
 const VIBE_TAGS = [
     { label: 'Surf & Chill', emoji: '🏄' },
