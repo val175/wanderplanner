@@ -37,7 +37,7 @@ function StatusPill({ value, onChange, disabled }) {
             value={value}
             onValueChange={onChange}
             disabled={disabled}
-            className={`text-left min-h-[44px] sm:min-h-0 text-[14px] sm:text-xs font-semibold w-full ${current.colors}`}
+            className={`text-left min-h-[44px] sm:min-h-0 text-[14px] sm:text-xs font-semibold ${current.colors}`}
         >
             {MONDAY_STATUSES.map(opt => (
                 <SelectItem key={opt.value} value={opt.value}>
@@ -106,14 +106,15 @@ export default function BookingsTable({
             accessorKey: 'status',
             header: 'Status',
             size: 140,
-            cell: info => {
-                const s = MONDAY_STATUSES.find(s => s.value === migrateStatus(info.getValue())) || MONDAY_STATUSES[0]
-                return (
-                    <span className={`text-xs px-2.5 py-0.5 rounded-[var(--radius-pill)] uppercase tracking-wider font-semibold border ${s.colors}`}>
-                        {s.label}
-                    </span>
-                )
-            }
+            cell: info => (
+                <div onClick={e => e.stopPropagation()}>
+                    <StatusPill
+                        value={migrateStatus(info.getValue())}
+                        onChange={val => onUpdate(info.row.original.id, { status: val })}
+                        disabled={isReadOnly}
+                    />
+                </div>
+            )
         },
         {
             id: 'dates',
