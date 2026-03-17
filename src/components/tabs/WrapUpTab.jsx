@@ -169,9 +169,9 @@ export default function WrapUpTab() {
                         <button
                             key={label}
                             onClick={() => handleVibe(label)}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-[var(--radius-pill)] text-xs font-semibold transition-all ${
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[var(--radius-pill)] text-xs font-semibold transition-all ${
                                 active
-                                    ? 'bg-accent text-white border border-transparent'
+                                    ? 'bg-accent text-text-inverse border border-transparent'
                                     : 'bg-bg-secondary text-text-secondary border border-border hover:border-accent/40 hover:text-accent'
                             }`}
                         >
@@ -198,7 +198,6 @@ export default function WrapUpTab() {
                     variant="secondary"
                     size="sm"
                     onClick={handleUseAsTemplate}
-                    className="font-bold uppercase tracking-tight"
                 >
                     📋 Clone Itinerary
                 </Button>
@@ -206,9 +205,8 @@ export default function WrapUpTab() {
                     variant="primary"
                     size="sm"
                     onClick={handleWandaRecap}
-                    className="font-bold uppercase tracking-tight"
                 >
-                    🪄 Wanda Recap
+                    🪄 <span className="wanda-serif text-lg">Wanda</span> Recap
                 </Button>
             </div>
 
