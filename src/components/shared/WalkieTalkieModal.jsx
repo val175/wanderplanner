@@ -42,7 +42,8 @@ export default function WalkieTalkieModal() {
 
   // Keep system prompt in sync with active trip
   useEffect(() => {
-    _walkieSystemPromptRef = buildTripSystemPrompt(activeTrip)
+    const base = buildTripSystemPrompt(activeTrip)
+    _walkieSystemPromptRef = base + '\n\nVOICE MODE: You are responding via voice. Keep every reply to 2-3 short sentences maximum. Be direct and conversational — no lists, no headers, no markdown formatting.'
   }, [activeTrip])
 
   const { messages, sendMessage, status, setMessages } = useChat({

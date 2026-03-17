@@ -228,12 +228,17 @@ export function useWalkieTalkie({ onTranscriptReady }) {
       nextTTSAudioRef.current = null
     }
 
-    // Pre-activate a fresh Audio element for the upcoming TTS response
+    // Start recognition FIRST — before any audio output — so iOS audio session
+    // is in record mode when the mic opens. Playing the silent MP3 afterward
+    // avoids a conflict where audio playback interrupts mic initialization.
+    startListening()
+
+    // Pre-activate a fresh Audio element for the upcoming TTS response.
+    // Happens after startListening() so the silent MP3 doesn't compete with
+    // mic startup for the iOS audio session.
     const ttsAudio = new Audio()
     activateAudio(ttsAudio)
     nextTTSAudioRef.current = ttsAudio
-
-    startListening()
   }, [startListening])
 
   useEffect(() => {
