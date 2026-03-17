@@ -58,7 +58,7 @@ export default function WalkieTalkieModal() {
   }, [status, sendMessage])
 
   const {
-    isWalkieTalkieMode, isListening, isSpeaking, transcript, isSTTSupported,
+    isWalkieTalkieMode, isListening, isSpeaking, isMicPreparing, transcript, isSTTSupported,
     toggleWalkieTalkieMode, startListening, stopListening, speak,
   } = useWalkieTalkie({ onTranscriptReady: handleTranscriptReady })
 
@@ -184,7 +184,12 @@ export default function WalkieTalkieModal() {
 
       {/* Status label */}
       <div className="mb-4 h-5 flex items-center justify-center">
-        {isListening && (
+        {isListening && isMicPreparing && (
+          <span className="text-[var(--color-text-muted)] text-xs font-medium animate-pulse tracking-wide uppercase">
+            Getting ready...
+          </span>
+        )}
+        {isListening && !isMicPreparing && (
           <span className="text-[var(--color-accent)] text-xs font-medium animate-pulse tracking-wide uppercase">
             Listening
           </span>

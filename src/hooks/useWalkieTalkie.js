@@ -28,28 +28,41 @@ function activateAudio(audio) {
   if (p) p.then(() => { audio.pause(); audio.src = ''; audio.volume = 1 }).catch(err => { console.warn('[WT] activateAudio play rejected:', err.name, err.message); audio.volume = 1 })
 }
 
+// Max number of auto-retries after an iOS session-conflict abort.
+// Each retry waits RETRY_DELAY_MS, covering the ~15-20s iOS deactivation window.
+const MAX_STT_RETRIES = 12
+const RETRY_DELAY_MS = 2000
+
 export function useWalkieTalkie({ onTranscriptReady }) {
   const [isWalkieTalkieMode, setIsWalkieTalkieMode] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
+  const [isMicPreparing, setIsMicPreparing] = useState(false)
   const [transcript, setTranscript] = useState('')
 
   const recognitionRef = useRef(null)
   // Pre-activated Audio element waiting to be used for the next TTS response.
-  // Created and activated during each mic button press (user gesture) so that
-  // speak() can call play() on it asynchronously after the TTS fetch completes.
   const nextTTSAudioRef = useRef(null)
   // Currently playing TTS audio element
   const playbackRef = useRef(null)
   const isModeRef = useRef(false)
   const finalTranscriptRef = useRef('')
   const sttRetryCountRef = useRef(0)
-  // Timestamp of when the last TTS audio ended — used to enforce iOS cooldown
+  // Timestamp of when the last TTS audio ended
   const lastTTSEndTimeRef = useRef(0)
-  // Pending handle for a delayed recognition.start() post-TTS
-  const listenerDelayTimeoutRef = useRef(null)
+  // Pending handle for a delayed recognition.start() (retry timeout)
+  const retryTimeoutRef = useRef(null)
+  // Self-ref so onerror retry can call the latest startListening without stale closure
+  const startListeningRef = useRef(null)
 
   useEffect(() => { isModeRef.current = isWalkieTalkieMode }, [isWalkieTalkieMode])
+
+  const cancelRetry = useCallback(() => {
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current)
+      retryTimeoutRef.current = null
+    }
+  }, [])
 
   const stopAudio = useCallback(() => {
     if (playbackRef.current) {
@@ -60,21 +73,10 @@ export function useWalkieTalkie({ onTranscriptReady }) {
     }
   }, [])
 
-  // probeStream: a live MediaStream from getUserMedia — kept open to hold the iOS
-  // audio session in PlayAndRecord mode for the duration of recognition. Stopped
-  // in onend/onerror so the session isn't released before speech capture finishes.
-  const startListening = useCallback((probeStream = null) => {
+  const startListening = useCallback(() => {
     if (!isSTTSupported || !isModeRef.current) {
       console.log('[WT] startListening blocked — isSTTSupported:', isSTTSupported, 'isModeRef:', isModeRef.current)
-      if (probeStream) probeStream.getTracks().forEach(t => t.stop())
       return
-    }
-
-    const releaseProbe = () => {
-      if (probeStream) {
-        probeStream.getTracks().forEach(t => t.stop())
-        console.log('[WT] probe stream released')
-      }
     }
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
@@ -92,12 +94,16 @@ export function useWalkieTalkie({ onTranscriptReady }) {
         console.warn('[WT] watchdog fired — recognition got no events for 10s')
         try { recognition.abort() } catch (_) {}
         setIsListening(false)
+        setIsMicPreparing(false)
+        sttRetryCountRef.current = 0
       }
     }, 10000)
     const clearWatchdog = () => { clearTimeout(watchdog); watchdog = null }
 
     recognition.onresult = (event) => {
       clearWatchdog()
+      // First speech detected — session is fully open, clear preparing state
+      setIsMicPreparing(false)
       sttRetryCountRef.current = 0
       let interim = ''
       let final = ''
@@ -117,12 +123,16 @@ export function useWalkieTalkie({ onTranscriptReady }) {
 
     recognition.onend = () => {
       clearWatchdog()
-      releaseProbe()
       const final = finalTranscriptRef.current.trim()
       console.log('[WT] onend — final transcript:', final ? `"${final}"` : '(empty)')
-      setIsListening(false)
+      // Only clear UI if we're not in a retry loop (retries keep isListening=true)
+      if (sttRetryCountRef.current === 0) {
+        setIsListening(false)
+        setIsMicPreparing(false)
+      }
       if (!isModeRef.current) return
       if (final) {
+        sttRetryCountRef.current = 0
         setTranscript('')
         onTranscriptReady(final)
       }
@@ -130,21 +140,63 @@ export function useWalkieTalkie({ onTranscriptReady }) {
 
     recognition.onerror = (event) => {
       clearWatchdog()
-      releaseProbe()
       const msSinceStart = Date.now() - startedAt
-      if (event.error === 'aborted' && msSinceStart < 500) {
-        console.warn(`[WT] onerror: aborted ${msSinceStart}ms after start — iOS audio session still locked`)
-      } else {
-        const ignorable = event.error === 'no-speech' || event.error === 'aborted'
-        console.warn('[WT] onerror:', event.error, `(${msSinceStart}ms after start)`, ignorable ? '(ignorable)' : '(unexpected)')
+
+      // Detect iOS audio session conflict: abort within 8s without any speech
+      // detected. The iOS session takes 15-20s to fully deactivate after TTS.
+      // Auto-retry every 2s so the user doesn't have to keep tapping.
+      const isSessionConflict = event.error === 'aborted' && msSinceStart < 8000
+      if (isSessionConflict && isModeRef.current && sttRetryCountRef.current < MAX_STT_RETRIES) {
+        sttRetryCountRef.current++
+        console.log(`[WT] session conflict abort (${msSinceStart}ms) — retrying in ${RETRY_DELAY_MS}ms (${sttRetryCountRef.current}/${MAX_STT_RETRIES})`)
+        setIsMicPreparing(true)
+        // isListening stays true — mic button remains active (tap to cancel)
+
+        retryTimeoutRef.current = setTimeout(() => {
+          retryTimeoutRef.current = null
+          if (!isModeRef.current) {
+            setIsListening(false)
+            setIsMicPreparing(false)
+            sttRetryCountRef.current = 0
+            return
+          }
+          // Probe getUserMedia before each retry to nudge iOS session transition
+          if (navigator.mediaDevices?.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+              .then(stream => {
+                stream.getTracks().forEach(t => t.stop())
+                console.log(`[WT] retry ${sttRetryCountRef.current}: getUserMedia probe OK`)
+                startListeningRef.current?.()
+              })
+              .catch(err => {
+                console.warn(`[WT] retry ${sttRetryCountRef.current}: getUserMedia failed (${err.name}) — trying directly`)
+                startListeningRef.current?.()
+              })
+          } else {
+            startListeningRef.current?.()
+          }
+        }, RETRY_DELAY_MS)
+        return
       }
+
+      // Non-retriable error or max retries reached
+      sttRetryCountRef.current = 0
       setIsListening(false)
+      setIsMicPreparing(false)
+      if (event.error !== 'no-speech' && event.error !== 'aborted') {
+        console.warn('[WT] onerror:', event.error, `(${msSinceStart}ms)`, '(unexpected)')
+      } else {
+        console.log('[WT] onerror:', event.error, `(${msSinceStart}ms)`, isSessionConflict ? '— max retries reached' : '(ignorable)')
+      }
     }
 
     console.log('[WT] recognition.start() called')
     recognition.start()
     setIsListening(true)
   }, [onTranscriptReady])
+
+  // Keep ref in sync so retry callbacks always call the latest version
+  useEffect(() => { startListeningRef.current = startListening }, [startListening])
 
   const speak = useCallback(async (text) => {
     if (!text?.trim() || !isModeRef.current) return
@@ -226,41 +278,31 @@ export function useWalkieTalkie({ onTranscriptReady }) {
   }, [stopAudio])
 
   const stopListening = useCallback(() => {
-    if (listenerDelayTimeoutRef.current) {
-      if (typeof listenerDelayTimeoutRef.current === 'object') {
-        listenerDelayTimeoutRef.current.cancel()
-      } else {
-        clearTimeout(listenerDelayTimeoutRef.current)
-      }
-      listenerDelayTimeoutRef.current = null
-    }
+    cancelRetry()
+    sttRetryCountRef.current = 0
     if (recognitionRef.current) {
       try { recognitionRef.current.stop() } catch (_) {}
     }
-  }, [])
+    setIsListening(false)
+    setIsMicPreparing(false)
+  }, [cancelRetry])
 
   const toggleWalkieTalkieMode = useCallback(() => {
     setIsWalkieTalkieMode(prev => {
       if (prev) {
-        if (listenerDelayTimeoutRef.current) {
-          if (typeof listenerDelayTimeoutRef.current === 'object') {
-            listenerDelayTimeoutRef.current.cancel()
-          } else {
-            clearTimeout(listenerDelayTimeoutRef.current)
-          }
-          listenerDelayTimeoutRef.current = null
-        }
+        cancelRetry()
+        sttRetryCountRef.current = 0
         if (recognitionRef.current) {
           try { recognitionRef.current.abort() } catch (_) {}
         }
         stopAudio()
-        // Discard any unused pre-activated audio
         if (nextTTSAudioRef.current) {
           nextTTSAudioRef.current.pause()
           nextTTSAudioRef.current = null
         }
         setIsListening(false)
         setIsSpeaking(false)
+        setIsMicPreparing(false)
         setTranscript('')
         isModeRef.current = false
       } else {
@@ -268,7 +310,7 @@ export function useWalkieTalkie({ onTranscriptReady }) {
       }
       return !prev
     })
-  }, [stopAudio])
+  }, [stopAudio, cancelRetry])
 
   // Called directly from the mic button click — this IS a synchronous user gesture.
   // We pre-create and activate a fresh Audio element here so speak() can use it
@@ -278,15 +320,9 @@ export function useWalkieTalkie({ onTranscriptReady }) {
     stopAudio()
     setIsSpeaking(false)
 
-    // Cancel any previously scheduled delayed start or in-flight getUserMedia probe
-    if (listenerDelayTimeoutRef.current) {
-      if (typeof listenerDelayTimeoutRef.current === 'object') {
-        listenerDelayTimeoutRef.current.cancel()
-      } else {
-        clearTimeout(listenerDelayTimeoutRef.current)
-      }
-      listenerDelayTimeoutRef.current = null
-    }
+    // Cancel any pending retry from a previous attempt
+    cancelRetry()
+    sttRetryCountRef.current = 0
 
     // Discard any stale pre-activated element from a previous tap
     if (nextTTSAudioRef.current) {
@@ -303,57 +339,34 @@ export function useWalkieTalkie({ onTranscriptReady }) {
 
     // Show listening UI immediately for instant tap feedback.
     setIsListening(true)
+    setIsMicPreparing(false)
 
-    // stream arg: pass live probe stream through so startListening keeps it open
-    const kickoff = (stream = null) => { if (isModeRef.current) startListening(stream) }
-
-    // After TTS playback, iOS holds the AVAudioSession in Playback mode during
-    // deactivation. recognition.start() during this window gets immediately aborted
-    // (onerror: 'aborted' within <500ms). getUserMedia({ audio: true }) explicitly
-    // requests PlayAndRecord mode, forcing iOS to complete the session transition
-    // before we call recognition.start(). On iOS with mic permission already granted,
-    // getUserMedia does NOT require a user gesture.
-    // IMPORTANT: the stream is passed into startListening and kept alive until
-    // recognition ends — stopping it immediately would release the session and
-    // cause a deferred abort (seen as onerror: aborted ~4s into recognition).
+    // getUserMedia probe (stop immediately) to nudge iOS session transition.
+    // If the session is still locked after TTS, the first recognition attempt
+    // will get an 'aborted' error and the auto-retry loop kicks in.
     if (lastTTSEndTimeRef.current > 0 && navigator.mediaDevices?.getUserMedia) {
       const msSinceLastTTS = Date.now() - lastTTSEndTimeRef.current
-      console.log(`[WT] mic tap — ${msSinceLastTTS}ms since last TTS — using getUserMedia probe to force audio session transition`)
-      // Use listenerDelayTimeoutRef as a "probe in flight" sentinel so that if the
-      // user taps again while the probe is pending, the previous probe's kickoff
-      // is cancelled before we fire a new one.
-      let cancelled = false
-      listenerDelayTimeoutRef.current = { cancel: () => { cancelled = true } }
+      console.log(`[WT] mic tap — ${msSinceLastTTS}ms since last TTS — probing session`)
       navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
-          if (cancelled) { stream.getTracks().forEach(t => t.stop()); console.log('[WT] getUserMedia probe superseded — stream released'); return }
-          listenerDelayTimeoutRef.current = null
-          console.log('[WT] getUserMedia probe OK — passing live stream to recognition')
-          kickoff(stream)
+          stream.getTracks().forEach(t => t.stop())
+          if (isModeRef.current) startListening()
         })
         .catch(err => {
-          if (cancelled) return
-          listenerDelayTimeoutRef.current = null
-          console.warn('[WT] getUserMedia probe failed:', err.name, '— trying recognition directly')
-          kickoff(null)
+          console.warn('[WT] getUserMedia probe failed:', err.name, '— starting directly')
+          if (isModeRef.current) startListening()
         })
     } else {
       console.log('[WT] mic tap — no prior TTS, starting recognition directly')
-      kickoff(null)
+      startListening()
     }
-  }, [startListening, stopAudio])
+  }, [startListening, stopAudio, cancelRetry])
 
   useEffect(() => {
     return () => {
       isModeRef.current = false
-      if (listenerDelayTimeoutRef.current) {
-        if (typeof listenerDelayTimeoutRef.current === 'object') {
-          listenerDelayTimeoutRef.current.cancel()
-        } else {
-          clearTimeout(listenerDelayTimeoutRef.current)
-        }
-        listenerDelayTimeoutRef.current = null
-      }
+      cancelRetry()
+      sttRetryCountRef.current = 0
       try { recognitionRef.current?.abort() } catch (_) {}
       stopAudio()
       if (nextTTSAudioRef.current) {
@@ -361,12 +374,13 @@ export function useWalkieTalkie({ onTranscriptReady }) {
         nextTTSAudioRef.current = null
       }
     }
-  }, [stopAudio])
+  }, [stopAudio, cancelRetry])
 
   return {
     isWalkieTalkieMode,
     isListening,
     isSpeaking,
+    isMicPreparing,
     transcript,
     isSTTSupported,
     toggleWalkieTalkieMode,
