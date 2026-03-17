@@ -16,9 +16,9 @@ const isSTTSupported =
   typeof window !== 'undefined' &&
   ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
 
-// Tiny silent MP3 — used to unlock the Audio element on iOS during a user gesture.
-// iOS Safari only allows audio playback if the element was first played during a
-// synchronous user gesture. We "prime" the persistent audio element this way.
+// Tiny silent MP3 — used to unlock audio on iOS during a user gesture.
+// iOS Safari only allows audio playback if an element was first played during a
+// synchronous user gesture. We "prime" a persistent unlock element this way.
 const SILENT_MP3 = 'data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsgU291bmQgRWZmZWN0cyBMaWJyYXJ5//uQwAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA//////////////////////////////////////////////////////////////////8AAAA5TFNBTUU9My45OXIxAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
 
 export function useWalkieTalkie({ onTranscriptReady }) {
@@ -28,45 +28,44 @@ export function useWalkieTalkie({ onTranscriptReady }) {
   const [transcript, setTranscript] = useState('')
 
   const recognitionRef = useRef(null)
-  // One persistent Audio element — unlocked during user gesture, reused for all TTS
-  const audioRef = useRef(null)
+  // Persistent element used ONLY for iOS audio unlock — never used for TTS playback
+  const unlockRef = useRef(null)
+  // Current TTS playback element — replaced on each speak() call, no state reuse
+  const playbackRef = useRef(null)
   const isModeRef = useRef(false)
   const finalTranscriptRef = useRef('')
-  // Tracks consecutive STT errors to prevent infinite retry loops on persistent failures
   const sttRetryCountRef = useRef(0)
 
   // Keep isModeRef in sync with state
   useEffect(() => { isModeRef.current = isWalkieTalkieMode }, [isWalkieTalkieMode])
 
-  // Get or create the persistent Audio element
-  const getAudio = useCallback(() => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio()
-      audioRef.current.preload = 'none'
+  // Get or create the persistent unlock-only Audio element
+  const getUnlockAudio = useCallback(() => {
+    if (!unlockRef.current) {
+      unlockRef.current = new Audio()
+      unlockRef.current.preload = 'none'
     }
-    return audioRef.current
+    return unlockRef.current
   }, [])
 
-  // Unlock the Audio element on iOS by playing a silent clip during a user gesture.
+  // Unlock iOS audio by playing a silent clip during a user gesture.
   // Must be called synchronously from a click/tap handler.
   const unlockAudio = useCallback(() => {
-    const audio = getAudio()
+    const audio = getUnlockAudio()
     audio.src = SILENT_MP3
-    audio.load()         // force load to prevent caching issues
+    audio.load()
     audio.volume = 0
     const p = audio.play()
     if (p) p.then(() => { audio.pause(); audio.volume = 1 }).catch(() => { audio.volume = 1 })
-  }, [getAudio])
+  }, [getUnlockAudio])
 
+  // Stop any in-progress TTS playback
   const stopAudio = useCallback(() => {
-    const audio = audioRef.current
-    if (audio) {
-      audio.onended = null          // clear handlers FIRST — before any calls that may emit events
-      audio.onerror = null
-      audio.pause()
-      audio.removeAttribute('src')  // detach old source before flushing
-      audio.load()                  // flush the buffer so iOS reinitializes cleanly
-      // Don't null out audioRef — keep the unlocked element alive
+    if (playbackRef.current) {
+      playbackRef.current.onended = null
+      playbackRef.current.onerror = null
+      playbackRef.current.pause()
+      playbackRef.current = null
     }
   }, [])
 
@@ -92,7 +91,7 @@ export function useWalkieTalkie({ onTranscriptReady }) {
 
     recognition.onresult = (event) => {
       clearWatchdog()
-      sttRetryCountRef.current = 0  // reset retry counter on successful audio capture
+      sttRetryCountRef.current = 0
       let interim = ''
       let final = ''
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -160,29 +159,29 @@ export function useWalkieTalkie({ onTranscriptReady }) {
         return
       }
 
-      // Data URI avoids iOS Blob/object-URL garbage-collection bugs that cause MediaError
-      // on the second+ TTS call when reusing the same <audio> element.
-      const dataUrl = `data:${mimeType || 'audio/mpeg'};base64,${audioContent}`
+      // Build a blob URL and play it on a FRESH Audio element each time.
+      // Using a fresh element avoids all iOS state-reuse / GC bugs that occur
+      // when the same element is reused across multiple TTS responses.
+      // iOS unlocks audio at the page level after the first user gesture, so
+      // new Audio() instances play freely without needing per-element activation.
+      const binary = atob(audioContent)
+      const bytes = new Uint8Array(binary.length)
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+      const blob = new Blob([bytes], { type: mimeType || 'audio/mpeg' })
+      const blobUrl = URL.createObjectURL(blob)
 
-      const audio = getAudio()
-      // Hard-reset before assigning new source
-      audio.pause()
-      audio.removeAttribute('src')
-      audio.load()
-
-      audio.src = dataUrl
-      audio.load()
+      const audio = new Audio()
+      playbackRef.current = audio
+      audio.src = blobUrl
       audio.volume = 1
 
       audio.onended = () => {
-        audio.removeAttribute('src')
-        audio.load()
+        URL.revokeObjectURL(blobUrl)
         setIsSpeaking(false)
       }
-      audio.onerror = (e) => {
+      audio.onerror = () => {
         console.warn('[useWalkieTalkie] Audio playback error code:', audio.error?.code, audio.error?.message)
-        audio.removeAttribute('src')
-        audio.load()
+        URL.revokeObjectURL(blobUrl)
         setIsSpeaking(false)
       }
 
@@ -190,6 +189,7 @@ export function useWalkieTalkie({ onTranscriptReady }) {
       if (playPromise !== undefined) {
         playPromise.catch(err => {
           console.warn('[useWalkieTalkie] Play promise rejected:', err)
+          URL.revokeObjectURL(blobUrl)
           setIsSpeaking(false)
         })
       }
@@ -197,15 +197,13 @@ export function useWalkieTalkie({ onTranscriptReady }) {
       console.error('[useWalkieTalkie] speak error:', err)
       setIsSpeaking(false)
     }
-  }, [stopAudio, getAudio])
+  }, [stopAudio])
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {
       try { recognitionRef.current.stop() } catch (_) {}
     }
     // Do NOT set isListening(false) here — onend is the single source of truth.
-    // Setting it here creates a race: if the user taps Mic again before onend fires,
-    // the old onend will stomp setIsListening(false) over the new session's true state.
   }, [])
 
   const toggleWalkieTalkieMode = useCallback(() => {
