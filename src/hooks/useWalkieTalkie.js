@@ -1,9 +1,16 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { auth } from '../firebase/config'
 
+const TTS_URL = 'https://wanderplan-rust.vercel.app/api/tts'
+
 const isSTTSupported =
   typeof window !== 'undefined' &&
   ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
+
+// Tiny silent MP3 — used to unlock the Audio element on iOS during a user gesture.
+// iOS Safari only allows audio playback if the element was first played during a
+// synchronous user gesture. We "prime" the persistent audio element this way.
+const SILENT_MP3 = 'data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsgU291bmQgRWZmZWN0cyBMaWJyYXJ5//uQwAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA//////////////////////////////////////////////////////////////////8AAAA5TFNBTUU9My45OXIxAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
 
 export function useWalkieTalkie({ onTranscriptReady }) {
   const [isWalkieTalkieMode, setIsWalkieTalkieMode] = useState(false)
@@ -12,29 +19,41 @@ export function useWalkieTalkie({ onTranscriptReady }) {
   const [transcript, setTranscript] = useState('')
 
   const recognitionRef = useRef(null)
+  // One persistent Audio element — unlocked during user gesture, reused for all TTS
   const audioRef = useRef(null)
-  const isModeRef = useRef(false) // mirror of isWalkieTalkieMode for use inside callbacks
+  const isModeRef = useRef(false)
   const finalTranscriptRef = useRef('')
 
-  // Keep isModeRef in sync
-  useEffect(() => {
-    isModeRef.current = isWalkieTalkieMode
-  }, [isWalkieTalkieMode])
+  // Keep isModeRef in sync with state
+  useEffect(() => { isModeRef.current = isWalkieTalkieMode }, [isWalkieTalkieMode])
 
-  const stopAudio = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current.onended = null
-      audioRef.current.onerror = null
-      audioRef.current = null
+  // Get or create the persistent Audio element
+  const getAudio = useCallback(() => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio()
+      audioRef.current.preload = 'none'
     }
+    return audioRef.current
   }, [])
 
-  const stopListeningImpl = useCallback(() => {
-    if (recognitionRef.current) {
-      try { recognitionRef.current.stop() } catch (_) {}
+  // Unlock the Audio element on iOS by playing a silent clip during a user gesture.
+  // Must be called synchronously from a click/tap handler.
+  const unlockAudio = useCallback(() => {
+    const audio = getAudio()
+    audio.src = SILENT_MP3
+    audio.volume = 0
+    const p = audio.play()
+    if (p) p.then(() => { audio.pause(); audio.volume = 1 }).catch(() => { audio.volume = 1 })
+  }, [getAudio])
+
+  const stopAudio = useCallback(() => {
+    const audio = audioRef.current
+    if (audio) {
+      audio.pause()
+      audio.onended = null
+      audio.onerror = null
+      // Don't null out audioRef — keep the unlocked element alive
     }
-    setIsListening(false)
   }, [])
 
   const startListening = useCallback(() => {
@@ -88,7 +107,7 @@ export function useWalkieTalkie({ onTranscriptReady }) {
 
     try {
       const token = await auth.currentUser?.getIdToken()
-      const res = await fetch('https://wanderplan-rust.vercel.app/api/tts', {
+      const res = await fetch(TTS_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -98,7 +117,8 @@ export function useWalkieTalkie({ onTranscriptReady }) {
       })
 
       if (!res.ok) {
-        console.warn('[useWalkieTalkie] TTS fetch failed:', res.status)
+        const errText = await res.text().catch(() => res.status)
+        console.warn('[useWalkieTalkie] TTS failed:', res.status, errText)
         setIsSpeaking(false)
         if (isModeRef.current) startListening()
         return
@@ -106,22 +126,32 @@ export function useWalkieTalkie({ onTranscriptReady }) {
 
       const { audioContent, mimeType } = await res.json()
       if (!audioContent) {
+        console.warn('[useWalkieTalkie] Empty audioContent')
         setIsSpeaking(false)
         if (isModeRef.current) startListening()
         return
       }
 
-      const audio = new Audio(`data:${mimeType || 'audio/wav'};base64,${audioContent}`)
-      audioRef.current = audio
+      // Build a Blob URL from the base64 audio (more compatible than data URIs on iOS)
+      const binary = atob(audioContent)
+      const bytes = new Uint8Array(binary.length)
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+      const blob = new Blob([bytes], { type: mimeType || 'audio/mpeg' })
+      const blobUrl = URL.createObjectURL(blob)
+
+      const audio = getAudio()
+      audio.src = blobUrl
+      audio.volume = 1
 
       audio.onended = () => {
+        URL.revokeObjectURL(blobUrl)
         setIsSpeaking(false)
-        audioRef.current = null
         if (isModeRef.current) startListening()
       }
-      audio.onerror = () => {
+      audio.onerror = (e) => {
+        console.warn('[useWalkieTalkie] Audio playback error:', e)
+        URL.revokeObjectURL(blobUrl)
         setIsSpeaking(false)
-        audioRef.current = null
         if (isModeRef.current) startListening()
       }
 
@@ -131,17 +161,25 @@ export function useWalkieTalkie({ onTranscriptReady }) {
       setIsSpeaking(false)
       if (isModeRef.current) startListening()
     }
-  }, [stopAudio, startListening])
+  }, [stopAudio, startListening, getAudio])
 
   const stopListening = useCallback(() => {
-    stopListeningImpl()
-  }, [stopListeningImpl])
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop() } catch (_) {}
+    }
+    setIsListening(false)
+  }, [])
 
   const toggleWalkieTalkieMode = useCallback(() => {
+    // Unlock audio during this user gesture (critical for iOS Safari)
+    unlockAudio()
+
     setIsWalkieTalkieMode(prev => {
       if (prev) {
-        // Turning off — clean up everything
-        stopListeningImpl()
+        // Turning off — clean up
+        if (recognitionRef.current) {
+          try { recognitionRef.current.abort() } catch (_) {}
+        }
         stopAudio()
         setIsListening(false)
         setIsSpeaking(false)
@@ -152,7 +190,13 @@ export function useWalkieTalkie({ onTranscriptReady }) {
       }
       return !prev
     })
-  }, [stopListeningImpl, stopAudio])
+  }, [unlockAudio, stopAudio])
+
+  // Also unlock audio when user taps the mic button — belt and suspenders for iOS
+  const startListeningFromGesture = useCallback(() => {
+    unlockAudio()
+    startListening()
+  }, [unlockAudio, startListening])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -170,7 +214,7 @@ export function useWalkieTalkie({ onTranscriptReady }) {
     transcript,
     isSTTSupported,
     toggleWalkieTalkieMode,
-    startListening,
+    startListening: startListeningFromGesture, // always unlocks audio first
     stopListening,
     speak,
   }
