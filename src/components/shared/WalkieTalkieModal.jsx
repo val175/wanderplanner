@@ -224,11 +224,11 @@ export default function WalkieTalkieModal() {
               hapticSelection()
               if (isListening) {
                 stopListening()
-              } else if (!isSpeaking && !isLoading) {
+              } else if (!isLoading) {
                 startListening()
               }
             }}
-            disabled={isSpeaking || isLoading}
+            disabled={isLoading}
             className={`relative z-10 w-[72px] h-[72px] rounded-full flex items-center justify-center transition-all shadow-lg ${
               isListening
                 ? 'bg-[var(--color-accent)] text-white scale-105'

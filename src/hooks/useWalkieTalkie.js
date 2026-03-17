@@ -222,6 +222,10 @@ export function useWalkieTalkie({ onTranscriptReady }) {
   // We pre-create and activate a fresh Audio element here so speak() can use it
   // asynchronously after the TTS fetch, bypassing iOS's user-gesture requirement.
   const startListeningFromGesture = useCallback(() => {
+    // Interrupt any in-progress TTS (barge-in support)
+    stopAudio()
+    setIsSpeaking(false)
+
     // Discard any stale pre-activated element from a previous tap
     if (nextTTSAudioRef.current) {
       nextTTSAudioRef.current.pause()
@@ -239,7 +243,7 @@ export function useWalkieTalkie({ onTranscriptReady }) {
     const ttsAudio = new Audio()
     activateAudio(ttsAudio)
     nextTTSAudioRef.current = ttsAudio
-  }, [startListening])
+  }, [startListening, stopAudio])
 
   useEffect(() => {
     return () => {
