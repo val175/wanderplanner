@@ -137,12 +137,12 @@ export default function WrapUpTab() {
     const paceLabel = getPaceLabel(stats.stopsPerDay)
 
     return (
-        <div className="flex flex-col items-center text-center p-6 space-y-8 animate-fade-in pb-24 max-w-4xl mx-auto">
+        <div className="flex flex-col items-center text-center p-6 space-y-12 animate-fade-in pb-24 max-w-4xl mx-auto">
             
             {/* 1. Hero Section */}
             <div className="space-y-4">
                 <div className="text-8xl animate-fade-in">{trip.emoji || '🎉'}</div>
-                <h1 className="text-5xl font-black tracking-tighter text-text-primary uppercase">
+                <h1 className="font-heading text-5xl font-bold tracking-tighter text-text-primary uppercase leading-tight">
                     {trip.name}
                 </h1>
 
@@ -168,10 +168,10 @@ export default function WrapUpTab() {
                         <button
                             key={label}
                             onClick={() => handleVibe(label)}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold transition-all ${
+                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-[var(--radius-pill)] text-xs font-semibold transition-all ${
                                 active
-                                    ? 'bg-text-primary text-bg-primary'
-                                    : 'bg-bg-secondary text-text-secondary border border-border/50 hover:border-text-primary/30'
+                                    ? 'bg-accent text-white border border-transparent'
+                                    : 'bg-bg-secondary text-text-secondary border border-border hover:border-accent/40 hover:text-accent'
                             }`}
                         >
                             <span>{emoji}</span> {label}
@@ -180,29 +180,35 @@ export default function WrapUpTab() {
                 })}
             </div>
 
-            {/* 3. The "Word Cloud" Summary */}
-            <div className="flex flex-wrap justify-center items-center gap-x-4 gap-y-3 text-2xl sm:text-3xl font-bold leading-tight max-w-3xl text-text-primary">
-                <span className="inline-block">🏃 {stats.stopsPerDay.toFixed(1)} stops/day that's {paceLabel} — {stats.totalActivities} total activities</span>
-                <span className="inline-block">💰 {formatCurrency(stats.costPerDay, trip.currency)}/day — {stats.budgetSub}</span>
+            {/* 3. The "Word Cloud" Summary (Paragraph style) */}
+            <div className="text-2xl sm:text-4xl font-semibold leading-relaxed tracking-tight max-w-3xl text-text-primary">
+                🏃 {stats.stopsPerDay.toFixed(1)} stops/day that's {paceLabel} — {stats.totalActivities} total activities. 
+                {" "}💰 {formatCurrency(stats.costPerDay, trip.currency)}/day — {stats.budgetSub}.
                 {km !== null && km > 0 && (
-                  <span className="inline-block">✈️ {km.toLocaleString()} km traveled, equivalent to {relatableKm}</span>
+                  <>
+                    {" "}✈️ {km.toLocaleString()} km traveled, equivalent to {relatableKm}.
+                  </>
                 )}
             </div>
 
             {/* 4. The CTAs */}
-            <div className="flex items-center justify-center gap-3 pt-6 w-full">
-                <button 
-                  onClick={handleUseAsTemplate}
-                  className="px-6 py-3 rounded-2xl bg-bg-secondary border border-border font-bold text-text-primary hover:bg-bg-hover transition-colors"
+            <div className="flex items-center justify-center gap-4 pt-6 w-full">
+                <Button 
+                    variant="secondary"
+                    size="lg"
+                    onClick={handleUseAsTemplate}
+                    className="rounded-2xl font-bold"
                 >
                     📋 Clone Itinerary
-                </button>
-                <button 
-                  onClick={handleWandaRecap}
-                  className="px-6 py-3 rounded-2xl bg-text-primary text-bg-primary font-bold hover:opacity-90 transition-opacity"
+                </Button>
+                <Button 
+                    variant="primary"
+                    size="lg"
+                    onClick={handleWandaRecap}
+                    className="rounded-2xl font-bold"
                 >
                     🪄 Wanda Recap
-                </button>
+                </Button>
             </div>
 
         </div>

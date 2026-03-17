@@ -255,7 +255,9 @@ function AuthenticatedApp({ user, signOutUser }) {
           >
             {activeTrip ? (
               <>
-                <TripHeader onOpenSidebar={handleOpenSidebar} isMobile={isMobile} />
+                {state.activeTab !== 'wrap-up' && (
+                  <TripHeader onOpenSidebar={handleOpenSidebar} isMobile={isMobile} />
+                )}
                 <div
                   id={`panel-${state.activeTab}`}
                   role="tabpanel"
