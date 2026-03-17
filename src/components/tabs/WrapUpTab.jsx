@@ -290,22 +290,22 @@ export default function WrapUpTab() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     textAlign: 'center',
-                    padding: '160px 80px',
+                    padding: '160px 100px',
                     zIndex: -100,
                     fontFamily: '"Anthropic Sans", sans-serif',
                 }}
             >
                 {/* Hero Section */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '48px', marginBottom: '60px' }}>
-                    {/* Emoji */}
-                    <div style={{ fontSize: '240px', lineHeight: 1 }}>{trip.emoji || '🎉'}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '32px', marginBottom: '64px' }}>
+                    {/* Emoji - 72px as requested */}
+                    <div style={{ fontSize: '72px', lineHeight: 1 }}>{trip.emoji || '🎉'}</div>
                     
-                    {/* Title */}
+                    {/* Title - 48px bold as requested */}
                     <h1 style={{ 
-                        fontSize: '112px', 
-                        fontWeight: 900, 
-                        letterSpacing: '-0.05em', 
-                        lineHeight: 1, 
+                        fontSize: '48px', 
+                        fontWeight: 700, 
+                        letterSpacing: '-0.02em', 
+                        lineHeight: 1.2, 
                         margin: 0,
                         color: '#1A1A18'
                     }}>
@@ -314,22 +314,22 @@ export default function WrapUpTab() {
 
                     {/* Date & Avatars */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <span style={{ fontSize: '36px', fontWeight: 600, color: '#9B9A93' }}>
+                        <span style={{ fontSize: '24px', fontWeight: 500, color: '#9B9A93' }}>
                             {formatDateRange(trip.startDate, trip.endDate) || 'Dates TBA'}
                         </span>
                         {travelerProfiles.length > 0 && (
                             <>
-                                <span style={{ color: '#E0DDD6', fontSize: '32px' }}>•</span>
-                                <div style={{ display: 'flex', alignItems: 'center', marginLeft: '-8px' }}>
+                                <span style={{ color: '#E0DDD6', fontSize: '20px' }}>•</span>
+                                <div style={{ display: 'flex', alignItems: 'center', marginLeft: '-4px' }}>
                                     {travelerProfiles.map((p, i) => (
                                         <div 
                                             key={p.id} 
                                             style={{ 
-                                                width: '56px', 
-                                                height: '56px', 
+                                                width: '40px', 
+                                                height: '40px', 
                                                 borderRadius: '50%', 
-                                                border: '3px solid #F4F2EF',
-                                                marginLeft: i > 0 ? '-16px' : '0',
+                                                border: '2px solid #F4F2EF',
+                                                marginLeft: i > 0 ? '-12px' : '0',
                                                 overflow: 'hidden',
                                                 backgroundColor: '#ECEAE5',
                                                 display: 'flex',
@@ -338,9 +338,9 @@ export default function WrapUpTab() {
                                             }}
                                         >
                                             {p.customPhoto || p.photo ? (
-                                                <img src={p.customPhoto || p.photo} style={{ width: '100%', height: '100%', objectCover: 'cover' }} />
+                                                <img src={p.customPhoto || p.photo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                             ) : (
-                                                <span style={{ fontSize: '24px', fontWeight: 700, color: '#D97757' }}>
+                                                <span style={{ fontSize: '16px', fontWeight: 700, color: '#D97757' }}>
                                                     {p.name?.[0].toUpperCase()}
                                                 </span>
                                             )}
@@ -351,12 +351,12 @@ export default function WrapUpTab() {
                         )}
                     </div>
 
-                    {/* Rating */}
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    {/* Rating - Reduced size */}
+                    <div style={{ display: 'flex', gap: '4px' }}>
                         {[1, 2, 3, 4, 5].map(n => (
                             <span 
                                 key={n} 
-                                style={{ fontSize: '96px', color: n <= (trip.rating || 0) ? '#facc15' : '#E0DDD6' }}
+                                style={{ fontSize: '32px', color: n <= (trip.rating || 0) ? '#facc15' : '#E0DDD6' }}
                             >
                                 ★
                             </span>
@@ -370,9 +370,9 @@ export default function WrapUpTab() {
                         display: 'flex', 
                         flexWrap: 'wrap', 
                         justifyContent: 'center', 
-                        gap: '20px', 
+                        gap: '12px', 
                         maxWidth: '800px',
-                        marginBottom: '100px'
+                        marginBottom: '80px'
                     }}>
                         {trip.vibes.map(vibeId => {
                             const vibe = VIBE_TAGS.find(v => v.id === vibeId)
@@ -383,15 +383,14 @@ export default function WrapUpTab() {
                                     style={{
                                         backgroundColor: '#FFFFFF',
                                         color: '#3D3929',
-                                        padding: '16px 32px',
+                                        padding: '8px 16px',
                                         borderRadius: '999px',
-                                        fontSize: '28px',
+                                        fontSize: '18px',
                                         fontWeight: 600,
                                         border: '1px solid #E0DDD6',
-                                        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: '12px'
+                                        gap: '8px'
                                     }}
                                 >
                                     <span>{vibe.emoji}</span>
@@ -402,32 +401,27 @@ export default function WrapUpTab() {
                     </div>
                 )}
 
-                {/* Summary Text Section */}
+                {/* Summary Text Section - Connected paragraph, not extra bold */}
                 <div style={{ 
-                    fontSize: '56px', 
-                    fontWeight: 800, 
-                    lineHeight: 1.4, 
-                    letterSpacing: '-0.02em', 
-                    maxWidth: '920px',
-                    color: '#1A1A18'
+                    fontSize: '32px', 
+                    fontWeight: 600, 
+                    lineHeight: 1.6, 
+                    letterSpacing: '-0.01em', 
+                    maxWidth: '880px',
+                    color: '#1A1A18',
+                    textAlign: 'center'
                 }}>
-                    🏃 {stats.totalActivities} activities in total? <br/>
-                    That's around {Math.round(stats.stopsPerDay)} stops per day! <br/>
-                    {paceLabel}. 
-                    <br/><br/>
-                    💰 Daily average spend of {formatCurrency(stats.costPerDay, trip.currency)}? <br/>
-                    {stats.budgetSub}!
+                    🏃 {stats.totalActivities} activities in total? That's around {Math.round(stats.stopsPerDay)} stops per day! {paceLabel}. 
+                    {" "}💰 Daily average spend of {formatCurrency(stats.costPerDay, trip.currency)}? {stats.budgetSub}!
                     {km !== null && km > 0 && (
                         <>
-                            <br/><br/>
-                            ✈️ You traveled {km.toLocaleString()} km in total, <br/> 
-                            equivalent to <span style={{ opacity: 0.8 }}>≈ {relatableKm}</span>.
+                            {" "}✈️ You traveled {km.toLocaleString()} km in total, equivalent to <span style={{ opacity: 0.7 }}>≈ {relatableKm}</span>.
                         </>
                     )}
                 </div>
 
-                {/* Brand Watermark Bottom */}
-                <div style={{ position: 'absolute', bottom: '120px', transform: 'scale(1.2)', opacity: 0.8 }}>
+                {/* Brand Watermark Bottom - Scaled down */}
+                <div style={{ position: 'absolute', bottom: '100px', transform: 'scale(1)', opacity: 0.6 }}>
                     <WandWordmark static={true} color="#9B9A93" />
                 </div>
             </div>
