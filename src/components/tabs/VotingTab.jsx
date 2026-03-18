@@ -296,16 +296,17 @@ function IdeaMobileCard({ idea, resolveProfile, onDelete, isSelectable, isSelect
                 </div>
             </div>
 
-            {/* FOOTER — category + proposer + date */}
-            <div className="flex items-center gap-3 text-[11px] text-text-secondary pt-2 border-t border-border/20">
+            {/* FOOTER — category + date + proposer */}
+            <div className="flex items-center gap-2 text-[11px] text-text-secondary pt-2 border-t border-border/20">
                 <CategoryPill type={idea.type || 'other'} />
+                <span className="flex-1" />
+                <span className="text-text-muted">{date}</span>
                 {proposer && (
                     <div className="flex items-center gap-1 text-text-muted">
-                        <AvatarCircle profile={proposer} size={14} />
+                        <AvatarCircle profile={proposer} size={16} />
                         <span>{proposer.name?.split(' ')[0]}</span>
                     </div>
                 )}
-                <span className="ml-auto text-text-muted">{date}</span>
             </div>
         </div>
     )

@@ -182,9 +182,9 @@ function CategoryPill({ value, onChange, disabled }) {
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild disabled={disabled}>
         <button
-          className={`inline-flex items-center justify-center gap-1 min-h-[36px] sm:min-h-0 px-3 sm:px-2 py-1 sm:py-0.5 rounded-[var(--radius-pill)] text-xs font-medium border border-border bg-bg-secondary text-text-secondary transition-colors ${disabled ? 'cursor-default' : 'hover:bg-bg-hover'}`}
+          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-pill)] text-xs font-medium border border-border bg-bg-secondary text-text-secondary transition-colors ${disabled ? 'cursor-default' : 'hover:bg-bg-hover'}`}
         >
-          <span className="text-lg sm:text-base">{cat.emoji}</span>
+          <span>{cat.emoji}</span>
           <span>{cat.label}</span>
         </button>
       </DropdownMenu.Trigger>
@@ -217,22 +217,22 @@ function CategoryPill({ value, onChange, disabled }) {
 // ── Qty Stepper ─────────────────────────────────────────────────────────────
 function QtyStepper({ value, onChange, disabled }) {
   return (
-    <div className="flex items-center gap-1 sm:gap-2 justify-center">
+    <div className="flex items-center gap-1 justify-center">
       <button
         onClick={() => !disabled && onChange(Math.max(1, value - 1))}
-        className={`w-7 h-7 sm:w-5 sm:h-5 flex items-center justify-center rounded-[5px] bg-bg-secondary text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors touch-target ${disabled ? 'opacity-50 cursor-default' : ''}`}
+        className={`w-5 h-5 flex items-center justify-center rounded-[5px] bg-bg-secondary text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors ${disabled ? 'opacity-50 cursor-default' : ''}`}
         disabled={value <= 1 || disabled}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="sm:w-[10px] sm:h-[10px]"><path d="M5 12h14" /></svg>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14" /></svg>
       </button>
 
-      <span className="text-base sm:text-sm font-medium tabular-nums min-w-[1.5rem] sm:min-w-[1.25rem] text-center">{value}</span>
+      <span className="text-sm font-medium tabular-nums min-w-[1.25rem] text-center">{value}</span>
       <button
         onClick={() => !disabled && onChange(value + 1)}
-        className={`w-7 h-7 sm:w-5 sm:h-5 flex items-center justify-center rounded-[5px] bg-bg-secondary text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors touch-target ${disabled ? 'opacity-50 cursor-default' : ''}`}
+        className={`w-5 h-5 flex items-center justify-center rounded-[5px] bg-bg-secondary text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors ${disabled ? 'opacity-50 cursor-default' : ''}`}
         disabled={disabled}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="sm:w-[10px] sm:h-[10px]"><path d="M12 5v14M5 12h14" /></svg>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" /></svg>
       </button>
 
     </div>
@@ -280,13 +280,13 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
   if (assignees.length > 1) {
     displayNode = (
       <div className="flex flex-row items-center">
-        <div className="flex -space-x-1.5">
+        <div className="flex -space-x-1">
           {assignees.slice(0, 3).map((tId, i) => {
             const p = resolveProfile(tId)
             if (!p) return null
             return (
               <div key={tId} style={{ zIndex: 10 - i }} className="rounded-full flex shrink-0 ring-[1.5px] ring-bg-secondary">
-                <AvatarCircle profile={p} size={22} />
+                <AvatarCircle profile={p} size={16} />
               </div>
             )
           })}
@@ -298,24 +298,24 @@ function AssigneePill({ value, packedBy, isPacked, onChange, tripTravelers, reso
     const p = resolveProfile(assignees[0])
     if (p) {
       displayNode = (
-        <div className="flex items-center gap-1.5 px-0.5">
-          <AvatarCircle profile={p} size={22} />
+        <div className="flex items-center gap-1">
+          <AvatarCircle profile={p} size={16} />
           <span className="text-[12px] text-text-secondary truncate max-w-[65px]">{p.name?.split(' ')[0]}</span>
         </div>
       )
       displayName = p.name
     } else {
       displayNode = (
-        <div className={`w-[22px] h-[22px] flex items-center justify-center rounded-full border border-dashed border-border text-text-muted shrink-0 bg-transparent transition-colors ${disabled ? '' : 'hover:bg-bg-hover'}`}>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+        <div className={`w-[16px] h-[16px] flex items-center justify-center rounded-full border border-dashed border-border text-text-muted shrink-0 bg-transparent transition-colors ${disabled ? '' : 'hover:bg-bg-hover'}`}>
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
         </div>
       )
       displayName = 'Unassigned'
     }
   } else {
     displayNode = (
-      <div className={`w-[22px] h-[22px] flex items-center justify-center rounded-full border border-dashed border-border text-text-muted shrink-0 bg-transparent transition-colors ${disabled ? '' : 'hover:bg-bg-hover'}`}>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+      <div className={`w-[16px] h-[16px] flex items-center justify-center rounded-full border border-dashed border-border text-text-muted shrink-0 bg-transparent transition-colors ${disabled ? '' : 'hover:bg-bg-hover'}`}>
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
       </div>
     )
     displayName = 'Unassigned'
@@ -711,7 +711,8 @@ export default function PackingTab() {
               key={item.id}
               className={`bg-bg-card border border-border p-3 rounded-[var(--radius-md)] transition-colors ${item.packed ? 'opacity-60' : ''}`}
             >
-              <div className="flex items-start gap-3">
+              {/* Zone 1 — header */}
+              <div className="flex items-start gap-3 mb-2">
                 <div className="pt-0.5 shrink-0">
                   <PackedCheckbox
                     packed={item.packed}
@@ -721,7 +722,7 @@ export default function PackingTab() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className={`font-medium text-sm ${item.packed ? 'text-text-muted line-through' : 'text-text-primary'}`}>
+                    <span className={`text-[13px] font-semibold ${item.packed ? 'text-text-muted line-through' : 'text-text-primary'}`}>
                       {item.name}
                     </span>
                     {badges && !item.packed && (
@@ -735,41 +736,40 @@ export default function PackingTab() {
                   {item.notes && (
                     <p className="text-xs text-text-muted mt-0.5 truncate">{item.notes}</p>
                   )}
-                  <div className="flex items-center justify-between gap-2 mt-2">
-                    <CategoryPill
-                      value={item.category || 'misc'}
-                      onChange={val => onUpdate(item.id, { category: val })}
-                      disabled={isReadOnly}
-                    />
-                    <div className="flex items-center gap-2">
-                      <QtyStepper
-                        value={item.qty || 1}
-                        onChange={val => onUpdate(item.id, { qty: val })}
-                        disabled={isReadOnly}
-                      />
-                      <AssigneePill
-                        value={item.assignee}
-                        packedBy={item.packedBy}
-                        isPacked={item.packed}
-                        onChange={val => onUpdate(item.id, { assignee: val })}
-                        tripTravelers={travelerIds}
-                        resolveProfile={resolveProfile}
-                        currentUserProfile={currentUserProfile}
-                        disabled={isReadOnly}
-                      />
-                    </div>
-                  </div>
                 </div>
                 {!isReadOnly && (
                   <button
                     onClick={() => onDelete(item.id)}
                     className="p-1 text-text-muted hover:text-danger transition-colors shrink-0 touch-target"
-
                     title="Delete"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                   </button>
                 )}
+              </div>
+              {/* Zone 2 — footer: category | qty | assignee */}
+              <div className="flex items-center gap-2 pt-2 border-t border-border/20">
+                <CategoryPill
+                  value={item.category || 'misc'}
+                  onChange={val => onUpdate(item.id, { category: val })}
+                  disabled={isReadOnly}
+                />
+                <span className="flex-1" />
+                <QtyStepper
+                  value={item.qty || 1}
+                  onChange={val => onUpdate(item.id, { qty: val })}
+                  disabled={isReadOnly}
+                />
+                <AssigneePill
+                  value={item.assignee}
+                  packedBy={item.packedBy}
+                  isPacked={item.packed}
+                  onChange={val => onUpdate(item.id, { assignee: val })}
+                  tripTravelers={travelerIds}
+                  resolveProfile={resolveProfile}
+                  currentUserProfile={currentUserProfile}
+                  disabled={isReadOnly}
+                />
               </div>
             </div>
           )

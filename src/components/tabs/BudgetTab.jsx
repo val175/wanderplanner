@@ -478,10 +478,9 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
   }
 
   return (
-    <Card className="border-border bg-bg-card overflow-hidden">
-
+    <>
       {/* ── Mobile card view ── */}
-      <div className="flex flex-col gap-3 p-3 md:hidden">
+      <div className="flex flex-col gap-3 md:hidden">
         {sortedAndFiltered.length === 0 && (
           <p className="text-center text-[13px] text-text-muted py-6 text-balance">
             {search ? `No results for "${search}"` : 'No expenses yet — tap + Log Expense to add one'}
@@ -489,8 +488,6 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
 
         )}
         {sortedAndFiltered.map(entry => {
-          const catIndex = budget.findIndex(c => c.name === entry.category)
-          const dotColor = catIndex >= 0 ? CHART_COLORS[catIndex % CHART_COLORS.length] : 'var(--color-border)'
           const catEmoji = budget.find(c => c.name === entry.category)?.emoji || '💸'
           const paidByName = travelers.find(t => t.id === entry.paidBy)?.name?.split(' ')[0]
           const dateLabel = formatDate(entry.date)
@@ -505,7 +502,6 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-semibold text-text-primary truncate">{entry.description}</p>
-                  <p className="text-[11px] text-text-muted mt-0.5">{dateLabel}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-[14px] font-mono font-bold text-text-primary tabular-nums">
@@ -519,15 +515,16 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-3 text-[11px] text-text-secondary pt-2 border-t border-border/20">
-                <span className="flex items-center gap-1">
+              <div className="flex items-center gap-2 pt-2 border-t border-border/20">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-pill)] text-[11px] font-medium border border-border bg-bg-secondary text-text-secondary">
                   <span>{catEmoji}</span>
-                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: dotColor }} />
                   {entry.category}
                 </span>
+                <span className="flex-1" />
+                <span className="text-[11px] text-text-muted">{dateLabel}</span>
                 {showPaidBy && entry.paidBy && (
-                  <div className="flex items-center gap-1.5 text-text-muted ml-auto">
-                    <AvatarCircle profile={travelers.find(t => t.id === entry.paidBy)} size={14} />
+                  <div className="flex items-center gap-1 text-text-muted">
+                    <AvatarCircle profile={travelers.find(t => t.id === entry.paidBy)} size={16} />
                     <span className="text-[11px] text-text-secondary">{paidByName}</span>
                   </div>
                 )}
@@ -538,7 +535,8 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
       </div>
 
       {/* ── Desktop table view ── */}
-      <div className="hidden md:block overflow-x-auto">
+      <Card className="hidden md:block border-border bg-bg-card overflow-hidden">
+      <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
              <tr className="border-b border-border/50">
@@ -715,7 +713,8 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
           </tbody>
         </table>
       </div>
-    </Card>
+      </Card>
+    </>
   )
 }
 

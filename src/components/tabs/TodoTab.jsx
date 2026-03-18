@@ -239,24 +239,24 @@ function AssigneePill({ value, onChange, tripTravelers, resolveProfile, currentU
     const p = resolveProfile(value)
     if (p) {
       displayNode = (
-        <div className="flex items-center gap-1.5">
-          <AvatarCircle profile={p} size={22} />
+        <div className="flex items-center gap-1">
+          <AvatarCircle profile={p} size={16} />
           <span className="text-[12px] text-text-secondary truncate max-w-[65px]">{p.name?.split(' ')[0]}</span>
         </div>
       )
       displayName = p.name
     } else {
       displayNode = (
-        <div className="w-[22px] h-[22px] flex items-center justify-center rounded-full border border-dashed border-border text-text-muted shrink-0 bg-transparent hover:bg-bg-hover transition-colors">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+        <div className="w-[16px] h-[16px] flex items-center justify-center rounded-full border border-dashed border-border text-text-muted shrink-0 bg-transparent hover:bg-bg-hover transition-colors">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
         </div>
       )
       displayName = 'Unassigned'
     }
   } else {
     displayNode = (
-      <div className="w-[22px] h-[22px] flex items-center justify-center rounded-full border border-dashed border-border text-text-muted shrink-0 bg-transparent hover:bg-bg-hover transition-colors">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+      <div className="w-[16px] h-[16px] flex items-center justify-center rounded-full border border-dashed border-border text-text-muted shrink-0 bg-transparent hover:bg-bg-hover transition-colors">
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
       </div>
     )
     displayName = 'Unassigned'
@@ -359,26 +359,22 @@ function TodoMobileCard({ todo, onDelete, onClick, resolveProfile, tripTravelers
         </div>
       </div>
 
-      {/* FOOTER — due date + assignee (only if present) */}
-      {(todo.dueDate || todo.assigneeId) && (
-        <div className="flex items-center justify-between pt-2 border-t border-border/20" onClick={e => e.stopPropagation()}>
-          {todo.dueDate ? (
-            <span className={`text-[11px] ${pastDue ? 'text-danger font-medium' : 'text-text-muted'}`}>
-              {formatDate(todo.dueDate)}
-            </span>
-          ) : <span />}
-          {todo.assigneeId && (
-            <AssigneePill
-              value={todo.assigneeId}
-              onChange={(v) => onUpdate({ assigneeId: v })}
-              tripTravelers={tripTravelers}
-              resolveProfile={resolveProfile}
-              currentUserProfile={currentUserProfile}
-              disabled={isReadOnly}
-            />
-          )}
-        </div>
-      )}
+      {/* FOOTER — due date + assignee */}
+      <div className="flex items-center justify-between pt-2 border-t border-border/20" onClick={e => e.stopPropagation()}>
+        {todo.dueDate ? (
+          <span className={`text-[11px] ${pastDue ? 'text-danger font-medium' : 'text-text-muted'}`}>
+            {formatDate(todo.dueDate)}
+          </span>
+        ) : <span />}
+        <AssigneePill
+          value={todo.assigneeId}
+          onChange={(v) => onUpdate({ assigneeId: v })}
+          tripTravelers={tripTravelers}
+          resolveProfile={resolveProfile}
+          currentUserProfile={currentUserProfile}
+          disabled={isReadOnly}
+        />
+      </div>
     </div>
   )
 }
