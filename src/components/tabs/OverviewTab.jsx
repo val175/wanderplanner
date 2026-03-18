@@ -163,7 +163,7 @@ function QuickItineraryCell({ trip, status, onTabSwitch }) {
             <h3 className="font-heading text-lg font-bold text-text-primary mt-1 text-balance">First 48 Hours</h3>
 
           </div>
-          <Button variant="ghost" size="sm" onClick={() => onTabSwitch?.('itinerary')}>
+          <Button variant="secondary" size="sm" onClick={() => onTabSwitch?.('itinerary')}>
             View Full Itinerary →
           </Button>
         </div>
@@ -239,7 +239,7 @@ function DestinationsCell({ trip, onTabSwitch }) {
     <Card padding="p-0" className="overflow-hidden">
       <div className="px-4 py-3 flex items-center justify-between">
         <Label>DESTINATIONS</Label>
-        <Button variant="ghost" size="sm" onClick={() => onTabSwitch?.('wandermap')}>View Map →</Button>
+        <Button variant="secondary" size="sm" onClick={() => onTabSwitch?.('wandermap')}>View Map →</Button>
       </div>
       {dests.length === 0 ? (
         <div className="px-4 pb-4">
