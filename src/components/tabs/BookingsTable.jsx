@@ -225,73 +225,51 @@ export default function BookingsTable({
             <div className="flex flex-col gap-3 pb-6">
                 {data.map(booking => {
                     const categoryConfig = BOOKING_CATEGORIES.find(c => c.id === booking.category) || BOOKING_CATEGORIES[0]
+                    const status = MONDAY_STATUSES.find(s => s.value === migrateStatus(booking.status)) || MONDAY_STATUSES[0]
                     return (
-                        <Card key={booking.id} className="p-3 border border-border flex flex-col gap-3 relative cursor-pointer" onClick={() => onRowClick?.(booking)}>
-                            <div className="absolute top-3 right-3 flex items-center gap-2">
-                                <StatusPill
-                                    value={migrateStatus(booking.status)}
-                                    onChange={val => onUpdate(booking.id, { status: val })}
+                        <Card key={booking.id} className="p-3 border border-border cursor-pointer" onClick={() => onRowClick?.(booking)}>
+                            {/* HEADER */}
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                    <span className="text-xl shrink-0">{categoryConfig.emoji}</span>
+                                    <p className="font-semibold text-[13px] text-text-primary truncate">{booking.name || 'Untitled'}</p>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
+                                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${status.colors}`}>
+                                        {status.label}
+                                    </span>
+                                    {!isReadOnly && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); triggerHaptic('medium'); onDelete(booking.id) }}
+                                            className="p-1 text-text-muted hover:text-danger transition-colors"
+                                            title="Delete booking"
+                                        >
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* FOOTER — date (left) + cost (right) */}
+                            <div className="flex items-center justify-between pt-2 border-t border-border/20" onClick={e => e.stopPropagation()}>
+                                <DatePicker
+                                    value={booking.bookByDate || booking.startDate || ''}
+                                    onChange={val => onUpdate(booking.id, { bookByDate: val })}
+                                    className="text-[11px] text-text-muted cursor-pointer"
+                                    placeholder="Set date..."
                                 />
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        triggerHaptic('medium')
-                                        onDelete(booking.id)
-                                    }}
-                                    className="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded-full transition-colors"
-                                >
-                                    ×
-                                </button>
-                            </div>
-
-                            <div className="flex items-start gap-2 pr-28">
-                                <span className="text-2xl leading-none">{categoryConfig.emoji}</span>
-                                <div className="flex-1 min-w-0 flex flex-col gap-1">
-                                    <EditableText
-                                        value={booking.name}
-                                        onSave={val => onUpdate(booking.id, { name: val })}
-                                        className="text-sm font-semibold text-text-primary"
-                                        inputClassName="w-full font-semibold"
-                                        onClick={e => e.stopPropagation()}
-                                        placeholder="Booking name"
-                                    />
-                                    <TypeDropdown
-                                        value={booking.category}
-                                        onChange={val => onUpdate(booking.id, { category: val })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-2 mt-1 pt-2 border-t border-border/30">
-                                <div>
-                                    <span className="text-xs font-semibold uppercase tracking-wider text-text-muted block mb-0.5">Date</span>
-                                    <div onClick={e => e.stopPropagation()}>
-                                        <DatePicker
-                                            value={booking.bookByDate || booking.startDate || ''}
-                                            onChange={val => onUpdate(booking.id, { bookByDate: val })}
-                                            className="text-text-secondary text-[13px] block cursor-pointer"
-                                            placeholder="Set date..."
-                                        />
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <span className="text-xs font-semibold uppercase tracking-wider text-text-muted block mb-0.5">Cost</span>
-                                    <div onClick={e => e.stopPropagation()}>
-                                        <EditableText
-                                            value={booking.amountPaid ? String(booking.amountPaid) : ''}
-                                            displayValue={booking.amountPaid ? formatCurrency(booking.amountPaid, currency) : undefined}
-                                            onSave={newVal => onUpdate(booking.id, { amountPaid: Number(newVal) || 0 })}
-                                            className="text-text-primary text-[13px] font-medium tabular-nums text-right block w-full"
-                                            inputClassName="w-full text-right"
-                                            placeholder={formatCurrency(0, currency)}
-                                        />
-                                    </div>
-                                </div>
+                                <EditableText
+                                    value={booking.amountPaid ? String(booking.amountPaid) : ''}
+                                    displayValue={booking.amountPaid ? formatCurrency(booking.amountPaid, currency) : undefined}
+                                    onSave={newVal => onUpdate(booking.id, { amountPaid: Number(newVal) || 0 })}
+                                    className="text-[13px] font-mono font-semibold tabular-nums text-text-primary text-right"
+                                    inputClassName="w-full text-right"
+                                    placeholder={formatCurrency(0, currency)}
+                                />
                             </div>
                         </Card>
                     )
                 })}
-
             </div>
         )
     }

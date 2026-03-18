@@ -247,6 +247,70 @@ function IdeaTableRow({ idea, resolveProfile, onDelete, onUpdate, isSelectable, 
     )
 }
 
+// ── Idea Mobile Card ──
+function IdeaMobileCard({ idea, resolveProfile, onDelete, isSelectable, isSelected, onSelect }) {
+    const [imgError, setImgError] = useState(false)
+    const proposer = resolveProfile(idea.proposerId)
+    const date = idea.createdAt ? formatDate(idea.createdAt) : '—'
+    const isBooked = idea.status === 'booked'
+
+    return (
+        <div
+            className={`bg-bg-card border p-3 rounded-[var(--radius-md)] transition-all
+                ${isSelected ? 'border-accent bg-accent/5 ring-2 ring-accent/20' : 'border-border'}
+                ${isBooked ? 'opacity-40 grayscale' : ''}
+                ${isSelectable && !isBooked ? 'cursor-pointer' : ''}`}
+            onClick={isSelectable && !isBooked ? () => onSelect(idea) : undefined}
+        >
+            {/* HEADER */}
+            <div className="flex items-start gap-3 mb-2">
+                {/* Thumbnail */}
+                <div className="w-10 h-10 rounded-lg overflow-hidden bg-bg-secondary flex items-center justify-center shrink-0">
+                    {idea.imageUrl && !imgError
+                        ? <img src={idea.imageUrl} alt="" className="w-full h-full object-cover" loading="lazy" onError={() => setImgError(true)} />
+                        : <span className="text-xl">{idea.emoji || '✨'}</span>}
+                </div>
+
+                {/* Title + description + price + delete */}
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                            <p className="font-semibold text-[13px] text-text-primary truncate">{idea.title}</p>
+                            {idea.description && <p className="text-[11px] text-text-muted mt-0.5 truncate">{idea.description}</p>}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                            {idea.priceDetails && (
+                                <span className="text-[13px] font-semibold text-text-primary">{idea.priceDetails}</span>
+                            )}
+                            {!isBooked && onDelete && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onDelete(idea.id) }}
+                                    className="p-1 text-text-muted hover:text-danger transition-colors"
+                                    title="Delete"
+                                >
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* FOOTER — category + proposer + date */}
+            <div className="flex items-center gap-3 text-[11px] text-text-secondary pt-2 border-t border-border/20">
+                <CategoryPill type={idea.type || 'other'} />
+                {proposer && (
+                    <div className="flex items-center gap-1 text-text-muted">
+                        <AvatarCircle profile={proposer} size={14} />
+                        <span>{proposer.name?.split(' ')[0]}</span>
+                    </div>
+                )}
+                <span className="ml-auto text-text-muted">{date}</span>
+            </div>
+        </div>
+    )
+}
+
 // ── Idea Table View ──
 function IdeaTableView({ ideas, resolveProfile, onDelete, onUpdate, isSelectable, selectedIdeaIds, onSelect, isExtracting, onSelectAll }) {
     const [sortCol, setSortCol] = useState('date')
@@ -291,65 +355,86 @@ function IdeaTableView({ ideas, resolveProfile, onDelete, onUpdate, isSelectable
     const sortable = "cursor-pointer hover:text-text-primary transition-colors"
 
     return (
-        <Card className="rounded-[var(--radius-lg)] overflow-hidden animate-fade-in">
-            <div className="w-full overflow-x-auto">
-            <table className="w-full text-left border-collapse table-fixed min-w-[900px] text-sm">
-                <thead>
-                    <tr className="border-b border-border/50">
-                        <th className="px-2 py-2 w-10">
-                            {isSelectable && (
-                                <input
-                                    type="checkbox"
-                                    checked={allSelected}
-                                    onChange={() => onSelectAll(ideas, allSelected)}
-                                    className="w-4 h-4 accent-[var(--color-accent)] cursor-pointer"
-                                />
-                            )}
-                        </th>
-                        <th className="px-2 py-2 w-12" />
-                        <th className={`${thClass} ${sortable}`} onClick={() => toggleSort('name')}>
-                            <div className="flex items-center gap-1">NAME <SortIcon col="name" /></div>
-                        </th>
-                        <th className={`${thClass} ${sortable}`} onClick={() => toggleSort('category')}>
-                            <div className="flex items-center gap-1">CATEGORY <SortIcon col="category" /></div>
-                        </th>
-                        <th className={`${thClass} ${sortable}`} onClick={() => toggleSort('cost')}>
-                            <div className="flex items-center gap-1">EST. COST <SortIcon col="cost" /></div>
-                        </th>
-                        <th className={`${thClass}`}>ADDED BY</th>
-                        <th className={`${thClass} ${sortable}`} onClick={() => toggleSort('date')}>
-                            <div className="flex items-center gap-1">DATE <SortIcon col="date" /></div>
-                        </th>
-                        <th className="px-2 py-2 w-[80px]" />
-                    </tr>
-                </thead>
-                <tbody>
-                    {isExtracting && (
-                        <tr className="border-b border-border/50 animate-pulse">
-                            <td colSpan={8} className="py-3 px-4">
-                                <div className="h-4 bg-bg-secondary rounded w-2/3" />
-                            </td>
-                        </tr>
-                    )}
-                    {sorted.map(idea => (
-                        <IdeaTableRow
-                            key={idea.id}
-                            idea={idea}
-                            resolveProfile={resolveProfile}
-                            onDelete={onDelete}
-                            onUpdate={onUpdate}
-                            isSelectable={isSelectable}
-                            isSelected={selectedIdeaIds.has(idea.id)}
-                            onSelect={onSelect}
-                        />
-                    ))}
-                    {sorted.length === 0 && !isExtracting && (
-                        <tr><td colSpan={8} className="py-12 text-center text-text-muted text-sm">No ideas match this filter.</td></tr>
-                    )}
-                </tbody>
-            </table>
+        <div>
+            {/* Mobile card view */}
+            <div className="flex flex-col gap-3 md:hidden">
+                {sorted.map(idea => (
+                    <IdeaMobileCard
+                        key={idea.id}
+                        idea={idea}
+                        resolveProfile={resolveProfile}
+                        onDelete={onDelete}
+                        isSelectable={isSelectable}
+                        isSelected={selectedIdeaIds.has(idea.id)}
+                        onSelect={onSelect}
+                    />
+                ))}
+                {sorted.length === 0 && !isExtracting && (
+                    <p className="py-8 text-center text-text-muted text-sm">No ideas match this filter.</p>
+                )}
             </div>
-        </Card>
+
+            {/* Desktop table view */}
+            <Card className="hidden md:block rounded-[var(--radius-lg)] overflow-hidden animate-fade-in">
+                <div className="w-full overflow-x-auto">
+                <table className="w-full text-left border-collapse table-fixed min-w-[900px] text-sm">
+                    <thead>
+                        <tr className="border-b border-border/50">
+                            <th className="px-2 py-2 w-10">
+                                {isSelectable && (
+                                    <input
+                                        type="checkbox"
+                                        checked={allSelected}
+                                        onChange={() => onSelectAll(ideas, allSelected)}
+                                        className="w-4 h-4 accent-[var(--color-accent)] cursor-pointer"
+                                    />
+                                )}
+                            </th>
+                            <th className="px-2 py-2 w-12" />
+                            <th className={`${thClass} ${sortable}`} onClick={() => toggleSort('name')}>
+                                <div className="flex items-center gap-1">NAME <SortIcon col="name" /></div>
+                            </th>
+                            <th className={`${thClass} ${sortable}`} onClick={() => toggleSort('category')}>
+                                <div className="flex items-center gap-1">CATEGORY <SortIcon col="category" /></div>
+                            </th>
+                            <th className={`${thClass} ${sortable}`} onClick={() => toggleSort('cost')}>
+                                <div className="flex items-center gap-1">EST. COST <SortIcon col="cost" /></div>
+                            </th>
+                            <th className={`${thClass}`}>ADDED BY</th>
+                            <th className={`${thClass} ${sortable}`} onClick={() => toggleSort('date')}>
+                                <div className="flex items-center gap-1">DATE <SortIcon col="date" /></div>
+                            </th>
+                            <th className="px-2 py-2 w-[80px]" />
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {isExtracting && (
+                            <tr className="border-b border-border/50 animate-pulse">
+                                <td colSpan={8} className="py-3 px-4">
+                                    <div className="h-4 bg-bg-secondary rounded w-2/3" />
+                                </td>
+                            </tr>
+                        )}
+                        {sorted.map(idea => (
+                            <IdeaTableRow
+                                key={idea.id}
+                                idea={idea}
+                                resolveProfile={resolveProfile}
+                                onDelete={onDelete}
+                                onUpdate={onUpdate}
+                                isSelectable={isSelectable}
+                                isSelected={selectedIdeaIds.has(idea.id)}
+                                onSelect={onSelect}
+                            />
+                        ))}
+                        {sorted.length === 0 && !isExtracting && (
+                            <tr><td colSpan={8} className="py-12 text-center text-text-muted text-sm">No ideas match this filter.</td></tr>
+                        )}
+                    </tbody>
+                </table>
+                </div>
+            </Card>
+        </div>
     )
 }
 

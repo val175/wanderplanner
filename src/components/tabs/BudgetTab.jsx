@@ -526,13 +526,9 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                   {entry.category}
                 </span>
                 {showPaidBy && entry.paidBy && (
-                  <div className="flex items-center gap-1.5 text-text-muted">
-                    <span>·</span>
-                    <span className="text-[11px]">Payer</span>
-                    <div className="flex items-center gap-1 bg-bg-secondary/50 px-1.5 py-0.5 rounded-full border border-border/50">
-                      <AvatarCircle profile={travelers.find(t => t.id === entry.paidBy)} size={14} />
-                      <span className="text-[10px] text-text-secondary font-medium">{paidByName}</span>
-                    </div>
+                  <div className="flex items-center gap-1.5 text-text-muted ml-auto">
+                    <AvatarCircle profile={travelers.find(t => t.id === entry.paidBy)} size={14} />
+                    <span className="text-[11px] text-text-secondary">{paidByName}</span>
                   </div>
                 )}
               </div>

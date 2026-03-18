@@ -328,6 +328,61 @@ function getDeepLinkTarget(text) {
   return null
 }
 
+// ── Todo Mobile Card ──
+function TodoMobileCard({ todo, onDelete, onClick, resolveProfile, tripTravelers, currentUserProfile, isReadOnly, onUpdate }) {
+  const status = getTodoStatus(todo)
+  const pastDue = status !== 'done' && isPastDue(todo.dueDate)
+
+  return (
+    <div
+      onClick={onClick}
+      className={`bg-bg-card border border-border p-3 rounded-[var(--radius-md)] cursor-pointer transition-all
+        ${status === 'done' ? 'opacity-60' : ''}`}
+    >
+      {/* HEADER */}
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <span className={`text-[13px] font-semibold flex-1 leading-snug
+          ${status === 'done' ? 'line-through text-text-muted' : 'text-text-primary'}`}>
+          {todo.text}
+        </span>
+        <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
+          <TodoStatusBadge value={status} />
+          {!isReadOnly && (
+            <button
+              onClick={(e) => { e.stopPropagation(); triggerHaptic('medium'); onDelete() }}
+              className="p-1 text-text-muted hover:text-danger transition-colors"
+              title="Delete task"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* FOOTER — due date + assignee (only if present) */}
+      {(todo.dueDate || todo.assigneeId) && (
+        <div className="flex items-center justify-between pt-2 border-t border-border/20" onClick={e => e.stopPropagation()}>
+          {todo.dueDate ? (
+            <span className={`text-[11px] ${pastDue ? 'text-danger font-medium' : 'text-text-muted'}`}>
+              {formatDate(todo.dueDate)}
+            </span>
+          ) : <span />}
+          {todo.assigneeId && (
+            <AssigneePill
+              value={todo.assigneeId}
+              onChange={(v) => onUpdate({ assigneeId: v })}
+              tripTravelers={tripTravelers}
+              resolveProfile={resolveProfile}
+              currentUserProfile={currentUserProfile}
+              disabled={isReadOnly}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function SortableTodoItem(props) {
   const {
     attributes,
@@ -906,53 +961,87 @@ export default function TodoTab() {
           </DragOverlay>
         </DndContext>
       ) : (
-        <Card className="overflow-hidden border border-border">
-          <div className="overflow-x-auto">
-            <div className="min-w-[900px]">
-              <div className="flex items-center gap-2 px-0 py-2 border-b border-border/40 bg-bg-secondary/10">
-                <div className="flex-1 px-2 text-xs font-semibold uppercase tracking-wider text-text-muted">TASK</div>
-                <div className="w-[140px] shrink-0 text-xs font-semibold uppercase tracking-wider text-text-muted text-left">STATUS</div>
-                <div className="w-[140px] text-left px-2 text-xs font-semibold uppercase tracking-wider text-text-muted">DUE DATE</div>
-                <div className="w-[100px] shrink-0 text-center text-xs font-semibold uppercase tracking-wider text-text-muted">ASSIGNED</div>
-                {!isReadOnly && <div className="w-[60px]"></div>}
-              </div>
+        <>
+          {/* Mobile card view */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {filteredTodos.length === 0 ? (
+              <EmptyState
+                emoji="✅"
+                title="No tasks yet."
+                subtitle="Add your first to-do above."
+                action={
+                  <Button variant="secondary" size="sm" onClick={handleGenerateChecklist} disabled={isGenerating}>
+                    {isGenerating ? 'Generating...' : '🪄 Generate with Wanda'}
+                  </Button>
+                }
+                compact
+              />
+            ) : (
+              filteredTodos.map(todo => (
+                <TodoMobileCard
+                  key={todo.id}
+                  todo={todo}
+                  onClick={() => handleTodoClick(todo.id)}
+                  onDelete={() => dispatch({ type: ACTIONS.DELETE_TODO, payload: todo.id })}
+                  onUpdate={(updates) => dispatch({ type: ACTIONS.UPDATE_TODO, payload: { id: todo.id, updates } })}
+                  resolveProfile={resolveProfile}
+                  tripTravelers={tripTravelers}
+                  currentUserProfile={currentUserProfile}
+                  isReadOnly={isReadOnly}
+                />
+              ))
+            )}
+          </div>
 
-              <div className="divide-y divide-border/30 h-full flex flex-col">
-                {filteredTodos.length === 0 ? (
-                  <EmptyState
-                    emoji="✅"
-                    title="No tasks yet."
-                    subtitle="Add your first to-do above."
-                    action={
-                      <Button variant="secondary" size="sm" onClick={handleGenerateChecklist} disabled={isGenerating}>
-                        {isGenerating ? 'Generating...' : '🪄 Generate with Wanda'}
-                      </Button>
-                    }
-                    compact
-                  />
-                ) : (
-                  filteredTodos.map(todo => (
-                    <TodoItem
-                      key={todo.id}
-                      todo={todo}
-                      onClick={() => handleTodoClick(todo.id)}
-                      onToggle={() => handleToggle(todo.id)}
-                      onStatusChange={(next) => handleStatusChange(todo.id, next)}
-                      onUpdate={(updates) => dispatch({ type: ACTIONS.UPDATE_TODO, payload: { id: todo.id, updates } })}
-                      onDelete={() => dispatch({ type: ACTIONS.DELETE_TODO, payload: todo.id })}
-                      onDeepLink={handleDeepLink}
-                      resolveProfile={resolveProfile}
-                      tripTravelers={tripTravelers}
-                      currentUserProfile={currentUserProfile}
-                      isReadOnly={isReadOnly}
-                      canDrag={false}
+          {/* Desktop table view */}
+          <Card className="hidden md:block overflow-hidden border border-border">
+            <div className="overflow-x-auto">
+              <div className="min-w-[900px]">
+                <div className="flex items-center gap-2 px-0 py-2 border-b border-border/40 bg-bg-secondary/10">
+                  <div className="flex-1 px-2 text-xs font-semibold uppercase tracking-wider text-text-muted">TASK</div>
+                  <div className="w-[140px] shrink-0 text-xs font-semibold uppercase tracking-wider text-text-muted text-left">STATUS</div>
+                  <div className="w-[140px] text-left px-2 text-xs font-semibold uppercase tracking-wider text-text-muted">DUE DATE</div>
+                  <div className="w-[100px] shrink-0 text-center text-xs font-semibold uppercase tracking-wider text-text-muted">ASSIGNED</div>
+                  {!isReadOnly && <div className="w-[60px]"></div>}
+                </div>
+
+                <div className="divide-y divide-border/30 h-full flex flex-col">
+                  {filteredTodos.length === 0 ? (
+                    <EmptyState
+                      emoji="✅"
+                      title="No tasks yet."
+                      subtitle="Add your first to-do above."
+                      action={
+                        <Button variant="secondary" size="sm" onClick={handleGenerateChecklist} disabled={isGenerating}>
+                          {isGenerating ? 'Generating...' : '🪄 Generate with Wanda'}
+                        </Button>
+                      }
+                      compact
                     />
-                  ))
-                )}
+                  ) : (
+                    filteredTodos.map(todo => (
+                      <TodoItem
+                        key={todo.id}
+                        todo={todo}
+                        onClick={() => handleTodoClick(todo.id)}
+                        onToggle={() => handleToggle(todo.id)}
+                        onStatusChange={(next) => handleStatusChange(todo.id, next)}
+                        onUpdate={(updates) => dispatch({ type: ACTIONS.UPDATE_TODO, payload: { id: todo.id, updates } })}
+                        onDelete={() => dispatch({ type: ACTIONS.DELETE_TODO, payload: todo.id })}
+                        onDeepLink={handleDeepLink}
+                        resolveProfile={resolveProfile}
+                        tripTravelers={tripTravelers}
+                        currentUserProfile={currentUserProfile}
+                        isReadOnly={isReadOnly}
+                        canDrag={false}
+                      />
+                    ))
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        </>
       )}
 
       <AddTodoModal

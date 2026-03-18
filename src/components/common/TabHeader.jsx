@@ -17,9 +17,9 @@ export default function TabHeader({ leftSlot, rightSlot }) {
 
   return (
     <div className={`
-      flex items-center justify-between gap-2
+      flex items-start justify-between gap-2 overflow-hidden
       md:sticky md:top-[-20px] lg:top-[-28px] md:z-10 md:-mx-8 md:px-8 md:py-3 md:mb-5
-      md:border-b md:transition-colors md:duration-300
+      md:border-b md:transition-colors md:duration-300 md:items-center
       ${isScrolled
         ? 'md:bg-bg-primary/95 md:backdrop-blur-sm md:border-border'
         : 'md:bg-transparent md:border-transparent pb-3 mb-4'

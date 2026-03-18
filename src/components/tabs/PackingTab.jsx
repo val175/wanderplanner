@@ -185,7 +185,7 @@ function CategoryPill({ value, onChange, disabled }) {
           className={`inline-flex items-center justify-center gap-1 min-h-[36px] sm:min-h-0 px-3 sm:px-2 py-1 sm:py-0.5 rounded-[var(--radius-pill)] text-xs font-medium border border-border bg-bg-secondary text-text-secondary transition-colors ${disabled ? 'cursor-default' : 'hover:bg-bg-hover'}`}
         >
           <span className="text-lg sm:text-base">{cat.emoji}</span>
-          <span className="hidden sm:inline">{cat.label}</span>
+          <span>{cat.label}</span>
         </button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
@@ -735,27 +735,29 @@ export default function PackingTab() {
                   {item.notes && (
                     <p className="text-xs text-text-muted mt-0.5 truncate">{item.notes}</p>
                   )}
-                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <div className="flex items-center justify-between gap-2 mt-2">
                     <CategoryPill
                       value={item.category || 'misc'}
                       onChange={val => onUpdate(item.id, { category: val })}
                       disabled={isReadOnly}
                     />
-                    <QtyStepper
-                      value={item.qty || 1}
-                      onChange={val => onUpdate(item.id, { qty: val })}
-                      disabled={isReadOnly}
-                    />
-                    <AssigneePill
-                      value={item.assignee}
-                      packedBy={item.packedBy}
-                      isPacked={item.packed}
-                      onChange={val => onUpdate(item.id, { assignee: val })}
-                      tripTravelers={travelerIds}
-                      resolveProfile={resolveProfile}
-                      currentUserProfile={currentUserProfile}
-                      disabled={isReadOnly}
-                    />
+                    <div className="flex items-center gap-2">
+                      <QtyStepper
+                        value={item.qty || 1}
+                        onChange={val => onUpdate(item.id, { qty: val })}
+                        disabled={isReadOnly}
+                      />
+                      <AssigneePill
+                        value={item.assignee}
+                        packedBy={item.packedBy}
+                        isPacked={item.packed}
+                        onChange={val => onUpdate(item.id, { assignee: val })}
+                        tripTravelers={travelerIds}
+                        resolveProfile={resolveProfile}
+                        currentUserProfile={currentUserProfile}
+                        disabled={isReadOnly}
+                      />
+                    </div>
                   </div>
                 </div>
                 {!isReadOnly && (
