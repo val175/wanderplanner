@@ -48,7 +48,7 @@ function extractMessageText(message) {
 ───────────────────────────────────────────────────────────── */
 function TodayAtAGlance({ trip }) {
   const today = new Date().toISOString().slice(0, 10)
-  const currentDayNumber = daysBetween(trip.startDate, today) + 1
+  const currentDayNumber = daysBetween(trip.startDate, today)
   const todayDay = trip.itinerary?.find(d => d.dayNumber === currentDayNumber)
 
   const cacheKey = `wanda_summary_${trip.id}_${today}`
