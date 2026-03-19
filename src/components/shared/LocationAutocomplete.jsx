@@ -40,7 +40,7 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
                     q: query,
                     access_token: mapboxToken,
                     limit: '10',
-                    types: 'poi,address',
+                    types: 'place,locality,neighborhood,address,poi',
                     proximity: proximity || 'ip'
                 })
                 
