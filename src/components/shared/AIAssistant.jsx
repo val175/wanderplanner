@@ -11,6 +11,7 @@ import { generateId } from '../../utils/helpers';
 import { ACTIONS } from '../../state/tripReducer';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { hapticSelection } from '../../utils/haptics';
+import { buildTripCountryCodes } from '../../utils/tripGeo';
 
 let _systemPromptRef = buildTripSystemPrompt(null);
 
@@ -105,6 +106,36 @@ export default function AIAssistant() {
   const sendMessageRef = useRef(null);
 
   const { state, activeTrip, dispatch, showToast } = useContext(TripContext);
+  const tripCountryCodes = buildTripCountryCodes(activeTrip)
+  const tripCityHint = activeTrip?.cities?.map(c => c?.city).filter(Boolean).join(', ') || ''
+
+  const resolveWandaLocation = async (query, cityHint = '') => {
+    if (!query || !auth.currentUser) return null
+
+    try {
+      const token = await auth.currentUser.getIdToken()
+      const res = await fetch('https://wanderplan-rust.vercel.app/api/resolve-location', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+        body: JSON.stringify({
+          query,
+          cityHint,
+          countryCodes: tripCountryCodes,
+        }),
+      })
+
+      if (!res.ok) return null
+      const locationData = await res.json()
+      if (!locationData?.coordinates?.lat || !locationData?.coordinates?.lng) return null
+      return locationData
+    } catch (error) {
+      console.warn('[Wanda] Location grounding failed:', error?.message || error)
+      return null
+    }
+  }
 
   useEffect(() => {
     _systemPromptRef = buildTripSystemPrompt(activeTrip);
@@ -259,20 +290,27 @@ export default function AIAssistant() {
   // Tool-specific wrappers (PackingPill, VotingPill) map inv.input → these props.
   const ActionPill = ({ inv, toolName, emoji, label, onConfirm, onUndo, toastLabel }) => {
     const [localDone, setLocalDone] = useState(false)
+    const [isWorking, setIsWorking] = useState(false)
     const done = localDone || inv.state === 'output-available'
     if (!label) return null
 
-    const canAct = !!activeTrip && !done
+    const canAct = !!activeTrip && !done && !isWorking
 
-    const handleClick = () => {
+    const handleClick = async () => {
       if (!canAct) return
       const newId = generateId()
-      onConfirm(newId)
-      try { addToolResult({ tool: toolName, toolCallId: inv.toolCallId, output: 'added' }) } catch { }
-      showToast(`${emoji || '🪄'} ${label} ${toastLabel}`, {
-        undo: () => onUndo(newId),
-      })
-      setLocalDone(true)
+      setIsWorking(true)
+      try {
+        await onConfirm(newId)
+        try { addToolResult({ tool: toolName, toolCallId: inv.toolCallId, output: 'added' }) } catch { }
+        showToast(`${emoji || '🪄'} ${label} ${toastLabel}`)
+        setLocalDone(true)
+      } catch (error) {
+        console.warn('[Wanda] Failed to add grounded tool output:', error)
+        showToast(`Couldn't add ${label} right now`, 'error')
+      } finally {
+        setIsWorking(false)
+      }
     }
 
     return (
@@ -321,21 +359,25 @@ export default function AIAssistant() {
         toolName="add_idea_to_voting_room"
         emoji={emoji || '💡'}
         label={title}
-        onConfirm={newId => dispatch({
-          type: ACTIONS.ADD_IDEA,
-          payload: {
-            id: newId,
-            title,
-            type: type || 'other',
-            description: description || '',
-            emoji: emoji || '🪄',
-            priceDetails: priceDetails || 'TBD',
-            sourceName: 'Wanda AI',
-            proposerId: auth.currentUser?.uid || null,
-            url: null,
-            imageUrl: null,
-          },
-        })}
+        onConfirm={async newId => {
+          const location = await resolveWandaLocation(title, tripCityHint)
+          dispatch({
+            type: ACTIONS.ADD_IDEA,
+            payload: {
+              id: newId,
+              title,
+              type: type || 'other',
+              description: description || '',
+              emoji: emoji || '🪄',
+              priceDetails: priceDetails || 'TBD',
+              sourceName: 'Wanda AI',
+              proposerId: auth.currentUser?.uid || null,
+              url: null,
+              imageUrl: null,
+              location: location || null,
+            },
+          })
+        }}
         onUndo={newId => dispatch({ type: ACTIONS.DELETE_IDEA, payload: newId })}
         toastLabel="added to voting room"
       />
@@ -349,9 +391,17 @@ export default function AIAssistant() {
     const done = localDone || inv.state === 'output-available'
     if (!activities.length) return null
     const canAct = !!activeTrip && !done
-    const handleClick = () => {
+    const handleClick = async () => {
       if (!canAct) return
-      dispatch({ type: ACTIONS.BATCH_ADD_ACTIVITIES, payload: { dayNumber, location, activities } })
+      const groundedActivities = await Promise.all(activities.map(async (activity) => {
+        const groundedLocation = await resolveWandaLocation(activity.name, location || tripCityHint)
+        return {
+          ...activity,
+          location: groundedLocation || activity.location || '',
+        }
+      }))
+
+      dispatch({ type: ACTIONS.BATCH_ADD_ACTIVITIES, payload: { dayNumber, location, activities: groundedActivities } })
       try { addToolResult({ tool: 'generate_day_itinerary', toolCallId: inv.toolCallId, output: 'added' }) } catch { }
       showToast(`🗓️ Day ${dayNumber} plan added — ${activities.length} activities`)
       setLocalDone(true)

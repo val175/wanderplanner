@@ -3,6 +3,7 @@ import { useState, useCallback } from 'react'
 import { auth } from '../firebase/config'
 import { useTripContext } from '../context/TripContext'
 import { ACTIONS } from '../state/tripReducer'
+import { buildTripCountryCodes } from '../utils/tripGeo'
 
 const VERCEL_API = 'https://wanderplan-rust.vercel.app'
 
@@ -34,10 +35,7 @@ export function useSmartLocation() {
                 body: JSON.stringify({
                     query,
                     cityHint,
-                    countryCodes: [...new Set([
-                        ...(activeTrip?.cities || []),
-                        ...(activeTrip?.destinations || []),
-                    ].map(entry => (entry?.iso || entry?.countryCode || entry?.country || '').toString().trim().toUpperCase()).filter(Boolean))],
+                    countryCodes: buildTripCountryCodes(activeTrip),
                 }),
             })
 
