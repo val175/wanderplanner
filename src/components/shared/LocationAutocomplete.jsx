@@ -31,6 +31,11 @@ function debugLocationError(...args) {
     console.error('[LocationAutocomplete]', ...args)
 }
 
+function devLocationLog(...args) {
+    if (import.meta.env.PROD) return
+    console.log('[LocationAutocomplete]', ...args)
+}
+
 const COUNTRY_CODE_LOOKUP = new Map(
     CITY_DB.map(entry => [entry.country.trim().toLowerCase(), entry.iso])
 )
@@ -160,6 +165,10 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
                         params.set('country', countryFilter)
                     }
                     const requestUrl = `${endpoint}?${params.toString()}`
+                    devLocationLog('Country scope', {
+                        tripCountryCodes,
+                        countryFilter: countryFilter || null,
+                    })
                     debugLocation('Fetching suggestions', {
                         attempt: index + 1,
                         query,
