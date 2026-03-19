@@ -53,6 +53,8 @@ const WANDA_TOOLS = {
             'Generate a full day itinerary plan for one trip day.',
             'Call when the user asks to "plan my day", "create a schedule for Day X", "fill in Day N", or "what should I do in [city]".',
             'Produce 3-6 time-slotted activities in chronological order. The user will confirm before they are added.',
+            'IMPORTANT: You MUST explicitly return an `endTime` for every generated event.',
+            'IMPORTANT: Check the existing schedule context for the day to avoid generating overlapping times with existing activities.',
         ].join(' '),
         parameters: z.object({
             dayNumber: z.number().describe('The trip day number (1-based integer) this plan targets, e.g. 3 for "Day 3".'),
@@ -61,6 +63,7 @@ const WANDA_TOOLS = {
                 name: z.string().describe('Activity name, e.g. "Visit Fushimi Inari Shrine".'),
                 emoji: z.string().describe('One emoji for this activity.'),
                 time: z.string().describe('Start time in 24-hour HH:MM format, e.g. "09:00".'),
+                endTime: z.string().describe('End time in 24-hour HH:MM format, e.g. "10:30". MUST not overlap with other events.'),
                 duration: z.number().describe('Duration in minutes, e.g. 90.'),
                 category: z.enum(['food', 'sightseeing', 'transport', 'accommodation', 'shopping', 'activity', 'other']),
                 notes: z.string().optional().describe('Optional brief tip for this activity.'),

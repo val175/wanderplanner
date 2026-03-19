@@ -46,6 +46,7 @@ function AddTodoModal({ isOpen, onClose, onAdd, travelers, statuses }) {
   const handleSubmit = (e) => {
     e?.preventDefault()
     if (!todoData.text.trim()) return
+
     onAdd({
       text: todoData.text.trim(),
       assigneeId: todoData.assigneeId === 'unassigned' ? null : todoData.assigneeId,

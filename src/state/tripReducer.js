@@ -137,6 +137,35 @@ function updateTrip(state, tripId, updater) {
   return { ...state, trips }
 }
 
+const parseToMins = (str) => {
+  if (typeof str !== 'string' || !str.trim()) return 0;
+  let hours, mins;
+  if (str.toUpperCase().includes('AM') || str.toUpperCase().includes('PM')) {
+    const parts = str.trim().split(/\s+/);
+    const timeStr = parts[0];
+    const modifier = parts[1] || (str.toUpperCase().endsWith('AM') ? 'AM' : 'PM');
+    const [h, m] = timeStr.split(':').map(Number);
+    hours = h || 0;
+    mins = m || 0;
+    if (modifier === 'PM' && hours < 12) hours += 12;
+    if (modifier === 'AM' && hours === 12) hours = 0;
+  } else {
+    const [h, m] = str.trim().split(':').map(Number);
+    hours = h || 0;
+    mins = m || 0;
+  }
+  return (hours * 60) + mins;
+};
+
+const sortActivities = (activities) => {
+  return activities.sort((a, b) => {
+    if (!a.time && !b.time) return 0;
+    if (!a.time) return 1;
+    if (!b.time) return -1;
+    return parseToMins(a.time) - parseToMins(b.time);
+  });
+};
+
 /**
  * Unifies booking-budget synchronization logic.
  * Handles adding/removing expenses based on booking status transitions.
@@ -342,12 +371,19 @@ export function tripReducer(state, action) {
           notes: '',
           ...(payload.activity || {})
         }
+          
+          if (!newActivity.endTime && newActivity.time) {
+            newActivity.endTime = addMinutesToTime(newActivity.time, newActivity.duration || 60);
+          }
+
           const newActivities = [...(d.activities || [])]
           if (typeof payload.index === 'number') {
             newActivities.splice(payload.index, 0, newActivity)
           } else {
             newActivities.push(newActivity)
           }
+          
+          sortActivities(newActivities);
           console.log('[REDUCE] Adding Activity with Schema:', newActivity);
           return { ...d, activities: newActivities }
         }),
@@ -850,6 +886,19 @@ export function tripReducer(state, action) {
 
     case ACTIONS.BATCH_ADD_ACTIVITIES: {
       const { dayNumber, location, activities } = payload
+      
+      const processActivities = (activitiesArray) => {
+        let processed = activitiesArray.map(a => {
+          let act = { ...a };
+          if (!act.id) act.id = generateId();
+          if (!act.endTime && act.time) {
+            act.endTime = addMinutesToTime(act.time, act.duration || 60);
+          }
+          return act;
+        });
+        return sortActivities(processed);
+      };
+
       return updateTrip(state, activeTripId, trip => {
         const itinerary = trip.itinerary || []
         const dayExists = itinerary.some(d => d.dayNumber === dayNumber)
@@ -859,10 +908,10 @@ export function tripReducer(state, action) {
             itinerary: itinerary.map(day =>
               day.dayNumber !== dayNumber ? day : {
                 ...day,
-                activities: [
+                activities: processActivities([
                   ...(day.activities || []),
-                  ...activities.map(a => ({ ...a, id: generateId() })),
-                ],
+                  ...activities,
+                ]),
               }
             ),
           }
@@ -878,7 +927,7 @@ export function tripReducer(state, action) {
               date: '',
               location: location || '',
               emoji: '📍',
-              activities: activities.map(a => ({ ...a, id: generateId() })),
+              activities: processActivities(activities),
               notes: '',
             },
           ],
