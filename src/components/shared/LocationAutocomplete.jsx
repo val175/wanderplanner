@@ -10,6 +10,7 @@ const mapboxToken = import.meta.env.VITE_MAPBOX_PART2 ? `${mapboxPrefix}${import
 const VERCEL_API = 'https://wanderplan-rust.vercel.app'
 const MAPBOX_SUGGEST_ENDPOINT = 'https://api.mapbox.com/search/searchbox/v1/suggest'
 const MAPBOX_RETRIEVE_ENDPOINT = 'https://api.mapbox.com/search/searchbox/v1/retrieve'
+const groundedSuggestionCache = new Map()
 
 function makeSessionToken() {
     try {
@@ -125,6 +126,7 @@ function getTripSearchScopes(activeTrip) {
 }
 
 function scoreSuggestion(query, suggestion) {
+    if (suggestion?.__groundedLocation) return 1000
     const label = `${suggestion?.name || ''} ${suggestion?.properties?.name || ''} ${suggestion?.place_name || ''} ${suggestion?.place_formatted || ''} ${suggestion?.full_address || ''} ${suggestion?.properties?.full_address || ''}`.toLowerCase()
     const q = (query || '').trim().toLowerCase()
     if (!q) return 0
@@ -167,6 +169,110 @@ function dedupeSuggestions(list) {
     }
 
     return result
+}
+
+function normalizeSearchKey(value) {
+    return (value || '').toString().trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+function tokenizeQuery(query) {
+    return normalizeSearchKey(query)
+        .split(/[\s,]+/)
+        .filter(Boolean)
+}
+
+function scoreSuggestionMatch(query, suggestion) {
+    const label = getSuggestionLabel(suggestion, '').toLowerCase()
+    const tokens = tokenizeQuery(query)
+    if (!label || tokens.length === 0) return 0
+    return tokens.reduce((score, token) => score + (label.includes(token) ? 1 : 0), 0)
+}
+
+function hasStrongExactMatch(query, suggestions) {
+    const tokens = tokenizeQuery(query)
+    if (tokens.length === 0) return false
+    return (suggestions || []).some(suggestion => scoreSuggestionMatch(query, suggestion) >= Math.max(2, Math.ceil(tokens.length * 0.8)))
+}
+
+function buildGroundedSuggestion(locationData, fallbackQuery, cityHint) {
+    const coords = locationData?.coordinates
+    const lat = coords?.lat
+    const lng = coords?.lng
+    const hasCoords = isValidCoordinates(coords)
+    const placeName = locationData?.placeName || fallbackQuery
+    const fullAddress = locationData?.address || locationData?.summary || placeName
+
+    return {
+        id: `grounded:${normalizeSearchKey(fallbackQuery)}:${normalizeSearchKey(cityHint)}`,
+        mapbox_id: locationData?.placeId || null,
+        name: placeName,
+        place_name: fullAddress,
+        place_formatted: fullAddress,
+        full_address: fullAddress,
+        geometry: hasCoords
+            ? { type: 'Point', coordinates: [lng, lat] }
+            : null,
+        properties: {
+            name: placeName,
+            full_address: fullAddress,
+            mapbox_id: locationData?.placeId || null,
+            source: 'grounding',
+        },
+        __groundedLocation: locationData,
+    }
+}
+
+async function fetchGroundedSuggestion(query, cityHint) {
+    if (!auth.currentUser || !query) return null
+
+    const cacheKey = `${normalizeSearchKey(query)}||${normalizeSearchKey(cityHint)}`
+    const cached = groundedSuggestionCache.get(cacheKey)
+    if (cached) return cached
+
+    try {
+        const token = await auth.currentUser.getIdToken()
+        const requestUrl = `${VERCEL_API}/api/resolve-location`
+        debugLocation('Grounding fallback request', {
+            requestUrl,
+            query,
+            cityHint,
+        })
+
+        const res = await fetch(requestUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token && { 'Authorization': `Bearer ${token}` }),
+            },
+            body: JSON.stringify({ query, cityHint }),
+        })
+
+        if (!res.ok) {
+            const body = await res.text()
+            debugLocationError('Grounding fallback failed', {
+                status: res.status,
+                statusText: res.statusText,
+                body: body.slice(0, 1000),
+            })
+            groundedSuggestionCache.set(cacheKey, null)
+            return null
+        }
+
+        const locationData = await res.json()
+        if (!isValidCoordinates(locationData?.coordinates)) {
+            debugLocationError('Grounding fallback returned invalid coordinates', locationData)
+            groundedSuggestionCache.set(cacheKey, null)
+            return null
+        }
+        const groundedSuggestion = buildGroundedSuggestion(locationData, query, cityHint)
+        groundedSuggestionCache.set(cacheKey, groundedSuggestion)
+        debugLocation('Grounding fallback response', groundedSuggestion)
+        return groundedSuggestion
+    } catch (error) {
+        debugLocationError('Grounding fallback error', error)
+        groundedSuggestionCache.set(cacheKey, null)
+        return null
+    }
 }
 
 /**
@@ -275,8 +381,16 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
                         scopedResults.push(...(data.suggestions || data.features || []))
                     }
 
-                    nextSuggestions = dedupeSuggestions(scopedResults)
-                        .sort((a, b) => scoreSuggestion(query, b) - scoreSuggestion(query, a))
+                nextSuggestions = dedupeSuggestions(scopedResults)
+                    .sort((a, b) => scoreSuggestion(query, b) - scoreSuggestion(query, a))
+
+                    if (query.trim().split(/\s+/).length >= 3) {
+                        const groundedSuggestion = await fetchGroundedSuggestion(query, cityHint)
+                        if (groundedSuggestion) {
+                            nextSuggestions = dedupeSuggestions([groundedSuggestion, ...nextSuggestions])
+                                .sort((a, b) => scoreSuggestion(query, b) - scoreSuggestion(query, a))
+                        }
+                    }
 
                     debugLocation('Suggestions response', {
                         attempt: index + 1,
@@ -300,6 +414,36 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
     }, [query, proximity, cityHint, countryFilter, sessionToken, tripSearchScopes])
 
     const handleSelect = async (feature) => {
+        if (feature?.__groundedLocation) {
+            const locationData = feature.__groundedLocation
+            const placeName = locationData?.placeName || getSuggestionLabel(feature, '')
+            const baseLocation = {
+                placeName,
+                coordinates: isValidCoordinates(locationData?.coordinates) ? locationData.coordinates : null,
+                placeId: locationData?.placeId || feature?.mapbox_id || feature?.id || null,
+                photoUrl: locationData?.photoUrl || '',
+                mapUrl: locationData?.mapUrl || (isValidCoordinates(locationData?.coordinates)
+                    ? `https://www.google.com/maps/search/?api=1&query=${locationData.coordinates.lat},${locationData.coordinates.lng}`
+                    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeName)}`),
+                verified: isValidCoordinates(locationData?.coordinates),
+                rating: locationData?.rating ?? null,
+                reviewCount: locationData?.reviewCount ?? null,
+                openingHours: locationData?.openingHours || '',
+                isOpenNow: typeof locationData?.isOpenNow === 'boolean' ? locationData.isOpenNow : null,
+                website: locationData?.website || '',
+                phone: locationData?.phone || '',
+                summary: locationData?.summary || '',
+                sourceLinks: locationData?.sourceLinks || [],
+                groundedAt: locationData?.groundedAt || '',
+                groundedModel: locationData?.groundedModel || '',
+            }
+            debugLocation('Selected grounded feature', baseLocation)
+            onSelect(baseLocation)
+            setQuery(baseLocation.placeName || placeName)
+            setShowSuggestions(false)
+            return
+        }
+
         const mapboxId = feature?.mapbox_id || feature?.properties?.mapbox_id || feature?.id || null
         const requestLabel = getSuggestionLabel(feature, '')
         debugLocation('Selected feature', {
@@ -384,12 +528,12 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
                     headers: {
                         'Content-Type': 'application/json',
                         ...(token && { 'Authorization': `Bearer ${token}` }),
-                    },
-                    body: JSON.stringify({
-                        query: placeName || query,
-                        cityHint,
-                    }),
-                })
+                },
+                body: JSON.stringify({
+                    query: placeName || query,
+                    cityHint,
+                }),
+            })
 
                 if (res.ok) {
                     const enriched = await res.json()
