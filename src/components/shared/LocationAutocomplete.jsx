@@ -1,20 +1,29 @@
 // src/components/shared/LocationAutocomplete.jsx
 import React, { useState, useEffect, useRef } from 'react'
 import { Search, MapPin, X, Loader2 } from 'lucide-react'
+import { auth } from '../../firebase/config'
 
 const mapboxPrefix = "pk.eyJ"
 const mapboxToken = import.meta.env.VITE_MAPBOX_PART2 ? `${mapboxPrefix}${import.meta.env.VITE_MAPBOX_PART2}` : null
+const VERCEL_API = 'https://wanderplan-rust.vercel.app'
 
 /**
  * LocationAutocomplete
  * Simple search interface for Mapbox locations.
  */
-export default function LocationAutocomplete({ onSelect, proximity = '', initialValue = '' }) {
-    const [query, setQuery] = useState(initialValue)
+export default function LocationAutocomplete({ onSelect, proximity = '', initialValue = '', cityHint = '', enrichOnSelect = true }) {
+    const initialQuery = typeof initialValue === 'string' ? initialValue : (initialValue?.placeName || '')
+    const [query, setQuery] = useState(initialQuery)
     const [suggestions, setSuggestions] = useState([])
     const [isLoading, setIsLoading] = useState(false)
+    const [isSelecting, setIsSelecting] = useState(false)
     const [showSuggestions, setShowSuggestions] = useState(false)
     const containerRef = useRef(null)
+
+    useEffect(() => {
+        const nextQuery = typeof initialValue === 'string' ? initialValue : (initialValue?.placeName || '')
+        setQuery(nextQuery)
+    }, [initialValue])
 
     useEffect(() => {
         if (!query || query.length < 2 || !mapboxToken) {
@@ -51,19 +60,49 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
         return () => clearTimeout(delayDebounceFn)
     }, [query, proximity])
 
-    const handleSelect = (feature) => {
+    const handleSelect = async (feature) => {
         const [lng, lat] = feature.geometry.coordinates
         const placeName = feature.properties.name || feature.properties.full_address || ''
-
-        onSelect({
+        const baseLocation = {
             placeName,
             coordinates: { lat, lng },
             placeId: feature.properties.mapbox_id || feature.id || null,
             photoUrl: `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s+cc402e(${lng},${lat})/${lng},${lat},14/120x120@2x?access_token=${mapboxToken}`,
             mapUrl: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
             verified: true
-        })
-        setQuery(placeName)
+        }
+
+        let nextLocation = baseLocation
+
+        if (enrichOnSelect && auth.currentUser) {
+            try {
+                setIsSelecting(true)
+                const token = await auth.currentUser.getIdToken()
+                const res = await fetch(`${VERCEL_API}/api/resolve-location`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token && { 'Authorization': `Bearer ${token}` }),
+                    },
+                    body: JSON.stringify({
+                        query: placeName || query,
+                        cityHint,
+                    }),
+                })
+
+                if (res.ok) {
+                    const enriched = await res.json()
+                    nextLocation = { ...baseLocation, ...enriched }
+                }
+            } catch (error) {
+                console.warn('Location enrichment failed:', error.message)
+            } finally {
+                setIsSelecting(false)
+            }
+        }
+
+        onSelect(nextLocation)
+        setQuery(nextLocation.placeName || placeName)
         setShowSuggestions(false)
     }
 
@@ -80,7 +119,7 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
                     className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary pl-10 pr-10 py-2.5 focus:outline-none focus:border-accent transition-all"
                     autoFocus
                 />
-                {isLoading ? (
+                {isLoading || isSelecting ? (
                     <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 text-accent animate-spin" size={16} />
                 ) : query && (
                     <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary">

@@ -31,7 +31,7 @@ export default function LocationPill({ location, onClick, isResolving, readOnly 
         )
     }
 
-    const { placeName, photoUrl, verified } = location
+    const { placeName, photoUrl, verified, rating, reviewCount, openingHours, isOpenNow } = location
 
     return (
         <button
@@ -50,6 +50,25 @@ export default function LocationPill({ location, onClick, isResolving, readOnly 
             )}
 
             <span className="truncate max-w-[120px]">{placeName}</span>
+
+            {rating != null && (
+                <span className="hidden sm:inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-[var(--radius-pill)] bg-bg-secondary text-text-muted border border-border/20">
+                    ⭐ {rating}
+                    {reviewCount != null && <span>({reviewCount.toLocaleString()})</span>}
+                </span>
+            )}
+
+            {isOpenNow != null && (
+                <span className={`hidden sm:inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-[var(--radius-pill)] border ${isOpenNow ? 'bg-success/10 text-success border-success/20' : 'bg-danger/10 text-danger border-danger/20'}`}>
+                    {isOpenNow ? 'Open' : 'Closed'}
+                </span>
+            )}
+
+            {!rating && openingHours && (
+                <span className="hidden sm:inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-[var(--radius-pill)] bg-bg-secondary text-text-muted border border-border/20">
+                    {openingHours}
+                </span>
+            )}
 
             {verified && (
                 <CheckCircle2 size={10} className="text-info fill-info/10" />

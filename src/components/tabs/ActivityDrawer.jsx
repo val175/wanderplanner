@@ -56,6 +56,11 @@ export default function ActivityDrawer({ activity, dayId, onClose }) {
   const locationString = activity.location?.placeName
     || (typeof activity.location === 'string' ? activity.location : '')
     || ''
+  const locationRating = activity.location?.rating
+  const locationReviewCount = activity.location?.reviewCount
+  const locationHours = activity.location?.openingHours
+  const locationOpenNow = activity.location?.isOpenNow
+  const locationWebsite = activity.location?.website
 
   useEffect(() => {
     setMounted(true)
@@ -227,6 +232,7 @@ export default function ActivityDrawer({ activity, dayId, onClose }) {
                 <LocationAutocomplete
                   initialValue={locationString}
                   proximity={proximity}
+                  cityHint={day?.location || ''}
                   onSelect={(locationData) => {
                     update({ location: locationData })
                     setEditingLocation(false)
@@ -241,19 +247,41 @@ export default function ActivityDrawer({ activity, dayId, onClose }) {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm text-text-secondary truncate">
-                  {locationString || <span className="italic text-text-muted">No location set</span>}
-                </span>
-                {!isReadOnly && (
-                  <button
-                    onClick={() => setEditingLocation(true)}
-                    className="text-xs text-text-muted hover:text-accent shrink-0 border border-border rounded px-2 py-1 hover:border-accent/40 transition-colors"
+              <>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm text-text-secondary truncate block">
+                      {locationString || <span className="italic text-text-muted">No location set</span>}
+                    </span>
+                    {(locationRating != null || locationHours || locationOpenNow != null) && (
+                      <span className="mt-1 inline-flex flex-wrap items-center gap-1 text-[11px] text-text-muted">
+                        {locationRating != null && <span>⭐ {locationRating}</span>}
+                        {locationReviewCount != null && <span>({locationReviewCount.toLocaleString()})</span>}
+                        {locationOpenNow != null && <span className={locationOpenNow ? 'text-success' : 'text-danger'}>{locationOpenNow ? 'Open now' : 'Closed now'}</span>}
+                        {locationHours && <span>· {locationHours}</span>}
+                      </span>
+                    )}
+                  </div>
+                  {!isReadOnly && (
+                    <button
+                      onClick={() => setEditingLocation(true)}
+                      className="text-xs text-text-muted hover:text-accent shrink-0 border border-border rounded px-2 py-1 hover:border-accent/40 transition-colors"
+                    >
+                      Change
+                    </button>
+                  )}
+                </div>
+                {locationWebsite && !editingLocation && (
+                  <a
+                    href={locationWebsite}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex text-[11px] text-accent hover:underline"
                   >
-                    Change
-                  </button>
+                    Visit website
+                  </a>
                 )}
-              </div>
+              </>
             )}
           </div>
 

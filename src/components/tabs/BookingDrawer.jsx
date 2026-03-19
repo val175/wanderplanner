@@ -38,7 +38,7 @@ function CostInput({ value, currency, onChange, disabled }) {
 }
 
 export default function BookingDrawer({ booking, currency, onUpdate, onClose, isReadOnly }) {
-  const { dispatch } = useTripContext()
+  const { activeTrip, dispatch } = useTripContext()
   const { currentUserProfile, resolveProfile } = useProfiles()
   const [mounted, setMounted] = useState(false)
   const [visible, setVisible] = useState(false)
@@ -50,6 +50,12 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
   const [editDraft, setEditDraft] = useState('')
   const feedRef = useRef(null)
   const actorId = currentUserProfile?.uid || currentUserProfile?.id
+  const locationLabel = typeof booking.location === 'string'
+    ? booking.location
+    : booking.location?.placeName || ''
+  const cityHint = activeTrip?.cities?.[0]
+    ? `${activeTrip.cities[0].city || ''}${activeTrip.cities[0].country ? `, ${activeTrip.cities[0].country}` : ''}`.trim()
+    : ''
 
   useEffect(() => {
     setMounted(true)
@@ -256,9 +262,10 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
             {editingLocation && !isReadOnly ? (
               <div>
                 <LocationAutocomplete
-                  initialValue={booking.location || ''}
+                  initialValue={locationLabel}
+                  cityHint={cityHint}
                   onSelect={(locationData) => {
-                    onUpdate(booking.id, { location: locationData.placeName }, actorId)
+                    onUpdate(booking.id, { location: locationData }, actorId)
                     setEditingLocation(false)
                     hapticSelection()
                   }}
@@ -272,9 +279,18 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
               </div>
             ) : (
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm text-text-secondary truncate">
-                  {booking.location || <span className="italic text-text-muted">No location set</span>}
-                </span>
+                <div className="min-w-0 flex-1">
+                  <span className="text-sm text-text-secondary truncate block">
+                    {locationLabel || <span className="italic text-text-muted">No location set</span>}
+                  </span>
+                  {booking.location?.rating != null && (
+                    <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-text-muted">
+                      <span>⭐ {booking.location.rating}</span>
+                      {booking.location.reviewCount != null && <span>({booking.location.reviewCount.toLocaleString()})</span>}
+                      {booking.location.openingHours && <span>· {booking.location.openingHours}</span>}
+                    </span>
+                  )}
+                </div>
                 {!isReadOnly && (
                   <button
                     onClick={() => setEditingLocation(true)}

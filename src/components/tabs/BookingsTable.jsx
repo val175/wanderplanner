@@ -168,14 +168,23 @@ export default function BookingsTable({
         {
             id: 'location',
             header: 'Location',
-            accessorKey: 'location',
+            accessorFn: row => typeof row.location === 'string' ? row.location : (row.location?.placeName || ''),
             size: 140,
             cell: info => {
-                const val = info.getValue()
+                const val = info.row.original.location
+                const label = typeof val === 'string' ? val : (val?.placeName || '')
                 return (
-                    <span className={`text-xs text-text-muted truncate block ${!val ? 'opacity-0 group-hover:opacity-100 transition-opacity' : ''}`}>
-                        {val || '—'}
-                    </span>
+                    <div className={`flex flex-col min-w-0 ${!label ? 'opacity-0 group-hover:opacity-100 transition-opacity' : ''}`}>
+                        <span className="text-xs text-text-muted truncate block">
+                            {label || '—'}
+                        </span>
+                        {val && typeof val === 'object' && (
+                            <span className="text-[10px] text-text-muted/70 truncate block">
+                                {val.rating != null ? `⭐ ${val.rating}` : ''}
+                                {val.reviewCount != null ? ` · ${val.reviewCount.toLocaleString()} reviews` : ''}
+                            </span>
+                        )}
+                    </div>
                 )
             }
         },

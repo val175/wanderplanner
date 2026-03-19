@@ -55,6 +55,24 @@ const CAT_THEME_CLASSES = {
   rose: { bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
 }
 
+function getLocationDetails(location) {
+  if (!location) {
+    return { label: '', rating: null, reviewCount: null, openingHours: '', isOpenNow: null }
+  }
+
+  if (typeof location === 'string') {
+    return { label: location, rating: null, reviewCount: null, openingHours: '', isOpenNow: null }
+  }
+
+  return {
+    label: location.placeName || '',
+    rating: location.rating ?? null,
+    reviewCount: location.reviewCount ?? null,
+    openingHours: location.openingHours || '',
+    isOpenNow: typeof location.isOpenNow === 'boolean' ? location.isOpenNow : null,
+  }
+}
+
 function CategoryPill({ value, onChange, disabled }) {
   const cat = GLOBAL_CATEGORIES.find(c => c.id === value) || GLOBAL_CATEGORIES[7]
 
@@ -474,6 +492,7 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
                   const accentMatch = getActivityAccent(activity.emoji).match(/text-([a-z]+)/)
                   const dotColor = accentMatch ? `bg-${accentMatch[1]}` : 'bg-border-strong'
                   const hasConflict = getConflicts(arr, activity.time, activity.endTime, activity.id).length > 0
+                  const location = getLocationDetails(activity.location)
 
                   return (
                     <Fragment key={activity.id}>
@@ -534,11 +553,19 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
                             </span>
                             <div className="flex flex-col gap-0.5 mt-0.5">
                               <span className="text-[11px] text-text-muted font-medium truncate uppercase tracking-tight">
-                                {activity.location?.placeName || (typeof activity.location === 'string' ? activity.location : '') || '—'}
+                                {location.label || '—'}
                               </span>
                               <span className="text-[10px] text-text-muted/60 font-medium">
                                 {activity.duration || 60} mins
                               </span>
+                              {(location.rating != null || location.openingHours || location.isOpenNow != null) && (
+                                <span className="text-[10px] text-text-muted/70 font-medium truncate">
+                                  {location.rating != null && `⭐ ${location.rating}`}
+                                  {location.reviewCount != null && ` · ${location.reviewCount.toLocaleString()} reviews`}
+                                  {location.isOpenNow != null && ` · ${location.isOpenNow ? 'Open now' : 'Closed now'}`}
+                                  {location.openingHours && ` · ${location.openingHours}`}
+                                </span>
+                              )}
                             </div>
                             {/* Body Clock ghost-text */}
                             {bodyClockOffsetHours !== null && activity.time && (
@@ -574,7 +601,7 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
                         {/* Location Column */}
                         <td className="px-2 pt-4 pb-2 align-top">
                           <span className="text-[12px] text-text-muted truncate block max-w-[160px]">
-                            {activity.location?.placeName || (typeof activity.location === 'string' ? activity.location : '') || '—'}
+                            {location.label || '—'}
                           </span>
                         </td>
 
@@ -754,7 +781,9 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-2 min-h-[150px] scrollbar-hide px-1">
-        {day.activities?.map((activity, i) => (
+        {day.activities?.map((activity, i) => {
+          const location = getLocationDetails(activity.location)
+          return (
           <div
             id={`kanban-activity-${activity.id}`}
             key={activity.id}
@@ -800,11 +829,11 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                 </button>
-                {!isReadOnly && (
-                  <button
-                    onClick={() => {
-                      triggerHaptic('medium')
-                      dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })
+              {!isReadOnly && (
+                <button
+                  onClick={() => {
+                    triggerHaptic('medium')
+                    dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } })
                     }}
                     className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out text-text-muted hover:text-danger p-1 rounded hover:bg-bg-hover"
                     title="Delete"
@@ -816,8 +845,16 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
 
               {/* Sub-header: Location • Duration */}
               <div className="text-[11px] text-text-muted font-medium truncate uppercase tracking-tight">
-                {(activity.location?.placeName || activity.location || 'Unknown')} • {activity.duration || 60}m
+                {location.label || 'Unknown'} • {activity.duration || 60}m
               </div>
+              {(location.rating != null || location.openingHours || location.isOpenNow != null) && (
+                <div className="text-[10px] text-text-muted/70 font-medium truncate">
+                  {location.rating != null && `⭐ ${location.rating}`}
+                  {location.reviewCount != null && ` · ${location.reviewCount.toLocaleString()} reviews`}
+                  {location.isOpenNow != null && ` · ${location.isOpenNow ? 'Open now' : 'Closed now'}`}
+                  {location.openingHours && ` · ${location.openingHours}`}
+                </div>
+              )}
 
               {/* Time Row: Plain text style */}
               <div className="flex items-center gap-1.5 text-xs font-mono text-text-secondary mt-0.5">
@@ -852,7 +889,8 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
               </div>
             )}
           </div>
-        ))}
+          )
+        })}
 
         {(!day.activities || day.activities.length === 0) && (
           <div className="h-full min-h-[100px] flex items-center justify-center border-2 border-dashed border-border/40 rounded-[var(--radius-md)] text-xs text-text-muted/60 italic">
@@ -1358,6 +1396,7 @@ export default function ItineraryTab() {
               <LocationAutocomplete
                 initialValue={activeSearchActivity?.initialValue || ''}
                 proximity={proximity}
+                cityHint={currentDay?.location || cityContext?.city || ''}
                 onSelect={(locationData) => {
                   dispatch({
                     type: ACTIONS.UPDATE_ACTIVITY,
