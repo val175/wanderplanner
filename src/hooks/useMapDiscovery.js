@@ -27,25 +27,40 @@ function debugMapWarn(...args) {
     console.warn('[useMapDiscovery]', ...args)
 }
 
-function inferCountryHintForDay(day, destinations) {
-    const dayLocation = normalizeLabel(day?.location)
-    const candidateCities = [
-        ...(destinations || []),
-    ].filter(Boolean)
+function getUniqueTripCountries(destinations) {
+    return [...new Set((destinations || [])
+        .map(dest => dest?.country)
+        .filter(Boolean)
+        .map(country => country.toString().trim()))]
+}
 
-    const matched = candidateCities.find(dest => {
+function inferTripHint(query, day, destinations) {
+    const normalizedQuery = normalizeLabel(query)
+    const candidateCities = (destinations || []).filter(Boolean)
+
+    const queryMatch = candidateCities.find(dest => {
+        const city = normalizeLabel(dest.city)
+        return city && normalizedQuery.includes(city)
+    })
+
+    if (queryMatch?.city && queryMatch?.country) {
+        return `${queryMatch.city}, ${queryMatch.country}`
+    }
+
+    const dayLocation = normalizeLabel(day?.location)
+    const dayMatch = candidateCities.find(dest => {
         const city = normalizeLabel(dest.city)
         return city && dayLocation.includes(city)
     })
 
-    if (matched?.city && matched?.country) {
-        return `${matched.city}, ${matched.country}`
+    if (dayMatch?.city && dayMatch?.country) {
+        return `${dayMatch.city}, ${dayMatch.country}`
     }
 
-    if (matched?.country) return matched.country
+    const countries = getUniqueTripCountries(candidateCities)
+    if (countries.length === 1) return countries[0]
 
-    const first = candidateCities[0]
-    return first?.country || null
+    return null
 }
 
 function getActivityQuery(activity) {
@@ -115,7 +130,7 @@ export function useMapDiscovery(trip) {
         async function loadIdeas() {
             const validIdeas = ideas.filter(i => i && i.title);
             const promises = validIdeas.map(async (idea) => {
-                const countryHint = destinations[0]?.country || null;
+                const countryHint = getUniqueTripCountries(destinations)[0] || null;
                 const coords = await geocodeCity(idea.title, countryHint);
                 return { ideaId: idea.id, coords, idea };
             });
@@ -162,7 +177,7 @@ export function useMapDiscovery(trip) {
                 }
 
                 const query = getActivityQuery(activity) || activity.name;
-                const countryHint = inferCountryHintForDay(day, destinations);
+                const countryHint = inferTripHint(query, day, destinations);
                 const coords = await geocodeCity(query, countryHint);
 
                 if (!coords) {
