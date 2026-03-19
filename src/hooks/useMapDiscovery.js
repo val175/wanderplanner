@@ -5,6 +5,28 @@ function normalizeLabel(label) {
     return (label || '').toString().trim().toLowerCase()
 }
 
+function isMapDebugEnabled() {
+    if (typeof window === 'undefined') return false
+    try {
+        const params = new URLSearchParams(window.location.search)
+        return params.get('debugMap') === '1'
+            || window.localStorage.getItem('wanderplan:debug-map') === '1'
+            || window.__WANDERPLAN_DEBUG_MAP__ === true
+    } catch {
+        return false
+    }
+}
+
+function debugMap(...args) {
+    if (!isMapDebugEnabled()) return
+    console.log('[useMapDiscovery]', ...args)
+}
+
+function debugMapWarn(...args) {
+    if (!isMapDebugEnabled()) return
+    console.warn('[useMapDiscovery]', ...args)
+}
+
 function inferCountryHintForDay(day, destinations) {
     const dayLocation = normalizeLabel(day?.location)
     const candidateCities = [
@@ -24,6 +46,26 @@ function inferCountryHintForDay(day, destinations) {
 
     const first = candidateCities[0]
     return first?.country || null
+}
+
+function getActivityQuery(activity) {
+    if (!activity) return ''
+
+    if (typeof activity.location === 'string') {
+        return activity.location.trim()
+    }
+
+    if (activity.location && typeof activity.location === 'object') {
+        return (
+            activity.location.placeName
+            || activity.location.address
+            || activity.location.searchQuery
+            || activity.location.summary
+            || ''
+        ).trim()
+    }
+
+    return (activity.name || '').trim()
 }
 
 /**
@@ -102,16 +144,44 @@ export function useMapDiscovery(trip) {
                 return;
             }
 
+            debugMap('Loading itinerary activities', {
+                activityCount: allActivities.length,
+                dayCount: itinerary.length,
+            })
+
             const promises = allActivities.map(async ({ activity, day }) => {
                 // If we already have rich location data with coordinates, use them directly
                 if (activity.location?.coordinates?.lat && activity.location?.coordinates?.lng) {
                     const coords = [activity.location.coordinates.lng, activity.location.coordinates.lat];
+                    debugMap('Using stored coordinates', {
+                        activityId: activity.id,
+                        query: getActivityQuery(activity),
+                        coords,
+                    })
                     return { activityId: activity.id, coords, activity };
                 }
 
-                const query = typeof activity.location === 'string' ? activity.location : activity.name;
+                const query = getActivityQuery(activity) || activity.name;
                 const countryHint = inferCountryHintForDay(day, destinations);
                 const coords = await geocodeCity(query, countryHint);
+
+                if (!coords) {
+                    debugMapWarn('Failed to geocode activity', {
+                        activityId: activity.id,
+                        dayId: day.id,
+                        dayLocation: day.location,
+                        query,
+                        countryHint,
+                    })
+                } else {
+                    debugMap('Geocoded activity', {
+                        activityId: activity.id,
+                        dayId: day.id,
+                        query,
+                        countryHint,
+                        coords,
+                    })
+                }
                 return { activityId: activity.id, coords, activity };
             });
 
