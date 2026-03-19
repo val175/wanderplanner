@@ -11,7 +11,7 @@ const VERCEL_API = 'https://wanderplan-rust.vercel.app'
  * Manages the resolution of raw location strings into rich objects.
  */
 export function useSmartLocation() {
-    const { dispatch } = useTripContext()
+    const { dispatch, activeTrip } = useTripContext()
     const [isResolving, setIsResolving] = useState(false)
     const [error, setError] = useState(null)
 
@@ -31,7 +31,14 @@ export function useSmartLocation() {
                     'Content-Type': 'application/json',
                     ...(token && { 'Authorization': `Bearer ${token}` })
                 },
-                body: JSON.stringify({ query, cityHint }),
+                body: JSON.stringify({
+                    query,
+                    cityHint,
+                    countryCodes: [...new Set([
+                        ...(activeTrip?.cities || []),
+                        ...(activeTrip?.destinations || []),
+                    ].map(entry => (entry?.iso || entry?.countryCode || entry?.country || '').toString().trim().toUpperCase()).filter(Boolean))],
+                }),
             })
 
             if (!res.ok) {
@@ -63,7 +70,7 @@ export function useSmartLocation() {
         } finally {
             setIsResolving(false)
         }
-    }, [dispatch])
+    }, [dispatch, activeTrip])
 
     return {
         resolveLocation,

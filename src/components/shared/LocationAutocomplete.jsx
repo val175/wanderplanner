@@ -222,10 +222,10 @@ function buildGroundedSuggestion(locationData, fallbackQuery, cityHint) {
     }
 }
 
-async function fetchGroundedSuggestion(query, cityHint) {
+async function fetchGroundedSuggestion(query, cityHint, countryCodes = []) {
     if (!auth.currentUser || !query) return null
 
-    const cacheKey = `${normalizeSearchKey(query)}||${normalizeSearchKey(cityHint)}`
+    const cacheKey = `${normalizeSearchKey(query)}||${normalizeSearchKey(cityHint)}||${[...new Set((countryCodes || []).map(code => (code || '').toString().trim().toUpperCase()).filter(Boolean))].sort().join(',')}`
     const cached = groundedSuggestionCache.get(cacheKey)
     if (cached) return cached
 
@@ -244,7 +244,7 @@ async function fetchGroundedSuggestion(query, cityHint) {
                 'Content-Type': 'application/json',
                 ...(token && { 'Authorization': `Bearer ${token}` }),
             },
-            body: JSON.stringify({ query, cityHint }),
+            body: JSON.stringify({ query, cityHint, countryCodes }),
         })
 
         if (!res.ok) {
@@ -385,7 +385,7 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
                     .sort((a, b) => scoreSuggestion(query, b) - scoreSuggestion(query, a))
 
                     if (query.trim().split(/\s+/).length >= 3) {
-                        const groundedSuggestion = await fetchGroundedSuggestion(query, cityHint)
+                        const groundedSuggestion = await fetchGroundedSuggestion(query, cityHint, tripCountryCodes)
                         if (groundedSuggestion) {
                             nextSuggestions = dedupeSuggestions([groundedSuggestion, ...nextSuggestions])
                                 .sort((a, b) => scoreSuggestion(query, b) - scoreSuggestion(query, a))
@@ -528,12 +528,13 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
                     headers: {
                         'Content-Type': 'application/json',
                         ...(token && { 'Authorization': `Bearer ${token}` }),
-                },
-                body: JSON.stringify({
-                    query: placeName || query,
-                    cityHint,
-                }),
-            })
+                    },
+                    body: JSON.stringify({
+                        query: placeName || query,
+                        cityHint,
+                        countryCodes: tripCountryCodes,
+                    }),
+                })
 
                 if (res.ok) {
                     const enriched = await res.json()

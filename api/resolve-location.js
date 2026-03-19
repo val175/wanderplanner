@@ -13,6 +13,8 @@ const mapboxPrefix = 'pk.eyJ'
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000
 const locationCache = new Map()
 const inflightRequests = new Map()
+const MAPBOX_SUGGEST_ENDPOINT = 'https://api.mapbox.com/search/searchbox/v1/suggest'
+const MAPBOX_RETRIEVE_ENDPOINT = 'https://api.mapbox.com/search/searchbox/v1/retrieve'
 
 const toNullableNumber = (value) => {
     if (value === null || value === undefined || value === '') return null
@@ -36,6 +38,61 @@ const toNullableBoolean = (value) => {
     return null
 }
 
+const normalizeLabel = (value) => (value || '').toString().trim().toLowerCase().replace(/\s+/g, ' ')
+const tokenizeQuery = (value) => normalizeLabel(value).split(/[\s,]+/).filter(Boolean)
+
+function normalizeCountryCode(country) {
+    if (!country) return null
+    const trimmed = country.toString().trim()
+    if (!trimmed) return null
+    if (/^[A-Z]{2}$/i.test(trimmed)) return trimmed.toUpperCase()
+    return null
+}
+
+function buildSearchCandidates(query, cityHint) {
+    const candidates = []
+    const trimmedQuery = (query || '').toString().trim()
+    const trimmedCity = (cityHint || '').toString().trim()
+
+    if (trimmedQuery && trimmedCity) {
+        candidates.push(`${trimmedQuery} ${trimmedCity}`)
+    }
+
+    if (trimmedQuery) candidates.push(trimmedQuery)
+    if (trimmedCity) candidates.push(trimmedCity)
+
+    return [...new Set(candidates.map(normalizeLabel).filter(Boolean))]
+}
+
+function scoreSuggestion(query, suggestion) {
+    const qTokens = tokenizeQuery(query)
+    if (qTokens.length === 0) return 0
+    const label = normalizeLabel([
+        suggestion?.name,
+        suggestion?.place_name,
+        suggestion?.place_formatted,
+        suggestion?.full_address,
+        suggestion?.properties?.name,
+        suggestion?.properties?.full_address,
+    ].filter(Boolean).join(' '))
+
+    let score = 0
+    for (const token of qTokens) {
+        if (label.includes(token)) score += 1
+    }
+    if (label.includes(normalizeLabel(query))) score += qTokens.length
+    return score
+}
+
+function isValidCoordinates(coordinates) {
+    return Boolean(
+        coordinates
+        && Number.isFinite(coordinates.lat)
+        && Number.isFinite(coordinates.lng)
+        && !(coordinates.lat === 0 && coordinates.lng === 0)
+    )
+}
+
 const locationWorkerSchema = z.object({
     placeName: z.string().min(1),
     address: z.string().optional().nullable(),
@@ -50,8 +107,14 @@ const locationWorkerSchema = z.object({
     summary: z.string().optional().nullable(),
 })
 
-function normalizeKey(query, cityHint) {
-    return [query, cityHint]
+function normalizeKey(query, cityHint, countryCodes = []) {
+    const normalizedCountries = [...new Set((Array.isArray(countryCodes) ? countryCodes : [countryCodes])
+        .map(normalizeCountryCode)
+        .filter(Boolean))]
+        .sort()
+        .join(',')
+
+    return [query, cityHint, normalizedCountries]
         .map(part => (part || '').toString().trim().toLowerCase().replace(/\s+/g, ' '))
         .join('||')
 }
@@ -118,6 +181,149 @@ async function geocodeCoordinates(searchQuery) {
         console.warn('Mapbox geocoding failed:', error.message)
         return { coordinates: null, photoUrl: '' }
     }
+}
+
+async function geocodeCoordinatesWithNominatim(searchQuery, countryCodes = []) {
+    const trimmedQuery = (searchQuery || '').toString().trim()
+    if (!trimmedQuery) {
+        return { coordinates: null, photoUrl: '' }
+    }
+
+    try {
+        const params = new URLSearchParams({
+            q: trimmedQuery,
+            format: 'jsonv2',
+            addressdetails: '1',
+            namedetails: '1',
+            limit: '5',
+        })
+
+        const codes = [...new Set((Array.isArray(countryCodes) ? countryCodes : [countryCodes])
+            .map(normalizeCountryCode)
+            .filter(Boolean))]
+        if (codes.length > 0) {
+            params.set('countrycodes', codes.map(code => code.toLowerCase()).join(','))
+        }
+
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+            headers: {
+                'Accept-Language': 'en',
+                'User-Agent': 'Wanderplan/1.0 (+https://wanderplan-rust.vercel.app)',
+            },
+        })
+
+        if (!res.ok) {
+            return { coordinates: null, photoUrl: '' }
+        }
+
+        const results = await res.json()
+        const match = results?.[0]
+        if (!match) {
+            return { coordinates: null, photoUrl: '' }
+        }
+
+        const coordinates = {
+            lng: Number(match.lon),
+            lat: Number(match.lat),
+        }
+
+        if (!isValidCoordinates(coordinates)) {
+            return { coordinates: null, photoUrl: '' }
+        }
+
+        return {
+            coordinates,
+            photoUrl: '',
+            placeName: match.name || match.namedetails?.name || match.display_name || trimmedQuery,
+            address: match.display_name || match.name || trimmedQuery,
+            placeId: match.place_id ? `nominatim:${match.place_id}` : null,
+            source: 'nominatim',
+        }
+    } catch (error) {
+        console.warn('Nominatim geocoding failed:', error.message)
+        return { coordinates: null, photoUrl: '' }
+    }
+}
+
+async function resolveExactFeature({ query, cityHint, countryCodes }) {
+    const mapboxToken = getMapboxToken()
+    if (!query) return null
+
+    const countries = [...new Set((Array.isArray(countryCodes) ? countryCodes : [countryCodes])
+        .map(normalizeCountryCode)
+        .filter(Boolean))]
+    const candidates = buildSearchCandidates(query, cityHint)
+
+    for (const candidate of candidates) {
+        const nominatim = await geocodeCoordinatesWithNominatim(candidate, countries)
+        if (nominatim.coordinates) {
+            return {
+                ...nominatim,
+                searchQuery: candidate,
+                exactMatch: true,
+            }
+        }
+
+        if (!mapboxToken) continue
+
+        const params = new URLSearchParams({
+            q: candidate,
+            access_token: mapboxToken,
+            limit: '10',
+            types: 'poi,address,place',
+            session_token: `resolve-${Date.now().toString(36)}`,
+        })
+        if (countries.length > 0) {
+            params.set('country', countries.join(','))
+        }
+
+        const res = await fetch(`${MAPBOX_SUGGEST_ENDPOINT}?${params.toString()}`)
+        if (!res.ok) continue
+
+        const data = await res.json()
+        const suggestions = data.suggestions || data.features || []
+        const best = [...suggestions]
+            .sort((a, b) => scoreSuggestion(candidate, b) - scoreSuggestion(candidate, a))[0]
+
+        const bestScore = scoreSuggestion(candidate, best)
+        if (!best || bestScore < Math.max(2, Math.ceil(tokenizeQuery(query).length * 0.75))) {
+            continue
+        }
+
+        const mapboxId = best.mapbox_id || best.properties?.mapbox_id || best.id
+        if (!mapboxId) continue
+
+        const retrieveRes = await fetch(`${MAPBOX_RETRIEVE_ENDPOINT}/${encodeURIComponent(mapboxId)}?${new URLSearchParams({
+            access_token: mapboxToken,
+            session_token: `resolve-${Date.now().toString(36)}`,
+        }).toString()}`)
+        if (!retrieveRes.ok) continue
+
+        const retrieveData = await retrieveRes.json()
+        const feature = retrieveData.features?.[0]
+        const coordinates = feature?.geometry?.coordinates
+        if (!Array.isArray(coordinates) || coordinates.length < 2) continue
+
+        const result = {
+            placeName: feature?.properties?.name || feature?.name || best.name || query,
+            address: feature?.properties?.full_address || feature?.full_address || best.full_address || '',
+            searchQuery: candidate,
+            coordinates: {
+                lng: coordinates[0],
+                lat: coordinates[1],
+            },
+            placeId: mapboxId,
+            sourceLinks: [],
+            verified: true,
+            exactMatch: true,
+        }
+
+        if (isValidCoordinates(result.coordinates)) {
+            return result
+        }
+    }
+
+    return null
 }
 
 async function runGroundedWorker({ query, cityHint, geminiKey }) {
@@ -202,7 +408,7 @@ export default async function handler(req) {
             })
         }
 
-        const { query, cityHint } = await req.json()
+        const { query, cityHint, countryCodes = [] } = await req.json()
         if (!query) {
             return new Response(JSON.stringify({ error: 'Query is required' }), {
                 status: 400,
@@ -218,7 +424,7 @@ export default async function handler(req) {
             })
         }
 
-        const cacheKey = normalizeKey(query, cityHint)
+        const cacheKey = normalizeKey(query, cityHint, countryCodes)
         const cached = locationCache.get(cacheKey)
         const now = Date.now()
         if (cached && now - cached.cachedAt < CACHE_TTL_MS) {
@@ -231,8 +437,40 @@ export default async function handler(req) {
         let promise = inflightRequests.get(cacheKey)
         if (!promise) {
             promise = (async () => {
+                const exact = await resolveExactFeature({ query, cityHint, countryCodes })
                 const grounded = await runGroundedWorker({ query, cityHint, geminiKey })
-                const { coordinates, photoUrl } = await geocodeCoordinates(grounded.searchQuery || grounded.placeName || query)
+                const geocodeCandidates = [
+                    exact?.placeName,
+                    exact?.address,
+                    exact?.searchQuery,
+                    grounded?.placeName,
+                    grounded?.address,
+                    grounded?.searchQuery,
+                    query,
+                    cityHint,
+                ].filter(Boolean)
+
+                let coordinates = exact?.coordinates || null
+                let photoUrl = ''
+
+                if (!isValidCoordinates(coordinates)) {
+                    for (const candidate of geocodeCandidates) {
+                        const nominatim = await geocodeCoordinatesWithNominatim(candidate, countryCodes)
+                        if (isValidCoordinates(nominatim.coordinates)) {
+                            coordinates = nominatim.coordinates
+                            photoUrl = nominatim.photoUrl || ''
+                            break
+                        }
+
+                        const mapbox = await geocodeCoordinates(candidate)
+                        if (isValidCoordinates(mapbox.coordinates)) {
+                            coordinates = mapbox.coordinates
+                            photoUrl = mapbox.photoUrl || ''
+                            break
+                        }
+                    }
+                }
+
                 const hasCoordinates = Boolean(
                     coordinates
                     && Number.isFinite(coordinates.lat)
@@ -241,13 +479,13 @@ export default async function handler(req) {
                 )
                 const mapUrl = hasCoordinates
                     ? `https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}`
-                    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(grounded.searchQuery || grounded.placeName || query)}`
+                    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(grounded.searchQuery || grounded.address || grounded.placeName || query)}`
                 const result = {
-                    placeName: grounded.placeName || query,
-                    address: grounded.address || '',
-                    searchQuery: grounded.searchQuery || grounded.placeName || query,
+                    placeName: exact?.placeName || grounded.placeName || query,
+                    address: exact?.address || grounded.address || '',
+                    searchQuery: exact?.searchQuery || grounded.searchQuery || grounded.placeName || query,
                     coordinates,
-                    placeId: grounded.placeId || '',
+                    placeId: exact?.placeId || grounded.placeId || '',
                     rating: typeof grounded.rating === 'number' ? grounded.rating : null,
                     reviewCount: typeof grounded.reviewCount === 'number' ? grounded.reviewCount : null,
                     openingHours: grounded.openingHours || '',
@@ -260,7 +498,7 @@ export default async function handler(req) {
                     sourceLinks: grounded.sourceLinks || [],
                     groundedModel: grounded.groundedModel,
                     groundedAt: new Date().toISOString(),
-                    verified: hasCoordinates,
+                    verified: hasCoordinates || exact?.exactMatch === true,
                 }
                 locationCache.set(cacheKey, { cachedAt: Date.now(), data: result })
                 return result
