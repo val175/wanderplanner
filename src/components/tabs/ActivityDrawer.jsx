@@ -53,14 +53,14 @@ export default function ActivityDrawer({ activity, dayId, onClose }) {
     return city?.lat && city?.lng ? `${city.lng},${city.lat}` : ''
   }, [day?.location, activeTrip?.cities])
 
-  const locationString = activity.location?.placeName
-    || (typeof activity.location === 'string' ? activity.location : '')
+  const locationString = activity?.location?.placeName
+    || (typeof activity?.location === 'string' ? activity.location : '')
     || ''
-  const locationRating = activity.location?.rating
-  const locationReviewCount = activity.location?.reviewCount
-  const locationHours = activity.location?.openingHours
-  const locationOpenNow = activity.location?.isOpenNow
-  const locationWebsite = activity.location?.website
+  const locationRating = activity?.location?.rating
+  const locationReviewCount = activity?.location?.reviewCount
+  const locationHours = activity?.location?.openingHours
+  const locationOpenNow = activity?.location?.isOpenNow
+  const locationWebsite = activity?.location?.website
 
   useEffect(() => {
     setMounted(true)

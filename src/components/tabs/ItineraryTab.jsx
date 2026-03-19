@@ -1040,7 +1040,7 @@ function CalendarActivityBlock({ activity, day, dayActivities, startOfDayMinutes
 
         {/* Sub-header: Location • Duration */}
         <div className="text-[11px] text-text-muted font-medium truncate uppercase tracking-tight">
-          {(activity.location?.placeName || activity.location || 'Unknown')} • {activity.duration || 60}m
+          {(activity?.location?.placeName || activity?.location || 'Unknown')} • {activity?.duration || 60}m
         </div>
 
         {/* Time Row: Start - End */}

@@ -50,9 +50,9 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
   const [editDraft, setEditDraft] = useState('')
   const feedRef = useRef(null)
   const actorId = currentUserProfile?.uid || currentUserProfile?.id
-  const locationLabel = typeof booking.location === 'string'
+  const locationLabel = typeof booking?.location === 'string'
     ? booking.location
-    : booking.location?.placeName || ''
+    : booking?.location?.placeName || ''
   const cityHint = activeTrip?.cities?.[0]
     ? `${activeTrip.cities[0].city || ''}${activeTrip.cities[0].country ? `, ${activeTrip.cities[0].country}` : ''}`.trim()
     : ''
