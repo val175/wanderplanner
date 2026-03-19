@@ -67,19 +67,10 @@ function normalizeCountryCode(country) {
 }
 
 function getTripCountryCodes(activeTrip, cityHint) {
-    const cityEntries = [
+    const sourceEntries = [
         ...(activeTrip?.cities || []),
         ...(activeTrip?.destinations || []),
     ]
-
-    const hintedCities = cityHint
-        ? cityEntries.filter(entry => {
-            const cityName = entry?.city || ''
-            return cityName && cityHint.toLowerCase().includes(cityName.toLowerCase())
-        })
-        : []
-
-    const sourceEntries = hintedCities.length > 0 ? hintedCities : cityEntries
     const codes = new Set()
 
     for (const entry of sourceEntries) {
