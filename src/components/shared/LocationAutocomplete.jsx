@@ -1,7 +1,9 @@
 // src/components/shared/LocationAutocomplete.jsx
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { Search, MapPin, X, Loader2 } from 'lucide-react'
 import { auth } from '../../firebase/config'
+import { useTripContext } from '../../context/TripContext'
+import { CITY_DB } from './CityCombobox'
 
 const mapboxPrefix = "pk.eyJ"
 const mapboxToken = import.meta.env.VITE_MAPBOX_PART2 ? `${mapboxPrefix}${import.meta.env.VITE_MAPBOX_PART2}` : null
@@ -29,6 +31,10 @@ function debugLocationError(...args) {
     console.error('[LocationAutocomplete]', ...args)
 }
 
+const COUNTRY_CODE_LOOKUP = new Map(
+    CITY_DB.map(entry => [entry.country.trim().toLowerCase(), entry.iso])
+)
+
 function getSuggestionLabel(suggestion, fallback = '') {
     return suggestion?.properties?.full_address
         || suggestion?.place_name
@@ -52,11 +58,44 @@ function getQuerySearchTypes(query) {
     return ['poi,address', 'place,locality,neighborhood,address,poi']
 }
 
+function normalizeCountryCode(country) {
+    if (!country) return null
+    const trimmed = country.toString().trim()
+    if (!trimmed) return null
+    if (/^[A-Z]{2}$/i.test(trimmed)) return trimmed.toUpperCase()
+    return COUNTRY_CODE_LOOKUP.get(trimmed.toLowerCase()) || null
+}
+
+function getTripCountryCodes(activeTrip, cityHint) {
+    const cityEntries = [
+        ...(activeTrip?.cities || []),
+        ...(activeTrip?.destinations || []),
+    ]
+
+    const hintedCities = cityHint
+        ? cityEntries.filter(entry => {
+            const cityName = entry?.city || ''
+            return cityName && cityHint.toLowerCase().includes(cityName.toLowerCase())
+        })
+        : []
+
+    const sourceEntries = hintedCities.length > 0 ? hintedCities : cityEntries
+    const codes = new Set()
+
+    for (const entry of sourceEntries) {
+        const code = normalizeCountryCode(entry?.iso || entry?.countryCode || entry?.country)
+        if (code) codes.add(code)
+    }
+
+    return [...codes]
+}
+
 /**
  * LocationAutocomplete
  * Simple search interface for Mapbox locations.
  */
 export default function LocationAutocomplete({ onSelect, proximity = '', initialValue = '', cityHint = '', enrichOnSelect = true }) {
+    const { activeTrip } = useTripContext()
     const initialQuery = typeof initialValue === 'string' ? initialValue : (initialValue?.placeName || '')
     const [query, setQuery] = useState(initialQuery)
     const [suggestions, setSuggestions] = useState([])
@@ -64,6 +103,8 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
     const [isSelecting, setIsSelecting] = useState(false)
     const [showSuggestions, setShowSuggestions] = useState(false)
     const containerRef = useRef(null)
+    const tripCountryCodes = useMemo(() => getTripCountryCodes(activeTrip, cityHint), [activeTrip, cityHint])
+    const countryFilter = tripCountryCodes.join(',')
 
     useEffect(() => {
         const nextQuery = typeof initialValue === 'string' ? initialValue : (initialValue?.placeName || '')
@@ -96,12 +137,17 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
                         types,
                         proximity: proximity || 'ip'
                     })
+
+                    if (countryFilter) {
+                        params.set('country', countryFilter)
+                    }
                     const requestUrl = `${endpoint}?${params.toString()}`
                     debugLocation('Fetching suggestions', {
                         attempt: index + 1,
                         query,
                         proximity: proximity || 'ip',
                         cityHint,
+                        countryFilter: countryFilter || null,
                         types,
                         requestUrl: requestUrl.replace(mapboxToken || '', '[redacted-token]'),
                     })
