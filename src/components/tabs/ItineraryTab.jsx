@@ -44,6 +44,10 @@ function getCategoryTheme(categoryId) {
   return cat
 }
 
+function sortItineraryDays(days) {
+  return [...(days || [])].sort((a, b) => Number(a?.dayNumber || 0) - Number(b?.dayNumber || 0))
+}
+
 const CAT_THEME_CLASSES = {
   emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
   sky: { bg: 'bg-sky-500/10', border: 'border-sky-500/20' },
@@ -283,7 +287,7 @@ function AddActivityModal({ isOpen, onClose, itinerary, onAdd }) {
   )
 }
 
-function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, setActiveSearchActivity, onOpenDrawer }) {
+function DayGroupTable({ day, itinerary, onReorderDay, trip, resolveLocation, isResolving, setActiveSearchActivity, onOpenDrawer }) {
   const { dispatch, isReadOnly } = useTripContext()
   const [expanded, setExpanded] = useState(true)
   const [dragOverGroup, setDragOverGroup] = useState(false)
@@ -330,10 +334,10 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
 
     const homeOffset = getUTCOffsetHours(homeTz)
     const destOffset = getUTCOffsetHours(destTz)
-    if (homeOffset === null || destOffset === null) return null
+    if (!Number.isFinite(homeOffset) || !Number.isFinite(destOffset)) return null
 
     const delta = homeOffset - destOffset // positive = home is ahead
-    return Math.abs(delta) >= 2 ? delta : null
+    return Number.isFinite(delta) && Math.abs(delta) >= 2 ? delta : null
   }, [trip, day.location])
 
   const handleDropActivity = (e, targetIndex) => {
@@ -381,8 +385,8 @@ function DayGroupTable({ day, onReorderDay, trip, resolveLocation, isResolving, 
         if (!sourceDataStr) return
         const sourceData = JSON.parse(sourceDataStr)
         if (sourceData.type === 'day') {
-          const fromIndex = trip.itinerary.findIndex(d => d.id === sourceData.dayId)
-          const toIndex = trip.itinerary.findIndex(d => d.id === day.id)
+          const fromIndex = itinerary.findIndex(d => d.id === sourceData.dayId)
+          const toIndex = itinerary.findIndex(d => d.id === day.id)
           if (fromIndex !== -1 && toIndex !== -1 && fromIndex !== toIndex) {
             onReorderDay(fromIndex, toIndex)
           }
@@ -1075,7 +1079,7 @@ function CalendarActivityBlock({ activity, day, dayActivities, startOfDayMinutes
   )
 }
 
-function CalendarView({ trip, isMobile, activeDayIndex, onOpenDrawer, onDayChange }) {
+function CalendarView({ trip, itinerary, isMobile, activeDayIndex, onOpenDrawer, onDayChange }) {
   const canvasRef = useRef(null)
   const panState = useRef({ active: false, startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0 })
 
@@ -1109,20 +1113,21 @@ function CalendarView({ trip, isMobile, activeDayIndex, onOpenDrawer, onDayChang
       hours = h
       mins = m
     }
+    if (!Number.isFinite(hours) || !Number.isFinite(mins)) return null
     return hours * 60 + mins
   }
 
   const { isReadOnly } = useTripContext()
 
-  const itinerary = isMobile 
-    ? [trip.itinerary[activeDayIndex]].filter(Boolean)
-    : (trip.itinerary || [])
+  const visibleItinerary = isMobile
+    ? [itinerary[activeDayIndex]].filter(Boolean)
+    : itinerary
 
   let foundEarliest = 8;
   let foundLatest = 22;
   let hasActivities = false;
 
-  itinerary.forEach(day => {
+  visibleItinerary.forEach(day => {
     day.activities?.forEach(act => {
       const startMins = timeToMinutes(act.time);
       if (startMins !== null) {
@@ -1155,8 +1160,8 @@ function CalendarView({ trip, isMobile, activeDayIndex, onOpenDrawer, onDayChang
       onPointerLeave={handleCanvasPointerUp}
     >
       {/* Mobile day navigator */}
-      {isMobile && trip.itinerary?.length > 1 && (() => {
-        const day = trip.itinerary[activeDayIndex]
+      {isMobile && itinerary?.length > 1 && (() => {
+        const day = itinerary[activeDayIndex]
         return (
           <div className="flex items-center justify-between px-3 py-2 border-b border-border/20 bg-bg-card sticky top-0 left-0 z-30 w-full">
             <button
@@ -1175,8 +1180,8 @@ function CalendarView({ trip, isMobile, activeDayIndex, onOpenDrawer, onDayChang
               </p>
             </div>
             <button
-              onClick={() => onDayChange(Math.min(trip.itinerary.length - 1, activeDayIndex + 1))}
-              disabled={activeDayIndex === trip.itinerary.length - 1}
+              onClick={() => onDayChange(Math.min(itinerary.length - 1, activeDayIndex + 1))}
+              disabled={activeDayIndex === itinerary.length - 1}
               className="p-2 text-text-muted hover:text-text-primary disabled:opacity-25 transition-colors rounded-lg hover:bg-bg-hover"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
@@ -1199,7 +1204,7 @@ function CalendarView({ trip, isMobile, activeDayIndex, onOpenDrawer, onDayChang
 
         {/* Columns */}
         <div className="flex-1 flex min-w-0">
-          {itinerary.map((day, idx) => {
+          {visibleItinerary.map((day, idx) => {
             const dayColor = DAY_COLORS[idx % DAY_COLORS.length]
             return (
               <div 
@@ -1278,11 +1283,12 @@ export default function ItineraryTab() {
 
   if (!activeTrip) return null
   const trip = activeTrip
+  const itinerary = useMemo(() => sortItineraryDays(trip.itinerary || []), [trip.itinerary])
 
   // Horizontal swipe gesture for mobile
   const bind = useDrag(({ swipe: [swipeX], active }) => {
     if (!active && swipeX !== 0) {
-      if (swipeX === -1 && activeDayIndex < (trip.itinerary?.length || 0) - 1) {
+      if (swipeX === -1 && activeDayIndex < itinerary.length - 1) {
         setActiveDayIndex(prev => prev + 1)
         triggerHaptic('light')
       } else if (swipeX === 1 && activeDayIndex > 0) {
@@ -1293,7 +1299,7 @@ export default function ItineraryTab() {
   }, { axis: 'x', filterTaps: true })
 
   const handleAddDay = () => {
-    const lastDay = trip.itinerary?.[trip.itinerary.length - 1]
+    const lastDay = itinerary[itinerary.length - 1]
     let nextDate = ''
     if (lastDay?.date) {
       // Parse YYYY-MM-DD safely to avoid JS timezone offset bugs
@@ -1315,7 +1321,7 @@ export default function ItineraryTab() {
       <TabHeader
         leftSlot={
           <span className="text-[11px] font-semibold font-heading text-text-muted tabular-nums">
-            {trip.itinerary?.reduce((acc, d) => acc + (d.activities?.length || 0), 0) || 0} activities · {trip.itinerary?.length || 0} days
+            {itinerary?.reduce((acc, d) => acc + (d.activities?.length || 0), 0) || 0} activities · {itinerary?.length || 0} days
           </span>
         }
         rightSlot={
@@ -1361,14 +1367,14 @@ export default function ItineraryTab() {
       <AddActivityModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        itinerary={trip.itinerary || []}
+        itinerary={itinerary}
         onAdd={async ({ dayId, activity }) => {
           const action = dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId, activity } })
           // The ADD_ACTIVITY dispatch returns the lucky winner's ID if we generate it there... 
           // but our reducer generates it. We'll need to find it relative to the city hint.
           if (activity.name) {
             // Find the day to get its location/city hint
-            const day = trip.itinerary.find(d => d.id === dayId)
+            const day = itinerary.find(d => d.id === dayId)
             // Wait a tick for the state to settle or just fire and forget since the hook uses dispatch
             // We don't have the new activity ID yet because dispatch doesn't return it in this pattern.
             // Let's refine useSmartLocation to return the data if needed or just handle it post-update.
@@ -1386,7 +1392,7 @@ export default function ItineraryTab() {
             Search for a specific place to get accurate map data and photos.
           </p>
           {(() => {
-            const currentDay = trip.itinerary.find(d => d.id === activeSearchActivity?.dayId)
+            const currentDay = itinerary.find(d => d.id === activeSearchActivity?.dayId)
             const cityContext = currentDay ? trip.cities.find(c =>
               currentDay.location && c.city && currentDay.location.toLowerCase().includes(c.city.toLowerCase())
             ) || (trip.cities?.length > 0 ? trip.cities[0] : null) : null
@@ -1442,7 +1448,7 @@ export default function ItineraryTab() {
 
       {/* Activity Drawer */}
       {selectedActivity && (() => {
-        const liveActivity = trip.itinerary
+        const liveActivity = itinerary
           .find(d => d.id === selectedActivity.dayId)
           ?.activities?.find(a => a.id === selectedActivity.activityId)
         return liveActivity ? (
@@ -1455,7 +1461,7 @@ export default function ItineraryTab() {
       })()}
 
       {/* Content Area */}
-      {trip.itinerary && trip.itinerary.length > 0 ? (
+      {itinerary.length > 0 ? (
         <div className="flex-1 w-full relative animate-tab-enter stagger-3">
 
           {viewMode === 'table' ? (
@@ -1465,10 +1471,11 @@ export default function ItineraryTab() {
                   {...bind()}
                   className="touch-none select-none"
                 >
-                  {trip.itinerary[activeDayIndex] && (
+                  {itinerary[activeDayIndex] && (
                     <DayGroupTable
-                      key={trip.itinerary[activeDayIndex].id}
-                      day={trip.itinerary[activeDayIndex]}
+                      key={itinerary[activeDayIndex].id}
+                      day={itinerary[activeDayIndex]}
+                      itinerary={itinerary}
                       trip={trip}
                       resolveLocation={resolveLocation}
                       isResolving={isResolving}
@@ -1480,7 +1487,7 @@ export default function ItineraryTab() {
 
                   {/* Progress dots indicator */}
                   <div className="flex justify-center gap-1.5 mt-4">
-                    {trip.itinerary.map((_, i) => (
+                    {itinerary.map((_, i) => (
                       <div
                         key={i}
                         className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i === activeDayIndex ? 'bg-accent w-4' : 'bg-border'}`}
@@ -1490,10 +1497,11 @@ export default function ItineraryTab() {
                 </div>
               ) : (
                 <>
-                  {trip.itinerary.map((day, dayIndex) => (
+                  {itinerary.map((day, dayIndex) => (
                     <DayGroupTable
                       key={day.id}
                       day={day}
+                      itinerary={itinerary}
                       trip={trip}
                       resolveLocation={resolveLocation}
                       isResolving={isResolving}
@@ -1516,7 +1524,7 @@ export default function ItineraryTab() {
           ) : viewMode === 'kanban' ? (
             <div className="absolute inset-0 right-[-24px] pr-6 pb-6 overflow-x-auto overflow-y-hidden custom-scrollbar">
               <div className="flex gap-4 min-fit-content h-full items-start">
-                {trip.itinerary.map(day => (
+                {itinerary.map(day => (
                   <KanbanColumn
                     key={day.id}
                     day={day}
@@ -1541,6 +1549,7 @@ export default function ItineraryTab() {
           ) : (
             <CalendarView
               trip={trip}
+              itinerary={itinerary}
               isMobile={isMobile}
               activeDayIndex={activeDayIndex}
               onOpenDrawer={setSelectedActivity}

@@ -115,9 +115,9 @@ export function getUTCOffsetHours(ianaTimezone) {
  * return the "body clock" time as a formatted string like "3:00 AM".
  */
 export function applyTimezoneOffset(time24h, offsetDelta) {
-    if (!time24h || offsetDelta === null) return null
+    if (!time24h || offsetDelta === null || !Number.isFinite(offsetDelta)) return null
     const [hRaw, mRaw] = time24h.split(':').map(Number)
-    if (isNaN(hRaw) || isNaN(mRaw)) return null
+    if (!Number.isFinite(hRaw) || !Number.isFinite(mRaw)) return null
 
     let totalMinutes = hRaw * 60 + mRaw - offsetDelta * 60
     // Keep within 0–1440 range (wrap around midnight)
