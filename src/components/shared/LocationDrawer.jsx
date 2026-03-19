@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { X, ExternalLink, MapPin, Sparkles, Navigation2 } from 'lucide-react';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 

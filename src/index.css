@@ -100,6 +100,17 @@
 
   /* Layout */
   --sidebar-width: 300px;
+
+  /* Motion: duration and easing tokens
+     --duration-* vars are used via var() in .animate-* classes.
+     Components use numeric Tailwind classes (duration-200, duration-300)
+     since Tailwind v4 has conflicting built-in semantic duration names. */
+  --duration-fast:     200ms;  /* modal scale-in, button feedback */
+  --duration-standard: 250ms;  /* fade/slide keyframe animations */
+  --duration-moderate: 300ms;  /* drawer and panel slides */
+
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);  /* bouncy entrance */
+  --ease-drawer: cubic-bezier(0.2, 0, 0, 1);          /* panel slides */
 }
 
 /* ─── Dark Mode ────────────────────────────────────────────────────────────
@@ -396,23 +407,27 @@ body {
 }
 
 .animate-fade-in {
-  animation: fade-in 0.25s ease-out both;
+  animation: fade-in var(--duration-standard) ease-out both;
 }
 
 .animate-fade-in-up {
-  animation: fade-in-up 0.35s ease-out both;
+  animation: fade-in-up var(--duration-moderate) ease-out both;
 }
 
 .animate-slide-in {
-  animation: slide-in-left 0.25s ease-out both;
+  animation: slide-in-left var(--duration-standard) ease-out both;
 }
 
 .animate-slide-out {
-  animation: slide-out-left 0.25s ease-in both;
+  animation: slide-out-left var(--duration-standard) ease-in both;
+}
+
+.animate-slide-up {
+  animation: slide-up var(--duration-moderate) ease-out both;
 }
 
 .animate-scale-in {
-  animation: scale-in 0.2s ease-out both;
+  animation: scale-in var(--duration-fast) ease-out both;
 }
 
 .animate-pulse-warm {
@@ -420,19 +435,19 @@ body {
 }
 
 .animate-check-pop {
-  animation: check-pop 0.3s ease-out;
+  animation: check-pop var(--duration-moderate) ease-out;
 }
 
 .animate-toast-in {
-  animation: toast-in 0.25s ease-out both;
+  animation: toast-in var(--duration-standard) ease-out both;
 }
 
 .animate-toast-out {
-  animation: toast-out 0.25s ease-in both;
+  animation: toast-out var(--duration-standard) ease-in both;
 }
 
 .animate-bounce-in {
-  animation: bounce-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: bounce-in 0.45s var(--ease-spring) both;
 }
 
 /* Staggered animation delays */
@@ -502,7 +517,7 @@ body {
 }
 
 .animate-tab-enter {
-  animation: tab-enter 600ms cubic-bezier(0.2, 0, 0, 1) both;
+  animation: tab-enter 600ms var(--ease-drawer) both;
 }
 
 .stagger-1 { animation-delay: 0ms; }
