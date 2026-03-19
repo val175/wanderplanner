@@ -90,19 +90,19 @@ function getMapboxToken() {
 async function geocodeCoordinates(searchQuery) {
     const mapboxToken = getMapboxToken()
     if (!mapboxToken || !searchQuery) {
-        return { coordinates: { lat: 0, lng: 0 }, photoUrl: '' }
+        return { coordinates: null, photoUrl: '' }
     }
 
     try {
         const mbRes = await fetch(`https://api.mapbox.com/search/geocode/v6/forward?q=${encodeURIComponent(searchQuery)}&access_token=${mapboxToken}&limit=1`)
         if (!mbRes.ok) {
-            return { coordinates: { lat: 0, lng: 0 }, photoUrl: '' }
+            return { coordinates: null, photoUrl: '' }
         }
 
         const mbData = await mbRes.json()
         const feature = mbData.features?.[0]
         if (!feature) {
-            return { coordinates: { lat: 0, lng: 0 }, photoUrl: '' }
+            return { coordinates: null, photoUrl: '' }
         }
 
         const coordinates = {
@@ -116,7 +116,7 @@ async function geocodeCoordinates(searchQuery) {
         }
     } catch (error) {
         console.warn('Mapbox geocoding failed:', error.message)
-        return { coordinates: { lat: 0, lng: 0 }, photoUrl: '' }
+        return { coordinates: null, photoUrl: '' }
     }
 }
 
@@ -233,7 +233,13 @@ export default async function handler(req) {
             promise = (async () => {
                 const grounded = await runGroundedWorker({ query, cityHint, geminiKey })
                 const { coordinates, photoUrl } = await geocodeCoordinates(grounded.searchQuery || grounded.placeName || query)
-                const mapUrl = coordinates.lat !== 0
+                const hasCoordinates = Boolean(
+                    coordinates
+                    && Number.isFinite(coordinates.lat)
+                    && Number.isFinite(coordinates.lng)
+                    && !(coordinates.lat === 0 && coordinates.lng === 0)
+                )
+                const mapUrl = hasCoordinates
                     ? `https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}`
                     : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(grounded.searchQuery || grounded.placeName || query)}`
                 const result = {
@@ -254,7 +260,7 @@ export default async function handler(req) {
                     sourceLinks: grounded.sourceLinks || [],
                     groundedModel: grounded.groundedModel,
                     groundedAt: new Date().toISOString(),
-                    verified: coordinates.lat !== 0,
+                    verified: hasCoordinates,
                 }
                 locationCache.set(cacheKey, { cachedAt: Date.now(), data: result })
                 return result

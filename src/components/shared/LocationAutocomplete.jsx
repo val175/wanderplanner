@@ -108,6 +108,15 @@ function scoreSuggestion(query, suggestion) {
     return score
 }
 
+function isValidCoordinates(coords) {
+    return Boolean(
+        coords
+        && Number.isFinite(coords.lat)
+        && Number.isFinite(coords.lng)
+        && !(coords.lat === 0 && coords.lng === 0)
+    )
+}
+
 /**
  * LocationAutocomplete
  * Simple search interface for Mapbox locations.
@@ -254,7 +263,13 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
                 if (res.ok) {
                     const enriched = await res.json()
                     debugLocation('Enrichment response', enriched)
-                    nextLocation = { ...baseLocation, ...enriched }
+                    nextLocation = {
+                        ...baseLocation,
+                        ...enriched,
+                        coordinates: isValidCoordinates(enriched?.coordinates)
+                            ? enriched.coordinates
+                            : baseLocation.coordinates,
+                    }
                 } else {
                     const body = await res.text()
                     debugLocationError('Enrichment request failed', {
