@@ -1,5 +1,5 @@
 // api/chat.js
-import { streamText, tool } from 'ai'
+import { streamText, tool, convertToModelMessages } from 'ai'
 import { z } from 'zod'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
@@ -143,12 +143,14 @@ export default async function handler(req) {
         const { messages, systemPrompt: clientPrompt } = await req.json()
         const systemPrompt = clientPrompt || "You are Wanda, a friendly travel planning assistant."
 
-        const modelMessages = (messages || []).map(m => ({
-            role: m.role,
-            content: Array.isArray(m.parts)
-                ? m.parts.filter(p => p.type === 'text').map(p => p.text).join('\n')
-                : (m.content || ''),
-        }))
+        // convertToModelMessages correctly serializes tool-call and tool-result parts
+        // from the AI SDK's UIMessage format. The previous manual mapping was text-only,
+        // which caused assistant messages that only called a tool (e.g. generate_day_itinerary)
+        // to appear blank in history, making the model re-fire the tool on every follow-up.
+        const modelMessages = await convertToModelMessages(messages || [], {
+            tools: WANDA_TOOLS,
+            ignoreIncompleteToolCalls: true,
+        })
 
         const geminiKey = process.env.GEMINI_API_KEY
         const openrouterKey = process.env.OPENROUTER_API_KEY

@@ -135,7 +135,26 @@ export default function AIAssistant() {
         .filter(m => m.role === 'user' || m.role === 'assistant')
         .map(m => {
           const textParts = m.parts?.filter(p => p.type === 'text') ?? [];
-          const content = textParts.map(p => p.text).join('').trim() || m.content || '';
+          let content = textParts.map(p => p.text).join('').trim() || m.content || '';
+          // For tool-only assistant messages (e.g. generate_day_itinerary with no text),
+          // build a readable placeholder so history isn't a blank assistant turn that
+          // causes the model to re-fire the tool on the next message.
+          if (!content && m.role === 'assistant' && m.parts?.length) {
+            const toolParts = m.parts.filter(p => p.type?.startsWith('tool-'));
+            if (toolParts.length) {
+              const summaries = toolParts.map(p => {
+                if (p.type === 'tool-generate_day_itinerary') {
+                  const acts = p.input?.activities?.length || 0;
+                  return `I've prepared a Day ${p.input?.dayNumber ?? '?'} itinerary plan with ${acts} activities for ${p.input?.location ?? 'the destination'}.`;
+                }
+                if (p.type === 'tool-add_idea_to_voting_room') return `I've suggested "${p.input?.title}" for the voting room.`;
+                if (p.type === 'tool-add_to_packing_list') return `I've added "${p.input?.item}" to your packing list.`;
+                if (p.type === 'tool-add_budget_alert') return `I've flagged a budget alert: ${p.input?.title}.`;
+                return null;
+              }).filter(Boolean);
+              content = summaries.join(' ') || 'I used a tool to assist with your request.';
+            }
+          }
           return { id: m.id, role: m.role, content };
         })
         .slice(-50);
