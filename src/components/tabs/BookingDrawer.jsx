@@ -41,6 +41,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
   const { dispatch } = useTripContext()
   const { currentUserProfile, resolveProfile } = useProfiles()
   const [mounted, setMounted] = useState(false)
+  const [visible, setVisible] = useState(false)
   const [isEditingNotes, setIsEditingNotes] = useState(false)
   const [notesDraft, setNotesDraft] = useState('')
   const [editingLocation, setEditingLocation] = useState(false)
@@ -52,9 +53,15 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
 
   useEffect(() => {
     setMounted(true)
+    const raf = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setVisible(true))
+    })
     const handleEsc = (e) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', handleEsc)
-    return () => window.removeEventListener('keydown', handleEsc)
+    return () => {
+      window.removeEventListener('keydown', handleEsc)
+      cancelAnimationFrame(raf)
+    }
   }, [onClose])
 
   useEffect(() => {
@@ -122,13 +129,13 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
     <div className="relative z-[9999] font-heading">
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-bg-primary/50 backdrop-blur-sm transition-opacity duration-300 ${mounted ? 'opacity-100' : 'opacity-0'}`}
+        className={`fixed inset-0 bg-bg-primary/50 backdrop-blur-sm transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'}`}
         onClick={onClose}
       />
 
       {/* Drawer */}
       <div
-        className={`fixed w-full flex flex-col bg-bg-card border-border transform transition-transform duration-300 ease-drawer inset-x-0 bottom-0 rounded-t-2xl min-h-[92dvh] max-h-[92dvh] border-t overflow-x-hidden md:inset-y-0 md:right-0 md:left-auto md:max-w-xl md:rounded-none md:min-h-0 md:max-h-none md:border-t-0 md:border-l ${mounted ? 'translate-y-0 md:translate-x-0' : 'translate-y-full md:translate-y-0 md:translate-x-full'}`}
+        className={`fixed w-full flex flex-col bg-bg-card border-border transform transition-transform duration-300 ease-drawer inset-x-0 bottom-0 rounded-t-2xl min-h-[92dvh] max-h-[92dvh] border-t overflow-x-hidden md:inset-y-0 md:right-0 md:left-auto md:max-w-xl md:rounded-none md:min-h-0 md:max-h-none md:border-t-0 md:border-l ${visible ? 'translate-y-0 md:translate-x-0' : 'translate-y-full md:translate-y-0 md:translate-x-full'}`}
       >
         {/* Mobile drag handle */}
         <div className="flex justify-center pt-2.5 pb-1 md:hidden shrink-0">
