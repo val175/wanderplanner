@@ -8,6 +8,19 @@ import { CITY_DB } from './CityCombobox'
 const mapboxPrefix = "pk.eyJ"
 const mapboxToken = import.meta.env.VITE_MAPBOX_PART2 ? `${mapboxPrefix}${import.meta.env.VITE_MAPBOX_PART2}` : null
 const VERCEL_API = 'https://wanderplan-rust.vercel.app'
+const MAPBOX_SUGGEST_ENDPOINT = 'https://api.mapbox.com/search/searchbox/v1/suggest'
+const MAPBOX_RETRIEVE_ENDPOINT = 'https://api.mapbox.com/search/searchbox/v1/retrieve'
+
+function makeSessionToken() {
+    try {
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+            return crypto.randomUUID()
+        }
+    } catch {
+        // fall through
+    }
+    return `wanderplan-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+}
 
 function isLocationDebugEnabled() {
     if (typeof window === 'undefined') return false
@@ -40,10 +53,16 @@ const COUNTRY_CODE_LOOKUP = new Map(
     CITY_DB.map(entry => [entry.country.trim().toLowerCase(), entry.iso])
 )
 
+const COUNTRY_NAME_LOOKUP = new Map(
+    CITY_DB.map(entry => [entry.iso, entry.country])
+)
+
 function getSuggestionLabel(suggestion, fallback = '') {
-    return suggestion?.properties?.name
+    return suggestion?.name
+        || suggestion?.properties?.name
         || suggestion?.place_name
         || suggestion?.place_formatted
+        || suggestion?.full_address
         || suggestion?.properties?.full_address
         || suggestion?.text
         || fallback
@@ -71,23 +90,42 @@ function normalizeCountryCode(country) {
     return COUNTRY_CODE_LOOKUP.get(trimmed.toLowerCase()) || null
 }
 
-function getTripCountryCodes(activeTrip, cityHint) {
+function getTripSearchScopes(activeTrip) {
     const sourceEntries = [
         ...(activeTrip?.cities || []),
         ...(activeTrip?.destinations || []),
     ]
-    const codes = new Set()
+
+    const scopes = new Map()
 
     for (const entry of sourceEntries) {
-        const code = normalizeCountryCode(entry?.iso || entry?.countryCode || entry?.country)
-        if (code) codes.add(code)
+        const countryCode = normalizeCountryCode(entry?.iso || entry?.countryCode || entry?.country)
+        if (!countryCode) continue
+
+        const countryName = COUNTRY_NAME_LOOKUP.get(countryCode) || entry?.country || countryCode
+        const cityName = (entry?.city || '').trim()
+
+        if (!scopes.has(countryCode)) {
+            scopes.set(countryCode, {
+                countryCode,
+                countryName,
+                cityNames: new Set(),
+            })
+        }
+
+        const scope = scopes.get(countryCode)
+        if (cityName) scope.cityNames.add(cityName)
     }
 
-    return [...codes]
+    return [...scopes.values()].map(scope => ({
+        countryCode: scope.countryCode,
+        countryName: scope.countryName,
+        cityNames: [...scope.cityNames],
+    }))
 }
 
 function scoreSuggestion(query, suggestion) {
-    const label = `${suggestion?.properties?.name || ''} ${suggestion?.place_name || ''} ${suggestion?.place_formatted || ''} ${suggestion?.properties?.full_address || ''}`.toLowerCase()
+    const label = `${suggestion?.name || ''} ${suggestion?.properties?.name || ''} ${suggestion?.place_name || ''} ${suggestion?.place_formatted || ''} ${suggestion?.full_address || ''} ${suggestion?.properties?.full_address || ''}`.toLowerCase()
     const q = (query || '').trim().toLowerCase()
     if (!q) return 0
 
@@ -118,7 +156,8 @@ function dedupeSuggestions(list) {
     const result = []
 
     for (const suggestion of list || []) {
-        const key = suggestion?.properties?.mapbox_id
+        const key = suggestion?.mapbox_id
+            || suggestion?.properties?.mapbox_id
             || suggestion?.id
             || `${getSuggestionLabel(suggestion, '').toLowerCase()}|${(suggestion?.properties?.full_address || suggestion?.place_formatted || '').toLowerCase()}`
 
@@ -143,13 +182,24 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
     const [isSelecting, setIsSelecting] = useState(false)
     const [showSuggestions, setShowSuggestions] = useState(false)
     const containerRef = useRef(null)
-    const tripCountryCodes = useMemo(() => getTripCountryCodes(activeTrip, cityHint), [activeTrip, cityHint])
+    const [sessionToken, setSessionToken] = useState(() => makeSessionToken())
+    const tripSearchScopes = useMemo(() => getTripSearchScopes(activeTrip), [activeTrip])
+    const tripCountryCodes = useMemo(
+        () => tripSearchScopes.map(scope => scope.countryCode),
+        [tripSearchScopes]
+    )
     const countryFilter = tripCountryCodes.join(',')
 
     useEffect(() => {
         const nextQuery = typeof initialValue === 'string' ? initialValue : (initialValue?.placeName || '')
         setQuery(nextQuery)
     }, [initialValue])
+
+    useEffect(() => {
+        if (!query) {
+            setSessionToken(makeSessionToken())
+        }
+    }, [query])
 
     useEffect(() => {
         if (!query || query.length < 2 || !mapboxToken) {
@@ -163,34 +213,37 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
         const delayDebounceFn = setTimeout(async () => {
             setIsLoading(true)
             try {
-                // Use Searchbox API (forward) for better POI/restaurant results
-                const endpoint = `https://api.mapbox.com/search/searchbox/v1/forward`
                 const typesToTry = getQuerySearchTypes(query)
                 let nextSuggestions = []
-                const countryScopes = tripCountryCodes.length > 0 ? tripCountryCodes : [null]
+                const countryScopes = tripSearchScopes.length > 0
+                    ? tripSearchScopes
+                    : [{ countryCode: null, countryName: null, cityNames: [] }]
 
                 for (let index = 0; index < typesToTry.length; index += 1) {
                     const types = typesToTry[index]
                     const scopedResults = []
 
-                    for (const scopeCountry of countryScopes) {
+                    for (const scope of countryScopes) {
+                        const scopeCountry = scope.countryCode
                         const params = new URLSearchParams({
                             q: query,
                             access_token: mapboxToken,
                             limit: '10',
                             types,
-                            proximity: proximity || 'ip'
+                            proximity: proximity || 'ip',
+                            session_token: sessionToken,
                         })
 
                         if (scopeCountry) {
                             params.set('country', scopeCountry)
                         }
 
-                        const requestUrl = `${endpoint}?${params.toString()}`
+                        const requestUrl = `${MAPBOX_SUGGEST_ENDPOINT}?${params.toString()}`
                         devLocationLog('Country scope', {
                             tripCountryCodes,
                             countryFilter: countryFilter || null,
                             scopeCountry,
+                            sessionToken,
                         })
                         debugLocation('Fetching suggestions', {
                             attempt: index + 1,
@@ -200,6 +253,7 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
                             tripCountryCodes,
                             countryFilter: countryFilter || null,
                             scopeCountry,
+                            sessionToken,
                             types,
                             requestUrl: requestUrl.replace(mapboxToken || '', '[redacted-token]'),
                         })
@@ -218,7 +272,7 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
                         }
 
                         const data = text ? JSON.parse(text) : {}
-                        scopedResults.push(...(data.features || []))
+                        scopedResults.push(...(data.suggestions || data.features || []))
                     }
 
                     nextSuggestions = dedupeSuggestions(scopedResults)
@@ -243,26 +297,72 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
         }, 300)
 
         return () => clearTimeout(delayDebounceFn)
-    }, [query, proximity, cityHint, countryFilter])
+    }, [query, proximity, cityHint, countryFilter, sessionToken, tripSearchScopes])
 
     const handleSelect = async (feature) => {
-        const [lng, lat] = feature.geometry.coordinates
-        const placeName = feature.properties.name || feature.properties.full_address || ''
+        const mapboxId = feature?.mapbox_id || feature?.properties?.mapbox_id || feature?.id || null
+        const requestLabel = getSuggestionLabel(feature, '')
         debugLocation('Selected feature', {
-            placeName,
-            featureId: feature.id,
-            mapboxId: feature.properties.mapbox_id || null,
-            coordinates: { lat, lng },
+            placeName: requestLabel,
+            featureId: feature?.id || null,
+            mapboxId,
             cityHint,
             enrichOnSelect,
         })
+
+        let resolvedFeature = feature
+        if (mapboxId) {
+            try {
+                const params = new URLSearchParams({
+                    access_token: mapboxToken || '',
+                    session_token: sessionToken,
+                })
+                const requestUrl = `${MAPBOX_RETRIEVE_ENDPOINT}/${encodeURIComponent(mapboxId)}?${params.toString()}`
+                debugLocation('Retrieving selected feature', {
+                    mapboxId,
+                    sessionToken,
+                    requestUrl: requestUrl.replace(mapboxToken || '', '[redacted-token]'),
+                })
+                const res = await fetch(requestUrl)
+                if (res.ok) {
+                    const data = await res.json()
+                    const retrievedFeature = data.features?.[0]
+                    if (retrievedFeature) {
+                        resolvedFeature = retrievedFeature
+                        debugLocation('Retrieved feature', retrievedFeature)
+                    }
+                } else {
+                    const body = await res.text()
+                    debugLocationError('Retrieve request failed', {
+                        status: res.status,
+                        statusText: res.statusText,
+                        body: body.slice(0, 1000),
+                    })
+                }
+            } catch (error) {
+                debugLocationError('Retrieve request error', error)
+            }
+        }
+
+        const resolvedCoords = resolvedFeature?.geometry?.coordinates
+        const [lng, lat] = Array.isArray(resolvedCoords) ? resolvedCoords : [null, null]
+        const placeName = resolvedFeature?.properties?.name
+            || resolvedFeature?.name
+            || resolvedFeature?.properties?.full_address
+            || resolvedFeature?.full_address
+            || requestLabel
+
         const baseLocation = {
             placeName,
-            coordinates: { lat, lng },
-            placeId: feature.properties.mapbox_id || feature.id || null,
-            photoUrl: `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s+cc402e(${lng},${lat})/${lng},${lat},14/120x120@2x?access_token=${mapboxToken}`,
-            mapUrl: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
-            verified: true
+            coordinates: isValidCoordinates({ lat, lng }) ? { lat, lng } : null,
+            placeId: mapboxId,
+            photoUrl: isValidCoordinates({ lat, lng })
+                ? `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s+cc402e(${lng},${lat})/${lng},${lat},14/120x120@2x?access_token=${mapboxToken}`
+                : '',
+            mapUrl: isValidCoordinates({ lat, lng })
+                ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
+                : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeName || requestLabel)}`,
+            verified: isValidCoordinates({ lat, lng })
         }
 
         let nextLocation = baseLocation
