@@ -36,10 +36,10 @@ const COUNTRY_CODE_LOOKUP = new Map(
 )
 
 function getSuggestionLabel(suggestion, fallback = '') {
-    return suggestion?.properties?.full_address
+    return suggestion?.properties?.name
         || suggestion?.place_name
         || suggestion?.place_formatted
-        || suggestion?.properties?.name
+        || suggestion?.properties?.full_address
         || suggestion?.text
         || fallback
 }
@@ -88,6 +88,24 @@ function getTripCountryCodes(activeTrip, cityHint) {
     }
 
     return [...codes]
+}
+
+function scoreSuggestion(query, suggestion) {
+    const label = `${suggestion?.properties?.name || ''} ${suggestion?.place_name || ''} ${suggestion?.place_formatted || ''} ${suggestion?.properties?.full_address || ''}`.toLowerCase()
+    const q = (query || '').trim().toLowerCase()
+    if (!q) return 0
+
+    let score = 0
+    if (label.includes(q)) score += 100
+
+    const tokens = q.split(/[\s,]+/).filter(Boolean)
+    for (const token of tokens) {
+        if (label.includes(token)) score += 8
+    }
+
+    if ((suggestion?.properties?.name || '').toLowerCase().includes(q)) score += 50
+    if ((suggestion?.properties?.full_address || '').toLowerCase().includes(q)) score += 5
+    return score
 }
 
 /**
@@ -165,7 +183,7 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
                     }
 
                     const data = text ? JSON.parse(text) : {}
-                    nextSuggestions = data.features || []
+                    nextSuggestions = (data.features || []).slice().sort((a, b) => scoreSuggestion(query, b) - scoreSuggestion(query, a))
                     debugLocation('Suggestions response', {
                         attempt: index + 1,
                         count: nextSuggestions.length,

@@ -1,6 +1,31 @@
 import { useState, useEffect, useMemo } from 'react';
 import { geocodeCity, haversineDistance } from '../utils/helpers';
 
+function normalizeLabel(label) {
+    return (label || '').toString().trim().toLowerCase()
+}
+
+function inferCountryHintForDay(day, destinations) {
+    const dayLocation = normalizeLabel(day?.location)
+    const candidateCities = [
+        ...(destinations || []),
+    ].filter(Boolean)
+
+    const matched = candidateCities.find(dest => {
+        const city = normalizeLabel(dest.city)
+        return city && dayLocation.includes(city)
+    })
+
+    if (matched?.city && matched?.country) {
+        return `${matched.city}, ${matched.country}`
+    }
+
+    if (matched?.country) return matched.country
+
+    const first = candidateCities[0]
+    return first?.country || null
+}
+
 /**
  * useMapDiscovery
  * Hook to handle spatial logic for the interactive WanderMap.
@@ -67,7 +92,9 @@ export function useMapDiscovery(trip) {
         let active = true;
         async function loadActivities() {
             const allActivities = itinerary.flatMap(day =>
-                (day.activities || []).filter(a => a && (a.location || a.name))
+                (day.activities || [])
+                    .filter(a => a && (a.location || a.name))
+                    .map(activity => ({ activity, day }))
             );
 
             if (allActivities.length === 0) {
@@ -75,7 +102,7 @@ export function useMapDiscovery(trip) {
                 return;
             }
 
-            const promises = allActivities.map(async (activity) => {
+            const promises = allActivities.map(async ({ activity, day }) => {
                 // If we already have rich location data with coordinates, use them directly
                 if (activity.location?.coordinates?.lat && activity.location?.coordinates?.lng) {
                     const coords = [activity.location.coordinates.lng, activity.location.coordinates.lat];
@@ -83,7 +110,7 @@ export function useMapDiscovery(trip) {
                 }
 
                 const query = typeof activity.location === 'string' ? activity.location : activity.name;
-                const countryHint = destinations[0]?.country || null;
+                const countryHint = inferCountryHintForDay(day, destinations);
                 const coords = await geocodeCity(query, countryHint);
                 return { activityId: activity.id, coords, activity };
             });
