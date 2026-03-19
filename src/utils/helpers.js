@@ -194,30 +194,15 @@ export async function geocodeCity(cityStr, countryHint = null) {
  * Handles day-wrapping (e.g., "23:30" + 60 = "00:30").
  */
 export function addMinutesToTime(timeStr, minutes) {
-  if (!timeStr || typeof timeStr !== 'string') return ''
-  
-  const trimmed = timeStr.trim().toUpperCase()
-  if (!trimmed) return ''
+  const parsed = normalizeTimeString(timeStr)
+  if (!parsed) return ''
 
-  // Normalize time string to [hours, minutes]
-  let hours, mins
-  if (trimmed.includes('AM') || trimmed.includes('PM')) {
-    const parts = trimmed.split(/\s+/)
-    const time = parts[0]
-    const modifier = parts[1] || (trimmed.endsWith('AM') ? 'AM' : 'PM')
-    const [h, m] = time.split(':').map(Number)
-    hours = h
-    mins = m
-    if (modifier === 'PM' && hours < 12) hours += 12
-    if (modifier === 'AM' && hours === 12) hours = 0
-  } else {
-    const [h, m] = trimmed.split(':').map(Number)
-    hours = h
-    mins = m
-  }
+  const [hours, mins] = parsed.split(':').map(Number)
+  if (!Number.isFinite(hours) || !Number.isFinite(mins) || !Number.isFinite(minutes)) return ''
 
   const date = new Date()
   date.setHours(hours, mins + minutes, 0, 0)
+  if (Number.isNaN(date.getTime())) return ''
 
   const h = String(date.getHours()).padStart(2, '0')
   const m = String(date.getMinutes()).padStart(2, '0')
@@ -232,19 +217,9 @@ export function calculateDuration(startTime, endTime) {
   if (!startTime || !endTime) return 0
 
   const parseToMins = (str) => {
-    let hours, mins
-    if (str.toUpperCase().includes('AM') || str.toUpperCase().includes('PM')) {
-      const [time, modifier] = str.split(' ')
-      const [h, m] = time.split(':').map(Number)
-      hours = h
-      mins = m
-      if (modifier.toUpperCase() === 'PM' && hours < 12) hours += 12
-      if (modifier.toUpperCase() === 'AM' && hours === 12) hours = 0
-    } else {
-      const [h, m] = str.split(':').map(Number)
-      hours = h
-      mins = m
-    }
+    const normalized = normalizeTimeString(str)
+    if (!normalized) return null
+    const [hours, mins] = normalized.split(':').map(Number)
     return hours * 60 + mins
   }
 
@@ -257,4 +232,38 @@ export function calculateDuration(startTime, endTime) {
   }
 
   return endTotal - startTotal
+}
+
+/**
+ * Normalize a time string into 24h HH:MM format.
+ * Accepts "HH:MM", "H:MM", and "HH:MM AM/PM".
+ */
+export function normalizeTimeString(timeStr) {
+  if (!timeStr || typeof timeStr !== 'string') return ''
+
+  const trimmed = timeStr.trim().toUpperCase()
+  if (!trimmed) return ''
+
+  const match12h = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/)
+  if (match12h) {
+    let hours = Number(match12h[1])
+    const mins = Number(match12h[2])
+    const modifier = match12h[3]
+    if (!Number.isFinite(hours) || !Number.isFinite(mins)) return ''
+    if (hours < 1 || hours > 12 || mins < 0 || mins > 59) return ''
+    if (modifier === 'PM' && hours < 12) hours += 12
+    if (modifier === 'AM' && hours === 12) hours = 0
+    return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
+  }
+
+  const match24h = trimmed.match(/^(\d{1,2}):(\d{2})$/)
+  if (match24h) {
+    const hours = Number(match24h[1])
+    const mins = Number(match24h[2])
+    if (!Number.isFinite(hours) || !Number.isFinite(mins)) return ''
+    if (hours < 0 || hours > 23 || mins < 0 || mins > 59) return ''
+    return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
+  }
+
+  return ''
 }

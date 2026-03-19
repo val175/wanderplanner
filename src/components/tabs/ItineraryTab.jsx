@@ -10,7 +10,7 @@ import DatePicker from '../shared/DatePicker'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
-import { formatDate, formatCurrency, addMinutesToTime } from '../../utils/helpers'
+import { formatDate, formatCurrency, addMinutesToTime, normalizeTimeString } from '../../utils/helpers'
 import { ACTIVITY_EMOJIS } from '../../constants/emojis'
 import { COUNTRY_TIMEZONE, getUTCOffsetHours, applyTimezoneOffset, FLIGHT_ACTIVITY_PATTERNS, FLIGHT_EMOJIS } from '../../utils/timezones'
 import { triggerHaptic, hapticImpact } from '../../utils/haptics'
@@ -114,9 +114,10 @@ function CategoryPill({ value, onChange, disabled }) {
 }
 // ── Time Conflict Utilities ────────────────────────────────────────────────
 function timeToMins(t) {
-  if (!t) return null
-  const [h, m] = t.split(':').map(Number)
-  return isNaN(h) || isNaN(m) ? null : h * 60 + m
+  const normalized = normalizeTimeString(t)
+  if (!normalized) return null
+  const [h, m] = normalized.split(':').map(Number)
+  return Number.isNaN(h) || Number.isNaN(m) ? null : h * 60 + m
 }
 
 /** Returns activities from `list` that overlap with the given time range. */

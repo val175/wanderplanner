@@ -194,6 +194,15 @@ function hasStrongExactMatch(query, suggestions) {
     return (suggestions || []).some(suggestion => scoreSuggestionMatch(query, suggestion) >= Math.max(2, Math.ceil(tokens.length * 0.8)))
 }
 
+function hasStrongLocationMatch(query, locationData) {
+    const tokens = tokenizeQuery(query)
+    if (tokens.length === 0) return false
+    const label = `${locationData?.placeName || ''} ${locationData?.address || ''} ${locationData?.summary || ''}`.toLowerCase()
+    if (!label.trim()) return false
+    const matches = tokens.filter(token => label.includes(token)).length
+    return matches >= Math.min(2, tokens.length)
+}
+
 function buildGroundedSuggestion(locationData, fallbackQuery, cityHint) {
     const coords = locationData?.coordinates
     const lat = coords?.lat
@@ -261,6 +270,15 @@ async function fetchGroundedSuggestion(query, cityHint, countryCodes = []) {
         const locationData = await res.json()
         if (!isValidCoordinates(locationData?.coordinates)) {
             debugLocationError('Grounding fallback returned invalid coordinates', locationData)
+            groundedSuggestionCache.set(cacheKey, null)
+            return null
+        }
+        if (!hasStrongLocationMatch(query, locationData)) {
+            debugLocation('Grounding fallback rejected weak match', {
+                query,
+                placeName: locationData?.placeName,
+                address: locationData?.address,
+            })
             groundedSuggestionCache.set(cacheKey, null)
             return null
         }

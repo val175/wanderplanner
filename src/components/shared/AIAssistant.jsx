@@ -67,6 +67,17 @@ const MAGIC_SPELLS = [
 
 const PILL_INSTRUCTION_MARKER = '\n\n[INSTRUCTION]:\n';
 
+function cleanPlaceQuery(text) {
+  const value = (text || '').toString().trim()
+  if (!value) return ''
+  return value
+    .replace(/^(?:lunch|dinner|breakfast|sunset|sunrise|explore|visit|see|stay|go|head|arrive|tour|walk|discover)\s+at\s+/i, '')
+    .replace(/^(?:explore|visit|see|stay at|go to|head to|arrive at|tour|walk(?: around)?|discover)\s+/i, '')
+    .replace(/\s*\([^)]*\)\s*$/g, '')
+    .replace(/\s+-\s+daytime selection$/i, '')
+    .trim()
+}
+
 const SmoothStream = ({ content, isStreaming }) => {
   const [displayed, setDisplayed] = useState(isStreaming ? '' : content);
 
@@ -110,7 +121,8 @@ export default function AIAssistant() {
   const tripCityHint = activeTrip?.cities?.map(c => c?.city).filter(Boolean).join(', ') || ''
 
   const resolveWandaLocation = async (query, cityHint = '') => {
-    if (!query || !auth.currentUser) return null
+    const cleanedQuery = cleanPlaceQuery(query)
+    if (!cleanedQuery || !auth.currentUser) return null
 
     try {
       const token = await auth.currentUser.getIdToken()
@@ -121,7 +133,7 @@ export default function AIAssistant() {
           ...(token && { 'Authorization': `Bearer ${token}` }),
         },
         body: JSON.stringify({
-          query,
+          query: cleanedQuery,
           cityHint,
           countryCodes: tripCountryCodes,
         }),
@@ -130,6 +142,12 @@ export default function AIAssistant() {
       if (!res.ok) return null
       const locationData = await res.json()
       if (!locationData?.coordinates?.lat || !locationData?.coordinates?.lng) return null
+
+      const resultLabel = `${locationData?.placeName || ''} ${locationData?.address || ''}`.toLowerCase()
+      const queryTokens = cleanedQuery.toLowerCase().split(/[\s,]+/).filter(Boolean)
+      const strongMatches = queryTokens.filter(token => resultLabel.includes(token)).length
+      if (queryTokens.length >= 2 && strongMatches < 2) return null
+
       return locationData
     } catch (error) {
       console.warn('[Wanda] Location grounding failed:', error?.message || error)

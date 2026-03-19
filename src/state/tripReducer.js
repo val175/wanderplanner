@@ -1,4 +1,4 @@
-import { generateId, cloneDeep, addMinutesToTime, calculateDuration } from '../utils/helpers'
+import { generateId, cloneDeep, addMinutesToTime, calculateDuration, normalizeTimeString } from '../utils/helpers'
 import { getEffectiveStatus } from '../utils/tripStatus'
 
 // Action Types
@@ -139,22 +139,10 @@ function updateTrip(state, tripId, updater) {
 }
 
 const parseToMins = (str) => {
-  if (typeof str !== 'string' || !str.trim()) return 0;
-  let hours, mins;
-  if (str.toUpperCase().includes('AM') || str.toUpperCase().includes('PM')) {
-    const parts = str.trim().split(/\s+/);
-    const timeStr = parts[0];
-    const modifier = parts[1] || (str.toUpperCase().endsWith('AM') ? 'AM' : 'PM');
-    const [h, m] = timeStr.split(':').map(Number);
-    hours = h || 0;
-    mins = m || 0;
-    if (modifier === 'PM' && hours < 12) hours += 12;
-    if (modifier === 'AM' && hours === 12) hours = 0;
-  } else {
-    const [h, m] = str.trim().split(':').map(Number);
-    hours = h || 0;
-    mins = m || 0;
-  }
+  const normalized = normalizeTimeString(str)
+  if (!normalized) return null
+  const [hours, mins] = normalized.split(':').map(Number)
+  if (!Number.isFinite(hours) || !Number.isFinite(mins)) return null
   return (hours * 60) + mins;
 };
 
@@ -163,9 +151,20 @@ const sortActivities = (activities) => {
     if (!a.time && !b.time) return 0;
     if (!a.time) return 1;
     if (!b.time) return -1;
-    return parseToMins(a.time) - parseToMins(b.time);
+    const aMins = parseToMins(a.time)
+    const bMins = parseToMins(b.time)
+    if (aMins === null && bMins === null) return 0
+    if (aMins === null) return 1
+    if (bMins === null) return -1
+    return aMins - bMins;
   });
 };
+
+const sortItineraryDays = (itinerary) => [...(itinerary || [])].sort((a, b) => {
+  const aNum = Number(a?.dayNumber || 0)
+  const bNum = Number(b?.dayNumber || 0)
+  return aNum - bNum
+})
 
 /**
  * Unifies booking-budget synchronization logic.
@@ -324,7 +323,7 @@ export function tripReducer(state, action) {
     case ACTIONS.ADD_DAY:
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
-        itinerary: [...trip.itinerary, {
+        itinerary: sortItineraryDays([...trip.itinerary, {
           id: generateId(),
           date: payload.date || '',
           dayNumber: trip.itinerary.length + 1,
@@ -332,7 +331,7 @@ export function tripReducer(state, action) {
           emoji: payload.emoji || '📍',
           activities: payload.activities || [],
           notes: payload.notes || '',
-        }],
+        }]),
       }))
 
     case ACTIONS.REMOVE_DAY:
@@ -892,8 +891,19 @@ export function tripReducer(state, action) {
         let processed = activitiesArray.map(a => {
           let act = { ...a };
           if (!act.id) act.id = generateId();
+          act.time = normalizeTimeString(act.time) || act.time || '';
+          act.endTime = normalizeTimeString(act.endTime) || act.endTime || '';
           if (!act.endTime && act.time) {
             act.endTime = addMinutesToTime(act.time, act.duration || 60);
+          }
+          if (!act.time && act.endTime && act.duration) {
+            const endMins = parseToMins(act.endTime);
+            const startMins = endMins === null ? null : endMins - (act.duration || 60);
+            if (Number.isFinite(startMins) && startMins >= 0) {
+              const h = String(Math.floor(startMins / 60)).padStart(2, '0');
+              const m = String(startMins % 60).padStart(2, '0');
+              act.time = `${h}:${m}`;
+            }
           }
           return act;
         });
@@ -906,7 +916,7 @@ export function tripReducer(state, action) {
         if (dayExists) {
           return {
             ...trip,
-            itinerary: itinerary.map(day =>
+            itinerary: sortItineraryDays(itinerary.map(day =>
               day.dayNumber !== dayNumber ? day : {
                 ...day,
                 activities: processActivities([
@@ -914,13 +924,13 @@ export function tripReducer(state, action) {
                   ...activities,
                 ]),
               }
-            ),
+            )),
           }
         }
         // Day doesn't exist yet — create it with the activities
         return {
           ...trip,
-          itinerary: [
+          itinerary: sortItineraryDays([
             ...itinerary,
             {
               id: generateId(),
@@ -931,7 +941,7 @@ export function tripReducer(state, action) {
               activities: processActivities(activities),
               notes: '',
             },
-          ],
+          ]),
         }
       })
     }

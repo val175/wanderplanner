@@ -93,6 +93,19 @@ function isValidCoordinates(coordinates) {
     )
 }
 
+function hasStrongLocationMatch(query, locationData) {
+    const qTokens = tokenizeQuery(query)
+    if (qTokens.length === 0) return false
+    const label = normalizeLabel([
+        locationData?.placeName,
+        locationData?.address,
+        locationData?.summary,
+    ].filter(Boolean).join(' '))
+    if (!label) return false
+    const matches = qTokens.filter(token => label.includes(token)).length
+    return matches >= Math.min(2, qTokens.length)
+}
+
 const locationWorkerSchema = z.object({
     placeName: z.string().min(1),
     address: z.string().optional().nullable(),
@@ -256,7 +269,7 @@ async function resolveExactFeature({ query, cityHint, countryCodes }) {
 
     for (const candidate of candidates) {
         const nominatim = await geocodeCoordinatesWithNominatim(candidate, countries)
-        if (nominatim.coordinates) {
+        if (nominatim.coordinates && hasStrongLocationMatch(candidate, nominatim)) {
             return {
                 ...nominatim,
                 searchQuery: candidate,
@@ -318,7 +331,7 @@ async function resolveExactFeature({ query, cityHint, countryCodes }) {
             exactMatch: true,
         }
 
-        if (isValidCoordinates(result.coordinates)) {
+        if (isValidCoordinates(result.coordinates) && hasStrongLocationMatch(candidate, result)) {
             return result
         }
     }
