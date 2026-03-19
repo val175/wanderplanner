@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { geocodeCity, haversineDistance } from '../utils/helpers';
+import { CITY_DB } from '../components/shared/CityCombobox'
 
 function normalizeLabel(label) {
     return (label || '').toString().trim().toLowerCase()
@@ -30,14 +31,32 @@ function debugMapWarn(...args) {
 const MAPBOX_PREFIX = 'pk.eyJ'
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_PART2 ? `${MAPBOX_PREFIX}${import.meta.env.VITE_MAPBOX_PART2}` : null
 
-function getUniqueTripCountries(destinations) {
+const COUNTRY_CODE_LOOKUP = new Map(
+    CITY_DB.map(entry => [entry.country.trim().toLowerCase(), entry.iso])
+)
+
+function normalizeCountryCode(country) {
+    if (!country) return null
+    const trimmed = country.toString().trim()
+    if (!trimmed) return null
+    if (/^[A-Z]{2}$/i.test(trimmed)) return trimmed.toUpperCase()
+    return COUNTRY_CODE_LOOKUP.get(trimmed.toLowerCase()) || null
+}
+
+function getUniqueTripCountryNames(destinations) {
     return [...new Set((destinations || [])
         .map(dest => dest?.country)
         .filter(Boolean)
         .map(country => country.toString().trim()))]
 }
 
-function inferTripHint(query, day, destinations) {
+function getUniqueTripCountryCodes(destinations) {
+    return [...new Set((destinations || [])
+        .map(dest => normalizeCountryCode(dest?.iso || dest?.countryCode || dest?.country))
+        .filter(Boolean))]
+}
+
+function inferTripContext(query, day, destinations) {
     const normalizedQuery = normalizeLabel(query)
     const candidateCities = (destinations || []).filter(Boolean)
 
@@ -47,7 +66,10 @@ function inferTripHint(query, day, destinations) {
     })
 
     if (queryMatch?.city && queryMatch?.country) {
-        return `${queryMatch.city}, ${queryMatch.country}`
+        return {
+            geocodeHint: queryMatch.country,
+            countryCodes: [normalizeCountryCode(queryMatch.iso || queryMatch.countryCode || queryMatch.country)].filter(Boolean),
+        }
     }
 
     const dayLocation = normalizeLabel(day?.location)
@@ -57,13 +79,25 @@ function inferTripHint(query, day, destinations) {
     })
 
     if (dayMatch?.city && dayMatch?.country) {
-        return `${dayMatch.city}, ${dayMatch.country}`
+        return {
+            geocodeHint: dayMatch.country,
+            countryCodes: [normalizeCountryCode(dayMatch.iso || dayMatch.countryCode || dayMatch.country)].filter(Boolean),
+        }
     }
 
-    const countries = getUniqueTripCountries(candidateCities)
-    if (countries.length === 1) return countries[0]
+    const countryNames = getUniqueTripCountryNames(candidateCities)
+    const countryCodes = getUniqueTripCountryCodes(candidateCities)
+    if (countryNames.length === 1) {
+        return {
+            geocodeHint: countryNames[0],
+            countryCodes,
+        }
+    }
 
-    return null
+    return {
+        geocodeHint: null,
+        countryCodes,
+    }
 }
 
 function getActivityQuery(activity) {
@@ -86,7 +120,7 @@ function getActivityQuery(activity) {
     return (activity.name || '').trim()
 }
 
-async function geocodePlaceWithMapbox(query, countryHint = null) {
+async function geocodePlaceWithMapbox(query, countryCodes = []) {
     if (!MAPBOX_TOKEN || !query) return null
 
     const endpoint = 'https://api.mapbox.com/search/searchbox/v1/forward'
@@ -98,9 +132,12 @@ async function geocodePlaceWithMapbox(query, countryHint = null) {
         proximity: 'ip',
     })
 
-    if (countryHint) {
-        const countryPart = countryHint.split(',')[0]?.trim()
-        if (countryPart) params.set('country', countryPart)
+    const codes = [...new Set((Array.isArray(countryCodes) ? countryCodes : [countryCodes])
+        .map(normalizeCountryCode)
+        .filter(Boolean))]
+
+    if (codes.length > 0) {
+        params.set('country', codes.join(','))
     }
 
     try {
@@ -112,7 +149,7 @@ async function geocodePlaceWithMapbox(query, countryHint = null) {
         if (!coords || coords.length < 2) return null
         return [coords[0], coords[1]]
     } catch (error) {
-        debugMapWarn('Mapbox place geocode failed', { query, countryHint, error: error.message })
+        debugMapWarn('Mapbox place geocode failed', { query, countryCodes: codes, error: error.message })
         return null
     }
 }
@@ -164,7 +201,7 @@ export function useMapDiscovery(trip) {
         async function loadIdeas() {
             const validIdeas = ideas.filter(i => i && i.title);
             const promises = validIdeas.map(async (idea) => {
-                const countryHint = getUniqueTripCountries(destinations)[0] || null;
+                const countryHint = getUniqueTripCountryNames(destinations)[0] || null;
                 const coords = await geocodeCity(idea.title, countryHint);
                 return { ideaId: idea.id, coords, idea };
             });
@@ -211,9 +248,9 @@ export function useMapDiscovery(trip) {
                 }
 
                 const query = getActivityQuery(activity) || activity.name;
-                const countryHint = inferTripHint(query, day, destinations);
-                const mapboxCoords = await geocodePlaceWithMapbox(query, countryHint);
-                const coords = mapboxCoords || await geocodeCity(query, countryHint);
+                const tripContext = inferTripContext(query, day, destinations);
+                const mapboxCoords = await geocodePlaceWithMapbox(query, tripContext.countryCodes);
+                const coords = mapboxCoords || await geocodeCity(query, tripContext.geocodeHint);
 
                 if (!coords) {
                     debugMapWarn('Failed to geocode activity', {
@@ -221,14 +258,16 @@ export function useMapDiscovery(trip) {
                         dayId: day.id,
                         dayLocation: day.location,
                         query,
-                        countryHint,
+                        geocodeHint: tripContext.geocodeHint,
+                        countryCodes: tripContext.countryCodes,
                     })
                 } else {
                     debugMap('Geocoded activity', {
                         activityId: activity.id,
                         dayId: day.id,
                         query,
-                        countryHint,
+                        geocodeHint: tripContext.geocodeHint,
+                        countryCodes: tripContext.countryCodes,
                         source: mapboxCoords ? 'mapbox' : 'open-meteo',
                         coords,
                     })
