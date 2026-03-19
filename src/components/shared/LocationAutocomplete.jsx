@@ -113,6 +113,23 @@ function isValidCoordinates(coords) {
     )
 }
 
+function dedupeSuggestions(list) {
+    const seen = new Set()
+    const result = []
+
+    for (const suggestion of list || []) {
+        const key = suggestion?.properties?.mapbox_id
+            || suggestion?.id
+            || `${getSuggestionLabel(suggestion, '').toLowerCase()}|${(suggestion?.properties?.full_address || suggestion?.place_formatted || '').toLowerCase()}`
+
+        if (seen.has(key)) continue
+        seen.add(key)
+        result.push(suggestion)
+    }
+
+    return result
+}
+
 /**
  * LocationAutocomplete
  * Simple search interface for Mapbox locations.
@@ -150,50 +167,63 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
                 const endpoint = `https://api.mapbox.com/search/searchbox/v1/forward`
                 const typesToTry = getQuerySearchTypes(query)
                 let nextSuggestions = []
+                const countryScopes = tripCountryCodes.length > 0 ? tripCountryCodes : [null]
 
                 for (let index = 0; index < typesToTry.length; index += 1) {
                     const types = typesToTry[index]
-                    const params = new URLSearchParams({
-                        q: query,
-                        access_token: mapboxToken,
-                        limit: '10',
-                        types,
-                        proximity: proximity || 'ip'
-                    })
+                    const scopedResults = []
 
-                    if (countryFilter) {
-                        params.set('country', countryFilter)
-                    }
-                    const requestUrl = `${endpoint}?${params.toString()}`
-                    devLocationLog('Country scope', {
-                        tripCountryCodes,
-                        countryFilter: countryFilter || null,
-                    })
-                    debugLocation('Fetching suggestions', {
-                        attempt: index + 1,
-                        query,
-                        proximity: proximity || 'ip',
-                        cityHint,
-                        tripCountryCodes,
-                        countryFilter: countryFilter || null,
-                        types,
-                        requestUrl: requestUrl.replace(mapboxToken || '', '[redacted-token]'),
-                    })
-
-                    const res = await fetch(requestUrl)
-                    const text = await res.text()
-                    if (!res.ok) {
-                        debugLocationError('Suggestions request failed', {
-                            attempt: index + 1,
-                            status: res.status,
-                            statusText: res.statusText,
-                            response: text.slice(0, 1000),
+                    for (const scopeCountry of countryScopes) {
+                        const params = new URLSearchParams({
+                            q: query,
+                            access_token: mapboxToken,
+                            limit: '10',
+                            types,
+                            proximity: proximity || 'ip'
                         })
-                        continue
+
+                        if (scopeCountry) {
+                            params.set('country', scopeCountry)
+                        }
+
+                        const requestUrl = `${endpoint}?${params.toString()}`
+                        devLocationLog('Country scope', {
+                            tripCountryCodes,
+                            countryFilter: countryFilter || null,
+                            scopeCountry,
+                        })
+                        debugLocation('Fetching suggestions', {
+                            attempt: index + 1,
+                            query,
+                            proximity: proximity || 'ip',
+                            cityHint,
+                            tripCountryCodes,
+                            countryFilter: countryFilter || null,
+                            scopeCountry,
+                            types,
+                            requestUrl: requestUrl.replace(mapboxToken || '', '[redacted-token]'),
+                        })
+
+                        const res = await fetch(requestUrl)
+                        const text = await res.text()
+                        if (!res.ok) {
+                            debugLocationError('Suggestions request failed', {
+                                attempt: index + 1,
+                                scopeCountry,
+                                status: res.status,
+                                statusText: res.statusText,
+                                response: text.slice(0, 1000),
+                            })
+                            continue
+                        }
+
+                        const data = text ? JSON.parse(text) : {}
+                        scopedResults.push(...(data.features || []))
                     }
 
-                    const data = text ? JSON.parse(text) : {}
-                    nextSuggestions = (data.features || []).slice().sort((a, b) => scoreSuggestion(query, b) - scoreSuggestion(query, a))
+                    nextSuggestions = dedupeSuggestions(scopedResults)
+                        .sort((a, b) => scoreSuggestion(query, b) - scoreSuggestion(query, a))
+
                     debugLocation('Suggestions response', {
                         attempt: index + 1,
                         count: nextSuggestions.length,
@@ -213,7 +243,7 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
         }, 300)
 
         return () => clearTimeout(delayDebounceFn)
-    }, [query, proximity])
+    }, [query, proximity, cityHint, countryFilter])
 
     const handleSelect = async (feature) => {
         const [lng, lat] = feature.geometry.coordinates
