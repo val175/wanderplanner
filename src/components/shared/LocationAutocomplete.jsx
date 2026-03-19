@@ -165,6 +165,7 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
                         query,
                         proximity: proximity || 'ip',
                         cityHint,
+                        tripCountryCodes,
                         countryFilter: countryFilter || null,
                         types,
                         requestUrl: requestUrl.replace(mapboxToken || '', '[redacted-token]'),
