@@ -29,6 +29,29 @@ function debugLocationError(...args) {
     console.error('[LocationAutocomplete]', ...args)
 }
 
+function getSuggestionLabel(suggestion, fallback = '') {
+    return suggestion?.properties?.full_address
+        || suggestion?.place_name
+        || suggestion?.place_formatted
+        || suggestion?.properties?.name
+        || suggestion?.text
+        || fallback
+}
+
+function getQuerySearchTypes(query) {
+    const normalized = (query || '').trim().toLowerCase()
+    const localityHints = [
+        /(^|[\s,])(city|town|village|prefecture|province|state|country|district|region|municipality|county)([\s,]|$)/i,
+        /,\s*[a-z]/i,
+    ]
+
+    if (localityHints.some(pattern => pattern.test(normalized))) {
+        return ['place,locality,neighborhood,address,poi', 'poi,address']
+    }
+
+    return ['poi,address', 'place,locality,neighborhood,address,poi']
+}
+
 /**
  * LocationAutocomplete
  * Simple search interface for Mapbox locations.
@@ -61,40 +84,53 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
             try {
                 // Use Searchbox API (forward) for better POI/restaurant results
                 const endpoint = `https://api.mapbox.com/search/searchbox/v1/forward`
-                const params = new URLSearchParams({
-                    q: query,
-                    access_token: mapboxToken,
-                    limit: '10',
-                    types: 'place,locality,neighborhood,address,poi',
-                    proximity: proximity || 'ip'
-                })
-                const requestUrl = `${endpoint}?${params.toString()}`
-                debugLocation('Fetching suggestions', {
-                    query,
-                    proximity: proximity || 'ip',
-                    cityHint,
-                    requestUrl: requestUrl.replace(mapboxToken || '', '[redacted-token]'),
-                })
+                const typesToTry = getQuerySearchTypes(query)
+                let nextSuggestions = []
 
-                const res = await fetch(requestUrl)
-                const text = await res.text()
-                if (!res.ok) {
-                    debugLocationError('Suggestions request failed', {
-                        status: res.status,
-                        statusText: res.statusText,
-                        response: text.slice(0, 1000),
+                for (let index = 0; index < typesToTry.length; index += 1) {
+                    const types = typesToTry[index]
+                    const params = new URLSearchParams({
+                        q: query,
+                        access_token: mapboxToken,
+                        limit: '10',
+                        types,
+                        proximity: proximity || 'ip'
                     })
-                    return
+                    const requestUrl = `${endpoint}?${params.toString()}`
+                    debugLocation('Fetching suggestions', {
+                        attempt: index + 1,
+                        query,
+                        proximity: proximity || 'ip',
+                        cityHint,
+                        types,
+                        requestUrl: requestUrl.replace(mapboxToken || '', '[redacted-token]'),
+                    })
+
+                    const res = await fetch(requestUrl)
+                    const text = await res.text()
+                    if (!res.ok) {
+                        debugLocationError('Suggestions request failed', {
+                            attempt: index + 1,
+                            status: res.status,
+                            statusText: res.statusText,
+                            response: text.slice(0, 1000),
+                        })
+                        continue
+                    }
+
+                    const data = text ? JSON.parse(text) : {}
+                    nextSuggestions = data.features || []
+                    debugLocation('Suggestions response', {
+                        attempt: index + 1,
+                        count: nextSuggestions.length,
+                        first: getSuggestionLabel(nextSuggestions[0], null),
+                    })
+
+                    if (nextSuggestions.length > 0) break
                 }
 
-                const data = text ? JSON.parse(text) : {}
-                const nextSuggestions = data.features || []
-                debugLocation('Suggestions response', {
-                    count: nextSuggestions.length,
-                    first: nextSuggestions[0]?.properties?.name || nextSuggestions[0]?.place_name || null,
-                })
                 setSuggestions(nextSuggestions)
-                setShowSuggestions(true)
+                setShowSuggestions(nextSuggestions.length > 0)
             } catch (e) {
                 debugLocationError('Suggestions fetch failed', e)
             } finally {
@@ -199,19 +235,19 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
 
             {showSuggestions && suggestions.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-bg-card border border-border rounded-[var(--radius-md)] z-50 overflow-hidden">
-                    {suggestions.map((suggestion) => (
+                    {suggestions.map((suggestion, index) => (
                         <button
-                            key={suggestion.id}
+                            key={suggestion.id || suggestion.properties?.mapbox_id || `${getSuggestionLabel(suggestion, 'suggestion')}-${index}`}
                             onClick={() => handleSelect(suggestion)}
                             className="w-full flex items-start gap-3 px-4 py-3 hover:bg-bg-hover text-left transition-colors border-b border-border/50 last:border-0"
                         >
                             <MapPin size={16} className="mt-0.5 text-accent shrink-0" />
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-semibold text-text-primary truncate">
-                                    {suggestion.properties.name}
+                                    {getSuggestionLabel(suggestion, 'Unknown place')}
                                 </p>
                                 <p className="text-xs text-text-muted truncate">
-                                    {suggestion.properties.full_address}
+                                    {suggestion.properties?.full_address || suggestion.place_formatted || suggestion.properties?.name || ''}
                                 </p>
                             </div>
                         </button>
