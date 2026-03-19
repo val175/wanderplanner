@@ -889,6 +889,12 @@ export default function VotingTab() {
 
     const pollTitleRef = useRef(null)
 
+    useEffect(() => {
+        const handler = () => setIsCreatingPoll(true)
+        window.addEventListener('open-add-vote', handler)
+        return () => window.removeEventListener('open-add-vote', handler)
+    }, [])
+
     // Scroll to input when we start creating a poll
     useEffect(() => {
         if (isCreatingPoll && pollTitleRef.current) {

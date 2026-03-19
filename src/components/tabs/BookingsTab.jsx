@@ -17,12 +17,18 @@ import EmptyState from '../shared/EmptyState'
 import BookingDrawer from './BookingDrawer'
 import SnapToAddZone from '../shared/SnapToAddZone'
 
-function AddBookingModal({ isOpen, onClose, onAdd }) {
+function AddBookingModal({ isOpen, onClose, onAdd, initialCategory }) {
   const [bookingData, setBookingData] = useState({
     name: '',
-    category: BOOKING_CATEGORIES[0].id,
+    category: initialCategory || BOOKING_CATEGORIES[0].id,
     estimatedCost: 0
   })
+
+  useEffect(() => {
+    if (isOpen) {
+      setBookingData({ name: '', category: initialCategory || BOOKING_CATEGORIES[0].id, estimatedCost: 0 })
+    }
+  }, [isOpen, initialCategory])
 
   const handleSubmit = (e) => {
     e?.preventDefault()
@@ -107,6 +113,7 @@ export default function BookingsTab() {
   const actorId = currentUserProfile?.uid || currentUserProfile?.id
   const [viewMode, setViewMode] = useState('table')
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [initialBookingCategory, setInitialBookingCategory] = useState(null)
 
   const [hiddenColumns, setHiddenColumns] = useState(() => {
     try {
@@ -128,6 +135,15 @@ export default function BookingsTab() {
     }
     window.addEventListener('highlight-item', handleHighlight)
     return () => window.removeEventListener('highlight-item', handleHighlight)
+  }, [])
+
+  useEffect(() => {
+    const handler = (e) => {
+      setInitialBookingCategory(e.detail?.category || null)
+      setIsAddModalOpen(true)
+    }
+    window.addEventListener('open-add-booking', handler)
+    return () => window.removeEventListener('open-add-booking', handler)
   }, [])
 
   if (!activeTrip) return null
@@ -204,6 +220,7 @@ export default function BookingsTab() {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAdd={handleAdd}
+        initialCategory={initialBookingCategory}
       />
 
       {!isReadOnly && <SnapToAddZone />}

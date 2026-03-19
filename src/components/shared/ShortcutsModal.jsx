@@ -5,6 +5,9 @@ const SHORTCUTS = [
   { keys: ['⌘', 'K'], label: 'Open command palette / search' },
   { keys: ['?'], label: 'Show keyboard shortcuts' },
   { keys: ['Esc'], label: 'Close modal / palette' },
+  { keys: ['/flight'], label: 'Add a flight booking' },
+  { keys: ['/expense'], label: 'Log a new expense' },
+  { keys: ['/vote'], label: 'Start a new poll' },
 ]
 
 export default function ShortcutsModal({ isOpen, onClose }) {

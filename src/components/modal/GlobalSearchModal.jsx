@@ -15,6 +15,45 @@ const TABS = {
   voting: { label: 'Voting', emoji: '🗳️' }
 }
 
+const SLASH_COMMANDS = [
+  {
+    id: 'slash-flight',
+    isCommand: true,
+    isSlash: true,
+    title: '/flight',
+    subtitle: 'Add a flight booking',
+    emoji: '✈️',
+    action: (dispatch) => {
+      dispatch({ type: ACTIONS.SET_TAB, payload: 'bookings' })
+      setTimeout(() => window.dispatchEvent(new CustomEvent('open-add-booking', { detail: { category: 'flight' } })), 150)
+    },
+  },
+  {
+    id: 'slash-expense',
+    isCommand: true,
+    isSlash: true,
+    title: '/expense',
+    subtitle: 'Log a new expense',
+    emoji: '💸',
+    action: (dispatch) => {
+      dispatch({ type: ACTIONS.SET_TAB, payload: 'budget' })
+      setTimeout(() => window.dispatchEvent(new CustomEvent('open-add-expense')), 150)
+    },
+  },
+  {
+    id: 'slash-vote',
+    isCommand: true,
+    isSlash: true,
+    title: '/vote',
+    subtitle: 'Start a new poll',
+    emoji: '🗳️',
+    action: (dispatch) => {
+      dispatch({ type: ACTIONS.SET_TAB, payload: 'voting' })
+      setTimeout(() => window.dispatchEvent(new CustomEvent('open-add-vote')), 150)
+    },
+  },
+]
+
 const COMMANDS = [
   ...TAB_CONFIG.filter(t => !t.conditional).map(t => ({
     id: `nav-${t.id}`,
@@ -174,15 +213,20 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
     return [...r, ...aiResults]
   }, [activeTrip, query, aiResults])
 
-  // All selectable items: commands when empty, filtered commands + results when typing
+  const isSlashMode = query.startsWith('/')
+
+  // All selectable items: commands when empty, slash commands in slash mode, filtered commands + results when typing
   const allItems = useMemo(() => {
     if (query.trim() === '') return COMMANDS
+    if (isSlashMode) {
+      return SLASH_COMMANDS.filter(c => c.title.includes(query.toLowerCase()))
+    }
     const q = query.toLowerCase()
     return [
       ...COMMANDS.filter(c => c.title.toLowerCase().includes(q)),
       ...results,
     ]
-  }, [query, results])
+  }, [query, isSlashMode, results])
 
   // Reset selection when items change
   useEffect(() => setSelectedIndex(0), [allItems.length])
@@ -307,6 +351,9 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
                   </button>
                 )
               })}
+              <p className="px-4 pt-3 pb-1 text-[11px] text-text-muted">
+                💡 type <kbd className="font-mono px-1 py-0.5 rounded bg-bg-input border border-border">/</kbd> for quick actions
+              </p>
             </div>
           ) : allItems.length === 0 && !isSearchingAI ? (
            <div className="px-6 py-12 text-center">
@@ -331,7 +378,9 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
             <div className="flex flex-col px-2 pb-2">
               {/* Commands section (when typing) */}
               {allItems.some(i => i.isCommand) && (
-                <p className="px-4 pt-2 pb-1 text-[11px] font-semibold text-text-muted uppercase tracking-wide">Commands</p>
+                <p className="px-4 pt-2 pb-1 text-[11px] font-semibold text-text-muted uppercase tracking-wide">
+                  {isSlashMode ? 'Quick Actions' : 'Commands'}
+                </p>
               )}
               {allItems.map((item, idx) => {
                 const isSelected = idx === selectedIndex

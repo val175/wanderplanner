@@ -727,6 +727,12 @@ export default function BudgetTab() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [showScanModal, setShowScanModal] = useState(false)
 
+  useEffect(() => {
+    const handler = () => setIsAddModalOpen(true)
+    window.addEventListener('open-add-expense', handler)
+    return () => window.removeEventListener('open-add-expense', handler)
+  }, [])
+
   if (!activeTrip) return null
   const trip = activeTrip
   const budget = trip.budget || []
