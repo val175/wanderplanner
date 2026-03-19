@@ -1,4 +1,5 @@
 import { generateId, cloneDeep, addMinutesToTime, calculateDuration } from '../utils/helpers'
+import { getEffectiveStatus } from '../utils/tripStatus'
 
 // Action Types
 export const ACTIONS = {
@@ -1207,12 +1208,19 @@ export function tripReducer(state, action) {
 
       const ids = Object.keys(mergedTrips)
       const currentActiveId = state.activeTripId
-      const newActiveId =
-        currentActiveId && mergedTrips[currentActiveId]
-          ? currentActiveId
-          : ids.length > 0
-            ? ids[0]
-            : null
+      let newActiveId = currentActiveId && mergedTrips[currentActiveId] ? currentActiveId : null
+
+      if (!newActiveId && ids.length > 0) {
+        // Prioritize: ongoing > upcoming > completed > archived
+        const priorityMap = { ongoing: 4, upcoming: 3, completed: 2, archived: 1 }
+        const sortedIds = ids.sort((a, b) => {
+          const statusA = getEffectiveStatus(mergedTrips[a])
+          const statusB = getEffectiveStatus(mergedTrips[b])
+          return (priorityMap[statusB] || 0) - (priorityMap[statusA] || 0)
+        })
+        newActiveId = sortedIds[0]
+      }
+
       return { ...state, trips: mergedTrips, activeTripId: newActiveId }
     }
 
