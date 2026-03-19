@@ -53,8 +53,11 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
   const locationLabel = typeof booking?.location === 'string'
     ? booking.location
     : booking?.location?.placeName || ''
-  const cityHint = activeTrip?.cities?.[0]
-    ? `${activeTrip.cities[0].city || ''}${activeTrip.cities[0].country ? `, ${activeTrip.cities[0].country}` : ''}`.trim()
+  const cityHint = activeTrip?.cities?.length
+    ? activeTrip.cities
+        .map(c => `${c.city || ''}${c.country ? `, ${c.country}` : ''}`.trim())
+        .filter(Boolean)
+        .join(' | ')
     : ''
 
   useEffect(() => {

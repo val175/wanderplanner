@@ -219,6 +219,34 @@ export default function WanderMapTab() {
                         );
                     })}
 
+                    {/* ── MACRO VIEW: Activity pins for visible itinerary locations ── */}
+                    {layers.itinerary && !isMicroView && itineraryCoords.map((ic, i) => {
+                        const emoji = getItineraryEmoji(ic.activity);
+                        return (
+                            <Marker key={`activity-macro-${ic.activityId}-${i}`} longitude={ic.coords[0]} latitude={ic.coords[1]} anchor="bottom">
+                                <motion.div
+                                    initial={{ scale: 0, y: 8 }}
+                                    animate={{ scale: 1, y: 0 }}
+                                    whileHover={{ y: -3, scale: 1.05 }}
+                                    transition={{ type: 'spring', stiffness: 300, damping: 20, delay: i * 0.03 }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        hapticImpact('medium');
+                                        setSelectedPoint({ type: 'activity', ...ic });
+                                    }}
+                                    className="cursor-pointer flex flex-col items-center group"
+                                >
+                                    <div className="w-8 h-8 rounded-full border border-border bg-bg-card flex items-center justify-center text-[14px] shadow-sm ring-2 ring-accent/10 group-hover:ring-accent/30 transition-all">
+                                        {emoji}
+                                    </div>
+                                    <div className="mt-1 bg-[#0F172A] text-white text-[10px] font-semibold px-2 py-0.5 rounded-[4px] whitespace-nowrap max-w-[140px] truncate opacity-0 group-hover:opacity-100 transition-opacity">
+                                        {ic.activity.name}
+                                    </div>
+                                </motion.div>
+                            </Marker>
+                        );
+                    })}
+
                     {/* ── MICRO VIEW: Emoji utility pins ── */}
                     {layers.itinerary && isMicroView && itineraryCoords.map((ic, i) => {
                         const emoji = getItineraryEmoji(ic.activity);
