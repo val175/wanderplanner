@@ -27,6 +27,9 @@ function debugMapWarn(...args) {
     console.warn('[useMapDiscovery]', ...args)
 }
 
+const MAPBOX_PREFIX = 'pk.eyJ'
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_PART2 ? `${MAPBOX_PREFIX}${import.meta.env.VITE_MAPBOX_PART2}` : null
+
 function getUniqueTripCountries(destinations) {
     return [...new Set((destinations || [])
         .map(dest => dest?.country)
@@ -81,6 +84,37 @@ function getActivityQuery(activity) {
     }
 
     return (activity.name || '').trim()
+}
+
+async function geocodePlaceWithMapbox(query, countryHint = null) {
+    if (!MAPBOX_TOKEN || !query) return null
+
+    const endpoint = 'https://api.mapbox.com/search/searchbox/v1/forward'
+    const params = new URLSearchParams({
+        q: query,
+        access_token: MAPBOX_TOKEN,
+        limit: '5',
+        types: 'poi,address,place,locality,neighborhood',
+        proximity: 'ip',
+    })
+
+    if (countryHint) {
+        const countryPart = countryHint.split(',')[0]?.trim()
+        if (countryPart) params.set('country', countryPart)
+    }
+
+    try {
+        const res = await fetch(`${endpoint}?${params.toString()}`)
+        if (!res.ok) return null
+        const data = await res.json()
+        const feature = data.features?.[0]
+        const coords = feature?.geometry?.coordinates
+        if (!coords || coords.length < 2) return null
+        return [coords[0], coords[1]]
+    } catch (error) {
+        debugMapWarn('Mapbox place geocode failed', { query, countryHint, error: error.message })
+        return null
+    }
 }
 
 /**
@@ -178,7 +212,8 @@ export function useMapDiscovery(trip) {
 
                 const query = getActivityQuery(activity) || activity.name;
                 const countryHint = inferTripHint(query, day, destinations);
-                const coords = await geocodeCity(query, countryHint);
+                const mapboxCoords = await geocodePlaceWithMapbox(query, countryHint);
+                const coords = mapboxCoords || await geocodeCity(query, countryHint);
 
                 if (!coords) {
                     debugMapWarn('Failed to geocode activity', {
@@ -194,6 +229,7 @@ export function useMapDiscovery(trip) {
                         dayId: day.id,
                         query,
                         countryHint,
+                        source: mapboxCoords ? 'mapbox' : 'open-meteo',
                         coords,
                     })
                 }
