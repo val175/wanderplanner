@@ -7,6 +7,28 @@ const mapboxPrefix = "pk.eyJ"
 const mapboxToken = import.meta.env.VITE_MAPBOX_PART2 ? `${mapboxPrefix}${import.meta.env.VITE_MAPBOX_PART2}` : null
 const VERCEL_API = 'https://wanderplan-rust.vercel.app'
 
+function isLocationDebugEnabled() {
+    if (typeof window === 'undefined') return false
+    try {
+        const params = new URLSearchParams(window.location.search)
+        return params.get('debugLocation') === '1'
+            || window.localStorage.getItem('wanderplan:debug-location') === '1'
+            || window.__WANDERPLAN_DEBUG_LOCATION__ === true
+    } catch {
+        return false
+    }
+}
+
+function debugLocation(...args) {
+    if (!isLocationDebugEnabled()) return
+    console.log('[LocationAutocomplete]', ...args)
+}
+
+function debugLocationError(...args) {
+    if (!isLocationDebugEnabled()) return
+    console.error('[LocationAutocomplete]', ...args)
+}
+
 /**
  * LocationAutocomplete
  * Simple search interface for Mapbox locations.
@@ -28,6 +50,9 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
     useEffect(() => {
         if (!query || query.length < 2 || !mapboxToken) {
             setSuggestions([])
+            if (query && query.length >= 2 && !mapboxToken) {
+                debugLocation('Mapbox token missing, skipping suggestions', { queryLength: query.length })
+            }
             return
         }
 
@@ -43,15 +68,35 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
                     types: 'place,locality,neighborhood,address,poi',
                     proximity: proximity || 'ip'
                 })
-                
-                const res = await fetch(`${endpoint}?${params.toString()}`)
-                if (res.ok) {
-                    const data = await res.json()
-                    setSuggestions(data.features || [])
-                    setShowSuggestions(true)
+                const requestUrl = `${endpoint}?${params.toString()}`
+                debugLocation('Fetching suggestions', {
+                    query,
+                    proximity: proximity || 'ip',
+                    cityHint,
+                    requestUrl: requestUrl.replace(mapboxToken || '', '[redacted-token]'),
+                })
+
+                const res = await fetch(requestUrl)
+                const text = await res.text()
+                if (!res.ok) {
+                    debugLocationError('Suggestions request failed', {
+                        status: res.status,
+                        statusText: res.statusText,
+                        response: text.slice(0, 1000),
+                    })
+                    return
                 }
+
+                const data = text ? JSON.parse(text) : {}
+                const nextSuggestions = data.features || []
+                debugLocation('Suggestions response', {
+                    count: nextSuggestions.length,
+                    first: nextSuggestions[0]?.properties?.name || nextSuggestions[0]?.place_name || null,
+                })
+                setSuggestions(nextSuggestions)
+                setShowSuggestions(true)
             } catch (e) {
-                console.error('Suggestions fetch failed', e)
+                debugLocationError('Suggestions fetch failed', e)
             } finally {
                 setIsLoading(false)
             }
@@ -63,6 +108,14 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
     const handleSelect = async (feature) => {
         const [lng, lat] = feature.geometry.coordinates
         const placeName = feature.properties.name || feature.properties.full_address || ''
+        debugLocation('Selected feature', {
+            placeName,
+            featureId: feature.id,
+            mapboxId: feature.properties.mapbox_id || null,
+            coordinates: { lat, lng },
+            cityHint,
+            enrichOnSelect,
+        })
         const baseLocation = {
             placeName,
             coordinates: { lat, lng },
@@ -78,7 +131,15 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
             try {
                 setIsSelecting(true)
                 const token = await auth.currentUser.getIdToken()
-                const res = await fetch(`${VERCEL_API}/api/resolve-location`, {
+                const requestUrl = `${VERCEL_API}/api/resolve-location`
+                debugLocation('Enrichment request', {
+                    requestUrl,
+                    query: placeName || query,
+                    cityHint,
+                    hasAuthToken: Boolean(token),
+                })
+
+                const res = await fetch(requestUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -92,10 +153,18 @@ export default function LocationAutocomplete({ onSelect, proximity = '', initial
 
                 if (res.ok) {
                     const enriched = await res.json()
+                    debugLocation('Enrichment response', enriched)
                     nextLocation = { ...baseLocation, ...enriched }
+                } else {
+                    const body = await res.text()
+                    debugLocationError('Enrichment request failed', {
+                        status: res.status,
+                        statusText: res.statusText,
+                        body: body.slice(0, 1000),
+                    })
                 }
             } catch (error) {
-                console.warn('Location enrichment failed:', error.message)
+                debugLocationError('Location enrichment failed:', error)
             } finally {
                 setIsSelecting(false)
             }
