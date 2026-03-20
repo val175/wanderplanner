@@ -124,7 +124,7 @@ Rules:
 - Never leave priceDetails blank — always estimate with (est.)
 Do not wrap in markdown blocks.`
 
-            const aiData = await callOpenRouter(process.env.OPENROUTER_API_KEY, {
+            const aiData = await callOpenRouter({
                 messages: [{ role: 'user', content: socialPrompt }],
                 temperature: 0.2,
             })
@@ -191,7 +191,7 @@ Do not wrap in markdown blocks.`
         }
         Do not wrap in markdown blocks.`;
 
-        const aiData = await callOpenRouter(process.env.OPENROUTER_API_KEY, {
+        const aiData = await callOpenRouter({
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.1,
         });

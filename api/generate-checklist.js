@@ -50,7 +50,7 @@ Return ONLY a valid JSON object matching exactly this schema:
 
 No markdown tags or additional text. Just the raw JSON object.`;
 
-        const aiData = await callOpenRouter(process.env.OPENROUTER_API_KEY, {
+        const aiData = await callOpenRouter({
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.7,
         });

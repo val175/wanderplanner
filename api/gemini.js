@@ -18,22 +18,13 @@ export default async function handler(req, res) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
         const geminiKey = process.env.GEMINI_API_KEY
-        const openrouterKey = process.env.OPENROUTER_API_KEY
-
-        if (!geminiKey && !openrouterKey) {
-            console.error('No AI API keys configured')
-            return res.status(500).json({ error: 'Server misconfiguration: No AI API keys.' })
+        if (!geminiKey) {
+            console.error('No Gemini API key configured')
+            return res.status(500).json({ error: 'Server misconfiguration: Gemini API key is missing.' })
         }
 
         for (const provider of PROVIDERS) {
-            const apiKey = provider.keyType === 'gemini' ? geminiKey : openrouterKey
-            if (!apiKey) continue  // skip providers whose key isn't configured
-
-            const headers = { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' }
-            if (provider.keyType === 'openrouter') {
-                headers['HTTP-Referer'] = 'https://planner.vlbonite.co'
-                headers['X-Title'] = 'Wanderplan'
-            }
+            const headers = { 'Authorization': `Bearer ${geminiKey}`, 'Content-Type': 'application/json' }
 
             const response = await fetch(provider.endpoint, {
                 method: 'POST',

@@ -1,7 +1,6 @@
 // api/chat.js
 import { streamText, tool, convertToModelMessages } from 'ai'
 import { z } from 'zod'
-import { createOpenAI } from '@ai-sdk/openai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { verifyFirebaseToken } from './_auth.js'
 import { getCorsHeaders } from './_cors.js'
@@ -140,8 +139,11 @@ export default async function handler(req) {
                 headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
             })
         }
-        const { messages, systemPrompt: clientPrompt } = await req.json()
-        const systemPrompt = clientPrompt || "You are Wanda, a friendly travel planning assistant."
+        const { messages, systemPrompt: clientPrompt, weatherContext } = await req.json()
+        const systemPrompt = [
+            clientPrompt || "You are Wanda, a friendly travel planning assistant.",
+            weatherContext ? `LIVE WEATHER CONTEXT:\n${weatherContext}` : '',
+        ].filter(Boolean).join('\n\n')
 
         // convertToModelMessages correctly serializes tool-call and tool-result parts
         // from the AI SDK's UIMessage format. The previous manual mapping was text-only,
@@ -153,48 +155,23 @@ export default async function handler(req) {
         })
 
         const geminiKey = process.env.GEMINI_API_KEY
-        const openrouterKey = process.env.OPENROUTER_API_KEY
-
-        // Use Gemini via OpenAI-compat endpoint — preview models (gemini-3.1-flash-lite-preview)
-        // are only registered on this surface, not on the native generateContent endpoint.
-        if (geminiKey) {
-            const google = createGoogleGenerativeAI({
-                apiKey: geminiKey,
+        if (!geminiKey) {
+            return new Response(JSON.stringify({ error: 'Gemini API key is missing' }), {
+                status: 500,
+                headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
             })
-            for (const modelId of ['gemini-3.1-flash-lite-preview']) {
-                try {
-                    const result = await streamText({
-                        model: google(modelId),
-                        system: systemPrompt,
-                        messages: modelMessages,
-                        tools: WANDA_TOOLS,
-                    })
-                    return result.toUIMessageStreamResponse({ headers: getCorsHeaders(req) })
-                } catch (e) {
-                    console.warn(`[chat] ${modelId} failed, trying next:`, e.message)
-                }
-            }
         }
 
-        // OpenRouter fallback
-        if (openrouterKey) {
-            const openrouter = createOpenAI({
-                baseURL: 'https://openrouter.ai/api/v1',
-                apiKey: openrouterKey,
-            })
-            const result = await streamText({
-                model: openrouter.chat('mistralai/mistral-small-3.1-24b-instruct:free'),
-                system: systemPrompt,
-                messages: modelMessages,
-                tools: WANDA_TOOLS,
-            })
-            return result.toUIMessageStreamResponse({ headers: getCorsHeaders(req) })
-        }
-
-        return new Response(JSON.stringify({ error: 'No AI providers configured' }), {
-            status: 500,
-            headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        const google = createGoogleGenerativeAI({
+            apiKey: geminiKey,
         })
+        const result = await streamText({
+            model: google('gemini-3.1-flash-lite-preview'),
+            system: systemPrompt,
+            messages: modelMessages,
+            tools: WANDA_TOOLS,
+        })
+        return result.toUIMessageStreamResponse({ headers: getCorsHeaders(req) })
 
     } catch (error) {
         console.error('Streaming Error:', error)

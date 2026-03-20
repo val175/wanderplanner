@@ -72,7 +72,7 @@ Rules:
 - type must be one of: "lodging", "activity", "food", "other".
 Do not wrap in markdown.`;
 
-        const aiData = await callOpenRouter(process.env.OPENROUTER_API_KEY, {
+        const aiData = await callOpenRouter({
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.1,
         });

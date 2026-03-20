@@ -1,16 +1,17 @@
 /**
  * useAI.js
- * OpenRouter wrapper for Wanderplan.
+ * Gemini wrapper for Wanderplan.
  * Builds a trip-aware system prompt from the active trip's state,
  * so every response is grounded in the user's actual trip data.
  */
 import { auth } from '../firebase/config'
+import { getEffectiveStatus } from '../utils/tripStatus'
 
 // All AI/API requests go to the Vercel deployment (absolute URL required — frontend is on Hostinger)
 const VERCEL_API = 'https://wanderplan-rust.vercel.app'
 const PROXY_URL = `${VERCEL_API}/api/gemini`
 
-const DEFAULT_MODEL = 'mistralai/mistral-small-3.1-24b-instruct:free'
+const DEFAULT_MODEL = 'gemini-3.1-flash-lite-preview'
 
 /**
  * Build a rich system prompt from the active trip.
@@ -23,6 +24,8 @@ Help users plan trips, suggest activities, recommend restaurants, give packing a
 Be concise, warm, and practical. Use emojis sparingly. The user hasn't selected a trip yet, so give general travel advice.`
   }
 
+  const today = new Date().toISOString().split('T')[0]
+  const tripStatus = getEffectiveStatus(trip)
   const cities = trip.cities?.map(c => `${c.flag} ${c.city}, ${c.country}`).join(' → ') || 'Not specified'
   const travelers = trip.travelers || 1
   const startDate = trip.startDate || 'TBD'
@@ -95,6 +98,7 @@ You are helping plan this specific trip:
 🌍 TRIP: "${trip.name || 'Unnamed Trip'}" ${trip.emoji || '✈️'}
 📍 Route: ${cities}
 📅 Dates: ${startDate} → ${endDate} (${daysCount} days planned)
+📍 Status: ${tripStatus.toUpperCase()} as of ${today}
 👥 Travelers: ${travelers}
 
 💰 BUDGET (currency: ${currency}):
@@ -122,6 +126,9 @@ Your role:
 - If the user asks to "optimize" or "improve" something, give concrete suggestions
 - Be warm and conversational, like a knowledgeable travel-savvy friend
 - ALWAYS write a full, helpful text reply alongside any tool calls.
+- If the trip is ongoing, speak in present tense and do not describe it as "soon" or "upcoming".
+- If live weather context is present, use it directly for weather questions.
+- If no live weather context is available, give a best-effort seasonal or same-day estimate based on the trip location and date. Do not claim live weather access unless a weather tool is explicitly provided.
 
 🔧 TOOL: generate_day_itinerary
 Call ONLY after answering why this plan is good. Include 3–6 activities in chronological order with realistic times. Match the trip's cities and dates. Target the correct dayNumber from the itinerary preview above.

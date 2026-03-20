@@ -188,7 +188,7 @@ ${content}
 `
 
     try {
-        const aiData = await callOpenRouter(process.env.OPENROUTER_API_KEY, {
+        const aiData = await callOpenRouter({
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.1,
         });
@@ -224,9 +224,9 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'URL is required in the request body.' })
         }
 
-        // Ensure API Key exists
-        if (!process.env.OPENROUTER_API_KEY) {
-            console.error("ERROR: OPENROUTER_API_KEY is not set in environment variables.")
+        // Ensure Gemini API key exists
+        if (!process.env.GEMINI_API_KEY) {
+            console.error("ERROR: GEMINI_API_KEY is not set in environment variables.")
             return res.status(500).json({ error: "Server misconfiguration: AI API key missing." })
         }
 

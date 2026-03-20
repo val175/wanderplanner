@@ -9,12 +9,14 @@ import { TripContext } from '../../context/TripContext'
 import { buildTripSystemPrompt } from '../../hooks/useAI'
 import { useWalkieTalkie } from '../../hooks/useWalkieTalkie'
 import { hapticSelection } from '../../utils/haptics'
+import { useLiveWeatherContext } from '../../hooks/useLiveWeatherContext'
+import { wandaRuntime } from '../../utils/wandaRuntime'
 
 let _walkieSystemPromptRef = buildTripSystemPrompt(null)
 
 const walkieChatTransport = new DefaultChatTransport({
   api: 'https://wanderplan-rust.vercel.app/api/chat',
-  body: () => ({ systemPrompt: _walkieSystemPromptRef }),
+  body: () => ({ systemPrompt: _walkieSystemPromptRef, weatherContext: wandaRuntime.weatherContext }),
   fetch: async (url, options) => {
     try {
       let token = ''
@@ -39,12 +41,17 @@ export default function WalkieTalkieModal() {
   const { activeTrip } = useContext(TripContext)
   const prevStatusRef = useRef('ready')
   const speakRef = useRef(null)
+  const weatherContext = useLiveWeatherContext(activeTrip)
 
   // Keep system prompt in sync with active trip
   useEffect(() => {
     const base = buildTripSystemPrompt(activeTrip)
     _walkieSystemPromptRef = base + '\n\nVOICE MODE: You are responding via voice. Keep every reply to 2-3 short sentences maximum. Be direct and conversational — no lists, no headers, no markdown formatting.'
   }, [activeTrip])
+
+  useEffect(() => {
+    wandaRuntime.weatherContext = weatherContext
+  }, [weatherContext])
 
   const { messages, sendMessage, status, setMessages } = useChat({
     transport: walkieChatTransport,

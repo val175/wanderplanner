@@ -1,6 +1,5 @@
 import { generateObject } from 'ai'
 import { z } from 'zod'
-import { createOpenAI } from '@ai-sdk/openai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { verifyFirebaseToken } from '../_auth.js'
 import { setCorsHeaders } from '../_cors.js'
@@ -37,25 +36,14 @@ export default async function handler(req, res) {
         })()
 
         const geminiKey = process.env.GEMINI_API_KEY
-        const openrouterKey = process.env.OPENROUTER_API_KEY
-
-        let model;
-        if (geminiKey) {
-            const google = createGoogleGenerativeAI({
-                apiKey: geminiKey,
-            })
-            model = google('gemini-3.1-flash-lite-preview')
-        } else if (openrouterKey) {
-            const openrouter = createOpenAI({
-                apiKey: openrouterKey,
-                baseURL: 'https://openrouter.ai/api/v1'
-            })
-            model = openrouter('mistralai/mistral-small-24b-instruct-2501')
+        if (!geminiKey) {
+            return res.status(500).json({ error: 'Gemini API key is missing' });
         }
 
-        if (!model) {
-            return res.status(500).json({ error: 'No AI providers configured' });
-        }
+        const google = createGoogleGenerativeAI({
+            apiKey: geminiKey,
+        })
+        const model = google('gemini-3.1-flash-lite-preview')
 
         const { object } = await generateObject({
             model,

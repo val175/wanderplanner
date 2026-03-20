@@ -12,12 +12,14 @@ import { ACTIONS } from '../../state/tripReducer';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { hapticSelection } from '../../utils/haptics';
 import { buildTripCountryCodes } from '../../utils/tripGeo';
+import { useLiveWeatherContext } from '../../hooks/useLiveWeatherContext';
+import { wandaRuntime } from '../../utils/wandaRuntime';
 
 let _systemPromptRef = buildTripSystemPrompt(null);
 
 const chatTransport = new DefaultChatTransport({
   api: 'https://wanderplan-rust.vercel.app/api/chat',
-  body: () => ({ systemPrompt: _systemPromptRef }),
+  body: () => ({ systemPrompt: _systemPromptRef, weatherContext: wandaRuntime.weatherContext }),
   fetch: async (url, options) => {
     try {
       let token = '';
@@ -119,6 +121,11 @@ export default function AIAssistant() {
   const { state, activeTrip, dispatch, showToast } = useContext(TripContext);
   const tripCountryCodes = buildTripCountryCodes(activeTrip)
   const tripCityHint = activeTrip?.cities?.map(c => c?.city).filter(Boolean).join(', ') || ''
+  const weatherContext = useLiveWeatherContext(activeTrip)
+
+  useEffect(() => {
+    wandaRuntime.weatherContext = weatherContext
+  }, [weatherContext])
 
   const resolveWandaLocation = async (query, cityHint = '') => {
     const cleanedQuery = cleanPlaceQuery(query)

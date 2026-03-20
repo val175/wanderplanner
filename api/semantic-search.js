@@ -58,7 +58,7 @@ Each match MUST have:
 `
 
     const { object } = await generateObject({
-      model: google('gemini-2.5-flash'), // fast and cheap
+      model: google('gemini-3.1-flash-lite-preview'),
       system: systemPrompt,
       prompt: 'Return the semantic search results.',
       schema: z.object({
