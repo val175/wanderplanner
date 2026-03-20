@@ -20,6 +20,23 @@ import { hapticImpact } from '../../utils/haptics'
 import { Plus, Check, X, Pencil } from 'lucide-react'
 import { GLOBAL_CATEGORIES, CATEGORY_MAP } from '../../constants/categories'
 
+const SMALL_SETTLE_COPY = [
+  (from, to) => `${from} can just buy ${to} a coffee`,
+  (from, to) => `Next drink is on ${from}`,
+  (from, to) => `${from} can treat ${to} to dinner`,
+  (from, to) => `${from} owes ${to} a snack run`,
+  (from, to) => `${to} gets the next round from ${from}`,
+]
+
+function getSmallSettleCopy(from, to, tx) {
+  const seed = `${tx.from}-${tx.to}-${Math.round(tx.amount * 100)}`
+  let hash = 0
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0
+  }
+  return SMALL_SETTLE_COPY[hash % SMALL_SETTLE_COPY.length](from, to)
+}
+
 function AddExpenseModal({ isOpen, onClose, onAdd, travelers, categories }) {
   const [expenseData, setExpenseData] = useState({
     description: '',
@@ -311,6 +328,7 @@ function GroupBalancesCard({ spendingLog, travelers, currency }) {
   const balances = useMemo(() => calculateBalances(spendingLog, travelers), [spendingLog, travelers])
   const transactions = useMemo(() => simplifyDebts(balances), [balances])
   const [showSettle, setShowSettle] = useState(false)
+  const coffeeThreshold = 250
 
   // Total amount paid by each traveler
   const spent = useMemo(() => {
@@ -378,12 +396,14 @@ function GroupBalancesCard({ spendingLog, travelers, currency }) {
           {transactions.map((tx, i) => {
             const from = travelers.find(t => t.id === tx.from)?.name?.split(' ')[0] || '?'
             const to = travelers.find(t => t.id === tx.to)?.name?.split(' ')[0] || '?'
+            const isSmallPhpSettle = currency === 'PHP' && tx.amount > 0 && tx.amount < coffeeThreshold
+            const settleText = isSmallPhpSettle ? getSmallSettleCopy(from, to, tx) : `${from} → ${to}`
             return (
               <div key={i} className="flex items-center gap-2 py-2 px-3 bg-bg-secondary/50 rounded-[var(--radius-md)] text-xs border border-border/30">
-                <span className="font-bold text-text-primary">{from}</span>
-                <span className="text-text-muted">→</span>
-                <span className="font-bold text-text-primary">{to}</span>
-                <span className="ml-auto font-mono font-bold text-text-primary">{formatCurrency(Math.round(tx.amount), currency)}</span>
+                <span className="font-bold text-text-primary">{settleText}</span>
+                <span className="ml-auto font-mono font-bold text-text-primary">
+                  {isSmallPhpSettle ? '☕' : formatCurrency(Math.round(tx.amount), currency)}
+                </span>
               </div>
             )
           })}
