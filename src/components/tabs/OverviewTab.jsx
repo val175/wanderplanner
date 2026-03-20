@@ -149,8 +149,12 @@ function QuickItineraryCell({ trip, status, onTabSwitch }) {
   const itinerary = trip.itinerary || []
   if (itinerary.length === 0) return null
 
-  // Just show the first 2 days for "UP NEXT"
-  const displayDays = itinerary.slice(0, 2)
+  const today = new Date().toISOString().slice(0, 10)
+  const startDayNumber = status === 'ongoing'
+    ? daysBetween(trip.startDate, today) + 1
+    : 1
+  const startIndex = itinerary.findIndex(day => Number(day.dayNumber || 0) >= startDayNumber)
+  const displayDays = startIndex >= 0 ? itinerary.slice(startIndex, startIndex + 2) : []
   if (displayDays.length === 0) return null
 
   return (
@@ -160,7 +164,9 @@ function QuickItineraryCell({ trip, status, onTabSwitch }) {
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
             <Label className="text-info">UP NEXT</Label>
-            <h3 className="font-heading text-lg font-bold text-text-primary mt-1 text-balance">First 48 Hours</h3>
+            <h3 className="font-heading text-lg font-bold text-text-primary mt-1 text-balance">
+              {status === 'ongoing' ? 'Next 48 Hours' : 'First 48 Hours'}
+            </h3>
 
           </div>
           <Button variant="secondary" size="sm" onClick={() => onTabSwitch?.('itinerary')}>
@@ -625,10 +631,21 @@ const QUICK_START = [
   { emoji: '🧳', title: 'Start Packing', desc: 'Build your checklist', tab: 'packing' },
 ]
 
-function QuickStartRow({ onTabSwitch }) {
+function QuickStartRow({ trip, status, onTabSwitch }) {
+  if (status !== 'upcoming') return null
+
+  const availableItems = QUICK_START.filter(item => {
+    if (item.tab === 'bookings') return (trip.bookings || []).length === 0
+    if (item.tab === 'todo') return (trip.todos || []).length === 0
+    if (item.tab === 'packing') return (trip.packingList || []).length === 0
+    return false
+  })
+
+  if (availableItems.length === 0) return null
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {QUICK_START.map(item => (
+    <div className={`grid grid-cols-1 gap-4 ${availableItems.length > 1 ? 'md:grid-cols-3' : 'md:grid-cols-1'}`}>
+      {availableItems.map(item => (
         <Card key={item.tab} onClick={() => onTabSwitch?.(item.tab)} hover padding="p-4">
           <div className="flex flex-col h-full">
             <div className="text-2xl mb-3">{item.emoji}</div>
@@ -647,8 +664,6 @@ export default function OverviewTab({ onTabSwitch }) {
 
   const trip = activeTrip
   const status = getEffectiveStatus(trip)
-  const isZeroReadiness = calculateReadiness(trip) === 0
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 animate-tab-enter stagger-1 font-heading pb-24">
       {/* ── Left Column: Action & Itinerary (8-col) ── */}
@@ -662,7 +677,7 @@ export default function OverviewTab({ onTabSwitch }) {
           <QuickItineraryCell trip={trip} status={status} onTabSwitch={onTabSwitch} />
         )}
         
-        {isZeroReadiness && <QuickStartRow onTabSwitch={onTabSwitch} />}
+        <QuickStartRow trip={trip} status={status} onTabSwitch={onTabSwitch} />
       </div>
 
       {/* ── Right Column: Status & Context (4-col) ── */}
