@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import * as Dialog from '@radix-ui/react-dialog'
-import { doc, deleteDoc } from 'firebase/firestore'
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { useTripContext } from '../../context/TripContext'
 import { useProfiles } from '../../context/ProfileContext'
@@ -49,7 +49,11 @@ export default function TripContextMenu({ tripId, tripName, children }) {
 
   const handleDeleteConfirm = async () => {
     try {
-      await deleteDoc(doc(db, 'trips', tripId))
+      await updateDoc(doc(db, 'trips', tripId), {
+        deletedAt: serverTimestamp(),
+        memberIds: [],
+        travelerIds: [],
+      })
       dispatch({ type: ACTIONS.DELETE_TRIP, payload: tripId })
       showToast('Trip deleted', 'info')
     } catch (err) {

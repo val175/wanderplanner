@@ -78,8 +78,13 @@ export function useFirestoreTrips(userId) {
       q,
       async (snapshot) => {
         const tripsFromFirestore = {}
+        const deletedIds = []
         snapshot.forEach((docSnap) => {
-          const { _updatedAt, ...trip } = docSnap.data()
+          const { _updatedAt, deletedAt, ...trip } = docSnap.data()
+          if (deletedAt) {
+            deletedIds.push(docSnap.id)
+            return
+          }
           tripsFromFirestore[docSnap.id] = trip
         })
 
@@ -103,7 +108,6 @@ export function useFirestoreTrips(userId) {
         }
 
         // Calculate trips deleted since last snapshot
-        const deletedIds = []
         if (!isFirstLoad) {
           Object.keys(prevTripsRef.current).forEach(id => {
             if (!tripsFromFirestore[id]) {
@@ -246,6 +250,7 @@ export function useFirestoreTrips(userId) {
     Object.keys(currentTrips).forEach((id) => {
       if (currentTrips[id] !== previousTrips[id]) {
         const tripData = currentTrips[id]
+        if (tripData?.deletedAt) return
         // Ensure current user and all travelerIds are in memberIds on write
         const memberIds = Array.from(new Set([
           ...(tripData.memberIds || []),
@@ -255,7 +260,8 @@ export function useFirestoreTrips(userId) {
 
         setDoc(
           doc(tripsRef, id),
-          { ...tripData, memberIds, _updatedAt: serverTimestamp() }
+          { ...tripData, memberIds, _updatedAt: serverTimestamp() },
+          { merge: true }
         ).catch(console.error)
       }
     })

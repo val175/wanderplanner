@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { doc, deleteDoc } from 'firebase/firestore'
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import ProgressRing from '../shared/ProgressRing'
 import AvatarCircle from '../shared/AvatarCircle'
@@ -419,7 +419,11 @@ function HeaderOptionsDropdown({ trip, dispatch, isReadOnly, onRenameRequest }) 
   const handleDeleteClick = () => { setShowDeleteConfirm(true) }
   const handleDeleteConfirm = async () => {
     try {
-      await deleteDoc(doc(db, 'trips', trip.id))
+      await updateDoc(doc(db, 'trips', trip.id), {
+        deletedAt: serverTimestamp(),
+        memberIds: [],
+        travelerIds: [],
+      })
       dispatch({ type: ACTIONS.DELETE_TRIP, payload: trip.id })
       showToast('Trip deleted', 'info')
     } catch (err) {
