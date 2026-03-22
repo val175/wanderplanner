@@ -196,10 +196,10 @@ export default function ActivityDrawer({ activity, dayId, onClose, onViewOnMap }
           )}
 
           {/* Properties Panel */}
-          <div className="rounded-[var(--radius-md)] border border-border/40 overflow-hidden divide-y divide-border/30">
+          <div className="rounded-[var(--radius-md)] border border-border/40 divide-y divide-border/30">
 
             {/* Time */}
-            <div className="flex items-center gap-3 px-3 min-h-[42px]">
+            <div className="flex items-center gap-3 px-3 min-h-[42px] rounded-t-[var(--radius-md)]">
               <span className="w-20 shrink-0 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Time</span>
               <div className="flex items-center gap-1.5 flex-1 py-1.5 flex-wrap">
                 <TimePicker
@@ -326,7 +326,7 @@ export default function ActivityDrawer({ activity, dayId, onClose, onViewOnMap }
             </div>
 
             {/* Link */}
-            <div className="flex items-center gap-3 px-3 min-h-[42px]">
+            <div className="flex items-center gap-3 px-3 min-h-[42px] rounded-b-[var(--radius-md)]">
               <span className="w-20 shrink-0 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Link</span>
               <div className="flex-1 min-w-0 py-1.5">
                 <EditableText
