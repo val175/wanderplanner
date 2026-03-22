@@ -97,7 +97,14 @@ const WANDA_TOOLS = {
                 reason: z.string().describe('1 sentence why this is the best pick in its category'),
             })).describe('2-4 best ideas, one per category (lodging, activity, food, etc.)'),
         }),
-    }),
+  }),
+}
+
+function describeSelectedMapPoint(point) {
+  if (!point) return ''
+  const label = point.activity?.name || point.city || point.idea?.title || point.label || point.activityId || point.cityId || point.ideaId || 'selected point'
+  const location = point.activity?.location?.placeName || point.city || point.country || ''
+  return [label, location].filter(Boolean).join(' · ')
 }
 
 export default async function handler(req) {
@@ -139,10 +146,23 @@ export default async function handler(req) {
                 headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
             })
         }
-        const { messages, systemPrompt: clientPrompt, weatherContext } = await req.json()
+        const {
+            messages,
+            systemPrompt: clientPrompt,
+            weatherContext,
+            activeTab,
+            selectedMapPoint,
+            uiContext,
+        } = await req.json()
+        const mapContext = [
+            uiContext ? `UI CONTEXT: ${uiContext}` : '',
+            activeTab ? `ACTIVE TAB: ${activeTab}` : '',
+            selectedMapPoint ? `SELECTED MAP POINT: ${describeSelectedMapPoint(selectedMapPoint)}` : '',
+        ].filter(Boolean).join('\n')
         const systemPrompt = [
             clientPrompt || "You are Wanda, a friendly travel planning assistant.",
             weatherContext ? `LIVE WEATHER CONTEXT:\n${weatherContext}` : '',
+            mapContext,
         ].filter(Boolean).join('\n\n')
 
         // convertToModelMessages correctly serializes tool-call and tool-result parts

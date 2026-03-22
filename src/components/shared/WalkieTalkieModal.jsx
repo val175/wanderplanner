@@ -16,7 +16,13 @@ let _walkieSystemPromptRef = buildTripSystemPrompt(null)
 
 const walkieChatTransport = new DefaultChatTransport({
   api: 'https://wanderplan-rust.vercel.app/api/chat',
-  body: () => ({ systemPrompt: _walkieSystemPromptRef, weatherContext: wandaRuntime.weatherContext }),
+  body: () => ({
+    systemPrompt: _walkieSystemPromptRef,
+    weatherContext: wandaRuntime.weatherContext,
+    activeTab: wandaRuntime.activeTab,
+    selectedMapPoint: wandaRuntime.selectedMapPoint,
+    uiContext: wandaRuntime.uiContext,
+  }),
   fetch: async (url, options) => {
     try {
       let token = ''

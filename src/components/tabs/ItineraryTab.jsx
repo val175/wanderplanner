@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, Fragment } from 'react'
+import { useState, useRef, useMemo, useCallback, Fragment } from 'react'
 import { createPortal } from 'react-dom'
 import TabHeader from '../common/TabHeader'
 import Card from '../shared/Card'
@@ -16,6 +16,8 @@ import { COUNTRY_TIMEZONE, getUTCOffsetHours, applyTimezoneOffset, FLIGHT_ACTIVI
 import { triggerHaptic, hapticImpact } from '../../utils/haptics'
 import { DAY_COLORS } from '../../constants/colors'
 import { GLOBAL_CATEGORIES } from '../../constants/categories'
+import { wandaRuntime, setWandaRuntime } from '../../utils/wandaRuntime'
+import { MapPin } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import Select, { SelectItem } from '../shared/Select'
 import { useDrag } from '@use-gesture/react'
@@ -75,6 +77,68 @@ function getLocationDetails(location) {
     openingHours: location.openingHours || '',
     isOpenNow: typeof location.isOpenNow === 'boolean' ? location.isOpenNow : null,
   }
+}
+
+function normalizeText(value) {
+  return (value || '').toString().trim().toLowerCase()
+}
+
+function buildMapPointForActivity(day, activity) {
+  if (!day || !activity) return null
+  return {
+    type: 'activity',
+    dayId: day.id,
+    activityId: activity.id,
+    dayLocation: day.location || '',
+    city: day.location || '',
+    coords: activity.location?.coordinates?.lng != null && activity.location?.coordinates?.lat != null
+      ? [activity.location.coordinates.lng, activity.location.coordinates.lat]
+      : null,
+    activity,
+    queryLabel: activity.location?.placeName || activity.location?.address || activity.name || '',
+  }
+}
+
+function buildMapPointForDay(day, trip) {
+  if (!day) return null
+  const matchedCity = trip?.cities?.find(city => {
+    const location = normalizeText(day.location)
+    return city?.city && location.includes(normalizeText(city.city))
+  })
+  return {
+    type: 'dest',
+    dayId: day.id,
+    city: matchedCity?.city || trip?.cities?.[0]?.city || day.location || '',
+    country: matchedCity?.country || trip?.cities?.[0]?.country || '',
+    cityId: matchedCity?.id || matchedCity?.city || trip?.cities?.[0]?.id || trip?.cities?.[0]?.city || '',
+    dayLocation: day.location || '',
+    coords: null,
+  }
+}
+
+function findDayForMapPoint(point, itinerary) {
+  if (!point || !Array.isArray(itinerary)) return null
+
+  if (point.dayId) {
+    const direct = itinerary.find(day => day.id === point.dayId)
+    if (direct) return direct
+  }
+
+  if (point.type === 'activity' && point.activityId) {
+    return itinerary.find(day => day.activities?.some(activity => activity.id === point.activityId)) || null
+  }
+
+  if (point.type === 'dest') {
+    const pointCity = normalizeText(point.city)
+    const pointCountry = normalizeText(point.country)
+    return itinerary.find(day => {
+      const location = normalizeText(day.location)
+      return (pointCity && location.includes(pointCity))
+        || (pointCountry && location.includes(pointCountry))
+    }) || null
+  }
+
+  return null
 }
 
 function CategoryPill({ value, onChange, disabled }) {
@@ -287,7 +351,7 @@ function AddActivityModal({ isOpen, onClose, itinerary, onAdd }) {
   )
 }
 
-function DayGroupTable({ day, itinerary, onReorderDay, trip, resolveLocation, isResolving, setActiveSearchActivity, onOpenDrawer }) {
+function DayGroupTable({ day, itinerary, onReorderDay, trip, resolveLocation, isResolving, setActiveSearchActivity, onOpenDrawer, onViewOnMap }) {
   const { dispatch, isReadOnly } = useTripContext()
   const [expanded, setExpanded] = useState(true)
   const [dragOverGroup, setDragOverGroup] = useState(false)
@@ -296,13 +360,19 @@ function DayGroupTable({ day, itinerary, onReorderDay, trip, resolveLocation, is
 
   useEffect(() => {
     const handleHighlight = (e) => {
-      const { id, tab } = e.detail
+      const { id, tab, dayId } = e.detail
+      if (tab === 'itinerary' && dayId === day.id) {
+        setExpanded(true)
+        setTimeout(() => {
+          const el = document.getElementById(`day-group-${day.id}`)
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 100)
+      }
       if (tab === 'itinerary' && day.activities?.some(a => a.id === id)) {
         setHighlightedActivityId(id)
         setExpanded(true)
         setTimeout(() => setHighlightedActivityId(null), 3000)
-        
-        // Try to scroll to it
+
         setTimeout(() => {
           const el = document.getElementById(`activity-${id}`)
           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -362,6 +432,7 @@ function DayGroupTable({ day, itinerary, onReorderDay, trip, resolveLocation, is
 
   return (
     <div
+      id={`day-group-${day.id}`}
       className={`mb-8 transition-all ${dragOverGroup && !isReadOnly ? 'ring-2 ring-accent rounded-[var(--radius-md)]' : ''}`}
       draggable={!isReadOnly}
       onDragStart={e => {
@@ -502,6 +573,7 @@ function DayGroupTable({ day, itinerary, onReorderDay, trip, resolveLocation, is
                   return (
                     <Fragment key={activity.id}>
                       <tr
+                        id={`activity-${activity.id}`}
                         draggable
                         onDragStart={(e) => {
                           e.stopPropagation()
@@ -613,6 +685,15 @@ function DayGroupTable({ day, itinerary, onReorderDay, trip, resolveLocation, is
                         {/* Actions */}
                         <td className="px-2 pt-4 pb-2 align-top text-right pr-4" data-no-drawer>
                           <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                            {onViewOnMap && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); onViewOnMap(day, activity) }}
+                                className="text-text-muted hover:text-accent p-1 inline-flex"
+                                title="View on Map"
+                              >
+                                <MapPin size={12} />
+                              </button>
+                            )}
                             {activity.comments?.length > 0 && (
                               <span className="text-[10px] font-semibold text-accent px-1">{activity.comments.length}</span>
                             )}
@@ -708,14 +789,20 @@ function DayGroupTable({ day, itinerary, onReorderDay, trip, resolveLocation, is
   )
 }
 
-function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearchActivity, onOpenDrawer }) {
+function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearchActivity, onOpenDrawer, onViewOnMap }) {
   const { dispatch, isReadOnly } = useTripContext()
   const [dragOverCol, setDragOverCol] = useState(false)
   const [highlightedActivityId, setHighlightedActivityId] = useState(null)
 
   useEffect(() => {
     const handleHighlight = (e) => {
-      const { id, tab } = e.detail
+      const { id, tab, dayId } = e.detail
+      if (tab === 'itinerary' && dayId === day.id) {
+        setTimeout(() => {
+          const el = document.getElementById(`kanban-day-${day.id}`)
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 100)
+      }
       if (tab === 'itinerary' && day.activities?.some(a => a.id === id)) {
         setHighlightedActivityId(id)
         setTimeout(() => setHighlightedActivityId(null), 3000)
@@ -743,6 +830,7 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
 
   return (
     <div
+      id={`kanban-day-${day.id}`}
       className={`flex flex-col flex-shrink-0 w-72 bg-bg-card border rounded-[var(--radius-lg)] p-2 transition-colors ${dragOverCol && !isReadOnly ? 'border-accent/50 bg-accent/5' : 'border-border'} h-[calc(100vh-250px)]`}
       onDragOver={e => {
         if (isReadOnly) return
@@ -839,11 +927,20 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
                 </div>
                 <button
                   onClick={(e) => { e.stopPropagation(); onOpenDrawer({ activityId: activity.id, dayId: day.id }) }}
-                  className={`absolute top-3 ${isReadOnly ? 'right-3' : 'right-10'} opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out p-1 rounded hover:bg-bg-hover ${activity.comments?.length ? 'text-accent' : 'text-text-muted hover:text-text-primary'}`}
+                  className={`absolute top-3 ${isReadOnly ? 'right-3' : 'right-16'} opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out p-1 rounded hover:bg-bg-hover ${activity.comments?.length ? 'text-accent' : 'text-text-muted hover:text-text-primary'}`}
                   title={activity.comments?.length ? `${activity.comments.length} update${activity.comments.length > 1 ? 's' : ''}` : 'Open notes & updates'}
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                 </button>
+              {!isReadOnly && onViewOnMap && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onViewOnMap(day, activity) }}
+                  className="absolute top-3 right-10 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out text-text-muted hover:text-accent p-1 rounded hover:bg-bg-hover"
+                  title="View on Map"
+                >
+                  <MapPin size={13} />
+                </button>
+              )}
               {!isReadOnly && (
                 <button
                   onClick={() => {
@@ -1296,6 +1393,53 @@ export default function ItineraryTab() {
   const trip = activeTrip
   const itinerary = useMemo(() => sortItineraryDays(trip.itinerary || []), [trip.itinerary])
 
+  const handleOpenMapPoint = useCallback((day, activity) => {
+    const point = activity
+      ? buildMapPointForActivity(day, activity)
+      : buildMapPointForDay(day, trip)
+
+    if (!point) return
+
+    hapticImpact('medium')
+    setWandaRuntime({
+      activeTab: 'wandermap',
+      selectedMapPoint: point,
+      pendingMapFocus: point,
+      pendingItineraryFocus: null,
+      uiContext: `Itinerary requested map view for ${activity?.name || day?.location || 'selected day'}`,
+    })
+    dispatch({ type: ACTIONS.SET_TAB, payload: 'wandermap' })
+  }, [dispatch, trip])
+
+  useEffect(() => {
+    const pending = wandaRuntime.pendingItineraryFocus
+    if (!pending) return
+
+    const targetDay = findDayForMapPoint(pending, itinerary)
+    if (!targetDay) return
+
+    const targetIndex = itinerary.findIndex(day => day.id === targetDay.id)
+    if (isMobile && targetIndex >= 0) {
+      setActiveDayIndex(targetIndex)
+    }
+
+    setWandaRuntime({
+      pendingItineraryFocus: null,
+      selectedMapPoint: pending,
+      activeTab: 'itinerary',
+      uiContext: `Itinerary focused on ${pending?.activity?.name || pending?.city || targetDay.location || 'selected point'}`,
+    })
+
+    window.dispatchEvent(new CustomEvent('highlight-item', {
+      detail: {
+        id: pending.activityId || targetDay.id,
+        tab: 'itinerary',
+        dayId: targetDay.id,
+        source: pending.source || 'map',
+      },
+    }))
+  }, [itinerary, isMobile])
+
   // Horizontal swipe gesture for mobile
   const bind = useDrag(({ swipe: [swipeX], active }) => {
     if (!active && swipeX !== 0) {
@@ -1467,6 +1611,7 @@ export default function ItineraryTab() {
             activity={liveActivity}
             dayId={selectedActivity.dayId}
             onClose={() => setSelectedActivity(null)}
+            onViewOnMap={handleOpenMapPoint}
           />
         ) : null
       })()}
@@ -1493,6 +1638,7 @@ export default function ItineraryTab() {
                       setActiveSearchActivity={setActiveSearchActivity}
                       onReorderDay={(from, to) => dispatch({ type: ACTIONS.REORDER_DAYS, payload: { fromIndex: from, toIndex: to } })}
                       onOpenDrawer={setSelectedActivity}
+                      onViewOnMap={handleOpenMapPoint}
                     />
                   )}
 
@@ -1519,6 +1665,7 @@ export default function ItineraryTab() {
                       setActiveSearchActivity={setActiveSearchActivity}
                       onReorderDay={(from, to) => dispatch({ type: ACTIONS.REORDER_DAYS, payload: { fromIndex: from, toIndex: to } })}
                       onOpenDrawer={setSelectedActivity}
+                      onViewOnMap={handleOpenMapPoint}
                     />
                   ))}
                   {!isReadOnly && (
@@ -1544,6 +1691,7 @@ export default function ItineraryTab() {
                     isResolving={isResolving}
                     setActiveSearchActivity={setActiveSearchActivity}
                     onOpenDrawer={setSelectedActivity}
+                    onViewOnMap={handleOpenMapPoint}
                   />
                 ))}
                 {!isReadOnly && (

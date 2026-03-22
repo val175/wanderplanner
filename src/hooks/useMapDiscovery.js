@@ -244,7 +244,7 @@ export function useMapDiscovery(trip) {
                         query: getActivityQuery(activity),
                         coords,
                     })
-                    return { activityId: activity.id, coords, activity };
+                    return { activityId: activity.id, dayId: day.id, dayNumber: day.dayNumber, coords, activity };
                 }
 
                 const query = getActivityQuery(activity) || activity.name;
@@ -272,7 +272,7 @@ export function useMapDiscovery(trip) {
                         coords,
                     })
                 }
-                return { activityId: activity.id, coords, activity };
+                return { activityId: activity.id, dayId: day.id, dayNumber: day.dayNumber, coords, activity };
             });
 
             const results = await Promise.all(promises);

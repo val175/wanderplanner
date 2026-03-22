@@ -7,7 +7,7 @@ import { useMediaQuery } from '../../hooks/useMediaQuery';
  * A responsive detail panel for the WanderMap.
  * Mobile: Bottom sheet | Desktop: Side drawer
  */
-export default function LocationDrawer({ isOpen, onClose, data }) {
+export default function LocationDrawer({ isOpen, onClose, data, onViewInItinerary }) {
     const isMobile = useMediaQuery('(max-width: 767px)');
 
     if (!isOpen || !data) return null;
@@ -141,6 +141,15 @@ export default function LocationDrawer({ isOpen, onClose, data }) {
                                 ))}
                             </div>
                         </div>
+                    )}
+                    {onViewInItinerary && type !== 'idea' && (
+                        <button
+                            onClick={() => onViewInItinerary(data)}
+                            className="w-full h-8 rounded-[var(--radius-md)] bg-bg-secondary text-text-primary font-bold text-[10px] hover:bg-bg-hover transition-colors flex items-center justify-center gap-1.5 border border-border/50"
+                        >
+                            <Navigation2 size={12} strokeWidth={2.5} />
+                            View in Itinerary
+                        </button>
                     )}
                 </div>
             </div>

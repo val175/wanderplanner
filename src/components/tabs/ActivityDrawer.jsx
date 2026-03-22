@@ -11,6 +11,7 @@ import LocationAutocomplete from '../shared/LocationAutocomplete'
 import { hapticImpact, hapticSelection } from '../../utils/haptics'
 import { GLOBAL_CATEGORIES } from '../../constants/categories'
 import { getDayLocationMap, detectLocationConflict } from '../../utils/tripGeo'
+import { MapPin } from 'lucide-react'
 
 function CategorySelect({ value, onChange, disabled }) {
   return (
@@ -27,7 +28,7 @@ function CategorySelect({ value, onChange, disabled }) {
   )
 }
 
-export default function ActivityDrawer({ activity, dayId, onClose }) {
+export default function ActivityDrawer({ activity, dayId, onClose, onViewOnMap }) {
   const { activeTrip, dispatch, isReadOnly } = useTripContext()
   const { currentUserProfile, resolveProfile } = useProfiles()
   const [mounted, setMounted] = useState(false)
@@ -227,9 +228,19 @@ export default function ActivityDrawer({ activity, dayId, onClose }) {
                     className="w-14 text-center bg-bg-input border border-border rounded-[var(--radius-sm)] text-xs font-mono text-text-secondary px-1.5 py-1 focus:outline-none focus:border-accent"
                   />
                   <span className="text-[11px] text-text-muted">min</span>
-                </div>
               </div>
             </div>
+
+            {onViewOnMap && (
+              <button
+                onClick={() => onViewOnMap(day, activity)}
+                className="w-full flex items-center justify-center gap-2 px-3 py-3 text-xs font-semibold text-text-primary hover:bg-bg-hover transition-colors"
+              >
+                <MapPin size={13} />
+                View on Map
+              </button>
+            )}
+          </div>
 
             {/* Category */}
             <div className="flex items-center gap-3 px-3 min-h-[42px]">

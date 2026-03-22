@@ -41,6 +41,7 @@ import PackingTab from './components/tabs/PackingTab'
 import ConcertTab from './components/tabs/ConcertTab'
 import WanderMapTab from './components/tabs/WanderMapTab'
 import WrapUpTab from './components/tabs/WrapUpTab'
+import { wandaRuntime, setWandaRuntime } from './utils/wandaRuntime'
 
 /* ─────────────────────────────────────────────────────────────
    Tab panel renderer
@@ -60,6 +61,14 @@ function TabPanel({ activeTab, onTabSwitch }) {
     case 'wrap-up': return <WrapUpTab />
     default: return <OverviewTab onTabSwitch={onTabSwitch} />
   }
+}
+
+function describeMapPoint(point) {
+  if (!point) return ''
+  if (point.type === 'activity') return point.activity?.name || point.activityId || 'activity'
+  if (point.type === 'dest') return point.city || point.dayId || 'destination'
+  if (point.type === 'idea') return point.idea?.title || point.ideaId || 'idea'
+  return 'selected point'
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -131,6 +140,15 @@ function AuthenticatedApp({ user, signOutUser }) {
   const effectiveStatus = getEffectiveStatus(activeTrip)
   const isReadOnly = effectiveStatus === 'completed' || effectiveStatus === 'archived'
   const effectiveTab = isReadOnly && state.activeTab === 'overview' ? 'wrap-up' : state.activeTab
+
+  useEffect(() => {
+    setWandaRuntime({
+      activeTab: effectiveTab,
+      uiContext: wandaRuntime.selectedMapPoint
+        ? `${effectiveTab} · ${describeMapPoint(wandaRuntime.selectedMapPoint)}`
+        : effectiveTab,
+    })
+  }, [effectiveTab, activeTrip?.id])
 
   const handleNewTrip = useCallback(() => {
     setShowNewTripModal(true)

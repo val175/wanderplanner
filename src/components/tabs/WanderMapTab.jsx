@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import Map, { Marker, Source, Layer, NavigationControl, Popup } from 'react-map-gl';
+import Map, { Marker, Source, Layer, NavigationControl } from 'react-map-gl';
 import { motion } from 'framer-motion';
 import { MapPin, Sparkles, Layers, Navigation } from 'lucide-react';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -9,6 +9,9 @@ import { useMapDiscovery } from '../../hooks/useMapDiscovery';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import LocationDrawer from '../shared/LocationDrawer';
 import { hapticImpact, hapticSelection } from '../../utils/haptics';
+import { ACTIONS } from '../../state/tripReducer';
+import { wandaRuntime, setWandaRuntime } from '../../utils/wandaRuntime';
+import { geocodeCity } from '../../utils/helpers';
 
 const MACRO_ZOOM_THRESHOLD = 8;
 
@@ -19,12 +22,120 @@ const PIN_COLORS = {
     mid:   '#89A88F',
 };
 
+function normalizeText(value) {
+    return (value || '').toString().trim().toLowerCase()
+}
+
+function resolveDayTargetFromPoint(point, trip) {
+    if (!point || !trip?.itinerary?.length) return null
+
+    if (point.dayId) {
+        const directDay = trip.itinerary.find(day => day.id === point.dayId)
+        if (directDay) {
+            return {
+                dayId: directDay.id,
+                activityId: point.activityId || null,
+                id: point.activityId || directDay.id,
+                tab: 'itinerary',
+            }
+        }
+    }
+
+    if (point.type === 'activity') {
+        const activityDay = trip.itinerary.find(day => day.activities?.some(activity => activity.id === point.activityId))
+        if (activityDay) {
+            return {
+                dayId: activityDay.id,
+                activityId: point.activityId,
+                id: point.activityId,
+                tab: 'itinerary',
+            }
+        }
+    }
+
+    if (point.type === 'dest') {
+        const cityName = normalizeText(point.city)
+        const countryName = normalizeText(point.country)
+        const matchedDay = trip.itinerary.find(day => {
+            const location = normalizeText(day.location)
+            return (cityName && location.includes(cityName))
+                || (countryName && location.includes(countryName))
+        })
+
+        if (matchedDay) {
+            return {
+                dayId: matchedDay.id,
+                activityId: null,
+                id: matchedDay.id,
+                tab: 'itinerary',
+            }
+        }
+    }
+
+    return null
+}
+
+async function resolveMapPointCoords(point, trip, destCoords, itineraryCoords, discoveredIdeas) {
+    if (!point) return null
+    if (Array.isArray(point.coords) && point.coords.length >= 2) return point.coords
+
+    if (point.type === 'activity') {
+        const activityMatch = itineraryCoords.find(entry =>
+            entry.activityId === point.activityId || entry.activity?.id === point.activityId
+        )
+        if (activityMatch?.coords) return activityMatch.coords
+
+        const location = point.activity?.location
+        const query = point.queryLabel
+            || location?.placeName
+            || location?.address
+            || point.activity?.name
+            || ''
+        const cityHint = point.dayLocation || point.city || point.activity?.city || trip?.cities?.[0]?.city || ''
+        if (query) {
+            const coords = await geocodeCity(query, cityHint || null)
+            if (coords) return coords
+        }
+        return null
+    }
+
+    if (point.type === 'dest') {
+        const destMatch = destCoords.find(entry =>
+            entry.cityId === point.cityId || normalizeText(entry.city) === normalizeText(point.city)
+        )
+        if (destMatch?.coords) return destMatch.coords
+
+        const query = point.city || point.dayLocation || ''
+        if (query) {
+            const coords = await geocodeCity(query, point.country || null)
+            if (coords) return coords
+        }
+        return null
+    }
+
+    if (point.type === 'idea') {
+        const ideaMatch = discoveredIdeas.find(entry =>
+            entry.ideaId === point.ideaId || entry.idea?.id === point.ideaId
+        )
+        if (ideaMatch?.coords) return ideaMatch.coords
+
+        const query = point.idea?.title || point.idea?.name || ''
+        if (query) {
+            const coords = await geocodeCity(query, point.city || point.dayLocation || null)
+            if (coords) return coords
+        }
+        return null
+    }
+
+    return null
+}
+
 /**
  * WanderMapTab
  * Full-screen interactive map — Flag Pin aesthetic, animated WanderPath, haptic feedback.
  */
 export default function WanderMapTab() {
-    const { activeTrip } = useTripContext();
+    const { activeTrip, dispatch } = useTripContext();
     const [zoom, setZoom] = useState(3);
     const [selectedPoint, setSelectedPoint] = useState(null);
     const [layers, setLayers] = useState({
@@ -37,8 +148,63 @@ export default function WanderMapTab() {
     const mapRef = useRef(null);
     const isMobile = useMediaQuery('(max-width: 767px)');
     const animFrameRef = useRef(null);
+    const hasManualFocusRef = useRef(false);
 
     const { destCoords, itineraryCoords, discoveredIdeas } = useMapDiscovery(activeTrip);
+
+    useEffect(() => {
+        hasManualFocusRef.current = false
+        hasFitRef.current = false
+    }, [activeTrip?.id])
+
+    const focusMapPoint = useCallback(async (point, { persistManualFocus = true } = {}) => {
+        const coords = await resolveMapPointCoords(point, activeTrip, destCoords, itineraryCoords, discoveredIdeas)
+        if (!coords) return
+
+        if (persistManualFocus) {
+            hasManualFocusRef.current = true
+        }
+
+        const zoomLevel = point?.type === 'activity' ? 14 : point?.type === 'idea' ? 13 : 10
+        try {
+            mapRef.current?.flyTo({ center: coords, zoom: zoomLevel, duration: 900 })
+        } catch (error) {
+            console.warn('WanderMapTab focus failed:', error)
+        }
+    }, [activeTrip, destCoords, itineraryCoords, discoveredIdeas])
+
+    const handlePointSelect = useCallback((point) => {
+        ;(async () => {
+            const resolvedCoords = await resolveMapPointCoords(point, activeTrip, destCoords, itineraryCoords, discoveredIdeas)
+            const focusedPoint = resolvedCoords ? { ...point, coords: resolvedCoords } : point
+            setSelectedPoint(focusedPoint)
+            const itineraryTarget = resolveDayTargetFromPoint(focusedPoint, activeTrip)
+            setWandaRuntime({
+                selectedMapPoint: focusedPoint,
+                pendingItineraryFocus: itineraryTarget,
+                uiContext: `Map view selected ${focusedPoint?.type || 'point'}${focusedPoint?.activity?.name ? `: ${focusedPoint.activity.name}` : focusedPoint?.city ? `: ${focusedPoint.city}` : ''}`,
+            })
+            if (itineraryTarget) {
+                window.dispatchEvent(new CustomEvent('highlight-item', { detail: { ...itineraryTarget, source: 'map' } }))
+            }
+            if (resolvedCoords) {
+                await focusMapPoint(focusedPoint)
+            }
+        })()
+    }, [activeTrip, destCoords, itineraryCoords, discoveredIdeas, focusMapPoint])
+
+    const handleViewInItinerary = useCallback((point) => {
+        const itineraryTarget = resolveDayTargetFromPoint(point, activeTrip)
+        if (!itineraryTarget) return
+        hapticSelection()
+        setWandaRuntime({
+            activeTab: 'itinerary',
+            selectedMapPoint: point,
+            pendingItineraryFocus: itineraryTarget,
+            uiContext: `Viewing ${point?.type || 'point'} in itinerary`,
+        })
+        dispatch({ type: ACTIONS.SET_TAB, payload: 'itinerary' })
+    }, [activeTrip, dispatch])
 
     // ── Animated WanderPath (direct Mapbox API — avoids React re-render loop) ──
     useEffect(() => {
@@ -67,6 +233,40 @@ export default function WanderMapTab() {
         return () => cancelAnimationFrame(animFrameRef.current);
         */
     }, [isMapLoaded, layers.animatedPath]);
+
+    useEffect(() => {
+        const pending = wandaRuntime.pendingMapFocus
+        if (!pending || !isMapLoaded) return
+
+        ;(async () => {
+            const coords = await resolveMapPointCoords(pending, activeTrip, destCoords, itineraryCoords, discoveredIdeas)
+            if (!coords) return
+
+            const point = { ...pending, coords }
+            hasManualFocusRef.current = true
+            setSelectedPoint(point)
+            setWandaRuntime({
+                pendingMapFocus: null,
+                selectedMapPoint: point,
+                uiContext: `Map focused on ${point?.type || 'point'}${point?.activity?.name ? `: ${point.activity.name}` : point?.city ? `: ${point.city}` : ''}`,
+            })
+
+            try {
+                const zoomLevel = pending.type === 'activity' ? 14 : pending.type === 'idea' ? 13 : 10
+                mapRef.current?.flyTo({ center: coords, zoom: zoomLevel, duration: 900 })
+            } catch (error) {
+                console.warn('WanderMapTab focus failed:', error)
+            }
+        })()
+    }, [isMapLoaded, activeTrip, destCoords, itineraryCoords, discoveredIdeas])
+
+    useEffect(() => {
+        if (!selectedPoint) return
+        setWandaRuntime({
+            selectedMapPoint: selectedPoint,
+            uiContext: `Map point selected: ${selectedPoint?.activity?.name || selectedPoint?.city || selectedPoint?.idea?.title || 'unknown'}`,
+        })
+    }, [selectedPoint])
 
     const pk = ["pk", "eyJ"].join(".");
     const mapboxToken = import.meta.env.VITE_MAPBOX_PART2 ? `${pk}${import.meta.env.VITE_MAPBOX_PART2}` : null;
@@ -99,7 +299,7 @@ export default function WanderMapTab() {
     // Fit on map load OR when destCoords arrive — whichever is later
     const hasFitRef = useRef(false);
     useEffect(() => {
-        if (!isMapLoaded || destCoords.length === 0 || hasFitRef.current) return;
+        if (!isMapLoaded || destCoords.length === 0 || hasFitRef.current || hasManualFocusRef.current) return;
         fitBounds();
         hasFitRef.current = true;
     }, [isMapLoaded, destCoords]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -187,10 +387,11 @@ export default function WanderMapTab() {
                                     animate={{ scale: 1, y: 0 }}
                                     whileHover={{ y: -3, scale: 1.05 }}
                                     transition={{ type: 'spring', stiffness: 300, damping: 20, delay: i * 0.05 }}
+                                    onMouseDown={(e) => e.stopPropagation()}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         hapticImpact('medium');
-                                        setSelectedPoint({ type: 'dest', ...d });
+                                        handlePointSelect({ type: 'dest', ...d });
                                     }}
                                     className="cursor-pointer flex flex-col items-center"
                                 >
@@ -229,10 +430,11 @@ export default function WanderMapTab() {
                                     animate={{ scale: 1, y: 0 }}
                                     whileHover={{ y: -3 }}
                                     transition={{ type: 'spring', stiffness: 300, damping: 20, delay: i * 0.03 }}
+                                    onMouseDown={(e) => e.stopPropagation()}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         hapticImpact('medium');
-                                        setSelectedPoint({ type: 'activity', ...ic });
+                                        handlePointSelect({ type: 'activity', ...ic });
                                     }}
                                     className="cursor-pointer flex flex-col items-center group"
                                 >
@@ -254,10 +456,11 @@ export default function WanderMapTab() {
                                 initial={{ scale: 0.8, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
                                 whileHover={{ scale: 1.2 }}
+                                onMouseDown={(e) => e.stopPropagation()}
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     hapticImpact('medium');
-                                    setSelectedPoint({ type: 'idea', ...ic });
+                                    handlePointSelect({ type: 'idea', ...ic });
                                 }}
                                 className="cursor-pointer text-xl"
                             >
@@ -266,41 +469,22 @@ export default function WanderMapTab() {
                         </Marker>
                     ))}
 
-                    {/* ── Inline Popup — no wrapper, renders LocationDrawer directly ── */}
+                    {/* ── Selected Point Drawer ── */}
                     {selectedPoint && (
-                        <Popup
-                            longitude={selectedPoint.coords[0]}
-                            latitude={selectedPoint.coords[1]}
-                            anchor="bottom-right"
-                            offset={[0, -48]}
-                            onClose={() => setSelectedPoint(null)}
-                            closeButton={false}
-                            closeOnClick={false}
-                            className="transparent-popup"
-                            style={{ 
-                                background: 'transparent', 
-                                border: 'none', 
-                                padding: 0, 
-                                boxShadow: 'none' 
-                            }}
-                        >
-                            <style>{`
-                                .transparent-popup .mapboxgl-popup-content {
-                                    background: none !important;
-                                    box-shadow: none !important;
-                                    padding: 0 !important;
-                                    border: none !important;
-                                }
-                                .transparent-popup .mapboxgl-popup-tip {
-                                    display: none !important;
-                                }
-                            `}</style>
+                        <div className="absolute top-4 right-4 z-20 max-w-[280px]">
                             <LocationDrawer
                                 isOpen={!!selectedPoint}
-                                onClose={() => setSelectedPoint(null)}
+                                onClose={() => {
+                                    setSelectedPoint(null)
+                                    setWandaRuntime({
+                                        selectedMapPoint: null,
+                                        uiContext: 'Map view',
+                                    })
+                                }}
                                 data={selectedPoint}
+                                onViewInItinerary={handleViewInItinerary}
                             />
-                        </Popup>
+                        </div>
                     )}
                 </Map>
 
