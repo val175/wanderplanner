@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
-import { geocodeCity, haversineDistance } from '../utils/helpers';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { geocodeCity, haversineDistance, addMinutesToTime } from '../utils/helpers';
 import { CITY_DB } from '../components/shared/CityCombobox'
+import { ACTIONS } from '../state/tripReducer'
 
 function normalizeLabel(label) {
     return (label || '').toString().trim().toLowerCase()
@@ -158,12 +159,17 @@ async function geocodePlaceWithMapbox(query, countryCodes = []) {
  * useMapDiscovery
  * Hook to handle spatial logic for the interactive WanderMap.
  * Filters voting room ideas based on proximity to trip destinations.
+ * Enriches itinerary coords with day context, category, confidence, and time windows.
+ * Persists freshly-geocoded coordinates back to TripContext via optional dispatch.
  */
-export function useMapDiscovery(trip) {
+export function useMapDiscovery(trip, dispatch) {
     const [destCoords, setDestCoords] = useState([]); // Array of { cityId, coords: [lng, lat], city }
     const [ideaCoords, setIdeaCoords] = useState([]); // Array of { ideaId, coords: [lng, lat], idea }
-    const [itineraryCoords, setItineraryCoords] = useState([]); // Array of { activityId, coords: [lng, lat], activity }
+    const [itineraryCoords, setItineraryCoords] = useState([]); // Array of enriched spatial insight objects
     const [isLoading, setIsLoading] = useState(false);
+
+    // Track which activityIds have had coords persisted this session to prevent double-dispatch
+    const persistedIdsRef = useRef(new Set());
 
     // Memoize derived arrays so `|| []` doesn't create a new reference on every render,
     // which would cause the useEffects below to fire in an infinite loop.
@@ -236,6 +242,21 @@ export function useMapDiscovery(trip) {
             })
 
             const promises = allActivities.map(async ({ activity, day }) => {
+                const timeStart = activity.time || '';
+                const timeEnd = activity.endTime || (timeStart && activity.duration
+                    ? addMinutesToTime(timeStart, activity.duration)
+                    : '');
+                const enrichBase = {
+                    activityId: activity.id,
+                    activity,
+                    dayId: day.id,
+                    dayNumber: day.dayNumber,
+                    dayDate: day.date || '',
+                    category: activity.category || 'other',
+                    timeStart,
+                    timeEnd,
+                };
+
                 // If we already have rich location data with coordinates, use them directly
                 if (activity.location?.coordinates?.lat && activity.location?.coordinates?.lng) {
                     const coords = [activity.location.coordinates.lng, activity.location.coordinates.lat];
@@ -244,13 +265,14 @@ export function useMapDiscovery(trip) {
                         query: getActivityQuery(activity),
                         coords,
                     })
-                    return { activityId: activity.id, dayId: day.id, dayNumber: day.dayNumber, coords, activity };
+                    return { ...enrichBase, coords, confidence: 'verified' };
                 }
 
                 const query = getActivityQuery(activity) || activity.name;
                 const tripContext = inferTripContext(query, day, destinations);
                 const mapboxCoords = await geocodePlaceWithMapbox(query, tripContext.countryCodes);
                 const coords = mapboxCoords || await geocodeCity(query, tripContext.geocodeHint);
+                const confidence = mapboxCoords ? 'geocoded' : 'name-only';
 
                 if (!coords) {
                     debugMapWarn('Failed to geocode activity', {
@@ -270,9 +292,28 @@ export function useMapDiscovery(trip) {
                         countryCodes: tripContext.countryCodes,
                         source: mapboxCoords ? 'mapbox' : 'open-meteo',
                         coords,
+                        confidence,
                     })
+
+                    // Persist freshly-geocoded coords back to state so future map loads are instant
+                    if (dispatch && active && !persistedIdsRef.current.has(activity.id)) {
+                        persistedIdsRef.current.add(activity.id);
+                        dispatch({
+                            type: ACTIONS.UPDATE_ACTIVITY,
+                            payload: {
+                                dayId: day.id,
+                                activityId: activity.id,
+                                updates: {
+                                    location: {
+                                        ...(typeof activity.location === 'object' ? activity.location : { placeName: activity.location || activity.name }),
+                                        coordinates: { lat: coords[1], lng: coords[0] },
+                                    },
+                                },
+                            },
+                        });
+                    }
                 }
-                return { activityId: activity.id, dayId: day.id, dayNumber: day.dayNumber, coords, activity };
+                return { ...enrichBase, coords, confidence };
             });
 
             const results = await Promise.all(promises);

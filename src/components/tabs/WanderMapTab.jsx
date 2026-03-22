@@ -150,11 +150,40 @@ export default function WanderMapTab() {
     const animFrameRef = useRef(null);
     const hasManualFocusRef = useRef(false);
 
-    const { destCoords, itineraryCoords, discoveredIdeas } = useMapDiscovery(activeTrip);
+    const { destCoords, itineraryCoords, discoveredIdeas } = useMapDiscovery(activeTrip, dispatch);
 
+    // ── Day filter ──────────────────────────────────────────────────────────────
+    const [filterDayId, setFilterDayId] = useState(null); // null = show all days
+
+    const sortedDays = useMemo(() =>
+        [...(activeTrip?.itinerary || [])].sort((a, b) => (a.dayNumber || 0) - (b.dayNumber || 0)),
+    [activeTrip]);
+
+    // Filter activity pins to the selected day (or all when null)
+    const visibleItineraryCoords = useMemo(() =>
+        filterDayId
+            ? itineraryCoords.filter(ic => ic.dayId === filterDayId)
+            : itineraryCoords,
+    [itineraryCoords, filterDayId]);
+
+    // Build a time-ordered polyline through the selected day's activity pins
+    const dayRouteGeoJSON = useMemo(() => {
+        if (!filterDayId || visibleItineraryCoords.length < 2) return null;
+        const sorted = [...visibleItineraryCoords].sort((a, b) =>
+            (a.timeStart || '').localeCompare(b.timeStart || '')
+        );
+        return {
+            type: 'Feature',
+            properties: {},
+            geometry: { type: 'LineString', coordinates: sorted.map(ic => ic.coords) },
+        };
+    }, [filterDayId, visibleItineraryCoords]);
+
+    // Reset day filter when trip changes
     useEffect(() => {
         hasManualFocusRef.current = false
         hasFitRef.current = false
+        setFilterDayId(null)
     }, [activeTrip?.id])
 
     const focusMapPoint = useCallback(async (point, { persistManualFocus = true } = {}) => {
@@ -304,9 +333,6 @@ export default function WanderMapTab() {
         hasFitRef.current = true;
     }, [isMapLoaded, destCoords]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Re-fit when trip changes
-    useEffect(() => { hasFitRef.current = false; }, [activeTrip?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
     // ── Route GeoJSON ──────────────────────────────────────────────────────────
     const routeGeoJSON = useMemo(() => ({
         type: 'Feature',
@@ -319,12 +345,13 @@ export default function WanderMapTab() {
 
     // Memoize to avoid passing a new object reference to <Layer> on every render,
     // which would cause react-map-gl to re-apply paint properties and emit camera events.
+    // Dim the macro route line when a day filter is active so the day route stands out.
     const routePaint = useMemo(() => ({
         'line-color': '#D97757',
         'line-width': 2.5,
         'line-dasharray': [2, 2.5],
-        'line-opacity': isMicroView ? 0.45 : 0.85,
-    }), [isMicroView]);
+        'line-opacity': filterDayId ? 0.15 : isMicroView ? 0.45 : 0.85,
+    }), [isMicroView, filterDayId]);
 
     const toggleLayer = (key) => {
         hapticSelection();
@@ -362,7 +389,7 @@ export default function WanderMapTab() {
                 >
                     <NavigationControl position="top-right" showCompass={false} />
 
-                    {/* ── WanderPath ── */}
+                    {/* ── WanderPath (macro city-to-city route) ── */}
                     {destCoords.length >= 2 && (
                         <Source id="route" type="geojson" data={routeGeoJSON}>
                             <Layer
@@ -370,6 +397,22 @@ export default function WanderMapTab() {
                                 type="line"
                                 layout={{ 'line-join': 'round', 'line-cap': 'round' }}
                                 paint={routePaint}
+                            />
+                        </Source>
+                    )}
+
+                    {/* ── Day Route (activity-to-activity polyline for selected day) ── */}
+                    {dayRouteGeoJSON && (
+                        <Source id="day-route" type="geojson" data={dayRouteGeoJSON}>
+                            <Layer
+                                id="day-route-line"
+                                type="line"
+                                layout={{ 'line-join': 'round', 'line-cap': 'round' }}
+                                paint={{
+                                    'line-color': 'var(--color-accent, #D97757)',
+                                    'line-width': 2,
+                                    'line-opacity': 0.9,
+                                }}
                             />
                         </Source>
                     )}
@@ -421,13 +464,16 @@ export default function WanderMapTab() {
                     })}
 
                     {/* ── MICRO VIEW: Emoji utility pins ── */}
-                    {layers.itinerary && isMicroView && itineraryCoords.map((ic, i) => {
+                    {layers.itinerary && isMicroView && visibleItineraryCoords.map((ic, i) => {
                         const emoji = getItineraryEmoji(ic.activity);
+                        // confidence: 'verified' = 1.0, 'geocoded' = 0.85, 'name-only' = 0.65
+                        const pinOpacity = ic.confidence === 'verified' ? 1 : ic.confidence === 'geocoded' ? 0.85 : 0.65;
+                        const pinBorderStyle = ic.confidence === 'name-only' ? 'border-dashed' : '';
                         return (
                             <Marker key={`activity-${ic.activityId}-${i}`} longitude={ic.coords[0]} latitude={ic.coords[1]} anchor="bottom">
                                 <motion.div
                                     initial={{ scale: 0, y: 10 }}
-                                    animate={{ scale: 1, y: 0 }}
+                                    animate={{ scale: 1, y: 0, opacity: pinOpacity }}
                                     whileHover={{ y: -3 }}
                                     transition={{ type: 'spring', stiffness: 300, damping: 20, delay: i * 0.03 }}
                                     onMouseDown={(e) => e.stopPropagation()}
@@ -438,7 +484,7 @@ export default function WanderMapTab() {
                                     }}
                                     className="cursor-pointer flex flex-col items-center group"
                                 >
-                                    <div className="w-9 h-9 bg-bg-card border border-border rounded-[var(--radius-md)] text-xl flex items-center justify-center transition-colors group-hover:border-accent">
+                                    <div className={`w-9 h-9 bg-bg-card border border-border ${pinBorderStyle} rounded-[var(--radius-md)] text-xl flex items-center justify-center transition-colors group-hover:border-accent`}>
                                         {emoji}
                                     </div>
                                     <div className="mt-1 bg-[#0F172A] text-white text-[10px] font-semibold px-2 py-0.5 rounded-[4px] whitespace-nowrap max-w-[120px] truncate opacity-0 group-hover:opacity-100 transition-opacity">
@@ -520,6 +566,26 @@ export default function WanderMapTab() {
                             <Navigation size={14} />
                             <span className="md:inline hidden">Recenter</span>
                         </button>
+
+                        {/* Day Filter */}
+                        {sortedDays.length > 1 && (
+                            <>
+                                <div className="h-px bg-border/50 mx-2 my-0.5" />
+                                <select
+                                    value={filterDayId || ''}
+                                    onChange={e => { hapticSelection(); setFilterDayId(e.target.value || null); }}
+                                    className="mx-1.5 my-1 text-xs font-heading font-medium bg-bg-secondary border border-border rounded-[var(--radius-sm)] px-2 py-1.5 text-text-primary focus:outline-none focus:border-accent cursor-pointer"
+                                    title="Filter map to a specific day"
+                                >
+                                    <option value="">All Days</option>
+                                    {sortedDays.map(day => (
+                                        <option key={day.id} value={day.id}>
+                                            Day {day.dayNumber}{day.location ? ` · ${day.location.split(' →')[0].trim()}` : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
