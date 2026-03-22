@@ -813,6 +813,15 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
             <div className="flex flex-col gap-1">
               {/* Header: Emoji + Name */}
               <div className="flex items-center gap-2">
+                {!isReadOnly && (
+                  <div className="text-border shrink-0 cursor-grab" title="Drag to reorder">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="9" cy="5" r="1.5" /><circle cx="15" cy="5" r="1.5" />
+                      <circle cx="9" cy="12" r="1.5" /><circle cx="15" cy="12" r="1.5" />
+                      <circle cx="9" cy="19" r="1.5" /><circle cx="15" cy="19" r="1.5" />
+                    </svg>
+                  </div>
+                )}
                 <span className="text-[14px] shrink-0">{activity.emoji || '📍'}</span>
                 <div className="flex-1 min-w-0 pr-6">
                   <EditableText

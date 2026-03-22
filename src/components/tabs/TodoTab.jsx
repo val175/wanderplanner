@@ -441,9 +441,6 @@ function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfi
             </div>
           )}
 
-          {/* Status badge */}
-          <TodoStatusBadge value={status} />
-
           {/* Task text */}
           <span className={`text-[13px] font-medium leading-snug flex-1 transition-all duration-200
             ${status === 'done' ? 'line-through text-text-muted' : 'text-text-primary'}`}>

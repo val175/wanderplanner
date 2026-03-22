@@ -169,6 +169,15 @@ function BookingCardContent({ booking, currency, onRowClick, isOverlay, isReadOn
               }`}
         >
             <div className="flex items-start gap-2 mb-2">
+                {!isReadOnly && (
+                    <div className="text-border shrink-0 mt-1 cursor-grab" title="Drag to reorder">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="9" cy="5" r="1.5" /><circle cx="15" cy="5" r="1.5" />
+                            <circle cx="9" cy="12" r="1.5" /><circle cx="15" cy="12" r="1.5" />
+                            <circle cx="9" cy="19" r="1.5" /><circle cx="15" cy="19" r="1.5" />
+                        </svg>
+                    </div>
+                )}
                 <span className="text-xl leading-none pt-0.5">{categoryConfig.emoji}</span>
                 <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-sm text-text-primary leading-tight truncate">
