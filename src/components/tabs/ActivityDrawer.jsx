@@ -10,6 +10,7 @@ import AvatarCircle from '../shared/AvatarCircle'
 import LocationAutocomplete from '../shared/LocationAutocomplete'
 import { hapticImpact, hapticSelection } from '../../utils/haptics'
 import { GLOBAL_CATEGORIES } from '../../constants/categories'
+import { getDayLocationMap, detectLocationConflict } from '../../utils/tripGeo'
 
 function CategorySelect({ value, onChange, disabled }) {
   return (
@@ -53,6 +54,13 @@ export default function ActivityDrawer({ activity, dayId, onClose }) {
     return city?.lat && city?.lng ? `${city.lng},${city.lat}` : ''
   }, [day?.location, activeTrip?.cities])
 
+  const dayLocationMap = useMemo(() => getDayLocationMap(activeTrip), [activeTrip])
+  const locationConflict = useMemo(() =>
+    detectLocationConflict(activity?.location, dayLocationMap.get(dayId)),
+    [activity?.location, dayId, dayLocationMap]
+  )
+  const [conflictDismissed, setConflictDismissed] = useState(false)
+
   const locationString = activity?.location?.placeName
     || (typeof activity?.location === 'string' ? activity.location : '')
     || ''
@@ -84,6 +92,10 @@ export default function ActivityDrawer({ activity, dayId, onClose }) {
     setNotesDraft(activity?.notes || '')
     setIsEditingNotes(false)
   }, [activity?.id, activity?.notes])
+
+  useEffect(() => {
+    setConflictDismissed(false)
+  }, [activity?.id, activity?.location])
 
   useEffect(() => {
     if (!feedRef.current) return
@@ -280,6 +292,23 @@ export default function ActivityDrawer({ activity, dayId, onClose }) {
                   >
                     Visit website
                   </a>
+                )}
+                {locationConflict && !conflictDismissed && !isReadOnly && (
+                  <div className="flex items-start gap-2 px-3 py-2 rounded-[var(--radius-md)] bg-warning/10 border border-warning/20 text-warning text-xs mt-2">
+                    <span className="mt-0.5 shrink-0">⚠️</span>
+                    <span className="flex-1">
+                      <span className="font-semibold">Location mismatch</span>
+                      {locationConflict.isTransit
+                        ? ` — Day ${day?.dayNumber} is a transit day`
+                        : ` — Day ${day?.dayNumber} is in ${locationConflict.expectedCity}`}
+                      {locationConflict.detectedCity && `, but this appears to be in ${locationConflict.detectedCity}`}. Add anyway?
+                    </span>
+                    <button
+                      onClick={() => setConflictDismissed(true)}
+                      className="shrink-0 text-warning/60 hover:text-warning transition-colors"
+                      title="Dismiss"
+                    >✕</button>
+                  </div>
                 )}
               </>
             )}

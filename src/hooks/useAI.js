@@ -6,6 +6,7 @@
  */
 import { auth } from '../firebase/config'
 import { getEffectiveStatus } from '../utils/tripStatus'
+import { getDayLocationMap } from '../utils/tripGeo'
 
 // All AI/API requests go to the Vercel deployment (absolute URL required — frontend is on Hostinger)
 const VERCEL_API = 'https://wanderplan-rust.vercel.app'
@@ -92,6 +93,21 @@ Be concise, warm, and practical. Use emojis sparingly. The user hasn't selected 
     return lines.join('\n')
   })()
 
+  const dayLocationTable = (() => {
+    const itinerary = trip.itinerary || []
+    if (!itinerary.length) return 'No itinerary yet'
+    const locationMap = getDayLocationMap(trip)
+    return itinerary.map(d => {
+      const entry = locationMap.get(d.id)
+      if (!entry) return null
+      const dateStr = d.date
+        ? new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })
+        : ''
+      const transitTag = entry.isTransit ? ' [transit]' : ''
+      return `Day ${d.dayNumber}${dateStr ? ` (${dateStr})` : ''}: ${entry.label} ${entry.flag}${transitTag}`
+    }).filter(Boolean).join('\n')
+  })()
+
   return `You are Wanda, a friendly AI travel assistant built into Wanderplan.
 You are helping plan this specific trip:
 
@@ -113,12 +129,18 @@ Total: ${sym}${totalBudget} budget, ${sym}${totalSpent} spent, ${sym}${totalBudg
 📋 ITINERARY PREVIEW:
 ${itinerarySummary}
 
+📍 DAY-BY-DAY LOCATIONS:
+${dayLocationTable}
+
 Your role:
 - ALWAYS answer the user's question directly and thoroughly in your text response.
 - Your text reply is MANDATORY and must be your primary focus.
 - Tool calls are OPTIONAL supporting additions. Never call a tool as a replacement for a textual answer.
 - DO NOT audit the trip (budget, bookings, todos, packing) unless explicitly requested (e.g., "audit my trip", "how's my status?", "check my budget").
 - Give specific, actionable advice tailored to THIS trip's cities, budget, and timeline
+- ALWAYS check the DAY-BY-DAY LOCATIONS table before suggesting activities — only suggest things in the city the user is actually in on that day.
+- If the user asks about a place that doesn't match the day's expected location, flag it: "⚠️ Note: Day X is in [expected city], but [place] is in [other city] — did you mean a different day?"
+- When calling generate_day_itinerary, use the location from the DAY-BY-DAY LOCATIONS table, not a guess.
 - Be concise — 2-4 sentences per response unless the user asks for a detailed list
 - ALWAYS use ${currency} (${sym}) when discussing money — NEVER use any other currency symbol
 - Use emojis sparingly (1-2 per response max)
@@ -131,7 +153,7 @@ Your role:
 - If no live weather context is available, give a best-effort seasonal or same-day estimate based on the trip location and date. Do not claim live weather access unless a weather tool is explicitly provided.
 
 🔧 TOOL: generate_day_itinerary
-Call ONLY after answering why this plan is good. Include 3–6 activities in chronological order with realistic times. Match the trip's cities and dates. Target the correct dayNumber from the itinerary preview above.
+Call ONLY after answering why this plan is good. Include 3–6 activities in chronological order with realistic times. Target the correct dayNumber and use the city from the DAY-BY-DAY LOCATIONS table above.
 Example for "Plan my Day 3 in Kyoto": { dayNumber: 3, location: "Kyoto, Japan", activities: [{ name: "Morning at Fushimi Inari", emoji: "⛩️", time: "08:00", duration: 120, category: "sightseeing" }, ...] }
 
 🔧 TOOL: add_budget_alert
