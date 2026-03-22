@@ -127,6 +127,13 @@ export default function ActivityDrawer({ activity, dayId, onClose }) {
     setIsEditingNotes(false)
   }
 
+  const formatDayDate = (isoDate) => {
+    if (!isoDate) return ''
+    const d = new Date(isoDate + 'T12:00:00')
+    if (Number.isNaN(d.getTime())) return isoDate
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  }
+
   const formatTimestamp = (ts) => {
     if (!ts) return ''
     const d = new Date(ts)
@@ -183,147 +190,144 @@ export default function ActivityDrawer({ activity, dayId, onClose }) {
               <span className="text-base">{day.emoji || '📍'}</span>
               <span className="font-medium text-text-secondary">Day {day.dayNumber}</span>
               {day.location && <><span>·</span><span>{day.location}</span></>}
-              {day.date && <><span>·</span><span>{day.date}</span></>}
+              {day.date && <><span>·</span><span>{formatDayDate(day.date)}</span></>}
             </div>
           )}
 
-          {/* Time + Duration row */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 items-start">
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Start Time</label>
-              <TimePicker
-                value={activity.time}
-                onChange={time => update({ time })}
-                className="w-full border border-border bg-bg-input rounded-[var(--radius-sm)] px-2 py-1.5 text-sm font-mono"
-                placeholder="--:--"
-                disabled={isReadOnly}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">End Time</label>
-              <TimePicker
-                value={activity.endTime}
-                onChange={endTime => update({ endTime })}
-                className="w-full border border-border bg-bg-input rounded-[var(--radius-sm)] px-2 py-1.5 text-sm font-mono"
-                placeholder="--:--"
-                disabled={isReadOnly}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Duration</label>
-              <div className="flex items-center gap-1">
-                <input
-                  type="number"
-                  value={activity.duration || 60}
-                  onChange={e => update({ duration: Math.max(5, parseInt(e.target.value) || 60) })}
+          {/* Properties Panel */}
+          <div className="rounded-[var(--radius-md)] border border-border/40 overflow-hidden divide-y divide-border/30">
+
+            {/* Time */}
+            <div className="flex items-center gap-3 px-3 min-h-[42px]">
+              <span className="w-20 shrink-0 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Time</span>
+              <div className="flex items-center gap-1.5 flex-1 py-1.5 flex-wrap">
+                <TimePicker
+                  value={activity.time}
+                  onChange={time => update({ time })}
+                  className="border border-border bg-bg-input rounded-[var(--radius-sm)] px-2 py-1 text-sm font-mono"
+                  placeholder="—"
                   disabled={isReadOnly}
-                  min={5}
-                  step={15}
-                  className="w-16 bg-bg-input border border-border rounded-[var(--radius-sm)] text-sm font-mono text-text-primary px-2 py-1.5 focus:outline-none focus:border-accent"
                 />
-                <span className="text-xs text-text-muted">min</span>
+                <span className="text-text-muted/50 text-xs shrink-0">→</span>
+                <TimePicker
+                  value={activity.endTime}
+                  onChange={endTime => update({ endTime })}
+                  className="border border-border bg-bg-input rounded-[var(--radius-sm)] px-2 py-1 text-sm font-mono"
+                  placeholder="—"
+                  disabled={isReadOnly}
+                />
+                <div className="ml-auto flex items-center gap-1 shrink-0">
+                  <input
+                    type="number"
+                    value={activity.duration || 60}
+                    onChange={e => update({ duration: Math.max(5, parseInt(e.target.value) || 60) })}
+                    disabled={isReadOnly}
+                    min={5}
+                    step={15}
+                    className="w-14 text-center bg-bg-input border border-border rounded-[var(--radius-sm)] text-xs font-mono text-text-secondary px-1.5 py-1 focus:outline-none focus:border-accent"
+                  />
+                  <span className="text-[11px] text-text-muted">min</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Category */}
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Category</label>
-            <CategorySelect
-              value={activity.category || 'other'}
-              onChange={val => update({ category: val })}
-              disabled={isReadOnly}
-            />
-          </div>
-
-          {/* Location */}
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Location</label>
-            {editingLocation ? (
-              <div>
-                <LocationAutocomplete
-                  initialValue={locationString}
-                  proximity={proximity}
-                  cityHint={day?.location || ''}
-                  onSelect={(locationData) => {
-                    update({ location: locationData })
-                    setEditingLocation(false)
-                    hapticSelection()
-                  }}
+            {/* Category */}
+            <div className="flex items-center gap-3 px-3 min-h-[42px]">
+              <span className="w-20 shrink-0 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Category</span>
+              <div className="flex-1 py-1.5">
+                <CategorySelect
+                  value={activity.category || 'other'}
+                  onChange={val => update({ category: val })}
+                  disabled={isReadOnly}
                 />
-                <button
-                  onClick={() => setEditingLocation(false)}
-                  className="mt-2 text-xs text-text-muted hover:text-text-primary"
-                >
-                  Cancel
-                </button>
               </div>
-            ) : (
-              <>
-                <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <span className="text-sm text-text-secondary truncate block">
-                      {locationString || <span className="italic text-text-muted">No location set</span>}
-                    </span>
-                    {(locationRating != null || locationHours || locationOpenNow != null) && (
-                      <span className="mt-1 inline-flex flex-wrap items-center gap-1 text-[11px] text-text-muted">
-                        {locationRating != null && <span>⭐ {locationRating}</span>}
-                        {locationReviewCount != null && <span>({locationReviewCount.toLocaleString()})</span>}
-                        {locationOpenNow != null && <span className={locationOpenNow ? 'text-success' : 'text-danger'}>{locationOpenNow ? 'Open now' : 'Closed now'}</span>}
-                        {locationHours && <span>· {locationHours}</span>}
+            </div>
+
+            {/* Location */}
+            <div className="flex items-start gap-3 px-3">
+              <span className="w-20 shrink-0 text-[11px] font-semibold text-text-muted uppercase tracking-wider pt-[13px]">Location</span>
+              <div className="flex-1 min-w-0 py-2">
+                {editingLocation ? (
+                  <div>
+                    <LocationAutocomplete
+                      initialValue={locationString}
+                      proximity={proximity}
+                      cityHint={day?.location || ''}
+                      onSelect={(locationData) => {
+                        update({ location: locationData })
+                        setEditingLocation(false)
+                        hapticSelection()
+                      }}
+                    />
+                    <button
+                      onClick={() => setEditingLocation(false)}
+                      className="mt-1.5 text-xs text-text-muted hover:text-text-primary"
+                    >Cancel</button>
+                  </div>
+                ) : (
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <span className="text-sm text-text-secondary">
+                        {locationString || <span className="italic text-text-muted">No location set</span>}
                       </span>
+                      {(locationRating != null || locationHours || locationOpenNow != null) && (
+                        <span className="mt-0.5 flex flex-wrap items-center gap-1 text-[11px] text-text-muted">
+                          {locationRating != null && <span>⭐ {locationRating}</span>}
+                          {locationReviewCount != null && <span>({locationReviewCount.toLocaleString()})</span>}
+                          {locationOpenNow != null && <span className={locationOpenNow ? 'text-success' : 'text-danger'}>{locationOpenNow ? 'Open' : 'Closed'}</span>}
+                          {locationHours && <span>· {locationHours}</span>}
+                        </span>
+                      )}
+                      {locationWebsite && (
+                        <a href={locationWebsite} target="_blank" rel="noopener noreferrer" className="block text-[11px] text-accent hover:underline mt-0.5">
+                          Visit website
+                        </a>
+                      )}
+                      {locationConflict && !conflictDismissed && !isReadOnly && (
+                        <div className="flex items-start gap-2 px-3 py-2 rounded-[var(--radius-md)] bg-warning/10 border border-warning/20 text-warning text-xs mt-2">
+                          <span className="mt-0.5 shrink-0">⚠️</span>
+                          <span className="flex-1">
+                            <span className="font-semibold">Location mismatch</span>
+                            {locationConflict.isTransit
+                              ? ` — Day ${day?.dayNumber} is a transit day`
+                              : ` — Day ${day?.dayNumber} is in ${locationConflict.expectedCity}`}
+                            {locationConflict.detectedCity && `, but this appears to be in ${locationConflict.detectedCity}`}. Add anyway?
+                          </span>
+                          <button
+                            onClick={() => setConflictDismissed(true)}
+                            className="shrink-0 text-warning/60 hover:text-warning transition-colors"
+                            title="Dismiss"
+                          >✕</button>
+                        </div>
+                      )}
+                    </div>
+                    {!isReadOnly && (
+                      <button
+                        onClick={() => setEditingLocation(true)}
+                        className="text-[11px] text-text-muted hover:text-accent transition-colors shrink-0 mt-0.5"
+                      >
+                        {locationString ? 'Change' : 'Add'}
+                      </button>
                     )}
                   </div>
-                  {!isReadOnly && (
-                    <button
-                      onClick={() => setEditingLocation(true)}
-                      className="text-xs text-text-muted hover:text-accent shrink-0 border border-border rounded px-2 py-1 hover:border-accent/40 transition-colors"
-                    >
-                      Change
-                    </button>
-                  )}
-                </div>
-                {locationWebsite && !editingLocation && (
-                  <a
-                    href={locationWebsite}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex text-[11px] text-accent hover:underline"
-                  >
-                    Visit website
-                  </a>
                 )}
-                {locationConflict && !conflictDismissed && !isReadOnly && (
-                  <div className="flex items-start gap-2 px-3 py-2 rounded-[var(--radius-md)] bg-warning/10 border border-warning/20 text-warning text-xs mt-2">
-                    <span className="mt-0.5 shrink-0">⚠️</span>
-                    <span className="flex-1">
-                      <span className="font-semibold">Location mismatch</span>
-                      {locationConflict.isTransit
-                        ? ` — Day ${day?.dayNumber} is a transit day`
-                        : ` — Day ${day?.dayNumber} is in ${locationConflict.expectedCity}`}
-                      {locationConflict.detectedCity && `, but this appears to be in ${locationConflict.detectedCity}`}. Add anyway?
-                    </span>
-                    <button
-                      onClick={() => setConflictDismissed(true)}
-                      className="shrink-0 text-warning/60 hover:text-warning transition-colors"
-                      title="Dismiss"
-                    >✕</button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+              </div>
+            </div>
 
-          {/* Link */}
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Link</label>
-            <EditableText
-              value={activity.link || ''}
-              onSave={val => update({ link: val })}
-              className="text-sm text-accent font-mono block truncate w-full"
-              placeholder="Add reservation URL…"
-              readOnly={isReadOnly}
-            />
+            {/* Link */}
+            <div className="flex items-center gap-3 px-3 min-h-[42px]">
+              <span className="w-20 shrink-0 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Link</span>
+              <div className="flex-1 min-w-0 py-1.5">
+                <EditableText
+                  value={activity.link || ''}
+                  onSave={val => update({ link: val })}
+                  className="text-sm text-accent font-mono block truncate"
+                  placeholder="Add reservation URL…"
+                  readOnly={isReadOnly}
+                />
+              </div>
+            </div>
+
           </div>
 
           <hr className="border-border/30" />
@@ -364,9 +368,7 @@ export default function ActivityDrawer({ activity, dayId, onClose }) {
           <div className="space-y-6">
             <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Updates</label>
             {comments.length === 0 ? (
-              <div className="min-h-[120px] flex items-center justify-center text-sm text-text-muted border border-dashed border-border rounded-[var(--radius-md)]">
-                No updates yet. Start the conversation.
-              </div>
+              <p className="text-sm text-text-muted py-2">No updates yet. Start the conversation.</p>
             ) : (
               <div ref={feedRef} className="max-h-[320px] overflow-y-auto pr-1 pt-1 space-y-6 scrollbar-thin">
                 {comments.map((comment, index) => {

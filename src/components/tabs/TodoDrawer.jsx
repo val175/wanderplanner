@@ -280,19 +280,25 @@ export default function TodoDrawer({ todo, travelers, onUpdate, onAddComment, on
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin">
-          {/* Metadata Row */}
-          <div className="grid grid-cols-[160px_200px_auto] gap-8 items-start">
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Status</label>
-              <TodoStatusSelect
-                value={todo.status || (todo.done ? 'done' : 'not_started')}
-                onChange={val => onUpdate(todo.id, { status: val, done: val === 'done' })}
-                disabled={isReadOnly}
-              />
+          {/* Properties Panel */}
+          <div className="rounded-[var(--radius-md)] border border-border/40 overflow-hidden divide-y divide-border/30">
+
+            {/* Status */}
+            <div className="flex items-center gap-3 px-3 min-h-[42px]">
+              <span className="w-20 shrink-0 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Status</span>
+              <div className="flex-1 py-1.5">
+                <TodoStatusSelect
+                  value={todo.status || (todo.done ? 'done' : 'not_started')}
+                  onChange={val => onUpdate(todo.id, { status: val, done: val === 'done' })}
+                  disabled={isReadOnly}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Due Date</label>
-              <div className="mt-0.5">
+
+            {/* Due Date */}
+            <div className="flex items-center gap-3 px-3 min-h-[42px]">
+              <span className="w-20 shrink-0 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Due</span>
+              <div className="flex-1 py-1.5">
                 <DatePicker
                   value={todo.dueDate || ''}
                   onChange={val => { hapticSelection(); onUpdate(todo.id, { dueDate: val }) }}
@@ -302,9 +308,11 @@ export default function TodoDrawer({ todo, travelers, onUpdate, onAddComment, on
                 />
               </div>
             </div>
-            <div className="space-y-2 flex flex-col items-start">
-              <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Assignee</label>
-              <div className="mt-0.5">
+
+            {/* Assignee */}
+            <div className="flex items-center gap-3 px-3 min-h-[42px]">
+              <span className="w-20 shrink-0 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Assignee</span>
+              <div className="flex-1 py-1.5">
                 <AssigneePill
                   value={todo.assigneeId}
                   onChange={val => onUpdate(todo.id, { assigneeId: val })}
@@ -315,6 +323,7 @@ export default function TodoDrawer({ todo, travelers, onUpdate, onAddComment, on
                 />
               </div>
             </div>
+
           </div>
 
           <hr className="border-border/30" />
@@ -368,9 +377,7 @@ export default function TodoDrawer({ todo, travelers, onUpdate, onAddComment, on
           <div className="space-y-6">
             <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Updates</label>
             {comments.length === 0 ? (
-              <div className="min-h-[120px] flex items-center justify-center text-sm text-text-muted border border-dashed border-border rounded-[var(--radius-md)]">
-                No updates yet. Start the conversation.
-              </div>
+              <p className="text-sm text-text-muted py-2">No updates yet. Start the conversation.</p>
             ) : (
               <div ref={feedRef} className="max-h-[320px] overflow-y-auto pr-1 pt-1 space-y-6 scrollbar-thin">
                 {comments.map((comment, index) => {
