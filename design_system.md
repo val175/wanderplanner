@@ -293,3 +293,5 @@ The following improvements are planned but not yet implemented:
 - **P1+P2:** Dynamic Wanda pills per active tab
 - **F4:** Trip URL import UI (API endpoint already exists)
 - **F1:** Co-traveler presence dots (real-time awareness)
+
+---
