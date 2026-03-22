@@ -407,6 +407,12 @@ export default function AIAssistant() {
 
   const showPills = messages.length === 0 && !isLoading;
 
+  const isMobile = useMediaQuery('(max-width: 767px)');
+  const viewMode = state?.aiViewMode || 'floating';
+  const isSidebarMode = !isMobile && viewMode === 'sidebar';
+  const desktopOpen = !!state?.aiOpen;
+  const effectiveOpen = isMobile ? isOpen : (isSidebarMode ? true : desktopOpen);
+
   // Trip-phase pill evolution: select the right pill set based on where user is in journey
   const contextualPills = (() => {
     if (!activeTrip) return PILLS_DEFAULT
@@ -422,12 +428,6 @@ export default function AIAssistant() {
     && daysUntilTrip !== null
     && daysUntilTrip <= 14
     && daysUntilTrip >= 0
-
-  const isMobile = useMediaQuery('(max-width: 767px)');
-  const viewMode = state?.aiViewMode || 'floating';
-  const isSidebarMode = !isMobile && viewMode === 'sidebar';
-  const desktopOpen = !!state?.aiOpen;
-  const effectiveOpen = isMobile ? isOpen : (isSidebarMode ? true : desktopOpen);
 
   useEffect(() => {
     if (effectiveOpen) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
