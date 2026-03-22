@@ -825,7 +825,7 @@ export default function AIAssistant() {
               })
             }
 
-            {/* Smart follow-up pill — appears after tool calls on the last assistant message */}
+            {/* Smart follow-up pill — appears once after tool calls; hidden if already acted on */}
             {m.role === 'assistant'
               && m.id === messages[messages.length - 1]?.id
               && !isLoading
@@ -839,6 +839,10 @@ export default function AIAssistant() {
                 else if (toolTypes.includes('tool-add_to_packing_list')) followUp = { emoji: '✏️', text: 'Anything else to add?' }
                 else if (toolTypes.includes('tool-add_budget_alert')) followUp = { emoji: '💡', text: 'Get cost-saving tips?' }
                 if (!followUp) return null
+                // Don't show if the user's previous message was already this follow-up (prevents loop)
+                const prevUserMsg = messages.slice().reverse().find(msg => msg.role === 'user')
+                const prevText = prevUserMsg?.parts?.find(p => p.type === 'text')?.text || prevUserMsg?.content || ''
+                if (prevText.includes(followUp.text)) return null
                 return (
                   <button
                     key="followup"
