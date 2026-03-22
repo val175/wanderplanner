@@ -904,6 +904,7 @@ function KanbanColumn({ day, trip, resolveLocation, isResolving, setActiveSearch
               )}
             </div>
           </div>
+        </div>
           )
         })}
 

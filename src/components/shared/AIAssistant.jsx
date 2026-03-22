@@ -85,22 +85,24 @@ const PILLS_ONGOING = [
   { emoji: '🏆', label: 'Pick Winners' },
 ];
 
-function getLocationSpells(city) {
-  if (!city) return [
+function getLocationSpells(cities) {
+  const cityList = Array.isArray(cities) ? cities.filter(Boolean) : (cities ? [cities] : []);
+  if (!cityList.length) return [
     'Abracadabra!', 'Alakazam!', 'Hocus Pocus!',
     'Expecto Patronum!', 'Alohomora!', 'Wingardium Leviosa!',
     'Bibbidi-Bobbidi-Boo!', 'Azarath Metrion Zinthos!',
   ];
-  return [
-    `Exploring ${city}...`,
-    `Scouting ${city}...`,
-    `Consulting the spirits of ${city}...`,
-    `Mapping ${city}...`,
-    `Finding hidden gems in ${city}...`,
-    `Reading the vibe of ${city}...`,
-    `Channeling ${city} energy...`,
-    `Unlocking ${city}...`,
+  const templates = [
+    c => `Exploring ${c}...`,
+    c => `Scouting ${c}...`,
+    c => `Consulting the spirits of ${c}...`,
+    c => `Mapping ${c}...`,
+    c => `Finding hidden gems in ${c}...`,
+    c => `Reading the vibe of ${c}...`,
+    c => `Channeling ${c} energy...`,
+    c => `Unlocking ${c}...`,
   ];
+  return cityList.flatMap(city => templates.map(fn => fn(city)));
 }
 
 const PILL_INSTRUCTION_MARKER = '\n\n[INSTRUCTION]:\n';
@@ -164,7 +166,8 @@ export default function AIAssistant() {
 
   // Trip state helpers for micro interactions
   const tripStatus = activeTrip ? getEffectiveStatus(activeTrip) : null
-  const firstCity = activeTrip?.cities?.[0]?.city || ''
+  const allCities = activeTrip?.cities?.map(c => c.city).filter(Boolean) || []
+  const firstCity = allCities[0] || ''
   const firstCityFlag = activeTrip?.cities?.[0]?.flag || ''
   const daysUntilTrip = (() => {
     if (!activeTrip?.startDate) return null
@@ -281,7 +284,7 @@ export default function AIAssistant() {
     let interval;
     if (isLoading) {
       interval = setInterval(() => {
-        setCurrentSpellIndex(prev => (prev + 1) % getLocationSpells(firstCity).length);
+        setCurrentSpellIndex(prev => (prev + 1) % getLocationSpells(allCities).length);
       }, 800);
     } else {
       setCurrentSpellIndex(0);
@@ -330,6 +333,8 @@ export default function AIAssistant() {
       instruction = `Look at our itinerary and find the next day that has few or no activities. Call the "generate_day_itinerary" tool to plan it with 4-5 time-slotted activities appropriate for our destination and budget.`;
     } else if (label.includes('Budget check')) {
       instruction = `Analyze our budget in detail — check each category against its limit and look at our spending pace. For EACH issue you find (overruns, risks, or tips), call the "add_budget_alert" tool (up to 3 calls). Include specific numbers in your text response too.`;
+    } else if (label.toLowerCase().includes('food spots near')) {
+      instruction = `Look at the activities from the day itinerary you just created. Recommend 3 specific food spots that are near those activity locations. IMPORTANT: For EACH food spot, you MUST call the "add_idea_to_voting_room" tool. Do not just list them in text.`;
     } else if (label.includes('Food spots')) {
       instruction = `Please recommend 3 specific food spots in our destination. IMPORTANT: For EACH spot, you MUST call the "add_idea_to_voting_room" tool. Do not just list them in text.`;
     } else if (label.includes('Hotel tips')) {
@@ -846,7 +851,7 @@ export default function AIAssistant() {
                 return (
                   <button
                     key="followup"
-                    onClick={() => sendMessage({ text: `${followUp.emoji} ${followUp.text}` })}
+                    onClick={() => handlePillClick(`${followUp.emoji} ${followUp.text}`)}
                     className="mt-1 inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] px-2.5 py-1 text-xs text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors border border-border/50"
                   >
                     <span>{followUp.emoji}</span>
@@ -862,7 +867,7 @@ export default function AIAssistant() {
           <div className="flex items-center gap-2 text-sm text-text-secondary">
             <div className="text-sm wanda-wiggle-slow">🪄</div>
             <div className="italic text-[11px] text-accent/80 animate-pulse font-medium">
-              {getLocationSpells(firstCity)[currentSpellIndex % getLocationSpells(firstCity).length]}
+              {getLocationSpells(allCities)[currentSpellIndex % getLocationSpells(allCities).length]}
             </div>
             <style>{`
               @keyframes wanda-wiggle-fast {

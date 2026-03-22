@@ -9,6 +9,10 @@ on:
 permissions:
   contents: write
 
+# Opt into Node.js 24 runner before it becomes mandatory on June 2nd, 2026
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   # ── Job 1: Build React app → deploy static files to Hostinger ──────────────
   build-and-deploy-hostinger:
@@ -20,7 +24,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install dependencies
         run: npm install
