@@ -7,6 +7,7 @@ import { PanelRightClose, PanelRightOpen, Send, X } from 'lucide-react';
 import { auth } from '../../firebase/config';
 import { TripContext } from '../../context/TripContext';
 import { buildTripSystemPrompt } from '../../hooks/useAI';
+import { getEffectiveStatus } from '../../utils/tripStatus';
 import { generateId } from '../../utils/helpers';
 import { ACTIONS } from '../../state/tripReducer';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
@@ -49,23 +50,58 @@ const chatTransport = new DefaultChatTransport({
   }
 });
 
-const PILLS = [
+// Pills shown during general planning phase
+const PILLS_DEFAULT = [
   { emoji: '🗓️', label: 'Plan my day' },
-  { emoji: '💸', label: 'Budget check' },
-  { emoji: '💰', label: 'Budget tips' },
-  { emoji: '📅', label: 'Optimize itinerary' },
-  { emoji: '🏨', label: 'Hotel tips' },
   { emoji: '🍜', label: 'Food spots' },
+  { emoji: '🏨', label: 'Hotel tips' },
+  { emoji: '📅', label: 'Optimize itinerary' },
   { emoji: '✈️', label: 'Packing list' },
+  { emoji: '💰', label: 'Budget tips' },
   { emoji: '🚗', label: 'Getting around' },
   { emoji: '🏆', label: 'Pick Winners' },
 ];
 
-const MAGIC_SPELLS = [
-  'Abracadabra!', 'Alakazam!', 'Hocus Pocus!',
-  'Expecto Patronum!', 'Alohomora!', 'Wingardium Leviosa!',
-  'Bibbidi-Bobbidi-Boo!', 'Azarath Metrion Zinthos!'
+// Pills shown when trip is 1-7 days away
+const PILLS_PRE_TRIP = [
+  { emoji: '✈️', label: 'Packing list' },
+  { emoji: '⚡', label: 'Last-minute checklist' },
+  { emoji: '💱', label: 'Currency tips' },
+  { emoji: '🚗', label: 'Getting around' },
+  { emoji: '🏨', label: 'Hotel tips' },
+  { emoji: '🍜', label: 'Food spots' },
+  { emoji: '💸', label: 'Budget check' },
+  { emoji: '🏆', label: 'Pick Winners' },
 ];
+
+// Pills shown when trip is ongoing
+const PILLS_ONGOING = [
+  { emoji: '📍', label: "What's nearby?" },
+  { emoji: '🌤', label: "Today's weather" },
+  { emoji: '🍜', label: 'Food spots' },
+  { emoji: '🚗', label: 'Getting around' },
+  { emoji: '💸', label: 'Budget check' },
+  { emoji: '✈️', label: 'Packing list' },
+  { emoji: '🏆', label: 'Pick Winners' },
+];
+
+function getLocationSpells(city) {
+  if (!city) return [
+    'Abracadabra!', 'Alakazam!', 'Hocus Pocus!',
+    'Expecto Patronum!', 'Alohomora!', 'Wingardium Leviosa!',
+    'Bibbidi-Bobbidi-Boo!', 'Azarath Metrion Zinthos!',
+  ];
+  return [
+    `Exploring ${city}...`,
+    `Scouting ${city}...`,
+    `Consulting the spirits of ${city}...`,
+    `Mapping ${city}...`,
+    `Finding hidden gems in ${city}...`,
+    `Reading the vibe of ${city}...`,
+    `Channeling ${city} energy...`,
+    `Unlocking ${city}...`,
+  ];
+}
 
 const PILL_INSTRUCTION_MARKER = '\n\n[INSTRUCTION]:\n';
 
@@ -91,11 +127,14 @@ const SmoothStream = ({ content, isStreaming }) => {
 
     if (displayed.length < content.length) {
       const gap = content.length - displayed.length;
-      const charsToAdd = gap > 40 ? 3 : 1; 
+      const charsToAdd = gap > 40 ? 3 : 1;
+      // Breathe slightly at sentence boundaries for natural cadence
+      const isPause = displayed.length > 0 && /[.!?]$/.test(displayed.trimEnd()) && content[displayed.length] === ' ';
+      const delay = isPause ? 75 : 15;
 
       const timer = setTimeout(() => {
         setDisplayed(content.slice(0, displayed.length + charsToAdd));
-      }, 15);
+      }, delay);
       
       return () => clearTimeout(timer);
     }
@@ -122,6 +161,24 @@ export default function AIAssistant() {
   const tripCountryCodes = buildTripCountryCodes(activeTrip)
   const tripCityHint = activeTrip?.cities?.map(c => c?.city).filter(Boolean).join(', ') || ''
   const weatherContext = useLiveWeatherContext(activeTrip)
+
+  // Trip state helpers for micro interactions
+  const tripStatus = activeTrip ? getEffectiveStatus(activeTrip) : null
+  const firstCity = activeTrip?.cities?.[0]?.city || ''
+  const firstCityFlag = activeTrip?.cities?.[0]?.flag || ''
+  const daysUntilTrip = (() => {
+    if (!activeTrip?.startDate) return null
+    const diff = Math.ceil((new Date(activeTrip.startDate) - new Date()) / (1000 * 60 * 60 * 24))
+    return diff
+  })()
+  const totalActivities = activeTrip?.itinerary?.reduce((sum, d) => sum + (d.activities?.length || 0), 0) || 0
+  const emptyItineraryDays = activeTrip?.itinerary?.filter(d => !d.activities?.length) || []
+  const votingIdeasCount = activeTrip?.ideas?.length || 0
+  const hasBudgetWarning = activeTrip?.budget?.some(b => b.max > 0 && (b.actual || 0) / b.max >= 0.8) || false
+  const showBadge = hasBudgetWarning || (daysUntilTrip !== null && daysUntilTrip <= 2 && daysUntilTrip >= 0) || votingIdeasCount >= 5
+
+  const [showContinuityHint, setShowContinuityHint] = useState(false)
+  const lastAutoGreetedRef = useRef(null)
 
   useEffect(() => {
     wandaRuntime.weatherContext = weatherContext
@@ -255,6 +312,52 @@ export default function AIAssistant() {
     return () => window.removeEventListener('wanda-prefill', handlePrefill);
   }, []);
 
+  // Continuity hint — show "Continuing from last chat" when reopening a trip with history
+  useEffect(() => {
+    if (effectiveOpen && (activeTrip?.wandaConversation?.length || 0) > 0) {
+      setShowContinuityHint(true)
+      const timer = setTimeout(() => setShowContinuityHint(false), 2500)
+      return () => clearTimeout(timer)
+    }
+    setShowContinuityHint(false)
+  }, [effectiveOpen, activeTrip?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-greeting for ONGOING trips when Wanda is opened with no conversation
+  useEffect(() => {
+    if (!effectiveOpen) return
+    if (tripStatus !== 'ongoing') return
+    if ((activeTrip?.wandaConversation?.length || 0) > 0) return
+
+    const greetKey = `${activeTrip?.id}-${new Date().toDateString()}`
+    if (lastAutoGreetedRef.current === greetKey) return
+    lastAutoGreetedRef.current = greetKey
+
+    const city = firstCity || 'your destination'
+    const flag = firstCityFlag ? ` ${firstCityFlag}` : ''
+    const todayStr = new Date().toISOString().split('T')[0]
+    const todaysPlan = activeTrip?.itinerary?.find(d => d.date === todayStr)
+    const actCount = todaysPlan?.activities?.length || 0
+    const hour = new Date().getHours()
+    const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening'
+
+    let greetText = `Good ${timeOfDay}! You're in ${city}${flag}`
+    if (weatherContext) {
+      const weatherPart = weatherContext.split(': ').slice(1).join(': ')
+      if (weatherPart) greetText += ` — ${weatherPart}`
+    }
+    greetText += actCount > 0
+      ? ` You have ${actCount} activit${actCount === 1 ? 'y' : 'ies'} planned today.`
+      : ` Nothing scheduled yet today.`
+    greetText += ` Need anything?`
+
+    setMessages([{
+      id: generateId(),
+      role: 'assistant',
+      content: greetText,
+      parts: [{ type: 'text', text: greetText }],
+    }])
+  }, [effectiveOpen, activeTrip?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const text = input.trim();
@@ -287,6 +390,14 @@ export default function AIAssistant() {
       instruction = `Give me 3 specific transport tips for this destination (e.g. local apps, rail passes). If there's a specific service to book, use the "add_idea_to_voting_room" tool.`;
     } else if (label.includes('Pick Winners')) {
       instruction = `Look at the VOTING ROOM ideas in the system context. Call "recommend_from_voting_room" ONCE with the best 2-4 picks (one per category: lodging, activity, food, etc). Also write a conversational summary of your reasoning.`;
+    } else if (label.includes("What's nearby?")) {
+      instruction = `Recommend 3-4 specific spots or activities that are worth visiting right now given we're actively traveling. For each specific named place, call "add_idea_to_voting_room".`;
+    } else if (label.includes("Today's weather")) {
+      instruction = `Tell me about today's weather at our current destination and how it should affect our plans. Give specific advice on activities to do or avoid given the conditions.`;
+    } else if (label.includes('Currency tips')) {
+      instruction = `Give me 3 specific currency and money tips for this destination — best exchange methods, local payment apps, ATM advice, and what to watch out for.`;
+    } else if (label.includes('Last-minute checklist')) {
+      instruction = `Give me a concise last-minute checklist — what to confirm, book, or prepare in the final days before the trip. For any destination-specific packing items, call "add_to_packing_list".`;
     }
     
     const text = instruction ? `${label}${PILL_INSTRUCTION_MARKER}${instruction}` : label;
@@ -295,6 +406,23 @@ export default function AIAssistant() {
   };
 
   const showPills = messages.length === 0 && !isLoading;
+
+  // Trip-phase pill evolution: select the right pill set based on where user is in journey
+  const contextualPills = (() => {
+    if (!activeTrip) return PILLS_DEFAULT
+    if (tripStatus === 'ongoing') return PILLS_ONGOING
+    if (daysUntilTrip !== null && daysUntilTrip >= 0 && daysUntilTrip <= 7) return PILLS_PRE_TRIP
+    return PILLS_DEFAULT
+  })()
+
+  // Pulse the wand trigger for planning trips with no itinerary and <14 days to go
+  const shouldPulseButton = !effectiveOpen
+    && tripStatus === 'planning'
+    && totalActivities === 0
+    && daysUntilTrip !== null
+    && daysUntilTrip <= 14
+    && daysUntilTrip >= 0
+
   const isMobile = useMediaQuery('(max-width: 767px)');
   const viewMode = state?.aiViewMode || 'floating';
   const isSidebarMode = !isMobile && viewMode === 'sidebar';
@@ -316,6 +444,7 @@ export default function AIAssistant() {
   const ActionPill = ({ inv, toolName, emoji, label, onConfirm, onUndo, toastLabel }) => {
     const [localDone, setLocalDone] = useState(false)
     const [isWorking, setIsWorking] = useState(false)
+    const [isPopping, setIsPopping] = useState(false)
     const done = localDone || inv.state === 'output-available'
     if (!label) return null
 
@@ -329,6 +458,8 @@ export default function AIAssistant() {
         await onConfirm(newId)
         try { addToolResult({ tool: toolName, toolCallId: inv.toolCallId, output: 'added' }) } catch { }
         showToast(`${emoji || '🪄'} ${label} ${toastLabel}`)
+        setIsPopping(true)
+        setTimeout(() => setIsPopping(false), 350)
         setLocalDone(true)
       } catch (error) {
         console.warn('[Wanda] Failed to add grounded tool output:', error)
@@ -347,7 +478,7 @@ export default function AIAssistant() {
           done
             ? 'text-success'
             : 'text-text-secondary hover:text-text-primary'
-        } ${canAct ? 'hover:bg-bg-hover' : 'opacity-50'}`}
+        } ${canAct ? 'hover:bg-bg-hover' : 'opacity-50'} ${isPopping ? 'wanda-pill-pop' : ''}`}
       >
         <span className="text-sm">{done ? '✅' : (emoji || '🪄')}</span>
         <span>{done ? 'Added' : `Add ${label}`}</span>
@@ -413,9 +544,16 @@ export default function AIAssistant() {
   const ItineraryPill = ({ inv }) => {
     const { dayNumber, location, activities = [] } = inv.input || {}
     const [localDone, setLocalDone] = useState(false)
+    const [isPopping, setIsPopping] = useState(false)
     const done = localDone || inv.state === 'output-available'
     if (!activities.length) return null
     const canAct = !!activeTrip && !done
+    const activityPreview = activities.map(a => `${a.emoji || '•'} ${a.name}`).join('\n')
+    const hoverTitle = !activeTrip
+      ? 'Select a trip first'
+      : done
+        ? undefined
+        : activityPreview
     const handleClick = async () => {
       if (!canAct) return
       const groundedActivities = await Promise.all(activities.map(async (activity) => {
@@ -429,11 +567,13 @@ export default function AIAssistant() {
       dispatch({ type: ACTIONS.BATCH_ADD_ACTIVITIES, payload: { dayNumber, location, activities: groundedActivities } })
       try { addToolResult({ tool: 'generate_day_itinerary', toolCallId: inv.toolCallId, output: 'added' }) } catch { }
       showToast(`🗓️ Day ${dayNumber} plan added — ${activities.length} activities`)
+      setIsPopping(true)
+      setTimeout(() => setIsPopping(false), 350)
       setLocalDone(true)
     }
     return (
-      <button onClick={handleClick} disabled={!canAct} title={!activeTrip ? 'Select a trip first' : undefined}
-        className={`mt-1 inline-flex items-center gap-2 rounded-[var(--radius-sm)] px-2.5 py-1 text-xs font-semibold transition-colors ${done ? 'text-success' : 'text-text-secondary hover:text-text-primary'} ${canAct ? 'hover:bg-bg-hover' : 'opacity-50'}`}>
+      <button onClick={handleClick} disabled={!canAct} title={hoverTitle}
+        className={`mt-1 inline-flex items-center gap-2 rounded-[var(--radius-sm)] px-2.5 py-1 text-xs font-semibold transition-colors ${done ? 'text-success' : 'text-text-secondary hover:text-text-primary'} ${canAct ? 'hover:bg-bg-hover' : 'opacity-50'} ${isPopping ? 'wanda-pill-pop' : ''}`}>
         <span className="text-sm">{done ? '✅' : '🗓️'}</span>
         <span>{done ? 'Added to itinerary' : `Add Day ${dayNumber} plan (${activities.length} activities)`}</span>
         {!done && <span className="text-[11px] opacity-60">+</span>}
@@ -496,6 +636,25 @@ export default function AIAssistant() {
         .wanda-markdown ul, .wanda-markdown ol { margin-bottom: 0.75rem; padding-left: 1.25rem; }
         .wanda-markdown li { margin-bottom: 0.25rem; }
         .wanda-markdown strong { font-weight: 700; color: var(--color-accent, inherit); }
+        @keyframes wanda-pill-pop {
+          0% { transform: scale(1); }
+          35% { transform: scale(1.18); }
+          65% { transform: scale(0.94); }
+          100% { transform: scale(1); }
+        }
+        .wanda-pill-pop { animation: wanda-pill-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes wanda-continuity-fade {
+          0% { opacity: 0; transform: translateY(-4px); }
+          20% { opacity: 1; transform: translateY(0); }
+          80% { opacity: 1; transform: translateY(0); }
+          100% { opacity: 0; transform: translateY(-4px); }
+        }
+        .wanda-continuity { animation: wanda-continuity-fade 2.5s ease-in-out forwards; }
+        @keyframes wanda-trigger-pulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(var(--color-accent-rgb, 99 102 241) / 0.4); }
+          50% { box-shadow: 0 0 0 8px rgba(var(--color-accent-rgb, 99 102 241) / 0); }
+        }
+        .wanda-trigger-pulse { animation: wanda-trigger-pulse 2s ease-in-out infinite; }
       `}</style>
 
       {/* Header */}
@@ -554,13 +713,32 @@ export default function AIAssistant() {
         className="wanda-msg-scroll"
         style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 8px', display: 'flex', flexDirection: 'column', gap: '12px' }}
       >
+        {/* Continuity hint — fades in/out when reopening a trip with chat history */}
+        {showContinuityHint && (
+          <div className="wanda-continuity text-center text-[11px] text-text-muted py-1 flex-shrink-0">
+            ↩ Continuing from your last chat...
+          </div>
+        )}
+
         {messages.length === 0 && !error && (
           <div className="text-center py-5 px-3">
             <div className="text-2xl mb-2">🪄</div>
             <p className="text-text-secondary text-sm leading-relaxed m-0">
-              {activeTrip
-                ? <>Hi! I know all about your <strong>{activeTrip.name}</strong> trip — ask me anything!</>
-                : <>Hi! I'm <span className="wanda-serif">Wanda</span>, your AI travel assistant. Select a trip and I'll know all about it!</>}
+              {!activeTrip ? (
+                <>Hi! I'm <span className="wanda-serif">Wanda</span>, your AI travel assistant. Select a trip and I'll know all about it!</>
+              ) : tripStatus === 'ongoing' ? (
+                <>You're in <strong>{firstCity || activeTrip.name}</strong> {firstCityFlag} right now — need recommendations?</>
+              ) : tripStatus === 'completed' ? (
+                <>What a trip! Ask me anything, or let's start planning the next one.</>
+              ) : daysUntilTrip !== null && daysUntilTrip >= 0 && daysUntilTrip <= 3 ? (
+                <><strong>{activeTrip.name}</strong> {activeTrip.emoji || '✈️'} starts in {daysUntilTrip === 0 ? 'today!' : `${daysUntilTrip} day${daysUntilTrip === 1 ? '' : 's'}!`} Last-minute questions? I'm here.</>
+              ) : daysUntilTrip !== null && daysUntilTrip >= 0 && daysUntilTrip <= 7 ? (
+                <><strong>{firstCity || activeTrip.name}</strong> {firstCityFlag} in {daysUntilTrip} days — things are getting close! What do you need?</>
+              ) : daysUntilTrip !== null && daysUntilTrip > 7 ? (
+                <>{firstCityFlag || '✈️'} <strong>{firstCity || activeTrip.name}</strong> in {daysUntilTrip} days.{totalActivities === 0 ? ' Your itinerary is empty — want me to start building it?' : emptyItineraryDays.length > 0 ? ` Day${emptyItineraryDays.length > 1 ? 's' : ''} ${emptyItineraryDays.slice(0, 3).map(d => d.dayNumber).join(', ')} ${emptyItineraryDays.length > 1 ? 'have' : 'has'} no activities yet.` : ' Ask me anything!'}</>
+              ) : (
+                <>Hi! I know all about your <strong>{activeTrip.name}</strong> trip — ask me anything!</>
+              )}
             </p>
           </div>
         )}
@@ -646,6 +824,33 @@ export default function AIAssistant() {
                 return <BudgetAlertPill key={p.toolCallId} inv={p} />
               })
             }
+
+            {/* Smart follow-up pill — appears after tool calls on the last assistant message */}
+            {m.role === 'assistant'
+              && m.id === messages[messages.length - 1]?.id
+              && !isLoading
+              && (() => {
+                const toolTypes = (m.parts || [])
+                  .filter(p => ['tool-generate_day_itinerary', 'tool-add_to_packing_list', 'tool-add_budget_alert'].includes(p.type))
+                  .map(p => p.type)
+                if (!toolTypes.length) return null
+                let followUp = null
+                if (toolTypes.includes('tool-generate_day_itinerary')) followUp = { emoji: '🍜', text: 'Find food spots near these locations?' }
+                else if (toolTypes.includes('tool-add_to_packing_list')) followUp = { emoji: '✏️', text: 'Anything else to add?' }
+                else if (toolTypes.includes('tool-add_budget_alert')) followUp = { emoji: '💡', text: 'Get cost-saving tips?' }
+                if (!followUp) return null
+                return (
+                  <button
+                    key="followup"
+                    onClick={() => sendMessage({ text: `${followUp.emoji} ${followUp.text}` })}
+                    className="mt-1 inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] px-2.5 py-1 text-xs text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors border border-border/50"
+                  >
+                    <span>{followUp.emoji}</span>
+                    <span>{followUp.text}</span>
+                  </button>
+                )
+              })()
+            }
           </div>
         ))}
 
@@ -653,7 +858,7 @@ export default function AIAssistant() {
           <div className="flex items-center gap-2 text-sm text-text-secondary">
             <div className="text-sm wanda-wiggle-slow">🪄</div>
             <div className="italic text-[11px] text-accent/80 animate-pulse font-medium">
-              {MAGIC_SPELLS[currentSpellIndex]}
+              {getLocationSpells(firstCity)[currentSpellIndex % getLocationSpells(firstCity).length]}
             </div>
             <style>{`
               @keyframes wanda-wiggle-fast {
@@ -678,17 +883,36 @@ export default function AIAssistant() {
       {/* Floating pills — only shown when conversation is empty */}
       {showPills && (
         <div className="px-4 pb-3 flex-shrink-0 flex flex-col gap-1">
-          {PILLS.map(({ emoji, label }) => (
+          {/* Voting room backlog CTA */}
+          {votingIdeasCount >= 5 && (
             <button
-              key={label}
               type="button"
-              className="text-left text-xs text-text-secondary hover:text-text-primary hover:bg-bg-hover rounded-[var(--radius-sm)] px-2 py-1 transition-colors"
-              onClick={() => handlePillClick(`${emoji} ${label}`)}
+              className="text-left text-xs text-accent hover:text-accent-hover rounded-[var(--radius-sm)] px-2 py-1 transition-colors bg-accent/5 border border-accent/20 mb-0.5"
+              onClick={() => handlePillClick('🏆 Pick Winners')}
             >
-              <span className="mr-2">{emoji}</span>
-              {label}
+              <span className="mr-2">🏆</span>
+              Voting room: {votingIdeasCount} ideas — want me to pick the best?
             </button>
-          ))}
+          )}
+          {contextualPills.map(({ emoji, label }) => {
+            const isBudgetPill = label.toLowerCase().includes('budget')
+            const budgetTint = isBudgetPill && hasBudgetWarning
+            return (
+              <button
+                key={label}
+                type="button"
+                className={`text-left text-xs rounded-[var(--radius-sm)] px-2 py-1 transition-colors ${
+                  budgetTint
+                    ? 'text-amber-500 hover:text-amber-600 hover:bg-amber-50/30'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-bg-hover'
+                }`}
+                onClick={() => handlePillClick(`${emoji} ${label}`)}
+              >
+                <span className="mr-2">{emoji}</span>
+                {label}
+              </button>
+            )
+          })}
         </div>
       )}
 
@@ -744,6 +968,10 @@ export default function AIAssistant() {
               Chat with <span className="wanda-serif">Wanda</span>
             </div>
           </div>
+          {/* Proactive badge — shows when budget warning, trip imminent, or voting room backlog */}
+          {showBadge && (
+            <div className="pointer-events-none absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-accent border-2 border-bg-primary z-10" />
+          )}
           <button
             onClick={() => {
               if (isMobile) {
@@ -753,7 +981,7 @@ export default function AIAssistant() {
               }
             }}
             aria-label="Open Wanda"
-            className="h-14 w-14 rounded-full border border-accent bg-accent text-text-inverse flex items-center justify-center text-xl transition-colors hover:bg-accent-hover shadow-none"
+            className={`h-14 w-14 rounded-full border border-accent bg-accent text-text-inverse flex items-center justify-center text-xl transition-colors hover:bg-accent-hover shadow-none ${shouldPulseButton ? 'wanda-trigger-pulse' : ''}`}
           >
             <span className="wanda-wiggle">🪄</span>
           </button>
