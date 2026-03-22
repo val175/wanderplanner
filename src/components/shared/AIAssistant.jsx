@@ -281,7 +281,7 @@ export default function AIAssistant() {
     let interval;
     if (isLoading) {
       interval = setInterval(() => {
-        setCurrentSpellIndex(prev => (prev + 1) % MAGIC_SPELLS.length);
+        setCurrentSpellIndex(prev => (prev + 1) % getLocationSpells(firstCity).length);
       }, 800);
     } else {
       setCurrentSpellIndex(0);
@@ -311,52 +311,6 @@ export default function AIAssistant() {
     window.addEventListener('wanda-prefill', handlePrefill);
     return () => window.removeEventListener('wanda-prefill', handlePrefill);
   }, []);
-
-  // Continuity hint — show "Continuing from last chat" when reopening a trip with history
-  useEffect(() => {
-    if (effectiveOpen && (activeTrip?.wandaConversation?.length || 0) > 0) {
-      setShowContinuityHint(true)
-      const timer = setTimeout(() => setShowContinuityHint(false), 2500)
-      return () => clearTimeout(timer)
-    }
-    setShowContinuityHint(false)
-  }, [effectiveOpen, activeTrip?.id]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Auto-greeting for ONGOING trips when Wanda is opened with no conversation
-  useEffect(() => {
-    if (!effectiveOpen) return
-    if (tripStatus !== 'ongoing') return
-    if ((activeTrip?.wandaConversation?.length || 0) > 0) return
-
-    const greetKey = `${activeTrip?.id}-${new Date().toDateString()}`
-    if (lastAutoGreetedRef.current === greetKey) return
-    lastAutoGreetedRef.current = greetKey
-
-    const city = firstCity || 'your destination'
-    const flag = firstCityFlag ? ` ${firstCityFlag}` : ''
-    const todayStr = new Date().toISOString().split('T')[0]
-    const todaysPlan = activeTrip?.itinerary?.find(d => d.date === todayStr)
-    const actCount = todaysPlan?.activities?.length || 0
-    const hour = new Date().getHours()
-    const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening'
-
-    let greetText = `Good ${timeOfDay}! You're in ${city}${flag}`
-    if (weatherContext) {
-      const weatherPart = weatherContext.split(': ').slice(1).join(': ')
-      if (weatherPart) greetText += ` — ${weatherPart}`
-    }
-    greetText += actCount > 0
-      ? ` You have ${actCount} activit${actCount === 1 ? 'y' : 'ies'} planned today.`
-      : ` Nothing scheduled yet today.`
-    greetText += ` Need anything?`
-
-    setMessages([{
-      id: generateId(),
-      role: 'assistant',
-      content: greetText,
-      parts: [{ type: 'text', text: greetText }],
-    }])
-  }, [effectiveOpen, activeTrip?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -437,6 +391,52 @@ export default function AIAssistant() {
   useEffect(() => {
     if (effectiveOpen) setTimeout(() => inputRef.current?.focus(), 120);
   }, [effectiveOpen]);
+
+  // Continuity hint — show "Continuing from last chat" when reopening a trip with history
+  useEffect(() => {
+    if (effectiveOpen && (activeTrip?.wandaConversation?.length || 0) > 0) {
+      setShowContinuityHint(true)
+      const timer = setTimeout(() => setShowContinuityHint(false), 2500)
+      return () => clearTimeout(timer)
+    }
+    setShowContinuityHint(false)
+  }, [effectiveOpen, activeTrip?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-greeting for ONGOING trips when Wanda is opened with no conversation
+  useEffect(() => {
+    if (!effectiveOpen) return
+    if (tripStatus !== 'ongoing') return
+    if ((activeTrip?.wandaConversation?.length || 0) > 0) return
+
+    const greetKey = `${activeTrip?.id}-${new Date().toDateString()}`
+    if (lastAutoGreetedRef.current === greetKey) return
+    lastAutoGreetedRef.current = greetKey
+
+    const city = firstCity || 'your destination'
+    const flag = firstCityFlag ? ` ${firstCityFlag}` : ''
+    const todayStr = new Date().toISOString().split('T')[0]
+    const todaysPlan = activeTrip?.itinerary?.find(d => d.date === todayStr)
+    const actCount = todaysPlan?.activities?.length || 0
+    const hour = new Date().getHours()
+    const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening'
+
+    let greetText = `Good ${timeOfDay}! You're in ${city}${flag}`
+    if (weatherContext) {
+      const weatherPart = weatherContext.split(': ').slice(1).join(': ')
+      if (weatherPart) greetText += ` — ${weatherPart}`
+    }
+    greetText += actCount > 0
+      ? ` You have ${actCount} activit${actCount === 1 ? 'y' : 'ies'} planned today.`
+      : ` Nothing scheduled yet today.`
+    greetText += ` Need anything?`
+
+    setMessages([{
+      id: generateId(),
+      role: 'assistant',
+      content: greetText,
+      parts: [{ type: 'text', text: greetText }],
+    }])
+  }, [effectiveOpen, activeTrip?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Generic pill base ────────────────────────────────────────────────────────
   // Handles shared logic: done state, styling, addToolResult, toast + undo.
