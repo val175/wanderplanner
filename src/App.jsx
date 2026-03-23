@@ -136,6 +136,18 @@ function AuthenticatedApp({ user, signOutUser }) {
   const isMobile = useMediaQuery('(max-width: 767px)')
   const [showNewTripModal, setShowNewTripModal] = useState(false)
   const [splashDone, setSplashDone] = useState(false)
+  const [isOffline, setIsOffline] = useState(!navigator.onLine)
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false)
+    const handleOffline = () => setIsOffline(true)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
 
   // Read-only mode: active when the trip is completed or manually archived
   const effectiveStatus = getEffectiveStatus(activeTrip)
@@ -256,6 +268,11 @@ function AuthenticatedApp({ user, signOutUser }) {
   return (
     <TripContext.Provider value={{ state, dispatch, activeTrip, sortedTrips, showToast, signOutUser, isReadOnly, effectiveStatus }}>
       <div className="flex h-screen overflow-hidden bg-bg-primary text-text-secondary antialiased">
+        {isOffline && (
+          <div className="fixed top-0 left-0 right-0 z-[10000] bg-orange-500 text-white text-[11px] font-semibold px-4 py-1 text-center shadow-md animate-fade-in">
+            Offline Mode: Working locally (changes will sync when reconnected)
+          </div>
+        )}
         {activeTrip && <CursorManager tripId={activeTrip.id} userId={user.uid} tabId={effectiveTab} />}
 
         <Sidebar
