@@ -597,14 +597,14 @@ function DayGroupTable({ day, itinerary, onReorderDay, trip, resolveLocation, is
                         {/* Time Column (Stacked) */}
                         <td className="px-2 pt-4 pb-2 align-top w-[100px]">
                           <div className="flex flex-col gap-1">
-                            <span className="font-mono text-[13px] font-semibold text-text-primary">
+                            <span className="font-mono text-sm font-semibold text-text-primary">
                               {activity.time || '—'}
                             </span>
-                            <span className="text-[10px] text-text-muted font-mono">
+                            <span className="text-xs text-text-muted font-mono">
                               {activity.endTime || ''}
                             </span>
                             {hasConflict && (
-                              <span className="text-[9px] font-semibold text-warning bg-warning/10 rounded px-1 py-0.5 leading-none" title="Time overlap with another activity">
+                              <span className="text-xs font-semibold text-warning bg-warning/10 rounded px-1 py-0.5 leading-none" title="Time overlap with another activity">
                                 ⚠️ overlap
                               </span>
                             )}
@@ -626,18 +626,18 @@ function DayGroupTable({ day, itinerary, onReorderDay, trip, resolveLocation, is
                         {/* Activity block */}
                         <td className="px-2 pt-3 pb-2 align-top">
                           <div className="flex-1 min-w-0">
-                            <span className="text-[14px] text-text-primary font-semibold block truncate">
+                            <span className="text-sm text-text-primary font-semibold block truncate">
                               {activity.name || 'Untitled'}
                             </span>
                             <div className="flex flex-col gap-0.5 mt-0.5">
-                              <span className="text-[11px] text-text-muted font-medium truncate uppercase tracking-tight">
+                              <span className="text-xs text-text-muted font-medium truncate uppercase tracking-tight">
                                 {location.label || '—'}
                               </span>
-                              <span className="text-[10px] text-text-muted/60 font-medium">
+                              <span className="text-xs text-text-muted/60 font-medium">
                                 {activity.duration || 60} mins
                               </span>
                               {(location.rating != null || location.openingHours || location.isOpenNow != null) && (
-                                <span className="text-[10px] text-text-muted/70 font-medium truncate">
+                                <span className="text-xs text-text-muted/70 font-medium truncate">
                                   {location.rating != null && `⭐ ${location.rating}`}
                                   {location.reviewCount != null && ` · ${location.reviewCount.toLocaleString()} reviews`}
                                   {location.isOpenNow != null && ` · ${location.isOpenNow ? 'Open now' : 'Closed now'}`}
@@ -651,13 +651,13 @@ function DayGroupTable({ day, itinerary, onReorderDay, trip, resolveLocation, is
                             ) && (() => {
                               const bodyTime = applyTimezoneOffset(activity.time, bodyClockOffsetHours)
                               return bodyTime ? (
-                                <span className="inline-flex items-center gap-1 mt-0.5 text-[10px] text-text-muted/60 italic select-none">
+                                <span className="inline-flex items-center gap-1 mt-0.5 text-xs text-text-muted/60 italic select-none">
                                   (that's {bodyTime} your body time 🧟)
                                 </span>
                               ) : null
                             })()}
                             {activity.notes && (
-                              <span className="text-[11px] text-text-muted/80 italic block mt-1 truncate">
+                              <span className="text-xs text-text-muted/80 italic block mt-1 truncate">
                                 {activity.notes}
                               </span>
                             )}
@@ -678,7 +678,7 @@ function DayGroupTable({ day, itinerary, onReorderDay, trip, resolveLocation, is
 
                         {/* Location Column */}
                         <td className="px-2 pt-4 pb-2 align-top">
-                          <span className="text-[12px] text-text-muted truncate block max-w-[160px]">
+                          <span className="text-xs text-text-muted truncate block max-w-[160px]">
                             {location.label || '—'}
                           </span>
                         </td>
@@ -696,7 +696,7 @@ function DayGroupTable({ day, itinerary, onReorderDay, trip, resolveLocation, is
                               </button>
                             )}
                             {activity.comments?.length > 0 && (
-                              <span className="text-[10px] font-semibold text-accent px-1">{activity.comments.length}</span>
+                              <span className="text-xs font-semibold text-accent px-1">{activity.comments.length}</span>
                             )}
                             {(activity.notes || activity.link) && (
                               <span className="text-accent p-1 inline-flex" title="Has notes/link">
@@ -741,12 +741,12 @@ function DayGroupTable({ day, itinerary, onReorderDay, trip, resolveLocation, is
                           </td>
                           <td colSpan={3} className="py-2 pl-2">
                             <div className="flex items-center gap-3">
-                              <div className={`inline-flex items-center gap-1.5 text-[11px] font-medium text-text-muted bg-bg-secondary/30 border border-border/50 rounded-full px-2.5 py-0.5 hover:border-text-primary transition-all duration-150 relative z-10 ${!activity.transit ? 'opacity-0 group-hover/transit:opacity-100' : ''}`}>
+                              <div className={`inline-flex items-center gap-1.5 text-xs font-medium text-text-muted bg-bg-secondary/30 border border-border/50 rounded-full px-2.5 py-0.5 hover:border-text-primary transition-all duration-150 relative z-10 ${!activity.transit ? 'opacity-0 group-hover/transit:opacity-100' : ''}`}>
                                 <Select
                                   value={activity.transitEmoji || '🚕'}
                                   onValueChange={v => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { transitEmoji: v } } })}
                                   disabled={isReadOnly}
-                                  className="bg-transparent border-transparent px-0 py-0 text-[11px] font-medium text-text-muted hover:bg-transparent"
+                                  className="bg-transparent border-transparent px-0 py-0 text-xs font-medium text-text-muted hover:bg-transparent"
                                 >
                                   <SelectItem value="🚕">🚕</SelectItem>
                                   <SelectItem value="🚶">🚶</SelectItem>
@@ -763,7 +763,7 @@ function DayGroupTable({ day, itinerary, onReorderDay, trip, resolveLocation, is
                                   value={activity.transit || ''}
                                   onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { transit: val } } })}
                                   className="min-w-[50px] inline-flex items-center"
-                                  inputClassName="px-0 py-0 text-[11px] font-medium w-[100px] bg-transparent"
+                                  inputClassName="px-0 py-0 text-xs font-medium w-[100px] bg-transparent"
                                   placeholder="Add transit"
                                   readOnly={isReadOnly}
                                 />
@@ -1485,7 +1485,7 @@ export default function ItineraryTab() {
 
       <TabHeader
         leftSlot={
-          <span className="text-[11px] font-semibold font-heading text-text-muted tabular-nums">
+          <span className="text-xs font-semibold font-heading text-text-muted tabular-nums">
             {itinerary?.reduce((acc, d) => acc + (d.activities?.length || 0), 0) || 0} activities · {itinerary?.length || 0} days
           </span>
         }
