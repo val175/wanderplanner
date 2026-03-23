@@ -12,6 +12,7 @@ import { hapticImpact, hapticSelection } from '../../utils/haptics';
 import { ACTIONS } from '../../state/tripReducer';
 import { wandaRuntime, setWandaRuntime } from '../../utils/wandaRuntime';
 import { geocodeCity } from '../../utils/helpers';
+import { GLOBAL_CATEGORIES } from '../../constants/categories';
 
 const MACRO_ZOOM_THRESHOLD = 8;
 
@@ -20,6 +21,18 @@ const PIN_COLORS = {
     start: '#7CA2CE',
     end:   '#E58F76',
     mid:   '#89A88F',
+};
+
+const PIN_THEME_CLASSES = {
+    emerald: { bg: 'bg-emerald-500/20', border: 'border-emerald-500/40', text: 'text-emerald-700' },
+    sky: { bg: 'bg-sky-500/20', border: 'border-sky-500/40', text: 'text-sky-700' },
+    amber: { bg: 'bg-amber-500/20', border: 'border-amber-500/40', text: 'text-amber-700' },
+    indigo: { bg: 'bg-indigo-500/20', border: 'border-indigo-500/40', text: 'text-indigo-700' },
+    slate: { bg: 'bg-slate-500/20', border: 'border-slate-500/40', text: 'text-slate-700' },
+    pink: { bg: 'bg-pink-500/20', border: 'border-pink-500/40', text: 'text-pink-700' },
+    violet: { bg: 'bg-violet-500/20', border: 'border-violet-500/40', text: 'text-violet-700' },
+    rose: { bg: 'bg-rose-500/20', border: 'border-rose-500/40', text: 'text-rose-700' },
+    default: { bg: 'bg-bg-card', border: 'border-border', text: 'text-text-primary' }
 };
 
 function normalizeText(value) {
@@ -166,17 +179,44 @@ export default function WanderMapTab() {
             : itineraryCoords,
     [itineraryCoords, filterDayId]);
 
-    // Build a time-ordered polyline through the selected day's activity pins
-    const dayRouteGeoJSON = useMemo(() => {
-        if (!filterDayId || visibleItineraryCoords.length < 2) return null;
+    // Build time-ordered polylines through the selected day's activity pins, split by transit mode
+    const { walkingSegments, transitSegments, drivingSegments } = useMemo(() => {
+        const result = { walkingSegments: null, transitSegments: null, drivingSegments: null };
+        if (!filterDayId || visibleItineraryCoords.length < 2) return result;
+        
         const sorted = [...visibleItineraryCoords].sort((a, b) =>
             (a.timeStart || '').localeCompare(b.timeStart || '')
         );
-        return {
-            type: 'Feature',
-            properties: {},
-            geometry: { type: 'LineString', coordinates: sorted.map(ic => ic.coords) },
-        };
+        
+        const walkingFeatures = [];
+        const transitFeatures = [];
+        const drivingFeatures = [];
+        
+        for (let i = 1; i < sorted.length; i++) {
+            const prev = sorted[i - 1];
+            const curr = sorted[i];
+            const transitMode = curr.activity?.transitFromPrev || prev.activity?.transitEmoji || '🚕';
+            
+            const feature = {
+                type: 'Feature',
+                properties: {},
+                geometry: { type: 'LineString', coordinates: [prev.coords, curr.coords] },
+            };
+            
+            if (['🚶'].includes(transitMode)) {
+                walkingFeatures.push(feature);
+            } else if (['🚇', '🚌', '🚆'].includes(transitMode)) {
+                transitFeatures.push(feature);
+            } else {
+                drivingFeatures.push(feature);
+            }
+        }
+        
+        if (walkingFeatures.length > 0) result.walkingSegments = { type: 'FeatureCollection', features: walkingFeatures };
+        if (transitFeatures.length > 0) result.transitSegments = { type: 'FeatureCollection', features: transitFeatures };
+        if (drivingFeatures.length > 0) result.drivingSegments = { type: 'FeatureCollection', features: drivingFeatures };
+        
+        return result;
     }, [filterDayId, visibleItineraryCoords]);
 
     // Reset day filter when trip changes
@@ -401,17 +441,47 @@ export default function WanderMapTab() {
                         </Source>
                     )}
 
-                    {/* ── Day Route (activity-to-activity polyline for selected day) ── */}
-                    {dayRouteGeoJSON && (
-                        <Source id="day-route" type="geojson" data={dayRouteGeoJSON}>
+                    {/* ── Day Route (activity-to-activity polyline for selected day, split by transit mode) ── */}
+                    {walkingSegments && (
+                        <Source id="day-route-walking" type="geojson" data={walkingSegments}>
                             <Layer
-                                id="day-route-line"
+                                id="layer-route-walking"
                                 type="line"
                                 layout={{ 'line-join': 'round', 'line-cap': 'round' }}
                                 paint={{
-                                    'line-color': 'var(--color-accent, #D97757)',
-                                    'line-width': 2,
+                                    'line-color': '#22C55E', // dotted green
+                                    'line-width': 3,
                                     'line-opacity': 0.9,
+                                    'line-dasharray': [1, 2],
+                                }}
+                            />
+                        </Source>
+                    )}
+                    {transitSegments && (
+                        <Source id="day-route-transit" type="geojson" data={transitSegments}>
+                            <Layer
+                                id="layer-route-transit"
+                                type="line"
+                                layout={{ 'line-join': 'round', 'line-cap': 'round' }}
+                                paint={{
+                                    'line-color': '#3B82F6', // solid blue
+                                    'line-width': 3,
+                                    'line-opacity': 0.9,
+                                }}
+                            />
+                        </Source>
+                    )}
+                    {drivingSegments && (
+                        <Source id="day-route-driving" type="geojson" data={drivingSegments}>
+                            <Layer
+                                id="layer-route-driving"
+                                type="line"
+                                layout={{ 'line-join': 'round', 'line-cap': 'round' }}
+                                paint={{
+                                    'line-color': '#EAB308', // dashed yellow
+                                    'line-width': 3,
+                                    'line-opacity': 0.9,
+                                    'line-dasharray': [2, 2.5],
                                 }}
                             />
                         </Source>
@@ -466,9 +536,16 @@ export default function WanderMapTab() {
                     {/* ── MICRO VIEW: Emoji utility pins ── */}
                     {layers.itinerary && isMicroView && visibleItineraryCoords.map((ic, i) => {
                         const emoji = getItineraryEmoji(ic.activity);
+                        const cat = GLOBAL_CATEGORIES.find(c => c.id === (ic.category || 'other')) || GLOBAL_CATEGORIES[7];
+                        const theme = PIN_THEME_CLASSES[cat.color] || PIN_THEME_CLASSES.default;
+
                         // confidence: 'verified' = 1.0, 'geocoded' = 0.85, 'name-only' = 0.65
+                        const isUnresolved = ic.confidence === 'name-only';
                         const pinOpacity = ic.confidence === 'verified' ? 1 : ic.confidence === 'geocoded' ? 0.85 : 0.65;
-                        const pinBorderStyle = ic.confidence === 'name-only' ? 'border-dashed' : '';
+                        const pinClasses = isUnresolved 
+                            ? `border-dashed border-2 grayscale opacity-70 ${theme.border} ${theme.bg}`
+                            : `border ${theme.border} ${theme.bg}`;
+
                         return (
                             <Marker key={`activity-${ic.activityId}-${i}`} longitude={ic.coords[0]} latitude={ic.coords[1]} anchor="bottom">
                                 <motion.div
@@ -484,7 +561,7 @@ export default function WanderMapTab() {
                                     }}
                                     className="cursor-pointer flex flex-col items-center group"
                                 >
-                                    <div className={`w-9 h-9 bg-bg-card border border-border ${pinBorderStyle} rounded-[var(--radius-md)] text-xl flex items-center justify-center transition-colors group-hover:border-accent`}>
+                                    <div className={`w-9 h-9 rounded-[var(--radius-md)] text-xl flex items-center justify-center transition-colors group-hover:border-accent ${pinClasses}`}>
                                         {emoji}
                                     </div>
                                     <div className="mt-1 bg-[#0F172A] text-white text-[10px] font-semibold px-2 py-0.5 rounded-[4px] whitespace-nowrap max-w-[120px] truncate opacity-0 group-hover:opacity-100 transition-opacity">
@@ -586,6 +663,16 @@ export default function WanderMapTab() {
                                 </select>
                             </>
                         )}
+                    </div>
+                    
+                    {/* Map Insight Panel */}
+                    <div className="bg-bg-card/90 backdrop-blur-xl border border-border p-3 rounded-[var(--radius-lg)] shadow-md flex flex-col gap-0.5 shadow-xl transition-all duration-300">
+                        <div className="text-xs font-heading font-bold text-text-primary">
+                            {filterDayId ? `Day ${sortedDays.find(d => d.id === filterDayId)?.dayNumber} Insight` : 'Trip Overview'}
+                        </div>
+                        <div className="text-[10px] text-text-muted">
+                            {visibleItineraryCoords.length} Activities • {visibleItineraryCoords.filter(ic => ic.confidence === 'name-only').length} Unresolved Locations
+                        </div>
                     </div>
                 </div>
             </div>

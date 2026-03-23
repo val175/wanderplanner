@@ -16,6 +16,7 @@ import { COUNTRY_TIMEZONE, getUTCOffsetHours, applyTimezoneOffset, FLIGHT_ACTIVI
 import { triggerHaptic, hapticImpact } from '../../utils/haptics'
 import { DAY_COLORS } from '../../constants/colors'
 import { GLOBAL_CATEGORIES } from '../../constants/categories'
+import { calculateTransitConflict } from '../../utils/tripGeo'
 import { wandaRuntime, setWandaRuntime } from '../../utils/wandaRuntime'
 import { MapPin } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
@@ -720,7 +721,11 @@ function DayGroupTable({ day, itinerary, onReorderDay, trip, resolveLocation, is
                       </tr>
 
                       {/* Transit Row between activities */}
-                      {index < arr.length - 1 && (
+                      {index < arr.length - 1 && (() => {
+                        const nextActivity = arr[index + 1];
+                        const conflictResult = calculateTransitConflict(activity, nextActivity);
+
+                        return (
                         <tr className="group/transit hover:bg-bg-hover/50 transition-colors border-t border-border/20">
                           <td></td>
                           <td></td>
@@ -735,37 +740,42 @@ function DayGroupTable({ day, itinerary, onReorderDay, trip, resolveLocation, is
                             )}
                           </td>
                           <td colSpan={3} className="py-2 pl-2">
-                            <div className={`inline-flex items-center gap-1.5 text-[11px] font-medium text-text-muted bg-bg-secondary/30 border border-border/50 rounded-full px-2.5 py-0.5 hover:border-text-primary transition-all duration-150 relative z-10 ${!activity.transit ? 'opacity-0 group-hover/transit:opacity-100' : ''}`}>
-                              <Select
-                                value={activity.transitEmoji || '🚕'}
-                                onValueChange={v => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { transitEmoji: v } } })}
-                                disabled={isReadOnly}
-                                className="bg-transparent border-transparent px-0 py-0 text-[11px] font-medium text-text-muted hover:bg-transparent"
-                              >
-                                <SelectItem value="🚕">🚕</SelectItem>
-                                <SelectItem value="🚶">🚶</SelectItem>
-                                <SelectItem value="🚇">🚇</SelectItem>
-                                <SelectItem value="🚌">🚌</SelectItem>
-                                <SelectItem value="🚆">🚆</SelectItem>
-                                <SelectItem value="🚲">🚲</SelectItem>
-                                <SelectItem value="✈️">✈️</SelectItem>
-                                <SelectItem value="⛴️">⛴️</SelectItem>
-                                <SelectItem value="🚗">🚗</SelectItem>
-                              </Select>
-                              <span className="sr-only">Transit type</span>
-                              <EditableText
-                                value={activity.transit || ''}
-                                onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { transit: val } } })}
-                                className="min-w-[50px] inline-flex items-center"
-                                inputClassName="px-0 py-0 text-[11px] font-medium w-[100px] bg-transparent"
-                                placeholder="Add transit"
-                                readOnly={isReadOnly}
-                              />
+                            <div className="flex items-center gap-3">
+                              <div className={`inline-flex items-center gap-1.5 text-[11px] font-medium text-text-muted bg-bg-secondary/30 border border-border/50 rounded-full px-2.5 py-0.5 hover:border-text-primary transition-all duration-150 relative z-10 ${!activity.transit ? 'opacity-0 group-hover/transit:opacity-100' : ''}`}>
+                                <Select
+                                  value={activity.transitEmoji || '🚕'}
+                                  onValueChange={v => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { transitEmoji: v } } })}
+                                  disabled={isReadOnly}
+                                  className="bg-transparent border-transparent px-0 py-0 text-[11px] font-medium text-text-muted hover:bg-transparent"
+                                >
+                                  <SelectItem value="🚕">🚕</SelectItem>
+                                  <SelectItem value="🚶">🚶</SelectItem>
+                                  <SelectItem value="🚇">🚇</SelectItem>
+                                  <SelectItem value="🚌">🚌</SelectItem>
+                                  <SelectItem value="🚆">🚆</SelectItem>
+                                  <SelectItem value="🚲">🚲</SelectItem>
+                                  <SelectItem value="✈️">✈️</SelectItem>
+                                  <SelectItem value="⛴️">⛴️</SelectItem>
+                                  <SelectItem value="🚗">🚗</SelectItem>
+                                </Select>
+                                <span className="sr-only">Transit type</span>
+                                <EditableText
+                                  value={activity.transit || ''}
+                                  onSave={val => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { transit: val } } })}
+                                  className="min-w-[50px] inline-flex items-center"
+                                  inputClassName="px-0 py-0 text-[11px] font-medium w-[100px] bg-transparent"
+                                  placeholder="Add transit"
+                                  readOnly={isReadOnly}
+                                />
+                              </div>
+                              {conflictResult.hasConflict && (
+                                <div className="text-warning text-xs font-semibold bg-warning/10 px-2 py-1 rounded">⚠️ {conflictResult.requiredTransitMins}m transit needed</div>
+                              )}
                             </div>
                           </td>
                         </tr>
-                      )
-                      }
+                        )
+                      })()}
                     </Fragment>
                   )
                 })}
