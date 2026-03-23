@@ -28,6 +28,7 @@ import AIAssistant from './components/shared/AIAssistant'
 import WalkieTalkieModal from './components/shared/WalkieTalkieModal'
 import GlobalSearchModal from './components/modal/GlobalSearchModal'
 import ShortcutsModal from './components/shared/ShortcutsModal'
+import CursorManager from './components/shared/CursorManager'
 
 // Tab components
 import OverviewTab from './components/tabs/OverviewTab'
@@ -255,6 +256,7 @@ function AuthenticatedApp({ user, signOutUser }) {
   return (
     <TripContext.Provider value={{ state, dispatch, activeTrip, sortedTrips, showToast, signOutUser, isReadOnly, effectiveStatus }}>
       <div className="flex h-screen overflow-hidden bg-bg-primary text-text-secondary antialiased">
+        {activeTrip && <CursorManager tripId={activeTrip.id} userId={user.uid} tabId={effectiveTab} />}
 
         <Sidebar
           isMobile={isMobile}
