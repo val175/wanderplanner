@@ -13,6 +13,7 @@ import { ACTIONS } from '../../state/tripReducer'
 import { formatCurrency } from '../../utils/helpers'
 import { hapticImpact, hapticSelection } from '../../utils/haptics'
 import LocationAutocomplete from '../shared/LocationAutocomplete'
+import Label from '../shared/Label'
 
 // ── Cost Input ──────────────────────────────────────────────────────────────
 function CostInput({ value, currency, onChange, disabled }) {
@@ -180,7 +181,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
 
             {/* Status */}
             <div className="flex items-center gap-3 px-3 min-h-[42px]">
-              <span className="w-20 shrink-0 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Status</span>
+              <Label className="w-20 shrink-0">Status</Label>
               <div className="flex-1 py-1.5">
                 <Select
                   value={migrateStatus(booking.status)}
@@ -202,7 +203,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
 
             {/* Category */}
             <div className="flex items-center gap-3 px-3 min-h-[42px]">
-              <span className="w-20 shrink-0 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Category</span>
+              <Label className="w-20 shrink-0">Category</Label>
               <div className="flex-1 py-1.5">
                 <select
                   value={booking.category || BOOKING_CATEGORIES[0].id}
@@ -219,7 +220,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
 
             {/* Date */}
             <div className="flex items-center gap-3 px-3 min-h-[42px]">
-              <span className="w-20 shrink-0 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Date</span>
+              <Label className="w-20 shrink-0">Date</Label>
               <div className="flex-1 py-1.5">
                 <DatePicker
                   value={booking.bookByDate || booking.startDate || ''}
@@ -233,7 +234,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
 
             {/* Cost */}
             <div className="flex items-center gap-3 px-3 min-h-[42px]">
-              <span className="w-20 shrink-0 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Cost</span>
+              <Label className="w-20 shrink-0">Cost</Label>
               <div className="flex-1 py-1.5">
                 <CostInput
                   value={booking.amountPaid}
@@ -246,7 +247,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
 
             {/* Conf # */}
             <div className="flex items-center gap-3 px-3 min-h-[42px]">
-              <span className="w-20 shrink-0 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Conf #</span>
+              <Label className="w-20 shrink-0">Conf #</Label>
               <div className="flex-1 min-w-0 py-1.5">
                 <EditableText
                   value={booking.confirmationNumber || ''}
@@ -261,7 +262,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
 
             {/* Link */}
             <div className="flex items-center gap-3 px-3 min-h-[42px]">
-              <span className="w-20 shrink-0 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Link</span>
+              <Label className="w-20 shrink-0">Link</Label>
               <div className="flex-1 min-w-0 py-1.5">
                 <EditableText
                   value={booking.providerLink || ''}
@@ -276,7 +277,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
 
             {/* Location */}
             <div className="flex items-start gap-3 px-3">
-              <span className="w-20 shrink-0 text-[11px] font-semibold text-text-muted uppercase tracking-wider pt-[13px]">Location</span>
+              <Label className="w-20 shrink-0 pt-[13px]">Location</Label>
               <div className="flex-1 min-w-0 py-2">
                 {editingLocation && !isReadOnly ? (
                   <div>
@@ -327,7 +328,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
 
           {/* Notes */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Notes & Policies</label>
+            <Label>Notes & Policies</Label>
             {isEditingNotes && !isReadOnly ? (
               <div className="space-y-2">
                 <textarea
@@ -359,10 +360,10 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
 
           {/* Attachments */}
           <div className="space-y-3">
-            <span className="text-xs font-semibold text-text-muted uppercase tracking-wider flex items-center gap-2">
+            <Label className="flex items-center gap-2">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
               Attachments
-            </span>
+            </Label>
             {booking.attachments?.length > 0 ? (
               <div className="grid grid-cols-1 gap-2">
                 {booking.attachments.map((file) => (
@@ -414,7 +415,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
 
           {/* Updates Feed */}
           <div className="space-y-6 pb-4">
-            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Updates</label>
+            <Label>Updates</Label>
             {comments.length === 0 ? (
               <p className="text-sm text-text-muted py-2">No updates yet. Start the conversation.</p>
             ) : (

@@ -202,24 +202,23 @@ export default function ActivityDrawer({ activity, dayId, onClose, onViewOnMap }
             {/* Time */}
             <div className="flex items-start gap-3 px-3 py-2.5 rounded-t-[var(--radius-md)]">
               <Label className="w-20 shrink-0 pt-1">Time</Label>
-              <div className="flex flex-col gap-1.5 flex-1">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <TimePicker
-                    value={activity.time}
-                    onChange={time => update({ time })}
-                    className="border border-border bg-bg-input rounded-[var(--radius-sm)] px-2 py-1 text-sm font-mono"
-                    placeholder="—"
-                    disabled={isReadOnly}
-                  />
-                  <span className="text-text-muted/50 text-xs shrink-0">→</span>
-                  <TimePicker
-                    value={activity.endTime}
-                    onChange={endTime => update({ endTime })}
-                    className="border border-border bg-bg-input rounded-[var(--radius-sm)] px-2 py-1 text-sm font-mono"
-                    placeholder="—"
-                    disabled={isReadOnly}
-                  />
-                </div>
+              <div className="flex items-center gap-1.5 flex-wrap flex-1">
+                <TimePicker
+                  value={activity.time}
+                  onChange={time => update({ time })}
+                  className="border border-border bg-bg-input rounded-[var(--radius-sm)] px-2 py-1 text-sm font-mono"
+                  placeholder="—"
+                  disabled={isReadOnly}
+                />
+                <span className="text-text-muted/50 text-xs shrink-0">→</span>
+                <TimePicker
+                  value={activity.endTime}
+                  onChange={endTime => update({ endTime })}
+                  className="border border-border bg-bg-input rounded-[var(--radius-sm)] px-2 py-1 text-sm font-mono"
+                  placeholder="—"
+                  disabled={isReadOnly}
+                />
+                <span className="text-text-muted/30 text-xs shrink-0 hidden sm:inline">·</span>
                 <div className="flex items-center gap-1">
                   <input
                     type="number"

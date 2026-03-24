@@ -8,6 +8,7 @@ import Select, { SelectItem } from '../shared/Select'
 import { useProfiles } from '../../context/ProfileContext'
 import AvatarCircle from '../shared/AvatarCircle'
 import { hapticImpact, hapticSelection } from '../../utils/haptics'
+import Label from '../shared/Label'
 
 function TodoStatusSelect({ value, onChange, disabled }) {
   const current = TODO_STATUSES.find(s => s.id === value) || TODO_STATUSES[0]
@@ -285,7 +286,7 @@ export default function TodoDrawer({ todo, travelers, onUpdate, onAddComment, on
 
             {/* Status */}
             <div className="flex items-center gap-3 px-3 min-h-[42px]">
-              <span className="w-20 shrink-0 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Status</span>
+              <Label className="w-20 shrink-0">Status</Label>
               <div className="flex-1 py-1.5">
                 <TodoStatusSelect
                   value={todo.status || (todo.done ? 'done' : 'not_started')}
@@ -297,21 +298,21 @@ export default function TodoDrawer({ todo, travelers, onUpdate, onAddComment, on
 
             {/* Due Date */}
             <div className="flex items-center gap-3 px-3 min-h-[42px]">
-              <span className="w-20 shrink-0 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Due</span>
+              <Label className="w-20 shrink-0">Due</Label>
               <div className="flex-1 py-1.5">
                 <DatePicker
                   value={todo.dueDate || ''}
                   onChange={val => { hapticSelection(); onUpdate(todo.id, { dueDate: val }) }}
                   placeholder="Set date"
                   disabled={isReadOnly}
-                  className="transition-colors whitespace-nowrap text-sm"
+                  className="text-text-primary text-sm block w-full border border-border bg-bg-input rounded-[var(--radius-md)] px-2 py-1.5 transition-colors whitespace-nowrap"
                 />
               </div>
             </div>
 
             {/* Assignee */}
             <div className="flex items-center gap-3 px-3 min-h-[42px]">
-              <span className="w-20 shrink-0 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Assignee</span>
+              <Label className="w-20 shrink-0">Assignee</Label>
               <div className="flex-1 py-1.5">
                 <AssigneePill
                   value={todo.assigneeId}
@@ -330,7 +331,7 @@ export default function TodoDrawer({ todo, travelers, onUpdate, onAddComment, on
 
           {/* Notes Area */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Notes</label>
+            <Label>Notes</Label>
             {isEditingNotes && !isReadOnly ? (
               <div className="space-y-2">
                 <textarea
@@ -375,7 +376,7 @@ export default function TodoDrawer({ todo, travelers, onUpdate, onAddComment, on
 
           {/* Updates Feed */}
           <div className="space-y-6">
-            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Updates</label>
+            <Label>Updates</Label>
             {comments.length === 0 ? (
               <p className="text-sm text-text-muted py-2">No updates yet. Start the conversation.</p>
             ) : (

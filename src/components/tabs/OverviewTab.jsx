@@ -108,8 +108,7 @@ function TodayAtAGlance({ trip }) {
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <Label className="text-accent">Today at a Glance</Label>
-          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-[var(--radius-pill)] flex items-center gap-1.5"
-            style={{ background: 'rgba(76,175,118,0.10)', color: '#4CAF76', border: '1px solid rgba(76,175,118,0.20)' }}>
+          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-[var(--radius-pill)] flex items-center gap-1.5 bg-success/10 text-success border border-success/20">
             🪄 Wanda Summary
           </span>
         </div>

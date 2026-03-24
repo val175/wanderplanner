@@ -533,7 +533,7 @@ function DayGroupTable({ day, itinerary, onReorderDay, trip, resolveLocation, is
               </div>
             );
             return (
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#E27D60]/10 text-[#E27D60]">
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-warning/10 text-warning">
                 <span>🪫</span> Packed
               </div>
             );
@@ -555,13 +555,13 @@ function DayGroupTable({ day, itinerary, onReorderDay, trip, resolveLocation, is
             <table className="w-full text-left border-collapse table-fixed min-w-[600px] text-sm">
               <thead>
                 <tr className="border-b border-border/50">
-                  <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[30px] overflow-hidden"></th>
-                  <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[100px] overflow-hidden">TIME</th>
-                  <th className="px-0 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[30px] text-center overflow-hidden"></th>
-                  <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-auto text-left overflow-hidden">ACTIVITY</th>
-                  <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[140px] text-left overflow-hidden">CATEGORY</th>
-                  <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[25%] text-left overflow-hidden">LOCATION</th>
-                  <th className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-text-muted w-[80px] overflow-hidden"></th>
+                  <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted w-[30px] overflow-hidden"></th>
+                  <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted w-[100px] overflow-hidden">TIME</th>
+                  <th className="px-0 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted w-[30px] text-center overflow-hidden"></th>
+                  <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted w-auto text-left overflow-hidden">ACTIVITY</th>
+                  <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted w-[140px] text-left overflow-hidden">CATEGORY</th>
+                  <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted w-[25%] text-left overflow-hidden">LOCATION</th>
+                  <th className="px-2 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted w-[80px] overflow-hidden"></th>
                 </tr>
               </thead>
               <tbody>
@@ -1290,7 +1290,7 @@ function CalendarView({ trip, itinerary, isMobile, activeDayIndex, onOpenDrawer,
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
             </button>
             <div className="text-center leading-tight py-1">
-              <p className="text-xs font-semibold text-text-muted uppercase tracking-wider font-heading mb-0.5">
+              <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-0.5">
                 {day?.emoji} Day {day?.dayNumber}
               </p>
               <p className="text-sm font-bold text-text-primary font-heading truncate max-w-[200px]">
@@ -1313,7 +1313,7 @@ function CalendarView({ trip, itinerary, isMobile, activeDayIndex, onOpenDrawer,
           {!isMobile && <div className="h-14" />} {/* Header spacer */}
           {hours.map(hr => (
             <div key={hr} className="relative" style={{ height: hourHeight }}>
-              <span className="absolute -top-2.5 left-3 text-[10px] font-mono text-text-muted font-semibold uppercase tracking-widest">
+              <span className="absolute -top-2.5 left-3 text-[10px] font-mono text-text-muted font-semibold uppercase tracking-wider">
                 {hr % 12 || 12} {hr < 12 ? 'AM' : 'PM'}
               </span>
             </div>
@@ -1335,7 +1335,7 @@ function CalendarView({ trip, itinerary, isMobile, activeDayIndex, onOpenDrawer,
                     className="h-14 border-b border-border/20 flex items-center justify-between sticky top-0 z-10 px-3 transition-all bg-bg-card"
                   >
                     <div className="flex flex-col min-w-0">
-                      <span className="text-[10px] font-semibold font-heading uppercase tracking-widest text-text-muted">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
                         Day {day.dayNumber}
                       </span>
                       <span className="text-sm font-semibold font-heading text-text-primary truncate max-w-full">
@@ -1346,7 +1346,7 @@ function CalendarView({ trip, itinerary, isMobile, activeDayIndex, onOpenDrawer,
                       const count = day.activities?.length || 0
                       if (count < 5) return <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-success/10 text-success shrink-0">🔋</div>
                       if (count <= 8) return <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-info/10 text-info shrink-0">⚡</div>
-                      return <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#E27D60]/10 text-[#E27D60] shrink-0">🪫</div>
+                      return <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-warning/10 text-warning shrink-0">🪫</div>
                     })()}
                   </div>
                 )}
@@ -1485,7 +1485,7 @@ export default function ItineraryTab() {
 
       <TabHeader
         leftSlot={
-          <span className="text-xs font-semibold font-heading text-text-muted tabular-nums">
+          <span className="text-xs font-semibold text-text-muted tabular-nums">
             {itinerary?.reduce((acc, d) => acc + (d.activities?.length || 0), 0) || 0} activities · {itinerary?.length || 0} days
           </span>
         }

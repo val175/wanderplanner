@@ -166,7 +166,7 @@ function CountdownPill({ targetDate }) {
   if (!targetDate || countdown.expired) return null
 
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-bg-secondary border border-border text-[9px] font-semibold uppercase tracking-wider text-text-muted whitespace-nowrap">
+    <span className="inline-flex items-center px-2.5 py-0.5 rounded-[var(--radius-pill)] bg-bg-secondary border border-border text-xs font-semibold uppercase tracking-wider text-text-muted whitespace-nowrap">
       <span className="text-accent font-semibold mr-1">{countdown.days}</span> days away
     </span>
   )
@@ -178,7 +178,6 @@ function CountdownPill({ targetDate }) {
 function InlineTripName({ value, onSave }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(value)
-  const [hovered, setHovered] = useState(false)
   const inputRef = useRef(null)
 
   useEffect(() => { if (!editing) setDraft(value) }, [value, editing])
@@ -221,20 +220,18 @@ function InlineTripName({ value, onSave }) {
   return (
     <button
       onClick={startEdit}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       className="group flex items-center gap-1 min-w-0 text-left flex-1"
       aria-label={`Trip name: ${value}. Click to edit.`}
     >
-      <h1 className={`font-heading text-lg md:text-2xl font-bold text-text-primary
+      <h1 className="font-heading text-lg md:text-2xl font-bold text-text-primary
                        leading-tight truncate transition-all duration-150
-                       ${hovered ? 'underline decoration-border-strong underline-offset-4' : ''}`}>
+                       group-hover:underline group-hover:decoration-border-strong group-hover:underline-offset-4">
         {value}
       </h1>
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
         stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        className={`shrink-0 text-text-muted transition-opacity duration-150 mt-0.5
-                    ${hovered ? 'opacity-100' : 'opacity-0'}`}
+        className="shrink-0 text-text-muted transition-opacity duration-150 mt-0.5
+                    opacity-0 group-hover:opacity-100"
         aria-hidden="true">
         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
@@ -575,7 +572,7 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
 
   /* ── Status badge (reused in both rows) ── */
   const StatusBadge = () => (
-    <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full bg-bg-secondary border border-border text-[9px] font-semibold uppercase tracking-widest text-text-muted whitespace-nowrap">
+    <span className="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-[var(--radius-pill)] bg-bg-secondary border border-border text-xs font-semibold uppercase tracking-wider text-text-muted whitespace-nowrap">
       {statusLabel}
     </span>
   )
@@ -616,7 +613,7 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
                 }
 
                 {/* Desktop-only status badge in title row — moved inside the group for better spacing */}
-                <span className="hidden lg:inline-flex shrink-0 items-center px-2 py-0.5 rounded-full bg-bg-secondary border border-border text-[9px] font-semibold uppercase tracking-widest text-text-muted whitespace-nowrap ml-2">
+                <span className="hidden lg:inline-flex shrink-0 items-center px-2.5 py-0.5 rounded-[var(--radius-pill)] bg-bg-secondary border border-border text-xs font-semibold uppercase tracking-wider text-text-muted whitespace-nowrap ml-2">
                   {statusLabel}
                 </span>
               </div>
@@ -678,7 +675,7 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
             <div className="flex items-center gap-2">
               <ProgressRing value={readiness} size={36} strokeWidth={3.5} labelClassName="text-[10px] font-semibold" />
               <div className="flex flex-col justify-center">
-                <span className="text-[9px] font-semibold uppercase tracking-widest text-text-muted leading-tight">Readiness</span>
+                <span className="text-xs font-semibold uppercase tracking-wider text-text-muted leading-tight">Readiness</span>
                 <span className={`text-xs font-semibold leading-tight ${readiness >= 100 ? 'text-success' : 'text-text-primary/70'}`}>
                   {readiness >= 100 ? 'Ready To Go!' : 'On Track'}
                 </span>

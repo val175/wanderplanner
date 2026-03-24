@@ -447,7 +447,7 @@ function FloatingActionBar({ count, isCreatingPoll, onStartDraft, onSubmit, disa
             <div className="flex items-center gap-3 bg-[#1A1918] text-white rounded-full px-5 py-3 border border-white/20">
                 <div>
                     <div className="text-[13px] font-semibold">{count} {count === 1 ? 'Idea' : 'Ideas'} Selected</div>
-                    <div className="text-[10px] text-white/50 uppercase tracking-widest font-semibold">Ready to vote?</div>
+                    <div className="text-[10px] text-white/50 uppercase tracking-wider font-semibold">Ready to vote?</div>
                 </div>
                 <div className="w-px h-8 bg-white/10" />
                 <button
@@ -541,7 +541,7 @@ function PollOptionCard({ option, poll, activeUserId, onVote, isLeader, globalTo
 
             {isVetoedByAnyone && (
                 <div className="absolute inset-0 z-30 flex items-center justify-center bg-bg-body/50 backdrop-blur-[1px] rounded-[var(--radius-lg)] pointer-events-none">
-                    <span className="rotate-[-6deg] text-danger font-semibold border-2 border-danger px-4 py-1.5 rounded-[var(--radius-md)] bg-bg-card opacity-90 tracking-widest uppercase">Vetoed 🧨</span>
+                    <span className="rotate-[-6deg] text-danger font-semibold border-2 border-danger px-4 py-1.5 rounded-[var(--radius-md)] bg-bg-card opacity-90 tracking-wider uppercase">Vetoed 🧨</span>
                 </div>
             )}
 
@@ -596,7 +596,7 @@ function PollOptionCard({ option, poll, activeUserId, onVote, isLeader, globalTo
                         )}
                     </div>
                     {totalTokens > 0 && (
-                        <div className="bg-amber-500/10 text-amber-600 font-semibold text-[10px] uppercase tracking-widest px-2 py-1 rounded">
+                        <div className="bg-amber-500/10 text-amber-600 font-semibold text-[10px] uppercase tracking-wider px-2 py-1 rounded">
                             {totalTokens} Tokens
                         </div>
                     )}
@@ -612,7 +612,7 @@ function PollOptionCard({ option, poll, activeUserId, onVote, isLeader, globalTo
                             >
                                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 12h14" /></svg>
                             </button>
-                            <span className="text-xs font-semibold text-amber-500 tracking-widest uppercase"><span className="text-base">{myTokens}</span> TOKENS</span>
+                            <span className="text-xs font-semibold text-amber-500 tracking-wider uppercase"><span className="text-base">{myTokens}</span> TOKENS</span>
                             <button
                                 onClick={() => onVote(poll.id, option.id, 'token', 'add')}
                                 className="w-10 h-10 flex items-center justify-center text-amber-500 hover:bg-amber-500/10 disabled:opacity-30 transition-colors"
@@ -624,7 +624,7 @@ function PollOptionCard({ option, poll, activeUserId, onVote, isLeader, globalTo
                     ) : (
                         <button
                             onClick={() => onVote(poll.id, option.id, 'token', 'add')}
-                            className="w-full border border-border bg-bg-secondary hover:bg-bg-hover text-text-secondary hover:text-text-primary transition-colors py-2.5 rounded-[var(--radius-md)] text-[11px] font-semibold uppercase tracking-widest flex items-center justify-center gap-2"
+                            className="w-full border border-border bg-bg-secondary hover:bg-bg-hover text-text-secondary hover:text-text-primary transition-colors py-2.5 rounded-[var(--radius-md)] text-[11px] font-semibold uppercase tracking-wider flex items-center justify-center gap-2"
                             disabled={globalTokensRemaining <= 0 || isVetoedByAnyone}
                         >
                             <span className="text-base leading-none text-text-muted">+ 🟡</span> Add Token
@@ -635,7 +635,7 @@ function PollOptionCard({ option, poll, activeUserId, onVote, isLeader, globalTo
                     <button
                         onClick={() => onVote(poll.id, option.id, 'veto')}
                         disabled={(globalVetoesRemaining === 0 && !isMyVeto)}
-                        className={`text-[10px] font-semibold text-center mt-1 uppercase tracking-widest transition-colors ${isMyVeto ? 'text-danger' : 'text-text-muted hover:text-danger'}`}
+                        className={`text-[10px] font-semibold text-center mt-1 uppercase tracking-wider transition-colors ${isMyVeto ? 'text-danger' : 'text-text-muted hover:text-danger'}`}
                     >
                         {isMyVeto ? '🧨 VETOED' : 'VETO'}
                     </button>
@@ -700,9 +700,9 @@ function PollCard({ poll, activeUserId, onVote, onResolve, onDelete, onCancel, r
                     <div>
                         <div className="flex items-center gap-2 mb-2">
                             {poll.status === 'resolved' ? (
-                                <span className="text-[10px] font-semibold text-success uppercase tracking-widest flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-success"></div> RESOLVED</span>
+                                <span className="text-[10px] font-semibold text-success uppercase tracking-wider flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-success"></div> RESOLVED</span>
                             ) : (
-                                <span className="text-[10px] font-semibold text-text-muted uppercase tracking-widest flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div> ACTIVE POLL</span>
+                                <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div> ACTIVE POLL</span>
                             )}
                         </div>
                         <h2 className="text-[22px] font-heading font-semibold text-text-primary leading-tight mb-2">
@@ -787,7 +787,7 @@ function IdeaCard({ idea, resolveProfile, onDelete, isSelectable, isSelected, on
 
             {/* Target Status Banner */}
             {isBooked && (
-                <div className="bg-success text-white text-[10px] font-semibold uppercase tracking-widest py-1.5 text-center flex items-center justify-center gap-1.5 absolute top-0 inset-x-0 z-10">
+                <div className="bg-success text-white text-[10px] font-semibold uppercase tracking-wider py-1.5 text-center flex items-center justify-center gap-1.5 absolute top-0 inset-x-0 z-10">
                     <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                     Added to Itinerary/Bookings
                 </div>

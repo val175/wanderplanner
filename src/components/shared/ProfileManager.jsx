@@ -47,7 +47,7 @@ function MyProfileCard() {
 
   return (
     <div className="mb-5">
-      <p className="text-xs font-medium text-text-muted uppercase tracking-widest mb-3">Your Profile</p>
+      <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">Your Profile</p>
       <div className="flex items-center gap-4 p-3 bg-bg-secondary rounded-[var(--radius-lg)] border border-border">
         {/* Avatar — click to upload custom photo */}
         <button
@@ -318,7 +318,7 @@ export default function ProfileManager({ isOpen, onClose }) {
         {/* Shared wanderer list (other people) */}
         {profiles.length > 0 && (
           <>
-            <p className="text-xs font-medium text-text-muted uppercase tracking-widest mb-2">Other Wanderers</p>
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Other Wanderers</p>
             <div className="divide-y divide-border">
               {profiles.map(p => (
                 <ProfileRow key={p.id} profile={p} onDelete={deleteProfile} />

@@ -259,7 +259,7 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
                         {/* Paid By Selector */}
                         <div className="space-y-1.5">
                             <div className="flex items-center gap-1.5 mb-1.5">
-                                <label className="block text-xs text-text-muted uppercase tracking-wider font-medium">Paid By</label>
+                                <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider">Paid By</label>
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted cursor-help opacity-60 hover:opacity-100 transition-opacity" title="This traveler will be logged as the payer for all items in this receipt. Individual splits remain equal between everyone.">
                                     <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
                                 </svg>
@@ -275,7 +275,7 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
 
                         {/* List Review */}
                         <div className="space-y-2.5">
-                            <label className="block text-xs font-semibold uppercase tracking-widest text-text-muted">Review Items</label>
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-text-muted">Review Items</label>
                             <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1 scrollbar-thin">
                                 {pendingItems.map((item, idx) => (
                                     <div key={idx} className="flex items-start gap-2 bg-bg-secondary/40 p-3 rounded-[var(--radius-md)] border border-border/60 group">
