@@ -78,6 +78,7 @@ export const ACTIONS = {
 
   // Wanda conversation + AI alerts
   UPDATE_WANDA_CONVERSATION: 'UPDATE_WANDA_CONVERSATION',
+  CLEAR_WANDA_CONVERSATION: 'CLEAR_WANDA_CONVERSATION',
   ADD_WANDA_ALERT: 'ADD_WANDA_ALERT',
   CLEAR_WANDA_ALERTS: 'CLEAR_WANDA_ALERTS',
 
@@ -506,10 +507,25 @@ export function tripReducer(state, action) {
         ...trip,
         itinerary: trip.itinerary.map(d => {
           if (d.id !== payload.dayId) return d
-          const activities = [...d.activities]
+          const before = [...d.activities]
+
+          // Capture start times by slot position before reordering
+          const slotTimes = before.map(a => normalizeTimeString(a.time) || a.time || '')
+
+          // Reorder the activities
+          const activities = [...before]
           const [moved] = activities.splice(payload.fromIndex, 1)
           activities.splice(payload.toIndex, 0, moved)
-          return { ...d, activities }
+
+          // Each activity inherits the start time of the slot it now occupies.
+          // Its own duration is preserved; endTime is recalculated.
+          const cascaded = activities.map((act, i) => {
+            const newTime = slotTimes[i]
+            const newEndTime = newTime ? addMinutesToTime(newTime, act.duration ?? 60) : act.endTime
+            return { ...act, time: newTime, endTime: newEndTime || act.endTime }
+          })
+
+          return { ...d, activities: cascaded }
         }),
       }))
 
@@ -873,6 +889,12 @@ export function tripReducer(state, action) {
       return updateTrip(state, activeTripId, trip => ({
         ...trip,
         wandaConversation: payload,
+      }))
+
+    case ACTIONS.CLEAR_WANDA_CONVERSATION:
+      return updateTrip(state, activeTripId, trip => ({
+        ...trip,
+        wandaConversation: [],
       }))
 
     case ACTIONS.ADD_WANDA_ALERT:

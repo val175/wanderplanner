@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import { createPortal } from 'react-dom';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { PanelRightClose, PanelRightOpen, Send, X } from 'lucide-react';
+import { PanelRightClose, PanelRightOpen, Send, Trash2, X } from 'lucide-react';
 import { auth } from '../../firebase/config';
 import { TripContext } from '../../context/TripContext';
 import { buildTripSystemPrompt } from '../../hooks/useAI';
@@ -15,6 +15,7 @@ import { hapticSelection } from '../../utils/haptics';
 import { buildTripCountryCodes } from '../../utils/tripGeo';
 import { useLiveWeatherContext } from '../../hooks/useLiveWeatherContext';
 import { wandaRuntime } from '../../utils/wandaRuntime';
+import { TAB_CONFIG } from '../../constants/tabs';
 
 let _systemPromptRef = buildTripSystemPrompt(null);
 
@@ -370,6 +371,12 @@ export default function AIAssistant() {
     setInput('');
   };
 
+  const handleClearHistory = () => {
+    setMessages([]);
+    dispatch({ type: ACTIONS.CLEAR_WANDA_CONVERSATION });
+    showToast('🗑️ Chat history cleared');
+  };
+
   const showPills = messages.length === 0 && !isLoading;
 
   const isMobile = useMediaQuery('(max-width: 767px)');
@@ -678,9 +685,28 @@ export default function AIAssistant() {
             <div className="wanda-serif text-sm text-text-primary tracking-[-0.01em]">
               Wanda
             </div>
+            {activeTrip && (() => {
+              const tab = TAB_CONFIG.find(t => t.id === state.activeTab) || TAB_CONFIG[0];
+              return (
+                <div className="text-[10px] text-text-muted leading-none mt-[2px] flex items-center gap-1">
+                  <span>{tab.emoji}</span>
+                  <span>{tab.label}</span>
+                </div>
+              );
+            })()}
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {messages.length > 0 && !isLoading && (
+            <button
+              onClick={handleClearHistory}
+              className="w-7 h-7 rounded-[var(--radius-sm)] border border-border text-text-muted hover:text-danger hover:border-danger/40 hover:bg-danger/5 transition-colors flex items-center justify-center"
+              aria-label="Clear chat history"
+              title="Clear chat history"
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
           {!isMobile && (
             <button
               onClick={() => {
@@ -695,7 +721,7 @@ export default function AIAssistant() {
                   payload: true,
                 })
               }}
-              className="w-7 h-7 rounded-[var(--radius-sm)] border border-border text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors flex items-center justify-center"
+              className="w-7 h-7 rounded-[var(--radius-sm)] border border-border text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors flex items-center justify-center"
               aria-label={viewMode === 'sidebar' ? 'Switch to floating mode' : 'Switch to sidebar mode'}
               title={viewMode === 'sidebar' ? 'Floating mode' : 'Sidebar mode'}
             >
