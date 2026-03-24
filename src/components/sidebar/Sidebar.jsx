@@ -207,38 +207,56 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
         )}
       </div>
 
-      {/* Footer / Global Actions */}
-      <div className="px-4 pt-3 pb-4 border-t border-border mt-auto">
-        {/* XP progress bar */}
-        <div className="mb-3">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">
-              {currentLevel.title}
-            </span>
-            <span className="text-[10px] font-medium text-text-muted">
-              {nextLevel ? `${xpProgress.current}/${xpProgress.needed} XP` : '✨ Max'}
-            </span>
+        {/* XP meter row — now ABOVE the footer line */}
+        <div className="px-4 py-2 mt-auto flex items-center gap-3">
+          {/* Avatar with level ring */}
+          <div className="relative shrink-0">
+            <button
+              onClick={() => setShowProfiles(true)}
+              className="rounded-full transition-all"
+              aria-label="Your profile and wanderers"
+              title={`${currentLevel.title} · ${xp} XP`}
+            >
+              <AvatarCircle
+                profile={currentUserProfile || { name: user?.displayName, photo: user?.photoURL }}
+                size={32}
+                levelColor={currentLevel.frameColor}
+              />
+            </button>
+            {/* Level badge removed per request */}
           </div>
-          <div className="w-full h-1 rounded-full bg-border/40 overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-700"
-              style={{
-                width: `${xpProgress.pct}%`,
-                background: currentLevel.frameColor,
-                boxShadow: `0 0 6px ${currentLevel.frameColor}88`,
-              }}
-            />
+
+          {/* XP bar + labels */}
+          <div className="flex-1 min-w-0 flex flex-col justify-center">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider truncate mr-2">
+                Lvl {currentLevel.level} • {currentLevel.emoji} {currentLevel.title}
+              </span>
+              <span className="text-[10px] font-medium text-text-muted whitespace-nowrap">
+                {nextLevel ? `${xpProgress.current}/${xpProgress.needed} XP` : '✨ Max'}
+              </span>
+            </div>
+            <div className="w-full h-1 rounded-full bg-border/20 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{
+                  width: `${xpProgress.pct}%`,
+                  background: currentLevel.frameColor,
+                  boxShadow: `0 0 6px ${currentLevel.frameColor}88`,
+                }}
+              />
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 px-1">
+        {/* Footer Branding section */}
+        <div className="px-4 py-3 border-t border-border mt-auto flex items-center justify-between">
+          <div className="flex items-center gap-1.5 px-1 text-text-primary">
             <span style={{ fontSize: '1.5rem', lineHeight: 1 }} aria-hidden="true">🪄</span>
             <span style={{
               fontFamily: "'Instrument Serif', Georgia, serif",
               fontWeight: 400,
               fontSize: '1.25rem',
-              color: 'var(--color-text-primary)',
               letterSpacing: '-0.02em',
               lineHeight: 1,
             }}>
@@ -246,32 +264,11 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
             </span>
           </div>
           <div className="flex items-center gap-1">
-            {/* Avatar with level ring — opens profile + wanderers modal */}
-            <div className="relative">
-              <button
-                onClick={() => setShowProfiles(true)}
-                className="rounded-full transition-all"
-                aria-label="Your profile and wanderers"
-                title={`${currentLevel.title} · ${xp} XP`}
-              >
-                <AvatarCircle
-                  profile={currentUserProfile || { name: user?.displayName, photo: user?.photoURL }}
-                  size={28}
-                  levelColor={currentLevel.frameColor}
-                />
-              </button>
-              {/* Level badge */}
-              <div
-                className="absolute -bottom-1.5 -right-1 text-white text-[8px] font-bold px-1 rounded-full leading-tight"
-                style={{ background: currentLevel.frameColor, minWidth: 16, textAlign: 'center' }}
-              >
-                {currentLevel.level}
-              </div>
-            </div>
             <button
               onClick={handleToggleDarkMode}
               className="p-1.5 rounded-[var(--radius-md)] text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
               aria-label={state.darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              title="Toggle theme"
             >
               {state.darkMode ? (
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -287,9 +284,22 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
                 </svg>
               )}
             </button>
+            <button
+              onClick={signOutUser}
+              className="p-1.5 rounded-[var(--radius-md)] text-text-muted hover:text-danger hover:bg-danger/10 transition-colors ml-1"
+              aria-label="Sign out"
+              title="Sign out"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
           </div>
         </div>
-      </div>
+      
+
     </aside>
   )
 

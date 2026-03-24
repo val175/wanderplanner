@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react'
 import { useProfiles } from '../../context/ProfileContext'
-import { useAuth } from '../../hooks/useAuth'
 import Modal from './Modal'
 import AvatarCircle from './AvatarCircle'
+import { getLevelForXp } from '../../constants/xpLevels'
 
 function resizeImage(file, maxSize = 300) {
   return new Promise((resolve) => {
@@ -23,50 +23,57 @@ function resizeImage(file, maxSize = 300) {
   })
 }
 
-/* ── Your Profile (current logged-in user) ───────────────────────────── */
-function MyProfileCard() {
-  const { currentUserProfile, updateCurrentUserProfile } = useProfiles()
-  const { signOutUser } = useAuth()
+/* ── Leaderboard Row (Handles both Current User and Shared Travelers) ── */
+function LeaderboardRow({ profile, rank, isMe, onDelete }) {
+  const { updateCurrentUserProfile, updateProfile } = useProfiles()
   const fileRef = useRef()
-  const [editingName, setEditingName] = useState(false)
-  const [name, setName] = useState(currentUserProfile?.name || '')
-
-  if (!currentUserProfile) return null
-
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState(profile.name || '')
+  
   const handlePhoto = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
     const photo = await resizeImage(file)
-    await updateCurrentUserProfile({ customPhoto: photo })
+    if (isMe) {
+      await updateCurrentUserProfile({ customPhoto: photo })
+    } else {
+      updateProfile(profile.id, { photo })
+    }
   }
 
   const handleSaveName = () => {
-    if (name.trim()) updateCurrentUserProfile({ name: name.trim() })
-    setEditingName(false)
+    if (name.trim()) {
+      if (isMe) updateCurrentUserProfile({ name: name.trim() })
+      else updateProfile(profile.id, { name: name.trim() })
+    }
+    setEditing(false)
   }
 
-  return (
-    <div className="mb-5">
-      <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">Your Profile</p>
-      <div className="flex items-center gap-4 p-3 bg-bg-secondary rounded-[var(--radius-lg)] border border-border">
-        {/* Avatar — click to upload custom photo */}
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          className="relative shrink-0 group"
-          title="Click to change your photo"
-        >
-          <AvatarCircle profile={currentUserProfile} size={52} />
-          <span className="absolute inset-0 flex items-center justify-center rounded-full
-                           bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity
-                           text-white text-[10px] font-medium leading-tight text-center px-1">
-            Change<br />photo
-          </span>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
-        </button>
+  const levelInfo = getLevelForXp(profile.xp || 0)
 
-        <div className="flex-1 min-w-0">
-          {editingName ? (
+  return (
+    <div className={`flex items-center gap-3 py-3 px-2 rounded-[var(--radius-lg)] group transition-colors ${isMe ? 'bg-bg-secondary border border-border/50' : 'hover:bg-bg-secondary/50'}`}>
+      <div className="w-5 text-center shrink-0 text-xs font-bold text-text-muted opacity-60">
+        {rank}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        className="relative shrink-0 hover:opacity-80 transition-opacity"
+        title="Change photo"
+      >
+        <AvatarCircle profile={profile} size={40} levelColor={levelInfo?.frameColor} />
+        <span className="absolute inset-0 flex items-center justify-center rounded-full
+                         bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity text-white text-[10px] font-medium leading-tight text-center">
+          edit
+        </span>
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
+      </button>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          {editing ? (
             <input
               autoFocus
               value={name}
@@ -74,105 +81,45 @@ function MyProfileCard() {
               onBlur={handleSaveName}
               onKeyDown={e => {
                 if (e.key === 'Enter') handleSaveName()
-                if (e.key === 'Escape') { setName(currentUserProfile.name); setEditingName(false) }
+                if (e.key === 'Escape') { setName(profile.name); setEditing(false) }
               }}
-              className="w-full px-2 py-1 text-sm bg-bg-input border border-accent/40 rounded-[var(--radius-sm)]
-                         text-text-primary outline-none focus:ring-1 focus:ring-accent/20"
+              className="w-full px-2 py-0.5 text-sm bg-bg-input border border-accent/40 rounded-[var(--radius-sm)] text-text-primary outline-none focus:ring-1 focus:ring-accent/20"
             />
           ) : (
-            <button
-              type="button"
-              onClick={() => { setName(currentUserProfile.name); setEditingName(true) }}
-              className="text-sm font-semibold text-text-primary hover:text-accent transition-colors text-left"
+            <span
+              className={`text-sm font-semibold cursor-pointer hover:text-accent transition-colors truncate ${isMe ? 'text-text-primary' : 'text-text-primary'}`}
+              onClick={() => setEditing(true)}
+              title="Click to edit name"
             >
-              {currentUserProfile.name}
-            </button>
+              {profile.name} {isMe && <span className="text-text-muted font-normal text-xs ml-1">(You)</span>}
+            </span>
           )}
-          <p className="text-xs text-text-muted mt-0.5 truncate">{currentUserProfile.email}</p>
         </div>
-
-        <button
-          type="button"
-          onClick={signOutUser}
-          className="text-xs text-text-muted hover:text-danger transition-colors shrink-0 whitespace-nowrap"
-        >
-          Sign out
-        </button>
+        <p className="text-[10px] font-semibold text-text-muted mt-0.5 truncate uppercase tracking-wider">
+          Lvl {levelInfo.level} • {levelInfo.emoji} {levelInfo.title}
+        </p>
       </div>
-    </div>
-  )
-}
 
-/* ── Shared Wanderer Row ─────────────────────────────────────────────── */
-function ProfileRow({ profile, onDelete }) {
-  const { updateProfile } = useProfiles()
-  const fileRef = useRef()
-  const [editing, setEditing] = useState(false)
-  const [name, setName] = useState(profile.name)
-
-  const handlePhoto = async (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const photo = await resizeImage(file)
-    updateProfile(profile.id, { photo })
-  }
-
-  const handleSaveName = () => {
-    if (name.trim()) updateProfile(profile.id, { name: name.trim() })
-    setEditing(false)
-  }
-
-  return (
-    <div className="flex items-center gap-3 py-2.5 px-1 group">
-      <button
-        type="button"
-        onClick={() => fileRef.current?.click()}
-        className="relative shrink-0 hover:opacity-80 transition-opacity"
-        title="Change photo"
-      >
-        <AvatarCircle profile={profile} size={40} />
-        <span className="absolute inset-0 flex items-center justify-center rounded-full
-                         bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity text-white text-[10px] font-medium">
-          edit
+      <div className="flex items-center gap-2 shrink-0">
+        <span className="text-xs font-bold text-accent px-2 bg-accent/10 rounded-full py-0.5 mr-1">
+          {profile.xp || 0} XP
         </span>
-        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
-      </button>
-
-      <div className="flex-1 min-w-0">
-        {editing ? (
-          <input
-            autoFocus
-            value={name}
-            onChange={e => setName(e.target.value)}
-            onBlur={handleSaveName}
-            onKeyDown={e => {
-              if (e.key === 'Enter') handleSaveName()
-              if (e.key === 'Escape') { setName(profile.name); setEditing(false) }
-            }}
-            className="w-full px-2 py-1 text-sm bg-bg-input border border-accent/40 rounded-[var(--radius-sm)] text-text-primary outline-none focus:ring-1 focus:ring-accent/20"
-          />
-        ) : (
-          <span
-            className="text-sm text-text-primary cursor-pointer hover:text-accent transition-colors"
-            onClick={() => setEditing(true)}
+        {!isMe && (
+          <button
+            type="button"
+            onClick={() => onDelete?.(profile.id)}
+            className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger hover:bg-danger/10 p-1.5 rounded-md transition-all"
+            title="Remove wanderer"
           >
-            {profile.name}
-          </span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-1 14H6L5 6" />
+              <path d="M10 11v6M14 11v6" />
+              <path d="M9 6V4h6v2" />
+            </svg>
+          </button>
         )}
       </div>
-
-      <button
-        type="button"
-        onClick={() => onDelete(profile.id)}
-        className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger transition-all p-1"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="3 6 5 6 21 6" />
-          <path d="M19 6l-1 14H6L5 6" />
-          <path d="M10 11v6M14 11v6" />
-          <path d="M9 6V4h6v2" />
-        </svg>
-      </button>
     </div>
   )
 }
@@ -297,14 +244,20 @@ function AddProfileForm({ onDone }) {
 
 /* ── Main Modal ──────────────────────────────────────────────────────── */
 export default function ProfileManager({ isOpen, onClose }) {
-  const { profiles, deleteProfile } = useProfiles()
+  const { profiles, currentUserProfile, deleteProfile } = useProfiles()
   const [showAdd, setShowAdd] = useState(false)
 
+  // Combine and sort all wanderers by XP descending
+  const allUsers = [currentUserProfile, ...profiles].filter(Boolean)
+  const sortedUsers = [...allUsers].sort((a, b) => (b.xp || 0) - (a.xp || 0))
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} maxWidth="max-w-sm">
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth="max-w-md">
       <div className="px-6 pt-6 pb-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="font-heading text-lg font-semibold text-text-primary">Wanderers</h2>
+          <h2 className="font-heading text-xl font-semibold text-text-primary flex items-center gap-2">
+            <span>🏆</span> Leaderboard & Wanderers
+          </h2>
           <button onClick={onClose} className="p-1.5 rounded-[var(--radius-sm)] text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -312,20 +265,20 @@ export default function ProfileManager({ isOpen, onClose }) {
           </button>
         </div>
 
-        {/* Current user's own profile — always shown at top */}
-        <MyProfileCard />
-
-        {/* Shared wanderer list (other people) */}
-        {profiles.length > 0 && (
-          <>
-            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Other Wanderers</p>
-            <div className="divide-y divide-border">
-              {profiles.map(p => (
-                <ProfileRow key={p.id} profile={p} onDelete={deleteProfile} />
-              ))}
-            </div>
-          </>
-        )}
+        <div className="flex flex-col gap-1 mb-2">
+          {sortedUsers.map((user, index) => {
+            const isMe = user.id === currentUserProfile?.id || user.uid === currentUserProfile?.uid || user.email === currentUserProfile?.email
+            return (
+              <LeaderboardRow
+                key={user.uid || user.id || index}
+                profile={user}
+                rank={index + 1}
+                isMe={isMe}
+                onDelete={deleteProfile}
+              />
+            )
+          })}
+        </div>
 
         {showAdd
           ? <AddProfileForm onDone={() => setShowAdd(false)} />
