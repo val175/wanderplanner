@@ -29,6 +29,7 @@ import WalkieTalkieModal from './components/shared/WalkieTalkieModal'
 import GlobalSearchModal from './components/modal/GlobalSearchModal'
 import ShortcutsModal from './components/shared/ShortcutsModal'
 import CursorManager from './components/shared/CursorManager'
+import LevelUpModal from './components/shared/LevelUpModal'
 
 // Tab components
 import OverviewTab from './components/tabs/OverviewTab'
@@ -173,6 +174,7 @@ function AuthenticatedApp({ user, signOutUser }) {
 
   const [showSearch, setShowSearch] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
+  const [levelUpEvent, setLevelUpEvent] = useState(null)
   useEffect(() => {
     const handleOpenSearch = () => setShowSearch(true)
     window.addEventListener('open-global-search', handleOpenSearch)
@@ -192,6 +194,12 @@ function AuthenticatedApp({ user, signOutUser }) {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [showSearch])
+
+  useEffect(() => {
+    const handleLevelUp = (e) => setLevelUpEvent(e)
+    window.addEventListener('xp-level-up', handleLevelUp)
+    return () => window.removeEventListener('xp-level-up', handleLevelUp)
+  }, [])
 
   const handleTabSwitch = useCallback((tabId) => {
     dispatch({ type: ACTIONS.SET_TAB, payload: tabId })
@@ -334,6 +342,10 @@ function AuthenticatedApp({ user, signOutUser }) {
         <ShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
         <AIAssistant />
         <WalkieTalkieModal />
+
+        {levelUpEvent && (
+          <LevelUpModal event={levelUpEvent} onClose={() => setLevelUpEvent(null)} />
+        )}
 
         <Toast
           message={state.toast.message}

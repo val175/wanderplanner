@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { doc, getDoc, onSnapshot, setDoc, collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '../firebase/config'
+import { getLevelForXp } from '../constants/xpLevels'
 
 // Each user's own profile lives at users/{uid}/profile
 // The shared traveler list (other people on trips) stays at users/{uid}/travelers
@@ -137,6 +138,27 @@ export function ProfileProvider({ user, children }) {
     await setDoc(profileDocRef, merged)
   }, [currentUserProfile, profileDocRef]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── XP & Level progression ─────────────────────────────────────────────
+  const awardXp = useCallback(async (event, amount, meta = {}) => {
+    if (!profileDocRef || !currentUserProfile) return null
+    const currentXp = currentUserProfile.xp || 0
+    const newXp = currentXp + amount
+    const oldLevel = getLevelForXp(currentXp)
+    const newLevel = getLevelForXp(newXp)
+
+    const logEntry = { event, xp: amount, ts: new Date().toISOString(), ...meta }
+    const existingLog = currentUserProfile.xpLog || []
+    const newLog = [...existingLog, logEntry].slice(-50) // cap at 50 entries
+
+    await updateCurrentUserProfile({ xp: newXp, level: newLevel.level, xpLog: newLog })
+
+    const leveledUp = newLevel.level > oldLevel.level
+    if (leveledUp) {
+      window.dispatchEvent(new CustomEvent('xp-level-up', { detail: { newLevel } }))
+    }
+    return { leveledUp, newLevel }
+  }, [currentUserProfile, profileDocRef, updateCurrentUserProfile]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Discovery: Find other users by email ────────────────────────────────
   const findProfileByEmail = useCallback(async (email) => {
     if (!email) return null
@@ -232,6 +254,7 @@ export function ProfileProvider({ user, children }) {
     <ProfileContext.Provider value={{
       currentUserProfile,
       updateCurrentUserProfile,
+      awardXp,
       profiles,
       addProfile,
       updateProfile,

@@ -639,7 +639,7 @@ function BoardStatusColumn({ status, index, statusTodos, canDrag, isReadOnly, di
 
 export default function TodoTab() {
   const { activeTrip, dispatch, showToast, isReadOnly } = useTripContext()
-  const { currentUserProfile, resolveProfile } = useProfiles()
+  const { currentUserProfile, resolveProfile, awardXp } = useProfiles()
   const [filter, setFilter] = useState('all') // 'all' or 'mine'
   const [hideCompleted, setHideCompleted] = useState(false)
   const [celebration, setCelebration] = useState(0)
@@ -694,12 +694,13 @@ export default function TodoTab() {
     const current = getTodoStatus(todo)
     dispatch({ type: ACTIONS.UPDATE_TODO, payload: { id: todoId, updates: { status: next, done: next === 'done' } } })
     if (current !== 'done' && next === 'done') {
+      awardXp('todo_cleared', 5)
       if (completedCount + 1 === totalCount && totalCount > 0) {
         setCelebration(c => c + 1)
         showToast("You're all set! Have an amazing trip 🌟")
       }
     }
-  }, [dispatch, todos, completedCount, totalCount, showToast])
+  }, [dispatch, todos, completedCount, totalCount, showToast, awardXp])
 
   const handleToggle = useCallback((todoId) => {
     const todo = todos.find(t => t.id === todoId)

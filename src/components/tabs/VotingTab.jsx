@@ -873,7 +873,8 @@ function IdeaCard({ idea, resolveProfile, onDelete, isSelectable, isSelected, on
 // ── Main Tab Component ──
 export default function VotingTab() {
     const { activeTrip, dispatch, showToast } = useTripContext()
-    const { currentUserProfile, resolveProfile } = useProfiles()
+    const { currentUserProfile, resolveProfile, awardXp } = useProfiles()
+    const votedPollsRef = useRef(new Set()) // de-dupe XP per poll per session
 
     const [filter, setFilter] = useState('all')
     const [showIdeaExtractor, setShowIdeaExtractor] = useState(false)
@@ -998,6 +999,11 @@ export default function VotingTab() {
             type: ACTIONS.VOTE_POLL,
             payload: { pollId, ideaId: optionId, optionId, userId: currentUserProfile?.id, type, action }
         })
+        // Award XP only once per poll per session
+        if (!votedPollsRef.current.has(pollId)) {
+            votedPollsRef.current.add(pollId)
+            awardXp('vote_cast', 5, { pollId })
+        }
     }
 
     const handleDeletePoll = (pollId) => {

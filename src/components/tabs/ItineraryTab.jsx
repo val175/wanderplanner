@@ -1403,6 +1403,19 @@ export default function ItineraryTab() {
   const trip = activeTrip
   const itinerary = useMemo(() => sortItineraryDays(trip.itinerary || []), [trip.itinerary])
 
+  // ── Day cap: derive max days from trip date range ──────────────────────────
+  const maxDays = useMemo(() => {
+    if (!trip.startDate || !trip.endDate) return null
+    const [sy, sm, sd] = trip.startDate.split('-').map(Number)
+    const [ey, em, ed] = trip.endDate.split('-').map(Number)
+    const start = new Date(sy, sm - 1, sd)
+    const end   = new Date(ey, em - 1, ed)
+    const diff  = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1 // inclusive
+    return diff > 0 ? diff : null
+  }, [trip.startDate, trip.endDate])
+
+  const atDayLimit = maxDays !== null && itinerary.length >= maxDays
+
   const handleOpenMapPoint = useCallback((day, activity) => {
     const point = activity
       ? buildMapPointForActivity(day, activity)
@@ -1464,6 +1477,7 @@ export default function ItineraryTab() {
   }, { axis: 'x', filterTaps: true })
 
   const handleAddDay = () => {
+    if (atDayLimit) return // guard — button should already be disabled
     const lastDay = itinerary[itinerary.length - 1]
     let nextDate = ''
     if (lastDay?.date) {
@@ -1520,9 +1534,19 @@ export default function ItineraryTab() {
                 <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="shrink-0">
                   📍 New Activity
                 </Button>
-                <Button size="sm" onClick={handleAddDay} className="shrink-0">
-                  ✨ New Day
-                </Button>
+                <span
+                  title={atDayLimit ? `Day limit reached (${itinerary.length}/${maxDays} days)` : undefined}
+                  className="shrink-0"
+                >
+                  <Button
+                    size="sm"
+                    onClick={handleAddDay}
+                    disabled={atDayLimit}
+                    className="shrink-0"
+                  >
+                    ✨ New Day
+                  </Button>
+                </span>
               </div>
             )}
           </div>
@@ -1600,8 +1624,14 @@ export default function ItineraryTab() {
           </button>
           <div className="animate-tab-enter stagger-2">
             <button
-              onClick={() => { hapticImpact('medium'); handleAddDay() }}
-              className="bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2 text-sm"
+              onClick={() => { if (!atDayLimit) { hapticImpact('medium'); handleAddDay() } }}
+              disabled={atDayLimit}
+              title={atDayLimit ? `Day limit reached (${itinerary.length}/${maxDays} days)` : undefined}
+              className={`rounded-full px-4 py-3 font-semibold flex items-center gap-2 text-sm transition-opacity ${
+                atDayLimit
+                  ? 'bg-bg-card border border-border text-text-muted opacity-50 cursor-not-allowed'
+                  : 'bg-accent text-white'
+              }`}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
               New Day

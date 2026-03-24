@@ -7,6 +7,7 @@ import AvatarCircle from '../shared/AvatarCircle'
 import { useAuth } from '../../hooks/useAuth'
 import { useProfiles } from '../../context/ProfileContext'
 import { getEffectiveStatus } from '../../utils/tripStatus'
+import { getLevelForXp, getXpProgress, getNextLevel } from '../../constants/xpLevels'
 
 const THE_PLAN_IDS = ['overview', 'wandermap', 'itinerary', 'cities', 'bookings']
 const TOOLS_IDS = ['voting', 'budget', 'todo', 'packing', 'concert']
@@ -124,6 +125,12 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
   const { currentUserProfile } = useProfiles()
   const [showProfiles, setShowProfiles] = useState(false)
 
+  // XP / level derived values
+  const xp = currentUserProfile?.xp || 0
+  const currentLevel = getLevelForXp(xp)
+  const nextLevel = getNextLevel(xp)
+  const xpProgress = getXpProgress(xp)
+
   const handleToggleDarkMode = () => {
     dispatch({ type: ACTIONS.TOGGLE_DARK_MODE })
   }
@@ -201,7 +208,29 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
       </div>
 
       {/* Footer / Global Actions */}
-      <div className="px-4 py-4 border-t border-border mt-auto">
+      <div className="px-4 pt-3 pb-4 border-t border-border mt-auto">
+        {/* XP progress bar */}
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">
+              {currentLevel.title}
+            </span>
+            <span className="text-[10px] font-medium text-text-muted">
+              {nextLevel ? `${xpProgress.current}/${xpProgress.needed} XP` : '✨ Max'}
+            </span>
+          </div>
+          <div className="w-full h-1 rounded-full bg-border/40 overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{
+                width: `${xpProgress.pct}%`,
+                background: currentLevel.frameColor,
+                boxShadow: `0 0 6px ${currentLevel.frameColor}88`,
+              }}
+            />
+          </div>
+        </div>
+
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5 px-1">
             <span style={{ fontSize: '1.5rem', lineHeight: 1 }} aria-hidden="true">🪄</span>
@@ -217,15 +246,28 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
             </span>
           </div>
           <div className="flex items-center gap-1">
-            {/* Avatar — opens profile + wanderers modal */}
-            <button
-              onClick={() => setShowProfiles(true)}
-              className="rounded-full hover:ring-2 hover:ring-accent/40 transition-all"
-              aria-label="Your profile and wanderers"
-              title="Profile & Wanderers"
-            >
-              <AvatarCircle profile={currentUserProfile || { name: user?.displayName, photo: user?.photoURL }} size={28} />
-            </button>
+            {/* Avatar with level ring — opens profile + wanderers modal */}
+            <div className="relative">
+              <button
+                onClick={() => setShowProfiles(true)}
+                className="rounded-full transition-all"
+                aria-label="Your profile and wanderers"
+                title={`${currentLevel.title} · ${xp} XP`}
+              >
+                <AvatarCircle
+                  profile={currentUserProfile || { name: user?.displayName, photo: user?.photoURL }}
+                  size={28}
+                  levelColor={currentLevel.frameColor}
+                />
+              </button>
+              {/* Level badge */}
+              <div
+                className="absolute -bottom-1.5 -right-1 text-white text-[8px] font-bold px-1 rounded-full leading-tight"
+                style={{ background: currentLevel.frameColor, minWidth: 16, textAlign: 'center' }}
+              >
+                {currentLevel.level}
+              </div>
+            </div>
             <button
               onClick={handleToggleDarkMode}
               className="p-1.5 rounded-[var(--radius-md)] text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
@@ -234,14 +276,10 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
               {state.darkMode ? (
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="5" />
-                  <line x1="12" y1="1" x2="12" y2="3" />
-                  <line x1="12" y1="21" x2="12" y2="23" />
-                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                  <line x1="1" y1="12" x2="3" y2="12" />
-                  <line x1="21" y1="12" x2="23" y2="12" />
-                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                  <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                  <line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" />
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
                 </svg>
               ) : (
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

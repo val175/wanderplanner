@@ -78,8 +78,8 @@ function useRouteDistance(destinations) {
    Main WrapUpTab
 ───────────────────────────────────────────────────────────── */
 export default function WrapUpTab() {
-    const { activeTrip, dispatch, showToast } = useTripContext()
-    const { currentUserProfile } = useProfiles()
+    const { activeTrip, dispatch, showToast, effectiveStatus } = useTripContext()
+    const { currentUserProfile, awardXp } = useProfiles()
     const travelerProfiles = useTripTravelers()
     const [isExporting, setIsExporting] = useState(false)
     const exportRef = useMemo(() => ({ current: null }), [])
@@ -139,6 +139,12 @@ export default function WrapUpTab() {
                 text: `Write a short travel recap for my ${trip.name} trip to ${cities} — highlight the best moments, what I spent, and what I'd do differently. Make it feel like a travel journal entry.`
             }
         }))
+    }
+
+    const handleMarkComplete = async () => {
+        dispatch({ type: ACTIONS.ARCHIVE_TRIP, payload: trip.id })
+        await awardXp?.('trip_completed', 100, { tripId: trip.id })
+        showToast('🎉 Trip completed! +100 XP earned!', 'success')
     }
 
     const handleExportStory = async () => {
@@ -273,6 +279,16 @@ export default function WrapUpTab() {
                 >
                     🪄 <span className="wanda-serif">Wanda</span> Recap
                 </Button>
+                {effectiveStatus !== 'completed' && effectiveStatus !== 'archived' && (
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleMarkComplete}
+                        className="border-success/60 text-success hover:bg-success/10"
+                    >
+                        ✅ Mark as Complete · +100 XP
+                    </Button>
+                )}
             </div>
             {/* ── HIDDEN STORY CANVAS FOR EXPORT ── */}
             <div 

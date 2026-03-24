@@ -1,14 +1,21 @@
-// Renders a single avatar circle — photo or initials fallback
-export default function AvatarCircle({ profile, size = 28, className = '', ring = false }) {
+// Renders a single avatar circle — photo or initials fallback.
+// Pass `levelColor` (CSS color string) to render a glowing level ring.
+export default function AvatarCircle({ profile, size = 28, className = '', ring = false, levelColor }) {
   const initial = profile?.name?.trim()?.[0]?.toUpperCase() || '?'
+
+  const photo = profile?.customPhoto || profile?.photo
 
   const style = {
     width: size,
     height: size,
     fontSize: size * 0.38,
+    // Level ring: 2px solid outline + soft glow
+    ...(levelColor ? {
+      outline: `2px solid ${levelColor}`,
+      outlineOffset: '1px',
+      boxShadow: `0 0 6px ${levelColor}55`,
+    } : {}),
   }
-
-  const photo = profile?.customPhoto || profile?.photo
 
   return (
     <div
