@@ -187,7 +187,12 @@ Example: { picks: [{ title: "The Peninsula Hotel", type: "lodging", emoji: "🏨
 
 /**
  * Low-level helper: POST to the proxy in OpenAI format, return response text.
+ * Exported as callAI for components that need JSON mode or custom opts.
  */
+export async function callAI(messages, opts = {}) {
+  return callProxy(messages, opts)
+}
+
 async function callProxy(messages, opts = {}) {
   let token = '';
   try {
