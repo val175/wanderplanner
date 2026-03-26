@@ -17,6 +17,7 @@ import { useTripTravelers } from '../../hooks/useTripTravelers'
 import { Search as SearchIcon } from 'lucide-react'
 import ShareTripModal from '../modal/ShareTripModal'
 import GlobalSearchModal from '../modal/GlobalSearchModal'
+import PresentationMode from '../shared/PresentationMode'
 
 /* ─────────────────────────────────────────────────────────────
    TravelerPicker — portal-based dropdown (unchanged logic)
@@ -374,6 +375,7 @@ function HeaderOptionsDropdown({ trip, dispatch, isReadOnly, onRenameRequest }) 
 
   const [showShareModal, setShowShareModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showPresentation, setShowPresentation] = useState(false)
 
   const handleOpen = () => {
     if (btnRef.current) {
@@ -386,7 +388,7 @@ function HeaderOptionsDropdown({ trip, dispatch, isReadOnly, onRenameRequest }) 
   useEffect(() => {
     if (!open) return
     const handler = (e) => {
-      if (showDeleteConfirm || showShareModal) return
+      if (showDeleteConfirm || showShareModal || showPresentation) return
       if (
         btnRef.current && !btnRef.current.contains(e.target) &&
         dropdownRef.current && !dropdownRef.current.contains(e.target)
@@ -399,7 +401,7 @@ function HeaderOptionsDropdown({ trip, dispatch, isReadOnly, onRenameRequest }) 
   useEffect(() => {
     if (!open) return
     const close = () => {
-      if (!showDeleteConfirm && !showShareModal) setOpen(false)
+      if (!showDeleteConfirm && !showShareModal && !showPresentation) setOpen(false)
     }
     window.addEventListener('scroll', close, true)
     window.addEventListener('resize', close)
@@ -473,6 +475,13 @@ function HeaderOptionsDropdown({ trip, dispatch, isReadOnly, onRenameRequest }) 
               <ShareIcon />
               Share trip
             </button>
+            <button
+              onClick={() => { setShowPresentation(true); setOpen(false) }}
+              className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-text-primary font-medium hover:bg-bg-hover transition-colors text-left"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+              Present to group
+            </button>
           </div>
           {!isReadOnly && (
             <>
@@ -514,6 +523,10 @@ function HeaderOptionsDropdown({ trip, dispatch, isReadOnly, onRenameRequest }) 
           trip={trip}
           onClose={() => { setShowShareModal(false); setOpen(false); }}
         />
+      )}
+
+      {showPresentation && (
+        <PresentationMode onClose={() => setShowPresentation(false)} />
       )}
 
       <ConfirmDialog
