@@ -3,17 +3,17 @@ import { GoogleGenAI, Modality } from '@google/genai'
 import { auth } from '../firebase/config'
 import { triggerHaptic } from '../utils/haptics'
 
-const LIVE_KEY_URL = 'https://wanderplan-rust.vercel.app/api/wanda-live-key'
+const LIVE_TOKEN_URL = 'https://wanderplan-rust.vercel.app/api/wanda-live-token'
 
-async function fetchLiveKey() {
-  const token = await auth.currentUser?.getIdToken()
-  if (!token) throw new Error('Not authenticated')
-  const res = await fetch(LIVE_KEY_URL, {
-    headers: { Authorization: `Bearer ${token}` },
+async function fetchEphemeralToken() {
+  const firebaseToken = await auth.currentUser?.getIdToken()
+  if (!firebaseToken) throw new Error('Not authenticated')
+  const res = await fetch(LIVE_TOKEN_URL, {
+    headers: { Authorization: `Bearer ${firebaseToken}` },
   })
-  if (!res.ok) throw new Error(`Key fetch failed: ${res.status}`)
-  const { apiKey } = await res.json()
-  return apiKey
+  if (!res.ok) throw new Error(`Token fetch failed: ${res.status}`)
+  const { token } = await res.json()
+  return token
 }
 
 // Model: Gemini 2.5 Flash Native Audio Dialog (free tier: unlimited RPM/RPD, 1M TPM)
@@ -116,11 +116,11 @@ export function useWandaLive() {
     setError(null)
     isActiveRef.current = true
 
-    let apiKey
+    let ephemeralToken
     try {
-      apiKey = await fetchLiveKey()
+      ephemeralToken = await fetchEphemeralToken()
     } catch (err) {
-      console.error('[WandaLive] Failed to fetch Live API key:', err)
+      console.error('[WandaLive] Failed to fetch ephemeral token:', err)
       setError('Could not authenticate. Please try again.')
       isActiveRef.current = false
       return
@@ -153,8 +153,10 @@ export function useWandaLive() {
       return
     }
 
-    // Step 3: Open Gemini Live session
-    const ai = new GoogleGenAI({ apiKey })
+    // Step 3: Open Gemini Live session using the ephemeral token
+    // httpOptions.apiVersion must be 'v1alpha' — ephemeral tokens use
+    // BidiGenerateContentConstrained which only exists on v1alpha, not v1beta
+    const ai = new GoogleGenAI({ apiKey: ephemeralToken, httpOptions: { apiVersion: 'v1alpha' } })
     let session
     try {
       session = await ai.live.connect({
