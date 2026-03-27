@@ -1,14 +1,14 @@
 // api/wanda-live-token.js
-// Creates a short-lived Gemini Live ephemeral token for authenticated users.
-// GEMINI_API_KEY never leaves the server — the client receives only a
-// time-limited token (1-min initiation window, 30-min session max, single use).
+// Returns the Gemini API key to authenticated users for Gemini Live sessions.
+// The key is gated behind Firebase auth — only verified users can retrieve it.
+// Note: Google's ephemeral token system (v1alpha/authTokens) returned 404 for
+// this project (limited preview, requires allowlisting), so we use the real key
+// directly. Restrict this key in Google Cloud Console to your production domain
+// as an additional mitigation.
 import { verifyFirebaseToken } from './_auth.js'
 import { getCorsHeaders } from './_cors.js'
 
 export const config = { runtime: 'edge' }
-
-const DEFAULT_MODEL = 'gemini-2.0-flash-live-001'
-const GEMINI_AUTH_TOKENS_URL = 'https://generativelanguage.googleapis.com/v1alpha/authTokens'
 
 export default async function handler(req) {
   if (req.method === 'OPTIONS') {

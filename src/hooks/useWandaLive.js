@@ -195,8 +195,7 @@ export function useWandaLive() {
     silentGainRef.current = silentGain
 
     // Step 4: Open Gemini Live session — stored in ref so onclose can call it for fallback
-    // httpOptions.apiVersion must be 'v1alpha' — ephemeral tokens use
-    // BidiGenerateContentConstrained which only exists on v1alpha, not v1beta
+    // Uses v1beta (not v1alpha) since we're using the real API key, not an ephemeral token
     const openLiveSession = async (modelIdx) => {
       if (!isActiveRef.current) return
       const model = LIVE_MODELS[modelIdx]
