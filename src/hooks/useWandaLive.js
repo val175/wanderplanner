@@ -17,9 +17,11 @@ async function fetchEphemeralToken(model) {
 }
 
 // Models tried in order — falls back to next if the primary isn't available
+// NOTE: Only gemini-2.0-flash-live-001 is confirmed to work with v1alpha authTokens
+// (BidiGenerateContentConstrained). Newer Gemini 2.5/3.x Live models require v1beta
+// and are incompatible with the ephemeral token system.
 const LIVE_MODELS = [
-  'gemini-3.1-flash-live-preview', // Primary: Gemini 3.1 Flash Live (latest, unlimited RPD)
-  'gemini-3-flash-preview',        // Fallback: Gemini 3 Flash (Live API, unlimited RPD)
+  'gemini-2.0-flash-live-001', // Primary: GA stable, confirmed v1alpha + authTokens compatible
 ]
 const MIC_SAMPLE_RATE = 16000   // Gemini Live input requirement
 const SPEAKER_SAMPLE_RATE = 24000 // Gemini Live output rate

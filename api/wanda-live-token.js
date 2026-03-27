@@ -7,7 +7,7 @@ import { getCorsHeaders } from './_cors.js'
 
 export const config = { runtime: 'edge' }
 
-const LIVE_MODEL = 'gemini-2.5-flash-native-audio-dialog'
+const DEFAULT_MODEL = 'gemini-2.0-flash-live-001'
 const GEMINI_AUTH_TOKENS_URL = 'https://generativelanguage.googleapis.com/v1alpha/authTokens'
 
 export default async function handler(req) {
@@ -36,6 +36,9 @@ export default async function handler(req) {
     })
   }
 
+  // Accept optional model param for fallback retries
+  const requestedModel = new URL(req.url).searchParams.get('model') || DEFAULT_MODEL
+
   try {
     const now = Date.now()
     const res = await fetch(GEMINI_AUTH_TOKENS_URL, {
@@ -49,7 +52,7 @@ export default async function handler(req) {
         newSessionExpireTime: new Date(now + 60 * 1000).toISOString(),
         expireTime: new Date(now + 30 * 60 * 1000).toISOString(),
         liveConnectConstraints: {
-          model: `models/${LIVE_MODEL}`,
+          model: `models/${requestedModel}`,
           config: {
             responseModalities: ['AUDIO'],
           },
