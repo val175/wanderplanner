@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import { createPortal } from 'react-dom';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { PanelRightClose, PanelRightOpen, Send, Trash2, X } from 'lucide-react';
+import { Mic, PanelRightClose, PanelRightOpen, Send, Trash2, X } from 'lucide-react';
 import { auth } from '../../firebase/config';
 import { TripContext } from '../../context/TripContext';
 import { buildTripSystemPrompt } from '../../hooks/useAI';
@@ -969,6 +969,16 @@ export default function AIAssistant() {
           placeholder="Ask Wanda..."
           className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-text-muted px-1 text-text-primary"
         />
+        {!isMobile && (
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('toggle-walkie'))}
+            title="Talk to Wanda"
+            className="h-9 w-9 rounded-[var(--radius-sm)] border border-border bg-bg-secondary text-text-primary flex items-center justify-center hover:bg-bg-hover transition-colors flex-shrink-0"
+          >
+            <Mic size={14} />
+          </button>
+        )}
         <button
           type="submit"
           disabled={isLoading || !input.trim()}

@@ -30,11 +30,15 @@ export default function WalkieTalkieModal() {
 
   const { isConnected, isListening, isSpeaking, error, startSession, endSession } = useWandaLive()
 
-  // Open/close via custom event from BottomNav
+  // Open/close via custom event from BottomNav (mobile) or AIAssistant mic button (desktop)
   useEffect(() => {
     const handleToggle = () => setIsOpen(prev => !prev)
-    window.addEventListener('toggle-walkie-mobile', handleToggle)
-    return () => window.removeEventListener('toggle-walkie-mobile', handleToggle)
+    window.addEventListener('toggle-walkie', handleToggle)
+    window.addEventListener('toggle-walkie-mobile', handleToggle) // legacy mobile event
+    return () => {
+      window.removeEventListener('toggle-walkie', handleToggle)
+      window.removeEventListener('toggle-walkie-mobile', handleToggle)
+    }
   }, [])
 
   // End session when modal closes
