@@ -7,7 +7,6 @@ import { formatDateRange, formatCurrency, daysUntil, geocodeCity } from '../../u
 import { getCategory } from '../../constants/categories'
 import { callAI } from '../../hooks/useAI'
 import AvatarCircle from './AvatarCircle'
-import WandWordmark from './WandWordmark'
 
 /* ─────────────────────────────────────────────────────────────
    Free image / map fetchers
@@ -108,6 +107,8 @@ function getBudgetInfo(trip) {
 const CURRENCY_SYMBOLS = { USD: '$', EUR: '€', GBP: '£', JPY: '¥', PHP: '₱', AUD: 'A$',
     CAD: 'C$', SGD: 'S$', KRW: '₩', THB: '฿', IDR: 'Rp', MYR: 'RM', HKD: 'HK$', VND: '₫', INR: '₹' }
 
+const PRESENTATION_EXPORT = { width: 1920, height: 1080 }
+
 /* ─────────────────────────────────────────────────────────────
    WandaCaption — shared AI insight footer
 ───────────────────────────────────────────────────────────── */
@@ -194,33 +195,76 @@ function SlideCover({ trip, travelerProfiles, coverPhoto, caption, loadingCaptio
 ───────────────────────────────────────────────────────────── */
 function SlideMap({ trip, mapUrl, caption, loadingCaption }) {
     const route = (trip.destinations || []).map(d => [d.flag, d.city].filter(Boolean).join(' ')).join('  →  ')
+    const destinations = trip.destinations || []
 
     return (
-        <div className="relative flex flex-col h-full overflow-hidden">
-            {/* Map image */}
-            {mapUrl ? (
-                <img src={mapUrl} alt="Trip route map" crossOrigin="anonymous" className="absolute inset-0 w-full h-full object-cover" />
-            ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-bg-secondary gap-3 animate-pulse-warm">
-                    <span className="text-5xl opacity-30">🗺️</span>
-                    <p className="text-xs text-text-muted">Plotting your route…</p>
+        <div className="grid h-full grid-cols-1 lg:grid-cols-[1.35fr_0.65fr] overflow-hidden">
+            <div className="relative min-h-[52vh] lg:min-h-0 overflow-hidden bg-bg-secondary">
+                {mapUrl ? (
+                    <img src={mapUrl} alt="Trip route map" crossOrigin="anonymous" className="absolute inset-0 w-full h-full object-cover" />
+                ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-bg-secondary gap-3 animate-pulse-warm">
+                        <span className="text-5xl opacity-30">🗺️</span>
+                        <p className="text-xs text-text-muted">Plotting your route…</p>
+                    </div>
+                )}
+
+                <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/8 to-transparent pointer-events-none" />
+                <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-black/55 to-transparent pointer-events-none" />
+
+                <div className="relative h-full p-6 md:p-8 flex flex-col justify-between">
+                    <div className="max-w-xl space-y-3">
+                        <p className="text-[10px] font-bold tracking-[0.24em] uppercase text-white/60">Route</p>
+                        <h2 className="font-heading text-3xl md:text-4xl font-black tracking-tighter leading-tight text-white max-w-lg drop-shadow">
+                            {route || 'Your route at a glance'}
+                        </h2>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 max-w-md">
+                        <div className="rounded-[var(--radius-lg)] border border-white/15 bg-white/10 backdrop-blur-sm px-4 py-3 text-white">
+                            <p className="text-[10px] uppercase tracking-wider text-white/55 font-semibold">Stops</p>
+                            <p className="mt-1 text-2xl font-black leading-none">{destinations.length || '—'}</p>
+                        </div>
+                        <div className="rounded-[var(--radius-lg)] border border-white/15 bg-white/10 backdrop-blur-sm px-4 py-3 text-white">
+                            <p className="text-[10px] uppercase tracking-wider text-white/55 font-semibold">Motion</p>
+                            <p className="mt-1 text-sm font-semibold leading-snug">
+                                From takeoff to touchdown, the route stays easy to scan.
+                            </p>
+                        </div>
+                    </div>
                 </div>
-            )}
-
-            {/* Top + bottom overlays */}
-            <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/65 to-transparent pointer-events-none" />
-            <div className="absolute inset-x-0 bottom-0 h-52 bg-gradient-to-t from-black/78 to-transparent pointer-events-none" />
-
-            {/* Top: route label */}
-            <div className="relative px-7 pt-6">
-                <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-white/55 mb-0.5">Route</p>
-                {route && <p className="text-base font-bold text-white drop-shadow">{route}</p>}
             </div>
 
-            {/* Bottom: caption */}
-            <div className="relative mt-auto px-7 pb-7">
-                <div className="max-w-sm">
-                    <WandaCaption text={caption} loading={loadingCaption} dark />
+            <div className="flex h-full flex-col gap-5 px-6 py-6 md:px-8 md:py-8 bg-bg-primary border-l border-border overflow-hidden">
+                <div className="space-y-2">
+                    <p className="text-[10px] font-bold tracking-[0.24em] uppercase text-text-muted">At A Glance</p>
+                    <div className="space-y-1">
+                        <p className="font-heading text-3xl font-black tracking-tighter text-text-primary leading-tight">
+                            {trip.name}
+                        </p>
+                        <p className="text-sm text-text-muted leading-relaxed">
+                            {trip.startDate ? formatDateRange(trip.startDate, trip.endDate) : 'Dates TBA'}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="space-y-3">
+                    <p className="text-xs font-bold tracking-wider uppercase text-text-muted">Destinations</p>
+                    <div className="space-y-2 overflow-hidden">
+                        {destinations.slice(0, 4).map((d, i) => (
+                            <div key={`${d.city || i}-${i}`} className="flex items-start gap-3 rounded-[var(--radius-md)] border border-border bg-bg-card px-3 py-2.5">
+                                <span className="text-lg leading-none">{d.flag || '📍'}</span>
+                                <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-text-primary leading-tight">{d.city || 'TBA'}</p>
+                                    <p className="text-xs text-text-muted mt-0.5 truncate">{d.country || 'Destination stop'}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="mt-auto">
+                    <WandaCaption text={caption} loading={loadingCaption} />
                 </div>
             </div>
         </div>
@@ -233,66 +277,87 @@ function SlideMap({ trip, mapUrl, caption, loadingCaption }) {
 function SlideItinerary({ trip, cityPhotos, caption, loadingCaption }) {
     const days = [...(trip.itinerary || [])].sort((a, b) => a.dayNumber - b.dayNumber)
     const cities = (trip.destinations || []).map(d => d.city).filter(Boolean).join(' · ')
+    const routeSummary = (trip.destinations || []).map(d => [d.flag, d.city].filter(Boolean).join(' ')).filter(Boolean).join(' → ')
 
     return (
-        <div className="flex flex-col h-full">
-            {/* Header */}
-            <div className="shrink-0 px-8 pt-6 pb-4 border-b border-border">
-                <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-text-muted">The Plan</p>
-                <h2 className="font-heading text-2xl font-black tracking-tighter text-text-primary mt-0.5 leading-tight">
-                    {days.length > 0 ? `${days.length} days` : 'Itinerary'}{cities ? ` · ${cities}` : ''}
-                </h2>
+        <div className="grid h-full grid-cols-1 lg:grid-cols-[0.82fr_1.18fr] overflow-hidden">
+            <div className="flex h-full flex-col justify-between gap-6 border-b lg:border-b-0 lg:border-r border-border bg-bg-primary px-6 py-6 md:px-8 md:py-8 overflow-hidden">
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <p className="text-[10px] font-bold tracking-[0.24em] uppercase text-text-muted">The Plan</p>
+                        <h2 className="font-heading text-3xl md:text-4xl font-black tracking-tighter text-text-primary leading-tight">
+                            {days.length > 0 ? `${days.length} days` : 'Itinerary'}
+                        </h2>
+                        {routeSummary && <p className="text-sm text-text-muted leading-relaxed max-w-sm">{routeSummary}</p>}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-[var(--radius-lg)] border border-border bg-bg-secondary px-4 py-3">
+                            <p className="text-[10px] uppercase tracking-wider text-text-muted font-semibold">Cities</p>
+                            <p className="mt-1 text-2xl font-black tracking-tighter text-text-primary">{cities ? cities.split(' · ').length : 0}</p>
+                        </div>
+                        <div className="rounded-[var(--radius-lg)] border border-border bg-bg-secondary px-4 py-3">
+                            <p className="text-[10px] uppercase tracking-wider text-text-muted font-semibold">Focus</p>
+                            <p className="mt-1 text-sm font-semibold text-text-primary leading-snug">One clear day-by-day plan</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="hidden lg:block">
+                    <WandaCaption text={caption} loading={loadingCaption} />
+                </div>
             </div>
 
-            {/* Day list */}
-            <div className="flex-1 overflow-y-auto px-8 py-2 scrollbar-hide">
-                {days.length === 0 ? (
-                    <div className="flex items-center justify-center h-full">
-                        <p className="text-text-muted text-sm">No itinerary added yet</p>
-                    </div>
-                ) : (
-                    <div className="divide-y divide-border/50">
-                        {days.slice(0, 9).map((day, i) => {
-                            const activities = (day.activities || []).slice(0, 3).map(a => a.name).filter(Boolean)
-                            const photo = cityPhotos?.[day.location]
-                            return (
-                                <div key={day.id || i} className="flex items-center gap-4 py-3">
-                                    {/* Decorative day number */}
-                                    <span className="text-2xl font-black text-text-primary/[0.09] w-8 shrink-0 tabular-nums text-right leading-none select-none">
-                                        {String(day.dayNumber).padStart(2, '0')}
-                                    </span>
-                                    {/* City photo or emoji */}
-                                    <div className="w-9 h-9 rounded-full bg-bg-secondary border border-border shrink-0 overflow-hidden flex items-center justify-center">
-                                        {photo
-                                            ? <img src={photo} alt={day.location} crossOrigin="anonymous" className="w-full h-full object-cover" />
-                                            : <span className="text-base">{day.emoji || '📍'}</span>
-                                        }
-                                    </div>
-                                    {/* Info */}
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-bold text-text-primary truncate leading-tight">{day.location || 'TBA'}</p>
-                                        {activities.length > 0 && (
-                                            <p className="text-xs text-text-muted truncate mt-0.5">{activities.join(' · ')}</p>
+            <div className="flex h-full min-h-0 flex-col overflow-hidden bg-bg-card">
+                <div className="shrink-0 px-6 pt-6 pb-4 border-b border-border">
+                    <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-text-muted">Day By Day</p>
+                </div>
+
+                <div className="flex-1 overflow-y-auto px-6 py-4 scrollbar-hide">
+                    {days.length === 0 ? (
+                        <div className="flex items-center justify-center h-full">
+                            <p className="text-text-muted text-sm">No itinerary added yet</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {days.slice(0, 8).map((day, i) => {
+                                const activities = (day.activities || []).slice(0, 2).map(a => a.name).filter(Boolean)
+                                const photo = cityPhotos?.[day.location]
+                                return (
+                                    <div key={day.id || i} className="grid grid-cols-[auto_auto_1fr_auto] items-center gap-3 rounded-[var(--radius-md)] border border-border px-3 py-3">
+                                        <span className="text-lg md:text-xl font-black text-text-primary/[0.12] tabular-nums leading-none select-none w-10 text-right">
+                                            {String(day.dayNumber).padStart(2, '0')}
+                                        </span>
+                                        <div className="w-10 h-10 rounded-full bg-bg-secondary border border-border shrink-0 overflow-hidden flex items-center justify-center">
+                                            {photo
+                                                ? <img src={photo} alt={day.location} crossOrigin="anonymous" className="w-full h-full object-cover" />
+                                                : <span className="text-base">{day.emoji || '📍'}</span>
+                                            }
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-bold text-text-primary truncate leading-tight">{day.location || 'TBA'}</p>
+                                            {activities.length > 0 && (
+                                                <p className="text-xs text-text-muted truncate mt-0.5">{activities.join(' · ')}</p>
+                                            )}
+                                        </div>
+                                        {day.date && (
+                                            <p className="text-xs text-text-muted shrink-0 tabular-nums whitespace-nowrap">
+                                                {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                            </p>
                                         )}
                                     </div>
-                                    {day.date && (
-                                        <p className="text-xs text-text-muted shrink-0 tabular-nums">
-                                            {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                        </p>
-                                    )}
-                                </div>
-                            )
-                        })}
-                        {days.length > 9 && (
-                            <p className="text-xs text-text-muted text-center py-2.5">+ {days.length - 9} more days</p>
-                        )}
-                    </div>
-                )}
-            </div>
+                                )
+                            })}
+                            {days.length > 8 && (
+                                <p className="text-xs text-text-muted text-center py-2.5">+ {days.length - 8} more days</p>
+                            )}
+                        </div>
+                    )}
+                </div>
 
-            {/* AI caption */}
-            <div className="shrink-0 px-8 pb-5 pt-3 border-t border-border">
-                <WandaCaption text={caption} loading={loadingCaption} />
+                <div className="shrink-0 border-t border-border px-6 py-4 lg:hidden">
+                    <WandaCaption text={caption} loading={loadingCaption} />
+                </div>
             </div>
         </div>
     )
@@ -310,74 +375,97 @@ function SlideStatus({ trip, caption, loadingCaption }) {
     const sym        = CURRENCY_SYMBOLS[trip.currency] || trip.currency || '$'
 
     return (
-        <div className="relative flex flex-col h-full overflow-hidden">
-            {/* Decorative slide number */}
-            <span className="absolute -top-4 right-3 text-[130px] font-black text-text-primary/[0.032] select-none leading-none pointer-events-none">04</span>
-
-            <div className="flex flex-col h-full px-8 py-6 gap-4 overflow-y-auto scrollbar-hide">
-                <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-text-muted shrink-0">Budget & Bookings</p>
-
-                {/* Two stat cards */}
-                <div className="grid grid-cols-2 gap-3 shrink-0">
-                    <div className="relative bg-bg-secondary rounded-[var(--radius-lg)] p-4 overflow-hidden">
-                        {/* Currency watermark */}
-                        <span className="absolute -bottom-3 -right-1 text-[72px] font-black text-accent/[0.08] leading-none select-none">{sym}</span>
-                        <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2">Per person</p>
-                        <p className="font-heading text-4xl font-black tracking-tighter text-text-primary leading-none">
-                            {total > 0 ? formatCurrency(perPerson, trip.currency) : '—'}
-                        </p>
-                        {total > 0 && (
-                            <p className="text-xs text-text-muted mt-1.5">{formatCurrency(total, trip.currency)} total</p>
-                        )}
+        <div className="grid h-full grid-cols-1 lg:grid-cols-[0.82fr_1.18fr] overflow-hidden">
+            <div className="flex h-full flex-col justify-between gap-6 border-b lg:border-b-0 lg:border-r border-border bg-bg-primary px-6 py-6 md:px-8 md:py-8 overflow-hidden">
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <p className="text-[10px] font-bold tracking-[0.24em] uppercase text-text-muted">Budget & Bookings</p>
+                        <h2 className="font-heading text-3xl md:text-4xl font-black tracking-tighter text-text-primary leading-tight">
+                            Status check
+                        </h2>
                     </div>
-                    <div className="bg-bg-secondary rounded-[var(--radius-lg)] p-4">
-                        <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2">Confirmed</p>
-                        <p className="font-heading text-4xl font-black tracking-tighter text-text-primary leading-none">
-                            {confirmed.length}
-                            <span className="text-xl text-text-muted font-bold">/{allBooks.length}</span>
-                        </p>
-                        {pending.length > 0
-                            ? <p className="text-xs text-text-muted mt-1.5">{pending.length} still to book</p>
-                            : allBooks.length > 0 && <p className="text-xs text-success mt-1.5 font-medium">All booked ✓</p>
-                        }
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="relative bg-bg-secondary rounded-[var(--radius-lg)] p-4 overflow-hidden">
+                            <span className="absolute -bottom-3 -right-1 text-[72px] font-black text-accent/[0.08] leading-none select-none">{sym}</span>
+                            <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2">Per person</p>
+                            <p className="font-heading text-4xl font-black tracking-tighter text-text-primary leading-none">
+                                {total > 0 ? formatCurrency(perPerson, trip.currency) : '—'}
+                            </p>
+                            {total > 0 && (
+                                <p className="text-xs text-text-muted mt-1.5">{formatCurrency(total, trip.currency)} total</p>
+                            )}
+                        </div>
+                        <div className="bg-bg-secondary rounded-[var(--radius-lg)] p-4">
+                            <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2">Confirmed</p>
+                            <p className="font-heading text-4xl font-black tracking-tighter text-text-primary leading-none">
+                                {confirmed.length}
+                                <span className="text-xl text-text-muted font-bold">/{allBooks.length}</span>
+                            </p>
+                            {pending.length > 0
+                                ? <p className="text-xs text-text-muted mt-1.5">{pending.length} still to book</p>
+                                : allBooks.length > 0 && <p className="text-xs text-success mt-1.5 font-medium">All booked ✓</p>
+                            }
+                        </div>
                     </div>
                 </div>
 
-                {/* Budget category bars */}
-                {categories.length > 0 && (
-                    <div className="flex-1 space-y-2.5 min-h-0 shrink-0">
-                        {categories.map(cat => {
-                            const pct = total > 0 ? Math.round((cat.max / total) * 100) : 0
-                            return (
-                                <div key={cat.id} className="space-y-1">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs text-text-secondary font-medium">{cat.emoji} {cat.name}</span>
-                                        <span className="text-xs text-text-muted tabular-nums">{formatCurrency(cat.max, trip.currency)}</span>
-                                    </div>
-                                    <div className="h-1.5 rounded-full bg-bg-secondary overflow-hidden">
-                                        <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
-                                    </div>
-                                </div>
-                            )
-                        })}
-                    </div>
-                )}
+                <div className="hidden lg:block">
+                    <WandaCaption text={caption} loading={loadingCaption} />
+                </div>
+            </div>
 
-                {/* Confirmed booking pills */}
+            <div className="flex h-full min-h-0 flex-col overflow-hidden bg-bg-card">
+                <div className="shrink-0 px-6 pt-6 pb-4 border-b border-border flex items-end justify-between gap-3">
+                    <div>
+                        <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-text-muted">Spend Split</p>
+                        <p className="text-sm text-text-muted mt-1">{categories.length > 0 ? 'What is taking the biggest share of the budget' : 'No budget categories yet'}</p>
+                    </div>
+                    {pending.length > 0 && (
+                        <p className="text-xs font-medium text-text-muted whitespace-nowrap">{pending.length} pending</p>
+                    )}
+                </div>
+
+                <div className="flex-1 overflow-y-auto px-6 py-4 scrollbar-hide">
+                    {categories.length > 0 ? (
+                        <div className="space-y-3">
+                            {categories.map(cat => {
+                                const pct = total > 0 ? Math.round((cat.max / total) * 100) : 0
+                                return (
+                                    <div key={cat.id} className="rounded-[var(--radius-lg)] border border-border bg-bg-primary px-4 py-4">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <span className="text-sm text-text-secondary font-semibold">{cat.emoji} {cat.name}</span>
+                                            <span className="text-sm text-text-muted tabular-nums">{formatCurrency(cat.max, trip.currency)}</span>
+                                        </div>
+                                        <div className="mt-3 h-2 rounded-full bg-bg-secondary overflow-hidden">
+                                            <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    ) : (
+                        <div className="flex h-full items-center justify-center text-center">
+                            <p className="text-sm text-text-muted">Add a few budget categories to turn this into a clear spending story.</p>
+                        </div>
+                    )}
+                </div>
+
                 {confirmed.length > 0 && (
-                    <div className="flex flex-wrap gap-2 shrink-0">
-                        {confirmed.slice(0, 6).map(b => {
-                            const cat = getCategory(b.category)
-                            return (
-                                <span key={b.id} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[var(--radius-pill)] bg-success/10 border border-success/20 text-success text-xs font-semibold">
-                                    {cat.emoji} {b.name} ✓
-                                </span>
-                            )
-                        })}
+                    <div className="shrink-0 border-t border-border px-6 py-4">
+                        <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-text-muted mb-3">Booked</p>
+                        <div className="flex flex-wrap gap-2">
+                            {confirmed.slice(0, 6).map(b => {
+                                const cat = getCategory(b.category)
+                                return (
+                                    <span key={b.id} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[var(--radius-pill)] bg-success/10 border border-success/20 text-success text-xs font-semibold">
+                                        {cat.emoji} {b.name} ✓
+                                    </span>
+                                )
+                            })}
+                        </div>
                     </div>
                 )}
-
-                <WandaCaption text={caption} loading={loadingCaption} />
             </div>
         </div>
     )
@@ -414,51 +502,66 @@ function SlideBeforeWeGo({ trip, caption, loadingCaption }) {
     const sorted      = [...openTodos.filter(t => t.priority), ...openTodos.filter(t => !t.priority)]
 
     return (
-        <div className="relative flex flex-col h-full overflow-hidden">
-            <span className="absolute -top-4 right-3 text-[130px] font-black text-text-primary/[0.032] select-none leading-none pointer-events-none">05</span>
-
-            <div className="flex flex-col h-full px-8 py-6 gap-4">
-                <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-text-muted shrink-0">Before We Go</p>
-
-                {/* Packing ring card */}
-                {packing.length > 0 && (
-                    <div className="flex items-center gap-5 bg-bg-secondary rounded-[var(--radius-lg)] p-4 shrink-0">
-                        <PackingRing pct={packingPct} />
-                        <div>
-                            <p className="text-sm font-bold text-text-primary">🧳 Packing list</p>
-                            <p className="text-xs text-text-muted mt-0.5">
-                                {packing.filter(p => p.packed).length} of {packing.length} items packed
-                            </p>
-                            {packingPct === 100 && (
-                                <p className="text-xs text-success font-semibold mt-1">All packed! 🎉</p>
-                            )}
-                        </div>
+        <div className="grid h-full grid-cols-1 lg:grid-cols-[0.82fr_1.18fr] overflow-hidden">
+            <div className="flex h-full flex-col justify-between gap-6 border-b lg:border-b-0 lg:border-r border-border bg-bg-primary px-6 py-6 md:px-8 md:py-8 overflow-hidden">
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <p className="text-[10px] font-bold tracking-[0.24em] uppercase text-text-muted">Before We Go</p>
+                        <h2 className="font-heading text-3xl md:text-4xl font-black tracking-tighter text-text-primary leading-tight">
+                            Final readiness
+                        </h2>
                     </div>
-                )}
 
-                {/* Open todos */}
-                {openTodos.length > 0 ? (
-                    <div className="flex-1 overflow-y-auto scrollbar-hide space-y-2 min-h-0">
-                        <p className="text-xs font-bold text-text-muted uppercase tracking-wider shrink-0">
-                            {openTodos.length} task{openTodos.length !== 1 ? 's' : ''} remaining
+                    {packing.length > 0 && (
+                        <div className="flex items-center gap-5 bg-bg-secondary rounded-[var(--radius-lg)] p-4 shrink-0">
+                            <PackingRing pct={packingPct} />
+                            <div>
+                                <p className="text-sm font-bold text-text-primary">🧳 Packing list</p>
+                                <p className="text-xs text-text-muted mt-0.5">
+                                    {packing.filter(p => p.packed).length} of {packing.length} items packed
+                                </p>
+                                {packingPct === 100 && (
+                                    <p className="text-xs text-success font-semibold mt-1">All packed! 🎉</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <div className="hidden lg:block">
+                    <WandaCaption text={caption} loading={loadingCaption} />
+                </div>
+            </div>
+
+            <div className="flex h-full min-h-0 flex-col overflow-hidden bg-bg-card">
+                <div className="shrink-0 px-6 pt-6 pb-4 border-b border-border flex items-end justify-between gap-3">
+                    <div>
+                        <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-text-muted">Remaining tasks</p>
+                        <p className="text-sm text-text-muted mt-1">
+                            {openTodos.length > 0 ? `${openTodos.length} action${openTodos.length !== 1 ? 's' : ''} before departure` : 'Everything is ready to go'}
                         </p>
-                        {sorted.slice(0, 6).map(todo => (
-                            <div key={todo.id} className="flex items-center gap-3 px-4 py-2.5 rounded-[var(--radius-md)] bg-bg-secondary border border-border">
+                    </div>
+                </div>
+
+                {openTodos.length > 0 ? (
+                    <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-4 space-y-2 min-h-0">
+                        {sorted.slice(0, 7).map(todo => (
+                            <div key={todo.id} className="flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] bg-bg-primary border border-border">
                                 {todo.priority && <span className="text-warning text-xs shrink-0">⚡</span>}
                                 <p className="text-sm text-text-primary truncate flex-1">{todo.text}</p>
                             </div>
                         ))}
-                        {openTodos.length > 6 && (
-                            <p className="text-xs text-text-muted text-center">+ {openTodos.length - 6} more tasks</p>
+                        {openTodos.length > 7 && (
+                            <p className="text-xs text-text-muted text-center pt-1">+ {openTodos.length - 7} more tasks</p>
                         )}
                     </div>
-                ) : packing.length === 0 ? (
-                    <div className="flex-1 flex items-center justify-center">
-                        <p className="text-text-muted text-sm text-center">All clear — nothing pending! 🎉</p>
+                ) : (
+                    <div className="flex-1 flex items-center justify-center px-6 text-center">
+                        <p className="text-text-muted text-sm">All clear — nothing pending! 🎉</p>
                     </div>
-                ) : <div className="flex-1" />}
+                )}
 
-                <div className="shrink-0">
+                <div className="shrink-0 border-t border-border px-6 py-4 lg:hidden">
                     <WandaCaption text={caption} loading={loadingCaption} />
                 </div>
             </div>
@@ -549,10 +652,10 @@ export default function PresentationMode({ onClose }) {
             await new Promise(r => setTimeout(r, 100))
             const canvas = await html2canvas(exportRef.current, {
                 scale: 2, useCORS: true, backgroundColor: null, logging: false,
-                width: 1080, height: 1920,
+                width: PRESENTATION_EXPORT.width, height: PRESENTATION_EXPORT.height,
             })
             const link = document.createElement('a')
-            link.download = `${(trip.name || 'Trip').replace(/\s+/g, '-')}-Brief.png`
+            link.download = `${(trip.name || 'Trip').replace(/\s+/g, '-')}-Brief-16x9.png`
             link.href = canvas.toDataURL('image/png')
             link.click()
         } catch (e) {
@@ -568,23 +671,17 @@ export default function PresentationMode({ onClose }) {
 
     /* ── Render ── */
     return createPortal(
-        <div className="fixed inset-0 z-[9999] bg-bg-primary flex flex-col">
+        <div className="fixed inset-0 z-[9999] flex flex-col bg-[radial-gradient(circle_at_top,rgba(217,119,87,0.08),transparent_42%),linear-gradient(180deg,var(--color-bg-secondary),var(--color-bg-primary))]">
             <style>{`
                 @keyframes pres-fwd { from { opacity:0; transform:translateX(28px) } to { opacity:1; transform:translateX(0) } }
                 @keyframes pres-bwd { from { opacity:0; transform:translateX(-28px) } to { opacity:1; transform:translateX(0) } }
             `}</style>
 
             {/* ── Top bar ── */}
-            <div className={`shrink-0 flex items-center justify-between px-5 py-3 border-b transition-colors duration-300 ${
-                isDark
-                    ? 'bg-transparent border-white/10 absolute inset-x-0 top-0 z-10'
-                    : 'bg-bg-primary/90 backdrop-blur-sm border-border relative'
-            }`}>
+            <div className="shrink-0 flex items-center justify-between px-5 py-3 border-b border-border bg-bg-primary/90 backdrop-blur-sm relative z-20">
                 <button
                     onClick={onClose}
-                    className={`flex items-center gap-1.5 text-sm font-medium transition-colors min-w-[44px] min-h-[44px] ${
-                        isDark ? 'text-white/60 hover:text-white' : 'text-text-muted hover:text-text-primary'
-                    }`}
+                    className="flex items-center gap-1.5 text-sm font-medium transition-colors min-w-[44px] min-h-[44px] text-text-muted hover:text-text-primary"
                 >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                         <path d="M18 6L6 18M6 6l12 12"/>
@@ -592,42 +689,43 @@ export default function PresentationMode({ onClose }) {
                     <span className="hidden sm:inline">Close</span>
                 </button>
 
-                <span className={`text-sm font-semibold transition-colors duration-300 ${isDark ? 'text-white/70' : 'text-text-secondary'}`}>
+                <span className="text-sm font-semibold transition-colors duration-300 text-text-secondary">
                     {SLIDES[slide].label}
                 </span>
 
                 <button
                     onClick={handleExport}
                     disabled={isExporting}
-                    className={`text-sm font-semibold transition-colors min-h-[44px] flex items-center disabled:opacity-50 ${
-                        isDark ? 'text-white/70 hover:text-white' : 'text-accent hover:text-accent/80'
-                    }`}
+                    className="text-sm font-semibold transition-colors min-h-[44px] flex items-center disabled:opacity-50 text-accent hover:text-accent/80"
                 >
                     {isExporting ? '📸 Saving…' : '📸 Save'}
                 </button>
             </div>
 
             {/* ── Slide area ── */}
-            <div className={`flex-1 relative overflow-hidden ${isDark ? '' : ''}`}>
-                <div
-                    key={slide}
-                    className="absolute inset-0 max-w-2xl mx-auto"
-                    style={{ animation: `${direction > 0 ? 'pres-fwd' : 'pres-bwd'} 0.3s cubic-bezier(0.2,0,0,1) both` }}
-                >
-                    {slide === 0 && <SlideCover      trip={trip} travelerProfiles={travelerProfiles} coverPhoto={coverPhoto} caption={captions?.cover} loadingCaption={loadingCaps} />}
-                    {slide === 1 && <SlideMap        trip={trip} mapUrl={mapUrl} caption={captions?.map} loadingCaption={loadingCaps} />}
-                    {slide === 2 && <SlideItinerary  trip={trip} cityPhotos={cityPhotos} caption={captions?.plan} loadingCaption={loadingCaps} />}
-                    {slide === 3 && <SlideStatus     trip={trip} caption={captions?.status} loadingCaption={loadingCaps} />}
-                    {slide === 4 && <SlideBeforeWeGo trip={trip} caption={captions?.prep}   loadingCaption={loadingCaps} />}
+            <div className="flex-1 min-h-0 px-4 pb-4 pt-3 md:px-6 md:pb-6">
+                <div className="mx-auto flex h-full w-full max-w-[1520px] items-center justify-center">
+                    <div
+                        key={slide}
+                        className="relative w-full overflow-hidden rounded-[28px] border border-border bg-bg-card shadow-none"
+                        style={{
+                            aspectRatio: '16 / 9',
+                            animation: `${direction > 0 ? 'pres-fwd' : 'pres-bwd'} 0.3s cubic-bezier(0.2,0,0,1) both`,
+                        }}
+                    >
+                        {slide === 0 && <SlideCover      trip={trip} travelerProfiles={travelerProfiles} coverPhoto={coverPhoto} caption={captions?.cover} loadingCaption={loadingCaps} />}
+                        {slide === 1 && <SlideMap        trip={trip} mapUrl={mapUrl} caption={captions?.map} loadingCaption={loadingCaps} />}
+                        {slide === 2 && <SlideItinerary  trip={trip} cityPhotos={cityPhotos} caption={captions?.plan} loadingCaption={loadingCaps} />}
+                        {slide === 3 && <SlideStatus     trip={trip} caption={captions?.status} loadingCaption={loadingCaps} />}
+                        {slide === 4 && <SlideBeforeWeGo trip={trip} caption={captions?.prep}   loadingCaption={loadingCaps} />}
+                    </div>
                 </div>
 
                 {/* Side arrows */}
                 {slide > 0 && (
                     <button
                         onClick={() => goTo(slide - 1)}
-                        className={`absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center transition-colors z-10 ${
-                            isDark ? 'bg-white/10 hover:bg-white/20 text-white/80' : 'bg-bg-card border border-border text-text-secondary hover:text-text-primary hover:bg-bg-hover'
-                        }`}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center transition-colors z-10 bg-bg-card/95 border border-border text-text-primary hover:bg-bg-hover shadow-sm"
                     >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
                     </button>
@@ -635,9 +733,7 @@ export default function PresentationMode({ onClose }) {
                 {slide < SLIDES.length - 1 && (
                     <button
                         onClick={() => goTo(slide + 1)}
-                        className={`absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center transition-colors z-10 ${
-                            isDark ? 'bg-white/10 hover:bg-white/20 text-white/80' : 'bg-bg-card border border-border text-text-secondary hover:text-text-primary hover:bg-bg-hover'
-                        }`}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center transition-colors z-10 bg-bg-card/95 border border-border text-text-primary hover:bg-bg-hover shadow-sm"
                     >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
                     </button>
@@ -645,20 +741,23 @@ export default function PresentationMode({ onClose }) {
             </div>
 
             {/* ── Bottom dot nav ── */}
-            <div className="shrink-0 flex items-center justify-center gap-2.5 py-4 border-t border-border bg-bg-primary">
-                {SLIDES.map((s, i) => (
-                    <button
-                        key={s.id}
-                        onClick={() => goTo(i)}
-                        className={`rounded-full transition-all duration-200 ${
-                            i === slide ? 'w-6 h-2 bg-accent' : 'w-2 h-2 bg-border hover:bg-text-muted'
-                        }`}
-                    />
-                ))}
-                <span className="ml-2 text-xs text-text-muted tabular-nums">{slide + 1} / {SLIDES.length}</span>
+            <div className="shrink-0 flex items-center justify-between gap-4 px-5 pb-4 pt-1 md:px-6 md:pb-6">
+                <div className="flex items-center gap-2.5">
+                    {SLIDES.map((s, i) => (
+                        <button
+                            key={s.id}
+                            onClick={() => goTo(i)}
+                            className={`rounded-full transition-all duration-200 ${
+                                i === slide ? 'w-7 h-2 bg-accent' : 'w-2 h-2 bg-border hover:bg-text-muted'
+                            }`}
+                            aria-label={`Go to ${s.label}`}
+                        />
+                    ))}
+                </div>
+                <span className="text-xs text-text-muted tabular-nums">{slide + 1} / {SLIDES.length}</span>
             </div>
 
-            {/* ── Hidden export canvas (portrait summary card) ── */}
+            {/* ── Hidden export canvas (landscape summary slide) ── */}
             <ExportCanvas
                 containerRef={el => exportRef.current = el}
                 trip={trip}
@@ -675,10 +774,10 @@ export default function PresentationMode({ onClose }) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Export Canvas — 1080×1920, inline styles only
+   Export Canvas — 1920×1080, inline styles only
    (html2canvas cannot read CSS custom properties)
 ───────────────────────────────────────────────────────────── */
-function ExportCanvas({ containerRef, trip, travelerProfiles, coverPhoto, captions, itinerary, confirmedBookings, budgetInfo }) {
+function ExportCanvas({ containerRef, trip, coverPhoto, captions, itinerary, confirmedBookings, budgetInfo }) {
     const route        = (trip.destinations || []).map(d => [d.flag, d.city].filter(Boolean).join(' ')).join(' → ')
     const countdownLbl = getCountdownLabel(trip.startDate)
     const { total, perPerson } = budgetInfo
@@ -695,108 +794,130 @@ function ExportCanvas({ containerRef, trip, travelerProfiles, coverPhoto, captio
             ref={containerRef}
             style={{
                 position: 'absolute', left: '-9999px', top: '-9999px',
-                width: '1080px', height: '1920px',
+                width: `${PRESENTATION_EXPORT.width}px`, height: `${PRESENTATION_EXPORT.height}px`,
                 backgroundColor: BG, color: TXT,
                 fontFamily: '"Anthropic Sans", Arial, sans-serif',
                 display: 'flex', flexDirection: 'column',
                 overflow: 'hidden', boxSizing: 'border-box',
             }}
         >
-            {/* Hero section — photo + overlay */}
-            <div style={{ position: 'relative', height: '640px', flexShrink: 0, overflow: 'hidden' }}>
-                {coverPhoto && (
-                    <img src={coverPhoto} crossOrigin="anonymous"
-                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-                )}
-                <div style={{ position: 'absolute', inset: 0,
-                    background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.75) 100%)' }} />
-                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '60px 80px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                    <div style={{ fontSize: '80px', lineHeight: 1 }}>{trip.emoji || '✈️'}</div>
-                    <h1 style={{ fontSize: '84px', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05, color: '#FFFFFF', margin: 0 }}>
-                        {trip.name}
-                    </h1>
-                    {route && <p style={{ fontSize: '26px', color: 'rgba(255,255,255,0.7)', margin: 0 }}>{route}</p>}
-                    <p style={{ fontSize: '22px', color: 'rgba(255,255,255,0.55)', margin: 0 }}>
-                        {formatDateRange(trip.startDate, trip.endDate) || 'Dates TBA'}
-                        {trip.travelers > 1 && ` · ${trip.travelers} travelers`}
-                    </p>
-                    {countdownLbl && (
-                        <div style={{ alignSelf: 'flex-start', backgroundColor: ACC, color: '#FFF', fontSize: '22px', fontWeight: 700,
-                            padding: '10px 28px', borderRadius: '999px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                            {countdownLbl}
-                        </div>
+            <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1.25fr 0.75fr', gap: '32px', padding: '40px 48px 32px' }}>
+                <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '28px', minHeight: 0 }}>
+                    {coverPhoto && (
+                        <img src={coverPhoto} crossOrigin="anonymous"
+                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                     )}
-                    {captions?.cover && (
-                        <div style={{ display: 'flex', gap: '12px', padding: '16px 20px', borderRadius: '14px',
-                            background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)' }}>
-                            <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 700, fontSize: '18px', flexShrink: 0 }}>✦</span>
-                            <p style={{ fontSize: '22px', fontStyle: 'italic', color: 'rgba(255,255,255,0.82)', margin: 0, lineHeight: 1.4 }}>{captions.cover}</p>
-                        </div>
-                    )}
-                </div>
-            </div>
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.48) 50%, rgba(0,0,0,0.8) 100%)' }} />
 
-            {/* Body */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '60px 80px', gap: '48px' }}>
-                {/* Itinerary */}
-                {itinerary.length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                        <p style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: MUTE, margin: 0 }}>THE PLAN</p>
-                        {itinerary.slice(0, 6).map(day => (
-                            <div key={day.id} style={{ display: 'flex', alignItems: 'baseline', gap: '18px', paddingBottom: '12px', borderBottom: '1px solid #E0DDD6' }}>
-                                <span style={{ fontSize: '18px', fontWeight: 700, color: 'rgba(26,26,24,0.18)', minWidth: '60px', textAlign: 'right', flexShrink: 0 }}>
-                                    {String(day.dayNumber).padStart(2, '0')}
-                                </span>
-                                <span style={{ fontSize: '24px', fontWeight: 700, flexShrink: 0 }}>{day.emoji || '📍'} {day.location || 'TBA'}</span>
-                                {(day.activities || []).slice(0, 2).map(a => a.name).filter(Boolean).length > 0 && (
-                                    <span style={{ fontSize: '20px', color: MUTE, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                        {(day.activities || []).slice(0, 2).map(a => a.name).filter(Boolean).join(' · ')}
-                                    </span>
+                    <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '52px' }}>
+                        <div style={{ maxWidth: '760px' }}>
+                            <div style={{ fontSize: '76px', lineHeight: 1 }}>{trip.emoji || '✈️'}</div>
+                            <h1 style={{ fontSize: '74px', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 0.98, color: '#FFFFFF', margin: '14px 0 0' }}>
+                                {trip.name}
+                            </h1>
+                            <div style={{ marginTop: '18px', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+                                {route && (
+                                    <p style={{ fontSize: '24px', color: 'rgba(255,255,255,0.78)', margin: 0 }}>{route}</p>
                                 )}
+                                <span style={{ width: '6px', height: '6px', borderRadius: '999px', backgroundColor: 'rgba(255,255,255,0.4)' }} />
+                                <p style={{ fontSize: '21px', color: 'rgba(255,255,255,0.58)', margin: 0 }}>
+                                    {formatDateRange(trip.startDate, trip.endDate) || 'Dates TBA'}
+                                    {trip.travelers > 1 && ` · ${trip.travelers} travelers`}
+                                </p>
                             </div>
-                        ))}
-                        {itinerary.length > 6 && <p style={{ fontSize: '18px', color: MUTE }}>+ {itinerary.length - 6} more days</p>}
-                    </div>
-                )}
+                        </div>
 
-                {/* Budget + Bookings row */}
-                <div style={{ display: 'flex', gap: '24px' }}>
-                    {total > 0 && (
-                        <div style={{ flex: 1, background: '#ECEAE5', borderRadius: '14px', padding: '28px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            <p style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: MUTE, margin: 0 }}>Per Person</p>
-                            <p style={{ fontSize: '52px', fontWeight: 800, letterSpacing: '-0.02em', margin: 0, lineHeight: 1 }}>{formatCurrency(perPerson, trip.currency)}</p>
-                            <p style={{ fontSize: '20px', color: MUTE }}>{formatCurrency(total, trip.currency)} total</p>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+                            {countdownLbl && (
+                                <div style={{ backgroundColor: ACC, color: '#FFF', fontSize: '20px', fontWeight: 700, padding: '10px 22px', borderRadius: '999px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                                    {countdownLbl}
+                                </div>
+                            )}
+                            {captions?.cover && (
+                                <div style={{ display: 'flex', gap: '12px', flex: '1 1 360px', minWidth: '320px', padding: '16px 18px', borderRadius: '16px', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)' }}>
+                                    <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 700, fontSize: '18px', flexShrink: 0 }}>✦</span>
+                                    <p style={{ fontSize: '20px', fontStyle: 'italic', color: 'rgba(255,255,255,0.84)', margin: 0, lineHeight: 1.42 }}>{captions.cover}</p>
+                                </div>
+                            )}
                         </div>
-                    )}
-                    {confirmedBookings.length > 0 && (
-                        <div style={{ flex: 1, background: '#ECEAE5', borderRadius: '14px', padding: '28px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            <p style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: MUTE, margin: 0 }}>Confirmed</p>
-                            {confirmedBookings.slice(0, 3).map(b => {
-                                const cat = getCategory(b.category)
-                                return (
-                                    <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '22px', fontWeight: 500, color: '#3A9160' }}>
-                                        {cat.emoji} {b.name} ✓
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    )}
+                    </div>
                 </div>
 
-                {/* Packing */}
-                {packingPct !== null && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                        <p style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: MUTE }}>Packing</p>
-                        <div style={{ flex: 1, height: '10px', borderRadius: '999px', background: '#E0DDD6', overflow: 'hidden' }}>
-                            <div style={{ width: `${packingPct}%`, height: '100%', background: ACC, borderRadius: '999px' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', minHeight: 0 }}>
+                    <div style={{ padding: '28px', background: '#FFFFFF', border: '1px solid #E0DDD6', borderRadius: '20px' }}>
+                        <p style={{ fontSize: '14px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: MUTE, margin: 0 }}>At A Glance</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '18px' }}>
+                            <div>
+                                <p style={{ fontSize: '13px', fontWeight: 700, color: MUTE, margin: 0, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Destinations</p>
+                                <p style={{ fontSize: '38px', fontWeight: 800, letterSpacing: '-0.04em', margin: '8px 0 0', color: TXT, lineHeight: 1 }}>
+                                    {(trip.destinations || []).length || '—'}
+                                </p>
+                            </div>
+                            <div>
+                                <p style={{ fontSize: '13px', fontWeight: 700, color: MUTE, margin: 0, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Travelers</p>
+                                <p style={{ fontSize: '38px', fontWeight: 800, letterSpacing: '-0.04em', margin: '8px 0 0', color: TXT, lineHeight: 1 }}>
+                                    {trip.travelers || 1}
+                                </p>
+                            </div>
                         </div>
-                        <p style={{ fontSize: '22px', fontWeight: 700, color: ACC }}>{packingPct}%</p>
                     </div>
-                )}
 
-                {/* Watermark */}
-                <div style={{ marginTop: 'auto', opacity: 0.3 }}>
-                    <WandWordmark static={true} color={TXT} />
+                    <div style={{ flex: 1, padding: '28px', background: '#FFFFFF', border: '1px solid #E0DDD6', borderRadius: '20px', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                        <p style={{ fontSize: '14px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: MUTE, margin: 0 }}>The Plan</p>
+                        <div style={{ marginTop: '18px', display: 'flex', flexDirection: 'column', gap: '12px', overflow: 'hidden' }}>
+                            {itinerary.length > 0 ? itinerary.slice(0, 5).map(day => (
+                                <div key={day.id} style={{ display: 'grid', gridTemplateColumns: '56px 1fr', gap: '14px', alignItems: 'start', paddingBottom: '12px', borderBottom: '1px solid #E0DDD6' }}>
+                                    <span style={{ fontSize: '18px', fontWeight: 700, color: 'rgba(26,26,24,0.18)', textAlign: 'right', flexShrink: 0 }}>
+                                        {String(day.dayNumber).padStart(2, '0')}
+                                    </span>
+                                    <div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                                            <span style={{ fontSize: '18px', lineHeight: 1 }}>{day.emoji || '📍'}</span>
+                                            <span style={{ fontSize: '22px', fontWeight: 700, color: TXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {day.location || 'TBA'}
+                                            </span>
+                                        </div>
+                                        {(day.activities || []).slice(0, 2).map(a => a.name).filter(Boolean).length > 0 && (
+                                            <p style={{ fontSize: '16px', color: MUTE, margin: '4px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {(day.activities || []).slice(0, 2).map(a => a.name).filter(Boolean).join(' · ')}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            )) : (
+                                <p style={{ fontSize: '18px', color: MUTE, margin: '4px 0 0' }}>No itinerary added yet.</p>
+                            )}
+                        </div>
+                        {itinerary.length > 5 && <p style={{ fontSize: '16px', color: MUTE, margin: '14px 0 0' }}>+ {itinerary.length - 5} more days</p>}
+                    </div>
+
+                    <div style={{ padding: '24px 28px', background: '#FFFFFF', border: '1px solid #E0DDD6', borderRadius: '20px' }}>
+                        <p style={{ fontSize: '14px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: MUTE, margin: 0 }}>Status</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+                            <div>
+                                <p style={{ fontSize: '13px', color: MUTE, margin: 0 }}>Budget per person</p>
+                                <p style={{ fontSize: '34px', fontWeight: 800, letterSpacing: '-0.04em', margin: '8px 0 0', lineHeight: 1 }}>
+                                    {total > 0 ? formatCurrency(perPerson, trip.currency) : '—'}
+                                </p>
+                            </div>
+                            <div>
+                                <p style={{ fontSize: '13px', color: MUTE, margin: 0 }}>Bookings confirmed</p>
+                                <p style={{ fontSize: '34px', fontWeight: 800, letterSpacing: '-0.04em', margin: '8px 0 0', lineHeight: 1 }}>
+                                    {confirmedBookings.length}<span style={{ fontSize: '20px', color: MUTE }}>/{trip.bookings?.length || 0}</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {packingPct !== null && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '24px 28px', background: '#FFFFFF', border: '1px solid #E0DDD6', borderRadius: '20px' }}>
+                            <p style={{ fontSize: '14px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: MUTE, margin: 0 }}>Packing</p>
+                            <div style={{ flex: 1, height: '10px', borderRadius: '999px', background: '#E0DDD6', overflow: 'hidden' }}>
+                                <div style={{ width: `${packingPct}%`, height: '100%', background: ACC, borderRadius: '999px' }} />
+                            </div>
+                            <p style={{ fontSize: '22px', fontWeight: 700, color: ACC, margin: 0 }}>{packingPct}%</p>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
