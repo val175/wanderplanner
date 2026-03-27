@@ -1,96 +1,34 @@
 import React, { useState, useRef, useEffect, useCallback, useContext } from 'react'
 import { createPortal } from 'react-dom'
-import { useChat } from '@ai-sdk/react'
-import { DefaultChatTransport } from 'ai'
-import { X, Mic, MicOff } from 'lucide-react'
-import ReactMarkdown from 'react-markdown'
-import { auth } from '../../firebase/config'
+import { X, Mic, MicOff, Radio } from 'lucide-react'
 import { TripContext } from '../../context/TripContext'
 import { buildTripSystemPrompt } from '../../hooks/useAI'
-import { useWalkieTalkie } from '../../hooks/useWalkieTalkie'
+import { useWandaLive } from '../../hooks/useWandaLive'
 import { hapticSelection } from '../../utils/haptics'
 import { useLiveWeatherContext } from '../../hooks/useLiveWeatherContext'
 import { wandaRuntime } from '../../utils/wandaRuntime'
 
-let _walkieSystemPromptRef = buildTripSystemPrompt(null)
-
-const walkieChatTransport = new DefaultChatTransport({
-  api: 'https://wanderplan-rust.vercel.app/api/chat',
-  body: () => ({
-    systemPrompt: _walkieSystemPromptRef,
-    weatherContext: wandaRuntime.weatherContext,
-    activeTab: wandaRuntime.activeTab,
-    selectedMapPoint: wandaRuntime.selectedMapPoint,
-    uiContext: wandaRuntime.uiContext,
-  }),
-  fetch: async (url, options) => {
-    try {
-      let token = ''
-      if (auth.currentUser) {
-        try { token = await auth.currentUser.getIdToken() } catch (e) { console.warn('[Walkie] Token error:', e) }
-      }
-      const headers = new Headers(options.headers || {})
-      headers.set('Content-Type', 'application/json')
-      if (token) headers.set('Authorization', `Bearer ${token}`)
-      const response = await fetch(url, { ...options, headers, mode: 'cors', credentials: 'omit' })
-      if (!response.ok) console.error(`[Walkie] HTTP ${response.status}: ${response.statusText}`)
-      return response
-    } catch (err) {
-      console.error('[Walkie] Fetch crash:', err)
-      throw err
-    }
-  }
-})
+function buildVoiceSystemPrompt(activeTrip, weatherContext) {
+  const base = buildTripSystemPrompt(activeTrip)
+  const weather = weatherContext ? `LIVE WEATHER:\n${weatherContext}` : ''
+  const tab = wandaRuntime.activeTab ? `ACTIVE TAB: ${wandaRuntime.activeTab}` : ''
+  const ui = wandaRuntime.uiContext ? `UI CONTEXT: ${wandaRuntime.uiContext}` : ''
+  const context = [weather, tab, ui].filter(Boolean).join('\n')
+  return [
+    base,
+    context,
+    'VOICE MODE: You are speaking aloud to the user in real-time. Keep every reply to 2-3 short sentences maximum. Be warm and conversational — no lists, no markdown, no bullet points.',
+  ].filter(Boolean).join('\n\n')
+}
 
 export default function WalkieTalkieModal() {
   const [isOpen, setIsOpen] = useState(false)
   const { activeTrip } = useContext(TripContext)
-  const prevStatusRef = useRef('ready')
-  const speakRef = useRef(null)
   const weatherContext = useLiveWeatherContext(activeTrip)
+  const weatherRef = useRef(weatherContext)
+  useEffect(() => { weatherRef.current = weatherContext }, [weatherContext])
 
-  // Keep system prompt in sync with active trip
-  useEffect(() => {
-    const base = buildTripSystemPrompt(activeTrip)
-    _walkieSystemPromptRef = base + '\n\nVOICE MODE: You are responding via voice. Keep every reply to 2-3 short sentences maximum. Be direct and conversational — no lists, no headers, no markdown formatting.'
-  }, [activeTrip])
-
-  useEffect(() => {
-    wandaRuntime.weatherContext = weatherContext
-  }, [weatherContext])
-
-  const { messages, sendMessage, status, setMessages } = useChat({
-    transport: walkieChatTransport,
-  })
-
-  const isLoading = status === 'submitted' || status === 'streaming'
-
-  const handleTranscriptReady = useCallback((text) => {
-    if (!text.trim() || status === 'submitted' || status === 'streaming') return
-    sendMessage({ text })
-  }, [status, sendMessage])
-
-  const {
-    isWalkieTalkieMode, isListening, isSpeaking, isMicPreparing, transcript, isSTTSupported,
-    toggleWalkieTalkieMode, startListening, stopListening, speak,
-  } = useWalkieTalkie({ onTranscriptReady: handleTranscriptReady })
-
-  // Keep speak ref up-to-date for the status effect
-  speakRef.current = speak
-
-  // TTS trigger on streaming→ready transition
-  useEffect(() => {
-    const prev = prevStatusRef.current
-    prevStatusRef.current = status
-    if (prev === 'streaming' && status === 'ready') {
-      const lastMsg = [...messages].reverse().find(m => m.role === 'assistant')
-      if (lastMsg) {
-        const textParts = lastMsg.parts?.filter(p => p.type === 'text') ?? []
-        const text = textParts.map(p => p.text).join('').trim() || lastMsg.content || ''
-        if (text) speakRef.current?.(text)
-      }
-    }
-  }, [status]) // eslint-disable-line react-hooks/exhaustive-deps
+  const { isConnected, isListening, isSpeaking, error, startSession, endSession } = useWandaLive()
 
   // Open/close via custom event from BottomNav
   useEffect(() => {
@@ -99,18 +37,11 @@ export default function WalkieTalkieModal() {
     return () => window.removeEventListener('toggle-walkie-mobile', handleToggle)
   }, [])
 
-  // Turn walkie-talkie mode on/off when modal opens/closes
+  // End session when modal closes
   const prevOpenRef = useRef(false)
   useEffect(() => {
-    if (isOpen && !prevOpenRef.current) {
-      // Modal just opened — enable walkie mode then start listening
-      toggleWalkieTalkieMode()
-    } else if (!isOpen && prevOpenRef.current) {
-      // Modal just closed — disable walkie mode (toggleWalkieTalkieMode handles cleanup)
-      if (isWalkieTalkieMode) toggleWalkieTalkieMode()
-      // Clear ephemeral messages
-      setMessages([])
-      prevStatusRef.current = 'ready'
+    if (!isOpen && prevOpenRef.current && isConnected) {
+      endSession()
     }
     prevOpenRef.current = isOpen
   }, [isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -120,13 +51,27 @@ export default function WalkieTalkieModal() {
     setIsOpen(false)
   }, [])
 
-  // Last assistant message for display
-  const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant')
-  const lastAssistantText = lastAssistantMsg
-    ? (lastAssistantMsg.parts?.filter(p => p.type === 'text').map(p => p.text).join('').trim() || lastAssistantMsg.content || '')
-    : ''
+  // The mic button: start session (first tap) or end session (tap while connected)
+  // Must be an onClick handler — iOS Safari requires AudioContext + getUserMedia inside a gesture
+  const handleMicPress = useCallback(() => {
+    hapticSelection()
+    if (isConnected) {
+      endSession()
+    } else {
+      const prompt = buildVoiceSystemPrompt(activeTrip, weatherRef.current)
+      startSession(prompt)
+    }
+  }, [isConnected, activeTrip, startSession, endSession])
 
   if (!isOpen) return null
+
+  const statusLabel = (() => {
+    if (error) return { text: error, color: 'text-red-400' }
+    if (isSpeaking) return { text: 'Wanda is speaking', color: 'text-[var(--color-text-muted)]' }
+    if (isListening) return { text: 'Listening', color: 'text-[var(--color-accent)] animate-pulse' }
+    if (isConnected) return { text: 'Connected', color: 'text-[var(--color-text-muted)]' }
+    return { text: 'Tap the mic to start', color: 'text-[var(--color-text-muted)]' }
+  })()
 
   const modal = (
     <div
@@ -143,12 +88,8 @@ export default function WalkieTalkieModal() {
           50% { transform: scale(1.3); opacity: 0.2; }
           100% { transform: scale(1); opacity: 0.4; }
         }
-        .walkie-ring-listen {
-          animation: walkie-pulse-ring 1s ease-out infinite;
-        }
-        .walkie-ring-speak {
-          animation: walkie-speaking-ring 1.2s ease-in-out infinite;
-        }
+        .walkie-ring-listen { animation: walkie-pulse-ring 1s ease-out infinite; }
+        .walkie-ring-speak  { animation: walkie-speaking-ring 1.2s ease-in-out infinite; }
       `}</style>
 
       {/* Header */}
@@ -158,6 +99,11 @@ export default function WalkieTalkieModal() {
           <span className="font-heading text-base font-semibold text-[var(--color-text-primary)] tracking-tight">
             Wanda Voice
           </span>
+          {isConnected && (
+            <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-400 uppercase tracking-widest">
+              <Radio size={10} className="animate-pulse" /> Live
+            </span>
+          )}
         </div>
         <button
           onClick={handleClose}
@@ -167,69 +113,44 @@ export default function WalkieTalkieModal() {
         </button>
       </div>
 
-      {/* Wanda response area */}
-      <div className="flex-1 flex flex-col items-center justify-center w-full px-8 gap-4 text-center">
-        {isLoading && (
-          <p className="text-[var(--color-text-muted)] text-sm italic animate-pulse">
-            Wanda is thinking...
+      {/* Center area */}
+      <div className="flex-1 flex flex-col items-center justify-center w-full px-8 gap-3 text-center">
+        {!isConnected && !error && (
+          <p className="text-[var(--color-text-muted)] text-sm leading-relaxed max-w-[260px]">
+            Talk to Wanda in real-time. She can hear your voice and respond with audio instantly.
           </p>
         )}
-        {!isLoading && lastAssistantText && (
-          <div className="text-[var(--color-text-primary)] text-[15px] leading-relaxed max-w-[320px] prose prose-sm prose-neutral dark:prose-invert">
-            <ReactMarkdown>
-              {lastAssistantText.length > 200 ? lastAssistantText.slice(0, 200) + '…' : lastAssistantText}
-            </ReactMarkdown>
-          </div>
-        )}
-        {!isLoading && !lastAssistantText && !isListening && !isSpeaking && (
+        {isConnected && !isSpeaking && isListening && (
           <p className="text-[var(--color-text-muted)] text-sm">
-            {isWalkieTalkieMode ? 'Tap the mic and speak' : 'Starting…'}
+            Speak naturally — Wanda is listening
           </p>
         )}
-
-        {/* Live transcript */}
-        {transcript && isListening && (
-          <p className="text-[var(--color-accent)] text-sm font-medium max-w-[280px]">
-            "{transcript}"
+        {isSpeaking && (
+          <p className="text-[var(--color-text-muted)] text-sm">
+            Interrupt anytime by speaking
           </p>
+        )}
+        {error && (
+          <p className="text-red-400 text-sm max-w-[260px]">{error}</p>
         )}
       </div>
 
       {/* Status label */}
       <div className="mb-4 h-5 flex items-center justify-center">
-        {isListening && isMicPreparing && (
-          <span className="text-[var(--color-text-muted)] text-xs font-medium animate-pulse tracking-wide uppercase">
-            Getting ready...
-          </span>
-        )}
-        {isListening && !isMicPreparing && (
-          <span className="text-[var(--color-accent)] text-xs font-medium animate-pulse tracking-wide uppercase">
-            Listening
-          </span>
-        )}
-        {isSpeaking && (
-          <span className="text-[var(--color-text-muted)] text-xs tracking-wide uppercase">
-            Speaking
-          </span>
-        )}
-        {isLoading && !isSpeaking && (
-          <span className="text-[var(--color-text-muted)] text-xs tracking-wide uppercase">
-            Thinking
-          </span>
-        )}
+        <span className={`text-xs font-medium tracking-wide uppercase ${statusLabel.color}`}>
+          {statusLabel.text}
+        </span>
       </div>
 
       {/* Mic button */}
       <div className="mb-16 flex items-center justify-center">
         <div className="relative flex items-center justify-center">
-          {/* Pulse ring — listening */}
-          {isListening && (
+          {isListening && !isSpeaking && (
             <div
               className="walkie-ring-listen absolute w-[72px] h-[72px] rounded-full bg-[var(--color-accent)]"
               style={{ pointerEvents: 'none' }}
             />
           )}
-          {/* Soft ring — speaking */}
           {isSpeaking && (
             <div
               className="walkie-ring-speak absolute w-[72px] h-[72px] rounded-full bg-[var(--color-accent)]"
@@ -238,22 +159,14 @@ export default function WalkieTalkieModal() {
           )}
           <button
             type="button"
-            onClick={() => {
-              hapticSelection()
-              if (isListening) {
-                stopListening()
-              } else if (!isLoading) {
-                startListening()
-              }
-            }}
-            disabled={isLoading}
+            onClick={handleMicPress}
             className={`relative z-10 w-[72px] h-[72px] rounded-full flex items-center justify-center transition-all shadow-lg ${
-              isListening
+              isConnected
                 ? 'bg-[var(--color-accent)] text-white scale-105'
-                : 'bg-[var(--color-bg-secondary)] border-2 border-[var(--color-border)] text-[var(--color-text-secondary)] disabled:opacity-40'
+                : 'bg-[var(--color-bg-secondary)] border-2 border-[var(--color-border)] text-[var(--color-text-secondary)]'
             }`}
           >
-            {isListening ? <MicOff size={28} /> : <Mic size={28} />}
+            {isConnected ? <MicOff size={28} /> : <Mic size={28} />}
           </button>
         </div>
       </div>
