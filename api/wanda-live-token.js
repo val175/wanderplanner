@@ -41,32 +41,42 @@ export default async function handler(req) {
 
   try {
     const now = Date.now()
+    const requestBody = {
+      uses: 1,
+      newSessionExpireTime: new Date(now + 60 * 1000).toISOString(),
+      expireTime: new Date(now + 30 * 60 * 1000).toISOString(),
+      liveConnectConstraints: {
+        model: `models/${requestedModel}`,
+        config: {
+          responseModalities: ['AUDIO'],
+        },
+      },
+    }
+
+    console.log('[wanda-live-token] Requesting token for model:', requestedModel)
+    console.log('[wanda-live-token] Request body:', JSON.stringify(requestBody))
+
     const res = await fetch(GEMINI_AUTH_TOKENS_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-goog-api-key': apiKey,
       },
-      body: JSON.stringify({
-        uses: 1,
-        newSessionExpireTime: new Date(now + 60 * 1000).toISOString(),
-        expireTime: new Date(now + 30 * 60 * 1000).toISOString(),
-        liveConnectConstraints: {
-          model: `models/${requestedModel}`,
-          config: {
-            responseModalities: ['AUDIO'],
-          },
-        },
-      }),
+      body: JSON.stringify(requestBody),
     })
 
+    console.log('[wanda-live-token] Gemini response status:', res.status, res.statusText)
+
     if (!res.ok) {
-      const err = await res.text()
-      console.error('[wanda-live-token] Gemini token API error:', err)
-      return new Response(JSON.stringify({ error: 'Token creation failed' }), {
-        status: 502,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      })
+      const errText = await res.text()
+      console.error('[wanda-live-token] Gemini token API error body:', errText || '(empty)')
+      return new Response(
+        JSON.stringify({ error: 'Token creation failed', geminiStatus: res.status, geminiBody: errText }),
+        {
+          status: 502,
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        },
+      )
     }
 
     const data = await res.json()
