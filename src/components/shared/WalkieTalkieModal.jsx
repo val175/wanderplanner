@@ -17,7 +17,7 @@ function buildVoiceSystemPrompt(activeTrip, weatherContext) {
   return [
     base,
     context,
-    'VOICE MODE: You are speaking aloud to the user in real-time. Keep every reply to 2-3 short sentences maximum. Be warm and conversational — no lists, no markdown, no bullet points.',
+    'VOICE MODE: You are speaking aloud in real-time. Keep every reply to 2-3 short sentences maximum — short, warm, like you\'re chatting with a friend. No lists, no markdown, no bullet points. Be yourself: a little cheeky, always helpful.',
   ].filter(Boolean).join('\n\n')
 }
 

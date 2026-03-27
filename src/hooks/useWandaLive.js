@@ -16,11 +16,8 @@ async function fetchEphemeralToken(model) {
   return token
 }
 
-// Models tried in order — falls back to next on model-not-found errors
 const LIVE_MODELS = [
-  'gemini-3.1-flash-live-preview', // Primary: Gemini 3.1 Flash Live
-  'gemini-3-flash-preview',        // Fallback: Gemini 3 Flash Live (unlimited RPD)
-  'gemini-2.0-flash-live-001',     // Final fallback: confirmed GA stable
+  'gemini-3.1-flash-live-preview', // Only current Live model per SKILL.md; deprecated models removed
 ]
 const MIC_SAMPLE_RATE = 16000   // Gemini Live input requirement
 const SPEAKER_SAMPLE_RATE = 24000 // Gemini Live output rate
@@ -39,9 +36,7 @@ export function useWandaLive() {
   const nextPlayTimeRef = useRef(0)
   const scheduledSourcesRef = useRef([])
   const isActiveRef = useRef(false)
-  const modelIdxRef = useRef(0)
   const systemPromptRef = useRef('')
-  const openLiveSessionRef = useRef(null) // ref so onclose can trigger fallback without stale closure
 
   // Cancel all buffered audio — called on interruption or session end
   const cancelPlayback = useCallback(() => {
@@ -105,6 +100,7 @@ export function useWandaLive() {
       micStreamRef.current = null
     }
     if (sessionRef.current) {
+      try { sessionRef.current.sendRealtimeInput({ audioStreamEnd: true }) } catch (_) {}
       try { sessionRef.current.close() } catch (_) {}
       sessionRef.current = null
     }
@@ -122,7 +118,6 @@ export function useWandaLive() {
   const startSession = useCallback(async (systemPrompt) => {
     setError(null)
     isActiveRef.current = true
-    modelIdxRef.current = 0
     systemPromptRef.current = systemPrompt
 
     // Step 1: Create + resume AudioContext inside the gesture (iOS Safari audio unlock)
@@ -192,12 +187,12 @@ export function useWandaLive() {
     processorRef.current = processor
     silentGainRef.current = silentGain
 
-    // Step 4: Open Gemini Live session — stored in ref so onclose can call it for fallback
+    // Step 4: Open Gemini Live session
     // Uses v1beta (not v1alpha) since we're using the real API key, not an ephemeral token
-    const openLiveSession = async (modelIdx) => {
+    const openLiveSession = async () => {
       if (!isActiveRef.current) return
-      const model = LIVE_MODELS[modelIdx]
-      console.log(`[WandaLive] Trying model: ${model}`)
+      const model = LIVE_MODELS[0]
+      console.log(`[WandaLive] Connecting to model: ${model}`)
 
       let ephemeralToken
       try {
@@ -260,22 +255,7 @@ export function useWandaLive() {
             onclose(e) {
               console.log('[WandaLive] Session closed:', e?.reason)
               if (!isActiveRef.current) return
-
-              // Model not found — try next fallback
-              const reason = e?.reason ?? ''
-              const isModelError = reason.includes('is not found') || reason.includes('not found')
-              const nextIdx = modelIdxRef.current + 1
-              if (isModelError && nextIdx < LIVE_MODELS.length) {
-                console.log(`[WandaLive] Model unavailable, falling back to: ${LIVE_MODELS[nextIdx]}`)
-                modelIdxRef.current = nextIdx
-                cancelPlayback()
-                setIsConnected(false)
-                setIsListening(false)
-                sessionRef.current = null
-                openLiveSessionRef.current(nextIdx)
-              } else {
-                endSession()
-              }
+              endSession()
             },
           },
         })
@@ -288,8 +268,7 @@ export function useWandaLive() {
       sessionRef.current = session
     }
 
-    openLiveSessionRef.current = openLiveSession
-    await openLiveSession(0)
+    await openLiveSession()
   }, [playPCMChunk, cancelPlayback, endSession])
 
   // Cleanup on unmount
