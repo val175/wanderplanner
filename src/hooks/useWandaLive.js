@@ -5,10 +5,10 @@ import { triggerHaptic } from '../utils/haptics'
 
 const LIVE_TOKEN_URL = 'https://wanderplan-rust.vercel.app/api/wanda-live-token'
 
-async function fetchEphemeralToken() {
+async function fetchEphemeralToken(model) {
   const firebaseToken = await auth.currentUser?.getIdToken()
   if (!firebaseToken) throw new Error('Not authenticated')
-  const res = await fetch(LIVE_TOKEN_URL, {
+  const res = await fetch(`${LIVE_TOKEN_URL}?model=${encodeURIComponent(model)}`, {
     headers: { Authorization: `Bearer ${firebaseToken}` },
   })
   if (!res.ok) throw new Error(`Token fetch failed: ${res.status}`)
@@ -16,8 +16,11 @@ async function fetchEphemeralToken() {
   return token
 }
 
-// Model: Gemini 2.5 Flash Native Audio Dialog (free tier: unlimited RPM/RPD, 1M TPM)
-const LIVE_MODEL = 'gemini-2.5-flash-native-audio-dialog'
+// Models tried in order — falls back to next if the primary isn't available
+const LIVE_MODELS = [
+  'gemini-3.1-flash-live-preview', // Primary: Gemini 3.1 Flash Live (latest, unlimited RPD)
+  'gemini-3-flash-preview',        // Fallback: Gemini 3 Flash (Live API, unlimited RPD)
+]
 const MIC_SAMPLE_RATE = 16000   // Gemini Live input requirement
 const SPEAKER_SAMPLE_RATE = 24000 // Gemini Live output rate
 
@@ -35,6 +38,9 @@ export function useWandaLive() {
   const nextPlayTimeRef = useRef(0)
   const scheduledSourcesRef = useRef([])
   const isActiveRef = useRef(false)
+  const modelIdxRef = useRef(0)
+  const systemPromptRef = useRef('')
+  const openLiveSessionRef = useRef(null) // ref so onclose can trigger fallback without stale closure
 
   // Cancel all buffered audio — called on interruption or session end
   const cancelPlayback = useCallback(() => {
@@ -115,16 +121,8 @@ export function useWandaLive() {
   const startSession = useCallback(async (systemPrompt) => {
     setError(null)
     isActiveRef.current = true
-
-    let ephemeralToken
-    try {
-      ephemeralToken = await fetchEphemeralToken()
-    } catch (err) {
-      console.error('[WandaLive] Failed to fetch ephemeral token:', err)
-      setError('Could not authenticate. Please try again.')
-      isActiveRef.current = false
-      return
-    }
+    modelIdxRef.current = 0
+    systemPromptRef.current = systemPrompt
 
     // Step 1: Create + resume AudioContext inside the gesture (iOS Safari audio unlock)
     const AC = window.AudioContext || window.webkitAudioContext
@@ -153,76 +151,7 @@ export function useWandaLive() {
       return
     }
 
-    // Step 3: Open Gemini Live session using the ephemeral token
-    // httpOptions.apiVersion must be 'v1alpha' — ephemeral tokens use
-    // BidiGenerateContentConstrained which only exists on v1alpha, not v1beta
-    const ai = new GoogleGenAI({ apiKey: ephemeralToken, httpOptions: { apiVersion: 'v1alpha' } })
-    let session
-    try {
-      session = await ai.live.connect({
-        model: LIVE_MODEL,
-        config: {
-          responseModalities: [Modality.AUDIO],
-          ...(systemPrompt && {
-            systemInstruction: { parts: [{ text: systemPrompt }] }
-          }),
-          speechConfig: {
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Aoede' } }
-          },
-        },
-        callbacks: {
-          onopen() {
-            console.log('[WandaLive] Session opened')
-            setIsConnected(true)
-            setIsListening(true)
-            triggerHaptic?.()
-          },
-          onmessage(message) {
-            if (!isActiveRef.current) return
-
-            // Receive audio chunks and queue them for gapless playback
-            const parts = message.serverContent?.modelTurn?.parts ?? []
-            for (const part of parts) {
-              if (part.inlineData?.mimeType?.startsWith('audio/pcm')) {
-                playPCMChunk(part.inlineData.data)
-              }
-            }
-
-            // Gemini finished its turn — resume listening
-            if (message.serverContent?.turnComplete) {
-              setIsListening(true)
-            }
-
-            // User's voice interrupted Gemini — discard buffered audio
-            if (message.serverContent?.interrupted) {
-              cancelPlayback()
-              setIsListening(true)
-            }
-          },
-          onerror(e) {
-            console.error('[WandaLive] Session error:', e)
-            setError('Connection lost. Tap to reconnect.')
-            endSession()
-          },
-          onclose(e) {
-            console.log('[WandaLive] Session closed:', e?.reason)
-            if (isActiveRef.current) endSession()
-          },
-        },
-      })
-    } catch (err) {
-      console.error('[WandaLive] Failed to connect to Gemini Live:', err)
-      setError('Could not connect. Check your network.')
-      stream.getTracks().forEach(t => t.stop())
-      micStreamRef.current = null
-      ctx.close().catch(() => {})
-      audioCtxRef.current = null
-      isActiveRef.current = false
-      return
-    }
-    sessionRef.current = session
-
-    // Step 4: Wire mic → PCM capture → Gemini Live
+    // Step 3: Wire mic → PCM capture pipeline (stays open across model fallbacks)
     // ScriptProcessorNode: mic audio → downsample to 16kHz → base64 PCM → session.sendRealtimeInput
     // silentGain(0) → destination keeps onaudioprocess firing without mic bleed to speakers
     const actualRate = ctx.sampleRate
@@ -250,7 +179,7 @@ export function useWandaLive() {
       for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
 
       try {
-        session.sendRealtimeInput({
+        sessionRef.current.sendRealtimeInput({
           audio: { data: btoa(bin), mimeType: `audio/pcm;rate=${MIC_SAMPLE_RATE}` }
         })
       } catch (_) {}
@@ -261,6 +190,106 @@ export function useWandaLive() {
     silentGain.connect(ctx.destination)
     processorRef.current = processor
     silentGainRef.current = silentGain
+
+    // Step 4: Open Gemini Live session — stored in ref so onclose can call it for fallback
+    // httpOptions.apiVersion must be 'v1alpha' — ephemeral tokens use
+    // BidiGenerateContentConstrained which only exists on v1alpha, not v1beta
+    const openLiveSession = async (modelIdx) => {
+      if (!isActiveRef.current) return
+      const model = LIVE_MODELS[modelIdx]
+      console.log(`[WandaLive] Trying model: ${model}`)
+
+      let ephemeralToken
+      try {
+        ephemeralToken = await fetchEphemeralToken(model)
+      } catch (err) {
+        console.error('[WandaLive] Failed to fetch ephemeral token:', err)
+        setError('Could not authenticate. Please try again.')
+        isActiveRef.current = false
+        return
+      }
+
+      const ai = new GoogleGenAI({ apiKey: ephemeralToken, httpOptions: { apiVersion: 'v1alpha' } })
+      let session
+      try {
+        session = await ai.live.connect({
+          model,
+          config: {
+            responseModalities: [Modality.AUDIO],
+            ...(systemPromptRef.current && {
+              systemInstruction: { parts: [{ text: systemPromptRef.current }] }
+            }),
+            speechConfig: {
+              voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Aoede' } }
+            },
+          },
+          callbacks: {
+            onopen() {
+              console.log('[WandaLive] Session opened:', model)
+              setIsConnected(true)
+              setIsListening(true)
+              triggerHaptic?.()
+            },
+            onmessage(message) {
+              if (!isActiveRef.current) return
+
+              // Receive audio chunks and queue them for gapless playback
+              const parts = message.serverContent?.modelTurn?.parts ?? []
+              for (const part of parts) {
+                if (part.inlineData?.mimeType?.startsWith('audio/pcm')) {
+                  playPCMChunk(part.inlineData.data)
+                }
+              }
+
+              // Gemini finished its turn — resume listening
+              if (message.serverContent?.turnComplete) {
+                setIsListening(true)
+              }
+
+              // User's voice interrupted Gemini — discard buffered audio
+              if (message.serverContent?.interrupted) {
+                cancelPlayback()
+                setIsListening(true)
+              }
+            },
+            onerror(e) {
+              console.error('[WandaLive] Session error:', e)
+              setError('Connection lost. Tap to reconnect.')
+              endSession()
+            },
+            onclose(e) {
+              console.log('[WandaLive] Session closed:', e?.reason)
+              if (!isActiveRef.current) return
+
+              // Model not found — try next fallback
+              const reason = e?.reason ?? ''
+              const isModelError = reason.includes('is not found') || reason.includes('not found')
+              const nextIdx = modelIdxRef.current + 1
+              if (isModelError && nextIdx < LIVE_MODELS.length) {
+                console.log(`[WandaLive] Model unavailable, falling back to: ${LIVE_MODELS[nextIdx]}`)
+                modelIdxRef.current = nextIdx
+                cancelPlayback()
+                setIsConnected(false)
+                setIsListening(false)
+                sessionRef.current = null
+                openLiveSessionRef.current(nextIdx)
+              } else {
+                endSession()
+              }
+            },
+          },
+        })
+      } catch (err) {
+        console.error('[WandaLive] Failed to connect to Gemini Live:', err)
+        setError('Could not connect. Check your network.')
+        isActiveRef.current = false
+        return
+      }
+      sessionRef.current = session
+    }
+
+    openLiveSessionRef.current = openLiveSession
+    await openLiveSession(0)
   }, [playPCMChunk, cancelPlayback, endSession])
 
   // Cleanup on unmount
