@@ -1,6 +1,20 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { GoogleGenAI, Modality } from '@google/genai'
+import { auth } from '../firebase/config'
 import { triggerHaptic } from '../utils/haptics'
+
+const LIVE_KEY_URL = 'https://wanderplan-rust.vercel.app/api/wanda-live-key'
+
+async function fetchLiveKey() {
+  const token = await auth.currentUser?.getIdToken()
+  if (!token) throw new Error('Not authenticated')
+  const res = await fetch(LIVE_KEY_URL, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error(`Key fetch failed: ${res.status}`)
+  const { apiKey } = await res.json()
+  return apiKey
+}
 
 // Model: Gemini 2.5 Flash Native Audio Dialog (free tier: unlimited RPM/RPD, 1M TPM)
 const LIVE_MODEL = 'gemini-2.5-flash-native-audio-dialog'
@@ -99,15 +113,18 @@ export function useWandaLive() {
 
   // Call this INSIDE a user gesture handler — required by iOS Safari for AudioContext + getUserMedia
   const startSession = useCallback(async (systemPrompt) => {
-    const apiKey = import.meta.env.VITE_GEMINI_LIVE_API_KEY
-    if (!apiKey) {
-      console.error('[WandaLive] VITE_GEMINI_LIVE_API_KEY is not configured')
-      setError('Voice not configured. Contact support.')
-      return
-    }
-
     setError(null)
     isActiveRef.current = true
+
+    let apiKey
+    try {
+      apiKey = await fetchLiveKey()
+    } catch (err) {
+      console.error('[WandaLive] Failed to fetch Live API key:', err)
+      setError('Could not authenticate. Please try again.')
+      isActiveRef.current = false
+      return
+    }
 
     // Step 1: Create + resume AudioContext inside the gesture (iOS Safari audio unlock)
     const AC = window.AudioContext || window.webkitAudioContext
