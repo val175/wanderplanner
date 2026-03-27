@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from './firebase/config'
 import { TripContext, useTripContext } from './context/TripContext'
@@ -12,6 +12,8 @@ import { getEffectiveStatus } from './utils/tripStatus'
 // Auth
 import AuthScreen from './components/auth/AuthScreen'
 import WandWordmark from './components/shared/WandWordmark'
+import Button from './components/shared/Button'
+import EmptyState from './components/shared/EmptyState'
 
 // Layout components
 import Sidebar from './components/sidebar/Sidebar'
@@ -24,45 +26,53 @@ import JoinTripModal from './components/modal/JoinTripModal'
 
 // Shared
 import Toast from './components/shared/Toast'
-import AIAssistant from './components/shared/AIAssistant'
-import WalkieTalkieModal from './components/shared/WalkieTalkieModal'
-import GlobalSearchModal from './components/modal/GlobalSearchModal'
-import ShortcutsModal from './components/shared/ShortcutsModal'
 import CursorManager from './components/shared/CursorManager'
-import LevelUpModal from './components/shared/LevelUpModal'
 
 // Tab components
 import OverviewTab from './components/tabs/OverviewTab'
-import ItineraryTab from './components/tabs/ItineraryTab'
-import BookingsTab from './components/tabs/BookingsTab'
-import BudgetTab from './components/tabs/BudgetTab'
-import TodoTab from './components/tabs/TodoTab'
-import VotingTab from './components/tabs/VotingTab'
-import CitiesTab from './components/tabs/CitiesTab'
-import PackingTab from './components/tabs/PackingTab'
-import ConcertTab from './components/tabs/ConcertTab'
-import WanderMapTab from './components/tabs/WanderMapTab'
-import WrapUpTab from './components/tabs/WrapUpTab'
 import { wandaRuntime, setWandaRuntime } from './utils/wandaRuntime'
+
+const ItineraryTab = lazy(() => import('./components/tabs/ItineraryTab'))
+const BookingsTab = lazy(() => import('./components/tabs/BookingsTab'))
+const BudgetTab = lazy(() => import('./components/tabs/BudgetTab'))
+const TodoTab = lazy(() => import('./components/tabs/TodoTab'))
+const VotingTab = lazy(() => import('./components/tabs/VotingTab'))
+const CitiesTab = lazy(() => import('./components/tabs/CitiesTab'))
+const PackingTab = lazy(() => import('./components/tabs/PackingTab'))
+const ConcertTab = lazy(() => import('./components/tabs/ConcertTab'))
+const WanderMapTab = lazy(() => import('./components/tabs/WanderMapTab'))
+const WrapUpTab = lazy(() => import('./components/tabs/WrapUpTab'))
+
+const AIAssistant = lazy(() => import('./components/shared/AIAssistant'))
+const WalkieTalkieModal = lazy(() => import('./components/shared/WalkieTalkieModal'))
+const GlobalSearchModal = lazy(() => import('./components/modal/GlobalSearchModal'))
+const ShortcutsModal = lazy(() => import('./components/shared/ShortcutsModal'))
+const LevelUpModal = lazy(() => import('./components/shared/LevelUpModal'))
 
 /* ─────────────────────────────────────────────────────────────
    Tab panel renderer
 ───────────────────────────────────────────────────────────── */
 function TabPanel({ activeTab, onTabSwitch }) {
-  switch (activeTab) {
-    case 'overview': return <OverviewTab onTabSwitch={onTabSwitch} />
-    case 'wandermap': return <WanderMapTab />
-    case 'itinerary': return <ItineraryTab />
-    case 'bookings': return <BookingsTab />
-    case 'budget': return <BudgetTab />
-    case 'todo': return <TodoTab />
-    case 'voting': return <VotingTab />
-    case 'cities': return <CitiesTab />
-    case 'packing': return <PackingTab />
-    case 'concert': return <ConcertTab />
-    case 'wrap-up': return <WrapUpTab />
-    default: return <OverviewTab onTabSwitch={onTabSwitch} />
-  }
+  return (
+    <Suspense fallback={<TabLoadingState activeTab={activeTab} />}>
+      {(() => {
+        switch (activeTab) {
+          case 'overview': return <OverviewTab onTabSwitch={onTabSwitch} />
+          case 'wandermap': return <WanderMapTab />
+          case 'itinerary': return <ItineraryTab />
+          case 'bookings': return <BookingsTab />
+          case 'budget': return <BudgetTab />
+          case 'todo': return <TodoTab />
+          case 'voting': return <VotingTab />
+          case 'cities': return <CitiesTab />
+          case 'packing': return <PackingTab />
+          case 'concert': return <ConcertTab />
+          case 'wrap-up': return <WrapUpTab />
+          default: return <OverviewTab onTabSwitch={onTabSwitch} />
+        }
+      })()}
+    </Suspense>
+  )
 }
 
 function describeMapPoint(point) {
@@ -73,37 +83,25 @@ function describeMapPoint(point) {
   return 'selected point'
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Empty state — shown when no trips exist
-───────────────────────────────────────────────────────────── */
-function EmptyState({ onNewTrip }) {
+const TAB_LABELS = {
+  overview: 'Overview',
+  itinerary: 'Itinerary',
+  bookings: 'Bookings',
+  budget: 'Budget',
+  todo: 'Tasks',
+  voting: 'Voting',
+  cities: 'Cities',
+  packing: 'Packing',
+  concert: 'Concert',
+  wandermap: 'Map',
+  'wrap-up': 'Wrap-up',
+}
+
+function TabLoadingState({ activeTab }) {
+  const label = TAB_LABELS[activeTab] || 'tab'
   return (
-    <div className="flex-1 flex items-center justify-center p-8 animate-fade-in-up">
-      <div className="text-center max-w-sm">
-        <div className="text-7xl mb-6 animate-pulse-warm">🧳</div>
-        <h2 className="font-heading text-2xl font-semibold text-text-primary mb-3">
-          No trips yet
-        </h2>
-        <p className="text-text-muted text-sm leading-relaxed mb-8">
-          Every great adventure starts with a plan. Create your first trip and let
-          Wanderplan help you make it unforgettable.
-        </p>
-        <button
-          onClick={onNewTrip}
-          className="inline-flex items-center gap-2 px-6 py-3
-                     bg-accent hover:bg-accent-hover text-text-inverse
-                     font-semibold text-sm rounded-[var(--radius-md)]
-                     transition-all duration-200 active:scale-[0.98]"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2.5"
-            strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          Plan Your First Trip
-        </button>
-      </div>
+    <div className="flex min-h-[320px] items-center justify-center rounded-[var(--radius-lg)] border border-border bg-bg-card px-6 py-10 text-sm text-text-muted">
+      Loading {label}...
     </div>
   )
 }
@@ -314,7 +312,16 @@ function AuthenticatedApp({ user, signOutUser }) {
                 <BottomNav />
               </>
             ) : (
-              <EmptyState onNewTrip={handleNewTrip} />
+              <EmptyState
+                emoji="🧳"
+                title="No trips yet"
+                subtitle="Every great adventure starts with a plan. Create your first trip and let Wanderplan help you make it unforgettable."
+                action={
+                  <Button onClick={handleNewTrip}>
+                    + Plan Your First Trip
+                  </Button>
+                }
+              />
             )}
           </main>
 
@@ -338,14 +345,15 @@ function AuthenticatedApp({ user, signOutUser }) {
           onDecline={declineInvite}
         />
 
-        <GlobalSearchModal isOpen={showSearch} onClose={() => setShowSearch(false)} />
-        <ShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
-        <AIAssistant />
-        <WalkieTalkieModal />
-
-        {levelUpEvent && (
-          <LevelUpModal event={levelUpEvent} onClose={() => setLevelUpEvent(null)} />
-        )}
+        <Suspense fallback={null}>
+          <GlobalSearchModal isOpen={showSearch} onClose={() => setShowSearch(false)} />
+          <ShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
+          <AIAssistant />
+          <WalkieTalkieModal />
+          {levelUpEvent && (
+            <LevelUpModal event={levelUpEvent} onClose={() => setLevelUpEvent(null)} />
+          )}
+        </Suspense>
 
         <Toast
           message={state.toast.message}
@@ -397,24 +405,17 @@ export default function App() {
 
   if (!isAllowed) {
     return (
-      <div className="flex h-screen items-center justify-center bg-bg-primary">
-        <div className="text-center max-w-sm px-8">
-          <div className="text-5xl mb-5">🔒</div>
-          <h2 className="font-heading text-xl font-semibold text-text-primary mb-2">
-            Access restricted
-          </h2>
-          <p className="text-text-muted text-sm mb-6 leading-relaxed">
-            This app is private. You signed in as{' '}
-            <span className="text-text-primary font-medium">{user.email}</span>,
-            which isn't on the access list.
-          </p>
-          <button
-            onClick={signOutUser}
-            className="text-sm text-accent hover:underline"
-          >
-            Sign out and try another account
-          </button>
-        </div>
+      <div className="flex h-screen items-center justify-center bg-bg-primary px-6">
+        <EmptyState
+          emoji="🔒"
+          title="Access restricted"
+          subtitle={`This app is private. You signed in as ${user.email}, which isn't on the access list.`}
+          action={
+            <Button variant="secondary" onClick={signOutUser}>
+              Sign out and try another account
+            </Button>
+          }
+        />
       </div>
     )
   }

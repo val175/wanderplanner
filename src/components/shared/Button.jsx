@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { forwardRef } from 'react'
 
 const sizes = {
     sm: 'px-3 py-1.5 text-xs',
@@ -13,7 +13,7 @@ const variants = {
     danger: 'bg-danger text-white hover:bg-danger/90 border border-transparent'
 }
 
-export default function Button({
+const Button = forwardRef(function Button({
     type = 'button',
     variant = 'primary',
     size = 'md',
@@ -22,14 +22,15 @@ export default function Button({
     onClick,
     disabled = false,
     ...props
-}) {
-    const baseStyles = 'inline-flex items-center justify-center gap-2 font-medium rounded-[var(--radius-md)] transition-all'
+}, ref) {
+    const baseStyles = 'inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary'
     const sizeStyles = sizes[size] || sizes.md
     const variantStyles = variants[variant] || variants.primary
     const disabledStyles = disabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
 
     return (
         <button
+            ref={ref}
             type={type}
             onClick={onClick}
             disabled={disabled}
@@ -39,4 +40,6 @@ export default function Button({
             {children}
         </button>
     )
-}
+})
+
+export default Button

@@ -1,22 +1,24 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 
 export default function TabHeader({ leftSlot, rightSlot }) {
   const [isScrolled, setIsScrolled] = useState(false)
+  const headerRef = useRef(null)
 
   useEffect(() => {
-    const mainContainer = document.querySelector('main div[role="tabpanel"]')
+    const mainContainer = headerRef.current?.closest('[role="tabpanel"]')
     if (!mainContainer) return
 
     const handleScroll = () => {
       setIsScrolled(mainContainer.scrollTop > 10)
     }
 
+    handleScroll()
     mainContainer.addEventListener('scroll', handleScroll)
     return () => mainContainer.removeEventListener('scroll', handleScroll)
   }, [])
 
   return (
-    <div className={`
+    <div ref={headerRef} className={`
       flex flex-col gap-2
       md:flex-row md:items-center md:justify-between
       md:sticky md:top-[-20px] lg:top-[-28px] md:z-10 md:-mx-8 md:px-8 md:py-3 md:mb-5

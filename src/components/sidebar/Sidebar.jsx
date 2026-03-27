@@ -4,6 +4,7 @@ import { ACTIONS } from '../../state/tripReducer'
 import { TAB_CONFIG } from '../../constants/tabs'
 import ProfileManager from '../shared/ProfileManager'
 import AvatarCircle from '../shared/AvatarCircle'
+import Label from '../shared/Label'
 import { useAuth } from '../../hooks/useAuth'
 import { useProfiles } from '../../context/ProfileContext'
 import { getEffectiveStatus } from '../../utils/tripStatus'
@@ -16,8 +17,8 @@ function TripGroup({ title, trips, activeTripId, onSelect }) {
   if (!trips || trips.length === 0) return null
   return (
     <div className="mb-2 last:mb-0">
-      <div className="px-3 py-1 mb-0.5 text-xs font-semibold uppercase tracking-wider text-text-muted">
-        {title}
+      <div className="px-3 py-1 mb-0.5">
+        <Label>{title}</Label>
       </div>
       {trips.map(trip => (
         <button
@@ -171,7 +172,9 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
         {hasTrips && (
           <>
             <div>
-              <p className="px-3 mb-1 text-xs font-semibold uppercase tracking-wider text-text-muted">The Plan</p>
+              <div className="px-3 mb-1">
+                <Label>The Plan</Label>
+              </div>
               <nav className="flex flex-col gap-[2px]">
                 {thePlanTabs.map(tab => (
                   <NavLink
@@ -187,7 +190,9 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
             </div>
 
             <div>
-              <p className="px-3 mb-1 text-xs font-semibold uppercase tracking-wider text-text-muted">Tools & Collab</p>
+              <div className="px-3 mb-1">
+                <Label>Tools & Collab</Label>
+              </div>
               <nav className="flex flex-col gap-[2px]">
                 {toolsTabs.map(tab => (
                   <NavLink

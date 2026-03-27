@@ -6,7 +6,7 @@
 
 ## Design Tokens
 
-All design tokens are CSS custom properties defined in the global stylesheet. **Never use raw hex values or hard-coded pixel colors** — always reference a token.
+All design tokens are CSS custom properties defined in the global stylesheet. Use token-based classes for app surfaces and controls. Raw hex values are acceptable only in isolated data/config files, map/presentation art direction, and third-party asset SVG fills.
 
 ### Colors
 
@@ -60,8 +60,9 @@ Use Tailwind's semantic size classes. **Never use arbitrary pixel sizes** (`text
 
 ### Font Families
 
-- `font-heading` (Instrument Serif or similar) — use **only** on actual headings and the brand wordmark. Never on badges, pills, or body text.
-- Default sans-serif — all other text (body, labels, inputs, buttons)
+- `font-heading` (Anthropic Sans) — use for headings, buttons, labels, navigation, and most UI chrome.
+- `font-body` maps to the same sans stack and should stay limited to explicit prose/editorial treatment when needed.
+- `.wanda-serif` (Instrument Serif italic) — use only for the word "Wanda" in Wanda-branded UI.
 
 ---
 
@@ -132,6 +133,20 @@ Buttons are provided by `src/components/shared/Button.jsx`. Always use the share
 | `size="md"` (default) | Modal/drawer actions |
 | `size="lg"` | Primary CTAs in empty state or hero sections |
 
+Shared button behavior:
+- Use `Button` for all primary, secondary, ghost, and destructive actions.
+- Keep focus rings and disabled state styling in the shared component instead of duplicating them.
+- Prefer `Button` over raw `<button>` unless the control is purely structural inside another primitive.
+
+## Cards
+
+Use `src/components/shared/Card.jsx` for surfaces that need the standard border/radius treatment.
+
+- Default: static surface with `bg-bg-card border border-border rounded-[var(--radius-md)]`
+- Hoverable surface: pass `hover`
+- Interactive surface: pass `onClick`; the shared card renders as a button with accessible focus styling
+- Default padding: `p-5`; override with `padding="p-0"` or a tighter spacing class when the card contains its own layout chrome
+
 ---
 
 ## Inputs
@@ -141,7 +156,8 @@ Standard input pattern:
 <input
   className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)]
              text-text-primary placeholder:text-text-muted px-3 py-2
-             focus:outline-none focus:border-accent transition-colors"
+             focus:outline-none focus:border-accent focus-visible:ring-2 focus-visible:ring-accent/40
+             focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary transition-colors"
 />
 ```
 
@@ -150,9 +166,25 @@ Compact (drawer/inline) variant — use `px-2 py-1.5`:
 <input
   className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)]
              text-text-primary placeholder:text-text-muted px-2 py-1.5
-             focus:outline-none focus:border-accent transition-colors"
+             focus:outline-none focus:border-accent focus-visible:ring-2 focus-visible:ring-accent/40
+             focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary transition-colors"
 />
 ```
+
+Shared select pattern:
+- `src/components/shared/Select.jsx` is the canonical dropdown primitive.
+- Use `bg-bg-input`, `rounded-[var(--radius-md)]`, and the tokenized focus ring for all select triggers.
+- Keep the trigger text aligned with standard inputs instead of inventing per-tab dropdown styles.
+
+## Modals
+
+Use `src/components/shared/Modal.jsx` for all dialogs, drawers, and sheet-style forms.
+
+- Mobile: bottom sheet with rounded top corners and safe-area padding
+- Desktop: centered dialog with the same surface tokens
+- Always provide a `Dialog.Title` through the shared component
+- Keep the close control inside the modal chrome instead of duplicating a separate header bar
+- Prefer the shared modal surface over custom overlays so focus handling and escape behavior stay consistent
 
 ---
 
@@ -173,7 +205,7 @@ import TabHeader from '../common/TabHeader'
 />
 ```
 
-`TabHeader` handles: responsive flex layout (`flex-col` on mobile → `flex-row` on desktop), border-bottom, and consistent padding. Do not re-implement this with a custom `div`.
+`TabHeader` handles: responsive flex layout (`flex-col` on mobile → `flex-row` on desktop), border-bottom, and consistent padding. It should observe the nearest tab panel via a ref-driven scroll signal rather than a document query. Do not re-implement this with a custom `div`.
 
 ---
 
@@ -184,14 +216,14 @@ Use `src/components/shared/EmptyState.jsx` for all empty states. Never use inlin
 ```jsx
 import EmptyState from '../shared/EmptyState'
 
-// Full-section empty (default — py-16)
+// Full-section empty (default)
 <EmptyState
   emoji="🎫"
   title="No bookings added yet."
   subtitle="Enter one below or drop a booking board."
 />
 
-// In-card / compact empty (py-6)
+// In-card / compact empty
 <EmptyState
   emoji="💰"
   title="No budget limits defined"
@@ -207,6 +239,19 @@ import EmptyState from '../shared/EmptyState'
 | `subtitle` | — | Optional helper text |
 | `compact` | `false` | Use inside cards/tables where full padding is too large |
 | `className` | `''` | Pass `border-none bg-transparent` to strip card-like styling inside container elements |
+
+Empty-state guidance:
+- Keep the composition centered and short.
+- Use `action` for the primary CTA, and `wandaPrompt` when Wanda can help users move forward.
+- Prefer this shared block over inventing a one-off hero or helper message inside each tab.
+
+---
+
+## Performance / React Loading
+
+- Lazy-load heavyweight tab panels and overlays from the app shell instead of importing everything into `App.jsx`.
+- Keep the initial surface centered on the active tab and defer rare tools like WanderMap, AI panels, search overlays, and walkthrough modals.
+- Prefer ref-driven effects for scroll and panel state. Avoid global DOM queries when the component can observe its own nearest container.
 
 ---
 
@@ -268,6 +313,10 @@ Section labels in the sidebar use the canonical label spec plus `px-3`:
 
 **Anti-pattern:** `text-[10px] tracking-widest` — use `text-xs tracking-wider`.
 
+Sidebar conventions:
+- Use `Label` for section headings and trip-group titles.
+- Keep the trip switcher, tab list, and footer controls token-based instead of inline-styled.
+
 ---
 
 ## Conditional / Concert Theme Tab
@@ -283,15 +332,14 @@ When adding new conditional tabs, set `conditional: true` in `TAB_CONFIG` and en
 
 ## Deferred / Future Work
 
-The following improvements are planned but not yet implemented:
+The following improvements are still open:
 
-- **B5/M3:** Wanda mobile toggle fix (AI assistant panel on mobile)
+- **B5/M3:** Wanda mobile toggle fix for the AI assistant panel on mobile
 - **B9:** React ErrorBoundary for tab-level error isolation
-- **D1:** CelebrationEffect wiring (trigger when readiness = 100%)
-- **D2:** Card hover lift micro-animation
+- **D1:** CelebrationEffect wiring when readiness reaches 100%
 - **D3:** Wanda typing indicator
 - **P1+P2:** Dynamic Wanda pills per active tab
-- **F4:** Trip URL import UI (API endpoint already exists)
-- **F1:** Co-traveler presence dots (real-time awareness)
+- **F4:** Trip URL import UI
+- **F1:** Co-traveler presence dots
 
 ---

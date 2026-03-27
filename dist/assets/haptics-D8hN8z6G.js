@@ -1,0 +1,1 @@
+function a(i="light"){if(typeof navigator<"u"&&navigator.vibrate)try{i==="light"&&navigator.vibrate(15),i==="medium"&&navigator.vibrate(40),i==="heavy"&&navigator.vibrate([30,40,30])}catch{}}function n(i="medium"){a(i)}function e(){a("light")}export{n as a,e as h,a as t};

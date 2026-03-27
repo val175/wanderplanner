@@ -16,7 +16,6 @@ import { useCountdown } from '../../hooks/useCountdown'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
 import { Search as SearchIcon } from 'lucide-react'
 import ShareTripModal from '../modal/ShareTripModal'
-import GlobalSearchModal from '../modal/GlobalSearchModal'
 import PresentationMode from '../shared/PresentationMode'
 
 /* ─────────────────────────────────────────────────────────────
