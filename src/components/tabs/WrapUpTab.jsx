@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, lazy, Suspense } from 'react'
 import { useTripContext } from '../../context/TripContext'
 import { formatCurrency, haversineDistance, geocodeCity, formatDateRange } from '../../utils/helpers'
 import { ACTIONS } from '../../state/tripReducer'
@@ -8,6 +8,11 @@ import Button from '../shared/Button'
 import AvatarCircle from '../shared/AvatarCircle'
 import WandWordmark from '../shared/WandWordmark'
 import html2canvas from 'html2canvas'
+import TripRecapVideo from '../../remotion/TripRecapVideo'
+
+const RemotionPlayer = lazy(() =>
+    import('@remotion/player').then(m => ({ default: m.Player }))
+)
 
 const VIBE_TAGS = [
     { label: 'Surf & Chill', emoji: '🏄' },
@@ -82,6 +87,7 @@ export default function WrapUpTab() {
     const { currentUserProfile, awardXp } = useProfiles()
     const travelerProfiles = useTripTravelers()
     const [isExporting, setIsExporting] = useState(false)
+    const [showVideo, setShowVideo] = useState(false)
     const exportRef = useMemo(() => ({ current: null }), [])
 
     if (!activeTrip) return null
@@ -113,6 +119,25 @@ export default function WrapUpTab() {
             costPerDay, budgetSub, totalSpent,
         }
     }, [trip])
+
+    const videoProps = useMemo(() => ({
+        trip: {
+            name: trip.name,
+            emoji: trip.emoji,
+            dateLabel: formatDateRange(trip.startDate, trip.endDate) || null,
+            currency: trip.currency,
+            rating: trip.rating || 0,
+            vibes: trip.vibes || [],
+            destinations: trip.destinations || [],
+        },
+        stats,
+        km: km || 0,
+        travelerProfiles: travelerProfiles.map(p => ({
+            id: p.id,
+            name: p.name,
+            photo: p.customPhoto || p.photo || null,
+        })),
+    }), [trip, stats, km, travelerProfiles])
 
     const handleRating = (r) => {
         dispatch({ type: ACTIONS.UPDATE_TRIP, payload: { id: trip.id, updates: { rating: trip.rating === r ? 0 : r } } })
@@ -257,13 +282,20 @@ export default function WrapUpTab() {
 
             {/* 4. The CTAs */}
             <div className="flex flex-wrap items-center justify-center gap-4 pt-6 w-full">
-                <Button 
+                <Button
                     variant="secondary"
                     size="sm"
                     onClick={handleExportStory}
                     disabled={isExporting}
                 >
                     {isExporting ? '📸 Generating...' : '📸 Generate Story'}
+                </Button>
+                <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setShowVideo(v => !v)}
+                >
+                    {showVideo ? '✕ Close Video' : '🎬 Preview Video'}
                 </Button>
                 <Button 
                     variant="secondary"
@@ -290,6 +322,32 @@ export default function WrapUpTab() {
                     </Button>
                 )}
             </div>
+            {/* ── REMOTION VIDEO PREVIEW ── */}
+            {showVideo && (
+                <div className="w-full flex flex-col items-center gap-3">
+                    <Suspense fallback={
+                        <div className="animate-pulse bg-bg-secondary rounded-2xl" style={{ width: 280, aspectRatio: '9/16' }} />
+                    }>
+                        <div style={{ width: 280, borderRadius: 16, overflow: 'hidden', boxShadow: '0 4px 32px rgba(0,0,0,0.12)' }}>
+                            <RemotionPlayer
+                                component={TripRecapVideo}
+                                inputProps={videoProps}
+                                durationInFrames={270}
+                                compositionWidth={1080}
+                                compositionHeight={1920}
+                                fps={30}
+                                style={{ width: '100%', aspectRatio: '9/16' }}
+                                controls
+                                loop
+                            />
+                        </div>
+                    </Suspense>
+                    <p className="text-xs text-text-muted text-center max-w-xs">
+                        Screen-record this to save as video, or run <code className="bg-bg-secondary px-1 rounded">npx remotion studio</code> for MP4 export.
+                    </p>
+                </div>
+            )}
+
             {/* ── HIDDEN STORY CANVAS FOR EXPORT ── */}
             <div 
                 ref={el => exportRef.current = el}
