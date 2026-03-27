@@ -16,13 +16,11 @@ async function fetchEphemeralToken(model) {
   return token
 }
 
-// Models tried in order — falls back to next if the primary isn't available
-// Since we are now using the real API key (from our secure endpoint), 
-// we can use newer models and v1beta.
+// Models tried in order — falls back to next on model-not-found errors
 const LIVE_MODELS = [
-  'gemini-3.0-flash', // Primary: Newest fast model
-  'gemini-2.5-flash',
-  'gemini-2.0-flash-live-001',
+  'gemini-3.1-flash-live-preview', // Primary: Gemini 3.1 Flash Live
+  'gemini-3-flash-preview',        // Fallback: Gemini 3 Flash Live (unlimited RPD)
+  'gemini-2.0-flash-live-001',     // Final fallback: confirmed GA stable
 ]
 const MIC_SAMPLE_RATE = 16000   // Gemini Live input requirement
 const SPEAKER_SAMPLE_RATE = 24000 // Gemini Live output rate
