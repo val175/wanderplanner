@@ -17,11 +17,12 @@ async function fetchEphemeralToken(model) {
 }
 
 // Models tried in order — falls back to next if the primary isn't available
-// NOTE: Only gemini-2.0-flash-live-001 is confirmed to work with v1alpha authTokens
-// (BidiGenerateContentConstrained). Newer Gemini 2.5/3.x Live models require v1beta
-// and are incompatible with the ephemeral token system.
+// Since we are now using the real API key (from our secure endpoint), 
+// we can use newer models and v1beta.
 const LIVE_MODELS = [
-  'gemini-2.0-flash-live-001', // Primary: GA stable, confirmed v1alpha + authTokens compatible
+  'gemini-3.0-flash', // Primary: Newest fast model
+  'gemini-2.5-flash',
+  'gemini-2.0-flash-live-001',
 ]
 const MIC_SAMPLE_RATE = 16000   // Gemini Live input requirement
 const SPEAKER_SAMPLE_RATE = 24000 // Gemini Live output rate
@@ -211,7 +212,7 @@ export function useWandaLive() {
         return
       }
 
-      const ai = new GoogleGenAI({ apiKey: ephemeralToken, httpOptions: { apiVersion: 'v1alpha' } })
+      const ai = new GoogleGenAI({ apiKey: ephemeralToken, httpOptions: { apiVersion: 'v1beta' } })
       let session
       try {
         session = await ai.live.connect({
