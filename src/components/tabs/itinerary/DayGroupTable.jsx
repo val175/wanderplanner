@@ -346,14 +346,15 @@ export default function DayGroupTable({ day, itinerary, onReorderDay, trip, reso
                                 >+</button>
                               )}
                             </td>
-                            <td colSpan={3} className="py-2 pl-2">
+                            <td colSpan={3} className="py-1 pl-2">
                               <div className="flex items-center gap-3">
-                                <div className={`inline-flex items-center gap-1.5 text-xs font-medium text-text-muted bg-bg-secondary/30 border border-border/50 rounded-full px-2.5 py-0.5 hover:border-text-primary transition-all duration-150 relative z-10 ${!activity.transit ? 'opacity-0 group-hover/transit:opacity-100' : ''}`}>
+                                <div className={`inline-flex items-center gap-1 text-xs font-medium text-text-muted bg-bg-secondary/30 border border-border/50 rounded-full px-2 py-0 hover:border-text-primary transition-all duration-150 relative z-10 ${!activity.transit ? 'opacity-0 group-hover/transit:opacity-100' : ''}`}>
                                   <Select
                                     value={activity.transitEmoji || '🚕'}
                                     onValueChange={v => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { transitEmoji: v } } })}
                                     disabled={isReadOnly}
-                                    className="bg-transparent border-transparent px-0 py-0 text-xs font-medium text-text-muted hover:bg-transparent"
+                                    size="sm"
+                                    className="bg-transparent border-transparent !px-0 !py-0 text-xs font-medium text-text-muted hover:bg-transparent leading-none"
                                   >
                                     <SelectItem value="🚕">🚕</SelectItem>
                                     <SelectItem value="🚶">🚶</SelectItem>
@@ -376,7 +377,7 @@ export default function DayGroupTable({ day, itinerary, onReorderDay, trip, reso
                                   />
                                 </div>
                                 {conflictResult.hasConflict && (
-                                  <div className="text-warning text-xs font-semibold bg-warning/10 px-2 py-1 rounded">⚠️ {conflictResult.requiredTransitMins}m transit needed</div>
+                                  <div className="text-warning text-[10px] font-semibold bg-warning/10 px-2 py-0.5 rounded-full">⚠️ {conflictResult.requiredTransitMins}m transit needed</div>
                                 )}
                               </div>
                             </td>
