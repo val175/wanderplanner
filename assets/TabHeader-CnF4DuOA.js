@@ -1,4 +1,4 @@
-import{r as s,j as t}from"./index-B-HauZgw.js";function i({leftSlot:a,rightSlot:d}){const[l,o]=s.useState(!1),n=s.useRef(null);return s.useEffect(()=>{var m;const e=(m=n.current)==null?void 0:m.closest('[role="tabpanel"]');if(!e)return;const r=()=>{o(e.scrollTop>10)};return r(),e.addEventListener("scroll",r),()=>e.removeEventListener("scroll",r)},[]),t.jsxs("div",{ref:n,className:`
+import{r as s,j as t}from"./index-lBs1GXwI.js";function i({leftSlot:a,rightSlot:d}){const[l,o]=s.useState(!1),n=s.useRef(null);return s.useEffect(()=>{var m;const e=(m=n.current)==null?void 0:m.closest('[role="tabpanel"]');if(!e)return;const r=()=>{o(e.scrollTop>10)};return r(),e.addEventListener("scroll",r),()=>e.removeEventListener("scroll",r)},[]),t.jsxs("div",{ref:n,className:`
       flex flex-col gap-2
       md:flex-row md:items-center md:justify-between
       md:sticky md:top-[-20px] lg:top-[-28px] md:z-10 md:-mx-8 md:px-8 md:py-3 md:mb-5
