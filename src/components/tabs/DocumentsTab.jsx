@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
+import { Eye, Download, Trash2 } from 'lucide-react'
 import TabHeader from '../common/TabHeader'
 import Card from '../shared/Card'
 import Button from '../shared/Button'
@@ -132,7 +133,7 @@ function PreviewModal({ doc, isOpen, onClose }) {
             <p className="text-xs uppercase tracking-wider text-text-muted font-semibold">Linked to</p>
             <div className="flex flex-wrap gap-2">
               {doc.linkedEntities.map(link => (
-                <span key={`${link.type}-${link.id}`} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-bg-secondary border border-border text-text-secondary">
+                <span key={`${link.type}-${link.id}`} className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[var(--radius-pill)] text-xs bg-bg-secondary border border-border text-text-secondary">
                   {link.type}
                   {link.label ? ` · ${link.label}` : ''}
                 </span>
@@ -456,55 +457,74 @@ export default function DocumentsTab() {
           />
         </Card>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {filteredDocs.map(doc => (
-            <Card key={doc.id} className="p-4 border-border bg-bg-card">
-              <div className="flex items-start gap-3">
-                <div className="w-12 h-12 rounded-[var(--radius-md)] bg-bg-secondary border border-border flex items-center justify-center overflow-hidden shrink-0">
-                  {doc.mimeType?.startsWith('image/') ? (
-                    <img src={doc.previewUrl || doc.downloadUrl} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-lg">{doc.kind === 'pdf' ? '📕' : doc.kind === 'text' ? '📝' : '📎'}</span>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="font-heading font-semibold text-text-primary truncate">{doc.title}</p>
-                      <p className="text-xs text-text-muted mt-0.5">{getKindLabel(doc)} · {formatDate(doc.createdAt, 'short')}</p>
-                    </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-accent/10 text-accent border border-accent/20 shrink-0">
-                      {doc.category || 'import'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-text-muted mt-2 max-h-10 overflow-hidden">
-                    {doc.parsedSummary || doc.previewText || doc.sourceTab || 'Stored document'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button size="sm" variant="secondary" onClick={() => setSelectedDocId(doc.id)}>Preview</Button>
-                <Button size="sm" variant="secondary" onClick={() => window.open(doc.downloadUrl, '_blank', 'noopener,noreferrer')}>Download</Button>
-                {!isReadOnly && (
-                  <Button size="sm" variant="secondary" onClick={() => handleDelete(doc)}>
-                    Delete
-                  </Button>
-                )}
-              </div>
-
-              {doc.linkedEntities?.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {doc.linkedEntities.slice(0, 3).map(link => (
-                    <span key={`${doc.id}-${link.type}-${link.id}`} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] bg-bg-secondary text-text-muted border border-border">
-                      {link.type}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </Card>
-          ))}
-        </div>
+        <Card className="p-0 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">File</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider hidden sm:table-cell">Category</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider hidden md:table-cell">Date</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-text-muted uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredDocs.map(doc => (
+                  <tr key={doc.id} className="border-t border-border hover:bg-bg-hover transition-colors first:border-t-0">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-[var(--radius-md)] bg-bg-secondary border border-border flex items-center justify-center overflow-hidden shrink-0">
+                          {doc.mimeType?.startsWith('image/') ? (
+                            <img src={doc.previewUrl || doc.downloadUrl} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-base">{doc.kind === 'pdf' ? '📕' : doc.kind === 'text' ? '📝' : '📎'}</span>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-heading font-semibold text-sm text-text-primary truncate max-w-[180px] sm:max-w-[260px]">{doc.title}</p>
+                          <p className="text-xs text-text-muted mt-0.5">{getKindLabel(doc)}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 hidden sm:table-cell">
+                      {doc.category === 'booking' ? (
+                        <button
+                          onClick={() => dispatch({ type: ACTIONS.SET_TAB, payload: 'bookings' })}
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-[var(--radius-pill)] text-xs font-semibold uppercase tracking-wider bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-colors cursor-pointer"
+                          title="Go to Bookings"
+                        >
+                          {doc.category}
+                        </button>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-[var(--radius-pill)] text-xs font-semibold uppercase tracking-wider bg-accent/10 text-accent border border-accent/20">
+                          {doc.category || 'import'}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-text-muted hidden md:table-cell whitespace-nowrap">
+                      {formatDate(doc.createdAt)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <button className="p-1.5 text-text-muted hover:text-accent transition-colors" title="Preview" onClick={() => setSelectedDocId(doc.id)}>
+                          <Eye size={15} />
+                        </button>
+                        <button className="p-1.5 text-text-muted hover:text-accent transition-colors" title="Download" onClick={() => window.open(doc.downloadUrl, '_blank', 'noopener,noreferrer')}>
+                          <Download size={15} />
+                        </button>
+                        {!isReadOnly && (
+                          <button className="p-1.5 text-text-muted hover:text-danger transition-colors" title="Delete" onClick={() => handleDelete(doc)}>
+                            <Trash2 size={15} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
     </div>
   )
