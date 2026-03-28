@@ -11,7 +11,6 @@ import {
   query,
   where,
   updateDoc,
-  arrayUnion,
 } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { tripReducer, ACTIONS } from '../state/tripReducer'
@@ -20,7 +19,6 @@ import { generateId } from '../utils/helpers'
 
 const STORAGE_KEY = 'wanderplan_data'
 const REVERSE_MIGRATION_FLAG = 'wanderplan_root_migrated'
-const tripDocumentsRef = collection(db, 'tripDocuments')
 
 function getInitialState() {
   let darkMode = false
@@ -67,9 +65,7 @@ export function useFirestoreTrips(userId) {
   const [firestoreLoading, setFirestoreLoading] = useState(true)
   const [pendingInvite, setPendingInvite] = useState(null)
   const prevTripsRef = useRef({})
-  const prevDocumentsByTripRef = useRef({})
   const isRemoteUpdateRef = useRef(false)
-  const isRemoteDocumentsUpdateRef = useRef(false)
 
   // ── 1. Real-time listener: Shared Root → local state ─────────────────────
   useEffect(() => {
@@ -136,34 +132,6 @@ export function useFirestoreTrips(userId) {
 
     return unsubscribe
   }, [userId])
-
-  // ── 1a. Active-trip documents listener ──────────────────────────────────
-  useEffect(() => {
-    if (!userId || !state.activeTripId) return
-
-    const q = query(tripDocumentsRef, where('tripId', '==', state.activeTripId))
-    const unsubscribe = onSnapshot(
-      q,
-      snapshot => {
-        const documents = {}
-        snapshot.forEach(docSnap => {
-          const data = docSnap.data()
-          documents[docSnap.id] = data
-        })
-
-        isRemoteDocumentsUpdateRef.current = true
-        dispatch({
-          type: ACTIONS.SET_DOCUMENTS_FOR_TRIP,
-          payload: { tripId: state.activeTripId, documents },
-        })
-      },
-      error => {
-        console.error('[Wanderplan] Documents listener error:', error)
-      }
-    )
-
-    return unsubscribe
-  }, [userId, state.activeTripId])
 
   // ── 1b. Share-link resolution: ?trip=<shareId> on page load ────────────────
   useEffect(() => {
@@ -310,34 +278,14 @@ export function useFirestoreTrips(userId) {
   // ── 2b. Outbound sync: local documents → Firestore ──────────────────────
   useEffect(() => {
     if (!userId) return
-    if (isRemoteDocumentsUpdateRef.current) {
-      isRemoteDocumentsUpdateRef.current = false
-      prevDocumentsByTripRef.current = state.documentsByTrip
-      return
-    }
-
     const currentByTrip = state.documentsByTrip || {}
-    const previousByTrip = prevDocumentsByTripRef.current || {}
-
     Object.entries(currentByTrip).forEach(([tripId, docs]) => {
-      const previousDocs = previousByTrip[tripId] || {}
-
-      Object.entries(docs || {}).forEach(([docId, docData]) => {
-        setDoc(doc(tripDocumentsRef, docId), { ...docData, tripId, _updatedAt: serverTimestamp() }, { merge: true }).catch(console.error)
-      })
-
-      Object.keys(previousDocs).forEach((docId) => {
-        if (!docs?.[docId]) {
-          deleteDoc(doc(tripDocumentsRef, docId)).catch(console.error)
-        }
-      })
+      setDoc(
+        doc(tripsRef, tripId),
+        { documents: docs || {}, _updatedAt: serverTimestamp() },
+        { merge: true }
+      ).catch(console.error)
     })
-
-    Object.keys(previousByTrip).forEach((tripId) => {
-      if (!currentByTrip[tripId]) return
-    })
-
-    prevDocumentsByTripRef.current = currentByTrip
   }, [state.documentsByTrip, userId])
 
   // ── 3. Dark mode ─────────────────────────────────────────────────────────

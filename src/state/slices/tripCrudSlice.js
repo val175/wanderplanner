@@ -115,6 +115,11 @@ export const tripCrudCases = {
     Object.assign(mergedTrips, newTrips)
     deletedIds.forEach(id => { delete mergedTrips[id] })
     const documentsByTrip = { ...(state.documentsByTrip || {}) }
+    Object.entries(newTrips || {}).forEach(([tripId, trip]) => {
+      if (trip?.documents && typeof trip.documents === 'object') {
+        documentsByTrip[tripId] = trip.documents
+      }
+    })
     deletedIds.forEach(id => { delete documentsByTrip[id] })
 
     const ids = Object.keys(mergedTrips)
