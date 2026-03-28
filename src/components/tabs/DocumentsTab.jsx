@@ -7,8 +7,13 @@ import EmptyState from '../shared/EmptyState'
 import Select, { SelectItem } from '../shared/Select'
 import { useTripContext } from '../../context/TripContext'
 import { useProfiles } from '../../context/ProfileContext'
+import { useTripTravelers } from '../../hooks/useTripTravelers'
 import { ACTIONS } from '../../state/tripReducer'
-import { getDocumentsForTrip, uploadDocumentToStorage, deleteDocumentFromStorage } from '../../utils/documentVault'
+import { getDocumentsForTrip, uploadDocumentToStorage, deleteDocumentFromStorage, prepareDocumentForStorage } from '../../utils/documentVault'
+import { parseDocumentIntake } from '../../utils/documentIntake'
+import { generateId } from '../../utils/helpers'
+import { buildSplits } from '../../utils/splitwise'
+import { BOOKING_CATEGORIES } from '../../constants/tabs'
 import { formatDate } from '../../utils/helpers'
 import { hapticImpact } from '../../utils/haptics'
 
@@ -20,6 +25,64 @@ const CATEGORY_LABELS = {
   itinerary: 'Itinerary',
   idea: 'Ideas',
   'travel-doc': 'Travel Docs',
+}
+
+const BOOKING_TYPE_IDS = new Set(BOOKING_CATEGORIES.map(cat => cat.id))
+
+function toBase64Number(value) {
+  const num = Number(value)
+  return Number.isFinite(num) ? num : 0
+}
+
+function getTripTravelerIds(activeTrip, travelers) {
+  if (Array.isArray(travelers) && travelers.length > 0) {
+    return travelers.map(traveler => traveler.id).filter(Boolean)
+  }
+  return (activeTrip?.travelerIds || []).filter(Boolean)
+}
+
+function resolveBookingCategory(type) {
+  if (BOOKING_TYPE_IDS.has(type)) return type
+  if (type === 'lodging') return 'lodging'
+  return 'activity'
+}
+
+function resolveExpenseCategory(type, budget = []) {
+  const normalized = String(type || '').toLowerCase()
+  const directMatch = budget.find(cat =>
+    cat.id === normalized ||
+    cat.name?.toLowerCase() === normalized
+  )
+  if (directMatch) return directMatch.name
+
+  const aliases = {
+    food: ['food', 'restaurant', 'dining', 'meal'],
+    lodging: ['lodging', 'hotel', 'stay'],
+    flight: ['flight', 'airfare', 'airline'],
+    activity: ['activity', 'tour', 'ticket', 'event'],
+    transport: ['transport', 'transfer', 'bus', 'train', 'taxi'],
+    shopping: ['shopping', 'retail', 'store'],
+    concert: ['concert', 'music', 'show'],
+  }
+
+  for (const category of budget) {
+    const bucket = aliases[category.id] || []
+    if (bucket.some(term => normalized.includes(term))) {
+      return category.name
+    }
+  }
+
+  const other = budget.find(cat => cat.name?.toLowerCase() === 'other')
+  return other?.name || budget[0]?.name || 'Other'
+}
+
+function buildBookingSummary(data = {}) {
+  return [
+    data.title ? `Title: ${data.title}` : '',
+    data.location ? `Location: ${data.location}` : '',
+    data.date ? `Date: ${data.date}` : '',
+    data.confirmationNumber ? `Confirmation: ${data.confirmationNumber}` : '',
+  ].filter(Boolean).join('\n')
 }
 
 function PreviewModal({ doc, isOpen, onClose }) {
@@ -83,8 +146,9 @@ function PreviewModal({ doc, isOpen, onClose }) {
 }
 
 export default function DocumentsTab() {
-  const { state, activeTrip, dispatch, isReadOnly } = useTripContext()
+  const { state, activeTrip, dispatch, isReadOnly, showToast } = useTripContext()
   const { currentUserProfile } = useProfiles()
+  const travelers = useTripTravelers()
   const fileInputRef = useRef(null)
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
@@ -127,15 +191,177 @@ export default function DocumentsTab() {
     if (!file || !activeTrip?.id) return
     setIsUploading(true)
     try {
+      const preparedFile = await prepareDocumentForStorage(file, {
+        image: { maxEdge: 1600, quality: 0.84 },
+      })
+
+      const prepared = await parseDocumentIntake(file, preparedFile).catch(async () => {
+        const fallback = await uploadDocumentToStorage({
+          file: preparedFile.storageFile,
+          prepared: preparedFile,
+          tripId: activeTrip.id,
+          title: file.name.replace(/\.[^.]+$/, ''),
+          sourceTab: 'documents',
+          sourceEntityType: 'manual',
+          uploadedBy: currentUserProfile?.uid || currentUserProfile?.id || '',
+        })
+        dispatch({ type: ACTIONS.ADD_DOCUMENT, payload: fallback })
+        return null
+      })
+
+      if (!prepared) {
+        hapticImpact('light')
+        return
+      }
+
+      const parsed = prepared.ingest?.data || {}
+      const parsedTitle = parsed.title || file.name.replace(/\.[^.]+$/, '') || 'Document'
+      const parsedType = String(parsed.type || '').toLowerCase()
+      const workflow = prepared.workflow
+      const uploadedBy = currentUserProfile?.uid || currentUserProfile?.id || ''
+      const tripBudget = activeTrip.budget || []
+      const travelerIds = getTripTravelerIds(activeTrip, travelers)
+      const firstTravelerId = travelerIds[0] || currentUserProfile?.uid || currentUserProfile?.id || ''
+
+      if (workflow === 'booking') {
+        const bookingId = generateId()
+        const category = resolveBookingCategory(parsedType)
+        const bookingRecord = await uploadDocumentToStorage({
+          file: preparedFile.storageFile,
+          prepared: preparedFile,
+          tripId: activeTrip.id,
+          title: parsedTitle,
+          category: 'booking',
+          sourceTab: 'documents',
+          sourceEntityType: 'booking',
+          sourceEntityId: bookingId,
+          uploadedBy,
+          parsedSummary: buildBookingSummary(parsed),
+          linkedEntities: [{ type: 'booking', id: bookingId, label: parsedTitle }],
+        })
+
+        dispatch({ type: ACTIONS.ADD_DOCUMENT, payload: bookingRecord })
+        dispatch({
+          type: ACTIONS.ADD_BOOKING,
+          payload: {
+            id: bookingId,
+            name: parsedTitle,
+            category,
+            startDate: parsed.date ? parsed.date.split('T')[0] : '',
+            location: parsed.location || '',
+            confirmationNumber: parsed.confirmationNumber || '',
+            amountPaid: toBase64Number(parsed.amountPaid),
+            status: parsed.status || 'confirmed',
+            notes: parsed.notes || '',
+            providerLink: parsed.providerLink || null,
+            documentIds: [bookingRecord.id],
+            attachments: [{
+              id: bookingRecord.id,
+              documentId: bookingRecord.id,
+              name: bookingRecord.title,
+              type: bookingRecord.mimeType,
+              url: bookingRecord.downloadUrl,
+              previewUrl: bookingRecord.previewUrl,
+              dateAdded: bookingRecord.createdAt,
+            }],
+            vector: prepared.ingest?.vector || [],
+          }
+        })
+
+        showToast?.(`"${parsedTitle}" added to Bookings`)
+        hapticImpact('light')
+        return
+      }
+
+      if (workflow === 'expense') {
+        const receiptItems = prepared.receipt?.items || []
+        const receiptCurrency = String(prepared.receipt?.currency || 'PHP').toUpperCase()
+        const conversionRate = receiptCurrency === 'PHP' ? 1 : await (async () => {
+          try {
+            const rateRes = await fetch(`https://api.exchangerate-api.com/v4/latest/${receiptCurrency}`)
+            if (!rateRes.ok) return 1
+            const rateData = await rateRes.json()
+            return rateData.rates?.PHP || 1
+          } catch {
+            return 1
+          }
+        })()
+
+        const hasItemizedReceipt = receiptItems.length > 0
+        const itemizedEntries = hasItemizedReceipt
+          ? receiptItems.map(item => ({
+              id: generateId(),
+              description: item.description,
+              amount: Number((Number(item.amount || 0) * conversionRate).toFixed(2)),
+              category: resolveExpenseCategory(item.category, tripBudget),
+              paidBy: firstTravelerId,
+              splitBetween: travelerIds,
+              splits: buildSplits(Number((Number(item.amount || 0) * conversionRate).toFixed(2)), travelerIds, 'equal'),
+              splitMode: 'equal',
+            }))
+          : []
+
+        const expensePayloads = hasItemizedReceipt
+          ? itemizedEntries
+          : [{
+              id: generateId(),
+              description: parsedTitle,
+              amount: toBase64Number(parsed.amountPaid) || toBase64Number(parsed.amount),
+              category: resolveExpenseCategory(parsedType, tripBudget),
+              paidBy: firstTravelerId,
+              splitBetween: travelerIds,
+              splits: buildSplits(toBase64Number(parsed.amountPaid) || toBase64Number(parsed.amount), travelerIds, 'equal'),
+              splitMode: 'equal',
+            }]
+
+        const expenseDoc = await uploadDocumentToStorage({
+          file: preparedFile.storageFile,
+          prepared: preparedFile,
+          tripId: activeTrip.id,
+          title: parsedTitle,
+          category: 'receipt',
+          sourceTab: 'documents',
+          sourceEntityType: 'receipt',
+          sourceEntityId: expensePayloads[0]?.id,
+          uploadedBy,
+          parsedSummary: hasItemizedReceipt
+            ? receiptItems.map(item => `${item.description}: ${item.amount} ${receiptCurrency}`).join('\n')
+            : buildBookingSummary(parsed),
+          previewText: hasItemizedReceipt
+            ? receiptItems.map(item => `${item.description} - ${item.amount} ${receiptCurrency}`).join('\n')
+            : '',
+          linkedEntities: expensePayloads.map(item => ({ type: 'expense', id: item.id, label: item.description })),
+        })
+
+        dispatch({ type: ACTIONS.ADD_DOCUMENT, payload: expenseDoc })
+
+        expensePayloads.forEach(item => {
+          dispatch({
+            type: ACTIONS.ADD_SPENDING,
+            payload: {
+              ...item,
+              documentId: expenseDoc.id,
+            },
+          })
+        })
+
+        showToast?.(`"${parsedTitle}" added to Budget`)
+        hapticImpact('light')
+        return
+      }
+
       const uploaded = await uploadDocumentToStorage({
-        file,
+        file: preparedFile.storageFile,
+        prepared: preparedFile,
         tripId: activeTrip.id,
-        title: file.name.replace(/\.[^.]+$/, ''),
+        title: parsedTitle,
         sourceTab: 'documents',
         sourceEntityType: 'manual',
-        uploadedBy: currentUserProfile?.uid || currentUserProfile?.id || '',
+        uploadedBy,
+        parsedSummary: buildBookingSummary(parsed),
       })
       dispatch({ type: ACTIONS.ADD_DOCUMENT, payload: uploaded })
+      showToast?.('Document added to vault')
       hapticImpact('light')
     } catch (err) {
       console.error('[DocumentsTab] Upload failed:', err)
