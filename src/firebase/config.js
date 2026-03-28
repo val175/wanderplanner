@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider } from 'firebase/auth'
 import { getStorage } from 'firebase/storage'
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore'
+import { initializeFirestore, memoryLocalCache } from 'firebase/firestore'
 import { getDatabase } from 'firebase/database'
 
 const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID
@@ -23,7 +23,7 @@ const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
 export const storage = getStorage(app)
 export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
+  localCache: memoryLocalCache()
 })
 export const rtdb = getDatabase(app)
 export const googleProvider = new GoogleAuthProvider()
