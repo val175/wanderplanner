@@ -6,9 +6,7 @@ import { getDatabase } from 'firebase/database'
 
 const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID
 const envStorageBucket = import.meta.env.VITE_FIREBASE_STORAGE_BUCKET
-const storageBucket = envStorageBucket && !String(envStorageBucket).includes('firebasestorage.app')
-  ? envStorageBucket
-  : `${projectId}.appspot.com`
+const storageBucket = envStorageBucket || `${projectId}.appspot.com`
 
 const firebaseConfig = {
   apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,

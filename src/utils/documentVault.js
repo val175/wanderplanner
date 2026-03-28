@@ -1,5 +1,3 @@
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
-import { storage } from '../firebase/config'
 import { generateId } from './helpers'
 
 const IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'])
@@ -182,21 +180,26 @@ export async function uploadDocumentToStorage({
 
   const docId = generateId()
   const fileName = safeFileName(file.name || `${title || 'document'}.${finalPrepared.kind === 'text' ? 'txt' : finalPrepared.kind === 'pdf' ? 'pdf' : 'bin'}`)
-  const storagePath = `trip-documents/${tripId}/${docId}/${fileName}`
-  const storageRef = ref(storage, storagePath)
+  
+  const formData = new FormData()
+  formData.append('file', finalPrepared.storageFile, fileName)
+  formData.append('tripId', tripId)
+  formData.append('docId', docId)
 
-  await uploadBytes(storageRef, finalPrepared.storageFile, {
-    contentType: finalPrepared.mimeType,
-    customMetadata: {
-      tripId,
-      docId,
-      sourceTab: sourceTab || '',
-      sourceEntityType: sourceEntityType || '',
-      sourceEntityId: sourceEntityId || '',
-    },
+  const apiUrl = import.meta.env.VITE_STORAGE_API_URL || 'http://localhost:3001'
+  const response = await fetch(`${apiUrl}/upload`, {
+    method: 'POST',
+    body: formData,
   })
 
-  const downloadUrl = await getDownloadURL(storageRef)
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+    throw new Error(errorData.error || 'Failed to upload document')
+  }
+
+  const result = await response.json()
+  const downloadUrl = result.file.url
+  const storagePath = result.file.path
 
   return {
     id: docId,
@@ -223,7 +226,22 @@ export async function uploadDocumentToStorage({
 
 export async function deleteDocumentFromStorage(storagePath) {
   if (!storagePath) return
-  await deleteObject(ref(storage, storagePath))
+  const apiUrl = import.meta.env.VITE_STORAGE_API_URL || 'http://localhost:3001'
+  try {
+    const response = await fetch(`${apiUrl}/delete`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ path: storagePath }),
+    })
+    
+    if (!response.ok) {
+      console.error('Failed to delete from storage API', await response.text())
+    }
+  } catch (error) {
+    console.error('Network error during file deletion', error)
+  }
 }
 
 export function getDocumentsForTrip(state, tripId) {
