@@ -13,6 +13,7 @@ import StepBasics from './newtrip/StepBasics'
 import StepDestinations from './newtrip/StepDestinations'
 import StepBudget from './newtrip/StepBudget'
 import StepReview from './newtrip/StepReview'
+import { uploadDocumentToStorage } from '../../utils/documentVault'
 
 const TOTAL_STEPS = 4
 
@@ -134,6 +135,7 @@ export default function NewTripModal({ isOpen, onClose }) {
       todos: [],
       itinerary: [],
       packingList: [],
+      sourceImport: null,
     }
   }
 
@@ -199,6 +201,11 @@ export default function NewTripModal({ isOpen, onClose }) {
       packingList: tripData.packingList?.length > 0
         ? tripData.packingList.map(p => ({ ...p, selected: true }))
         : f.packingList || [],
+      sourceImport: extra.sourceUrl ? {
+        url: extra.sourceUrl,
+        snapshot: JSON.stringify(tripData, null, 2),
+        title: tripData.name || f.name || 'Imported trip',
+      } : f.sourceImport,
     }))
     setMode('manual')
     setStep(4)
@@ -295,6 +302,39 @@ export default function NewTripModal({ isOpen, onClose }) {
     })
 
     dispatch({ type: ACTIONS.ADD_TRIP, payload: newTrip })
+    if (form.sourceImport?.snapshot || form.sourceImport?.url) {
+      void (async () => {
+        try {
+          const blob = new Blob([
+            `Source URL: ${form.sourceImport.url || ''}\n\n${form.sourceImport.snapshot || ''}`,
+          ], { type: 'text/plain' })
+          const sourceFile = new File([blob], `${newTrip.name || 'trip'}-source.txt`, { type: 'text/plain' })
+          const docRecord = await uploadDocumentToStorage({
+            file: sourceFile,
+            prepared: {
+              storageFile: blob,
+              mimeType: 'text/plain',
+              kind: 'text',
+              previewDataUrl: '',
+              text: form.sourceImport.snapshot || form.sourceImport.url || '',
+              sizeBytes: blob.size,
+            },
+            tripId: newTrip.id,
+            title: `${newTrip.name || 'Trip'} source`,
+            category: 'import',
+            sourceTab: 'documents',
+            sourceEntityType: 'trip-import',
+            sourceEntityId: newTrip.id,
+            uploadedBy: currentUserProfile?.uid || currentUserProfile?.id || '',
+            previewText: form.sourceImport.snapshot || form.sourceImport.url || '',
+            parsedSummary: `Imported from ${form.sourceImport.url || 'trip import'}`,
+          })
+          dispatch({ type: ACTIONS.ADD_DOCUMENT, payload: docRecord })
+        } catch (err) {
+          console.warn('[NewTripModal] Failed to store import source:', err)
+        }
+      })()
+    }
     showToast(`"${newTrip.name}" created! Let's plan this trip. 🗺️`)
     handleClose()
   }

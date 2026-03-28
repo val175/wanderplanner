@@ -8,6 +8,8 @@ import { useProfiles } from '../../context/ProfileContext'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
 import { ACTIONS } from '../../state/tripReducer'
 import { buildSplits } from '../../utils/splitwise'
+import { generateId } from '../../utils/helpers'
+import { dataUrlToBlob, uploadDocumentToStorage } from '../../utils/documentVault'
 
 const inputCls = 'w-full px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors'
 
@@ -69,6 +71,7 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
     const [pendingItems, setPendingItems] = useState([])
     const [loadingMessageIndex, setLoadingMessageIndex] = useState(0)
     const [payerId, setPayerId] = useState('')
+    const [receiptDocumentId, setReceiptDocumentId] = useState('')
     const fileInputRef = useRef(null)
 
     // Default payer to current user or first traveler
@@ -78,6 +81,7 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
             setStep(1)
             setIsScanning(false)
             setPendingItems([])
+            setReceiptDocumentId('')
         }
     }, [isOpen, currentUserProfile?.uid, activeTrip?.travelersSnapshot])
 
@@ -155,6 +159,7 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
                     c.name.toLowerCase() === targetName.toLowerCase()
                 )
                 return {
+                    id: generateId(),
                     ...item,
                     category: matched ? matched.name : (budget[0]?.name || 'Other'),
                     originalAmount: item.amount,
@@ -162,6 +167,35 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
                     amountPHP: Number((item.amount * rate).toFixed(2))
                 }
             })
+
+            const receiptBlob = dataUrlToBlob(`data:image/jpeg;base64,${base64String}`)
+            const receiptFile = new File([receiptBlob], (file.name || 'receipt').replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' })
+            const receiptDoc = await uploadDocumentToStorage({
+                file: receiptFile,
+                prepared: {
+                    storageFile: receiptBlob,
+                    mimeType: 'image/jpeg',
+                    previewDataUrl: `data:image/jpeg;base64,${base64String}`,
+                    kind: 'image',
+                    sizeBytes: receiptBlob.size,
+                },
+                tripId: activeTrip.id,
+                title: (file.name || 'Receipt').replace(/\.[^.]+$/, ''),
+                category: 'receipt',
+                sourceTab: 'budget',
+                sourceEntityType: 'receipt',
+                uploadedBy: currentUserProfile?.uid || currentUserProfile?.id || '',
+                parsedSummary: (result.items || [])
+                    .map(item => `${item.description}: ${item.amount} ${originalCurrency}`)
+                    .join('\n'),
+                previewText: (result.items || [])
+                    .map(item => `${item.description} - ${item.amount} ${originalCurrency}`)
+                    .join('\n'),
+                linkedEntities: sanitisedItems.map(item => ({ type: 'expense', id: item.id, label: item.description })),
+            })
+
+            dispatch({ type: ACTIONS.ADD_DOCUMENT, payload: receiptDoc })
+            setReceiptDocumentId(receiptDoc.id)
 
             setPendingItems(sanitisedItems)
             setStep(2)
@@ -197,6 +231,7 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
             dispatch({
                 type: ACTIONS.ADD_SPENDING,
                 payload: {
+                    id: item.id,
                     description: item.description,
                     amount: item.amountPHP,
                     category: item.category,
@@ -204,8 +239,21 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
                     splitBetween: travelerIds,
                     splits,
                     splitMode: 'equal',
+                    documentId: receiptDocumentId || '',
                 }
             })
+            if (receiptDocumentId) {
+                dispatch({
+                    type: ACTIONS.LINK_DOCUMENT,
+                    payload: {
+                        id: receiptDocumentId,
+                        tripId: activeTrip.id,
+                        entityType: 'expense',
+                        entityId: item.id,
+                        label: item.description,
+                    }
+                })
+            }
         })
 
         onClose()

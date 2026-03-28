@@ -44,7 +44,7 @@ export default function MagicImportFlow({ onPlanReady, onBack }) {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to extract trip data')
       if (data.success && data.data) {
-        onPlanReady(data.data)
+        onPlanReady(data.data, { sourceUrl: importUrl })
       }
     } catch (err) {
       setImportError(err.message)

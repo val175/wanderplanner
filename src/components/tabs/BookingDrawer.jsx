@@ -39,7 +39,7 @@ function CostInput({ value, currency, onChange, disabled }) {
 }
 
 export default function BookingDrawer({ booking, currency, onUpdate, onClose, isReadOnly }) {
-  const { activeTrip, dispatch } = useTripContext()
+  const { activeTrip, state, dispatch } = useTripContext()
   const { currentUserProfile, resolveProfile } = useProfiles()
   const [mounted, setMounted] = useState(false)
   const [visible, setVisible] = useState(false)
@@ -51,6 +51,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
   const [editDraft, setEditDraft] = useState('')
   const feedRef = useRef(null)
   const actorId = currentUserProfile?.uid || currentUserProfile?.id
+  const tripDocuments = state.documentsByTrip?.[activeTrip?.id] || {}
   const locationLabel = typeof booking?.location === 'string'
     ? booking.location
     : booking?.location?.placeName || ''
@@ -121,19 +122,36 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
 
   const viewAttachment = async (file) => {
     try {
-      const response = await fetch(file.url)
+      const url = file.downloadUrl || file.previewUrl || file.url
+      const response = await fetch(url)
       const blob = await response.blob()
       const objectUrl = URL.createObjectURL(blob)
       window.open(objectUrl, '_blank')
     } catch (err) {
       console.error('Failed to view attachment:', err)
-      window.open(file.url, '_blank')
+      window.open(file.downloadUrl || file.previewUrl || file.url, '_blank')
     }
   }
 
   if (!booking || !mounted) return null
 
   const categoryConfig = BOOKING_CATEGORIES.find(c => c.id === booking.category) || BOOKING_CATEGORIES[0]
+  const linkedDocs = (booking.documentIds || [])
+    .map(id => tripDocuments?.[id])
+    .filter(Boolean)
+  const attachmentItems = [
+    ...(booking.attachments || []),
+    ...linkedDocs.map(doc => ({
+      id: doc.id,
+      documentId: doc.id,
+      name: doc.title,
+      type: doc.mimeType,
+      url: doc.downloadUrl,
+      previewUrl: doc.previewUrl,
+      downloadUrl: doc.downloadUrl,
+      storagePath: doc.storagePath,
+    })),
+  ].filter((file, index, arr) => arr.findIndex(other => other.id === file.id) === index)
 
   return createPortal(
     <div className="relative z-[9999] font-heading">
@@ -364,14 +382,14 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
               Attachments
             </Label>
-            {booking.attachments?.length > 0 ? (
+            {attachmentItems.length > 0 ? (
               <div className="grid grid-cols-1 gap-2">
-                {booking.attachments.map((file) => (
+                {attachmentItems.map((file) => (
                   <div key={file.id} className="group relative flex items-center justify-between p-3 bg-bg-secondary/50 border border-border/50 rounded-[var(--radius-md)] hover:border-accent/30 transition-colors">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-10 h-10 flex-shrink-0 bg-bg-card border border-border/30 rounded flex items-center justify-center text-xl overflow-hidden">
                         {file.type?.startsWith('image/') ? (
-                          <img src={file.url} alt="" className="w-full h-full object-cover" />
+                          <img src={file.previewUrl || file.url} alt="" className="w-full h-full object-cover" />
                         ) : '📄'}
                       </div>
                       <div className="min-w-0">
@@ -390,8 +408,14 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
                       {!isReadOnly && (
                         <button
                           onClick={() => {
-                            const remaining = booking.attachments.filter(a => a.id !== file.id)
-                            onUpdate(booking.id, { attachments: remaining }, actorId)
+                            if (file.documentId) {
+                              const remainingDocIds = (booking.documentIds || []).filter(id => id !== file.documentId)
+                              const remainingAttachments = (booking.attachments || []).filter(a => a.id !== file.documentId)
+                              onUpdate(booking.id, { documentIds: remainingDocIds, attachments: remainingAttachments }, actorId)
+                            } else {
+                              const remaining = (booking.attachments || []).filter(a => a.id !== file.id)
+                              onUpdate(booking.id, { attachments: remaining }, actorId)
+                            }
                           }}
                           className="p-1.5 text-text-muted hover:text-danger rounded hover:bg-bg-hover"
                           title="Remove"

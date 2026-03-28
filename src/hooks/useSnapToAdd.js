@@ -2,13 +2,15 @@ import { useState } from 'react'
 import { auth } from '../firebase/config'
 import { useTripContext } from '../context/TripContext'
 import { ACTIONS } from '../state/tripReducer'
+import { generateId } from '../utils/helpers'
+import { prepareDocumentForStorage, uploadDocumentToStorage } from '../utils/documentVault'
 
 const VERCEL_API = 'https://wanderplan-rust.vercel.app'
 
 export function useSnapToAdd() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
-    const { dispatch, showToast } = useTripContext()
+    const { dispatch, showToast, activeTrip } = useTripContext()
 
     const validateFile = (file) => {
         const validTypes = ['image/jpeg', 'image/png', 'application/pdf', 'text/plain']
@@ -39,7 +41,11 @@ export function useSnapToAdd() {
 
         try {
             validateFile(file)
-            const base64 = await fileToBase64(file)
+            if (!activeTrip?.id) throw new Error('Select a trip before adding documents')
+            const prepared = await prepareDocumentForStorage(file, {
+                image: { maxEdge: 1600, quality: 0.84 },
+            })
+            const base64 = await fileToBase64(prepared.storageFile)
             
             let token = ''
             try {
@@ -68,11 +74,35 @@ export function useSnapToAdd() {
 
             // Sanitize date to YYYY-MM-DD for stability
             const sanitizedDate = data.date ? data.date.split('T')[0] : ''
+            const bookingId = generateId()
+            const uploadedBy = auth.currentUser?.uid || ''
+            const documentTitle = data.title || (file.name ? `Booking: ${file.name}` : 'New Booking')
+            const documentRecord = await uploadDocumentToStorage({
+                file: prepared.storageFile,
+                prepared,
+                tripId: activeTrip.id,
+                title: documentTitle,
+                category: data.type || 'booking',
+                sourceTab: 'bookings',
+                sourceEntityType: 'booking',
+                sourceEntityId: bookingId,
+                uploadedBy,
+                parsedSummary: [
+                    data.title ? `Title: ${data.title}` : '',
+                    data.location ? `Location: ${data.location}` : '',
+                    data.date ? `Date: ${data.date}` : '',
+                    data.confirmationNumber ? `Confirmation: ${data.confirmationNumber}` : '',
+                ].filter(Boolean).join('\n'),
+                linkedEntities: [{ type: 'booking', id: bookingId, label: documentTitle }],
+            })
+
+            dispatch({ type: ACTIONS.ADD_DOCUMENT, payload: documentRecord })
 
             // Push to local state (tripReducer ADD_BOOKING generates an ID and syncs to Firestore)
             dispatch({
                 type: ACTIONS.ADD_BOOKING,
                 payload: {
+                    id: bookingId,
                     name: data.title || (file.name ? `Booking: ${file.name}` : 'New Booking'),
                     category: data.type || 'custom',
                     startDate: sanitizedDate,
@@ -82,12 +112,15 @@ export function useSnapToAdd() {
                     status: data.status || 'confirmed',
                     notes: data.notes || '',
                     providerLink: data.providerLink || null,
+                    documentIds: [documentRecord.id],
                     attachments: [{
-                        id: Date.now(),
-                        name: file.name,
-                        type: file.type,
-                        url: `data:${file.type};base64,${base64}`,
-                        dateAdded: new Date().toISOString()
+                        id: documentRecord.id,
+                        documentId: documentRecord.id,
+                        name: documentRecord.title,
+                        type: documentRecord.mimeType,
+                        url: documentRecord.downloadUrl,
+                        previewUrl: documentRecord.previewUrl,
+                        dateAdded: documentRecord.createdAt
                     }],
                     vector: vector // Matryoshka Embedding (256-dim)
                 }

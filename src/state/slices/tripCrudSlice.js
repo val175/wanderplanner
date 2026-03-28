@@ -17,10 +17,13 @@ export const tripCrudCases = {
   DELETE_TRIP: (state, payload) => {
     const trips = { ...state.trips }
     delete trips[payload]
+    const documentsByTrip = { ...(state.documentsByTrip || {}) }
+    delete documentsByTrip[payload]
     const remaining = Object.keys(trips)
     return {
       ...state,
       trips,
+      documentsByTrip,
       activeTripId: remaining.length > 0 ? remaining[0] : null,
       activeTab: 'overview',
     }
@@ -111,6 +114,8 @@ export const tripCrudCases = {
     const mergedTrips = { ...state.trips }
     Object.assign(mergedTrips, newTrips)
     deletedIds.forEach(id => { delete mergedTrips[id] })
+    const documentsByTrip = { ...(state.documentsByTrip || {}) }
+    deletedIds.forEach(id => { delete documentsByTrip[id] })
 
     const ids = Object.keys(mergedTrips)
     const currentActiveId = state.activeTripId
@@ -126,6 +131,6 @@ export const tripCrudCases = {
       newActiveId = sortedIds[0]
     }
 
-    return { ...state, trips: mergedTrips, activeTripId: newActiveId }
+    return { ...state, trips: mergedTrips, documentsByTrip, activeTripId: newActiveId }
   },
 }

@@ -37,7 +37,7 @@ export const budgetCases = {
   ADD_SPENDING: (state, payload) => {
     const activeTripId = state.activeTripId
     return updateTrip(state, activeTripId, trip => {
-      const entry = { id: generateId(), date: new Date().toISOString().slice(0, 10), ...payload }
+      const entry = { id: payload.id || generateId(), date: new Date().toISOString().slice(0, 10), ...payload }
       const budget = trip.budget.map(b =>
         b.name === payload.category
           ? { ...b, actual: (b.actual || 0) + (payload.amount || 0) }

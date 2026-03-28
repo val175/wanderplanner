@@ -11,7 +11,7 @@ import { getEffectiveStatus } from '../../utils/tripStatus'
 import { getLevelForXp, getXpProgress, getNextLevel } from '../../constants/xpLevels'
 
 const THE_PLAN_IDS = ['overview', 'wandermap', 'itinerary', 'cities', 'bookings']
-const TOOLS_IDS = ['voting', 'budget', 'todo', 'packing', 'concert']
+const TOOLS_IDS = ['voting', 'budget', 'todo', 'documents', 'packing', 'concert']
 
 function TripGroup({ title, trips, activeTripId, onSelect }) {
   if (!trips || trips.length === 0) return null

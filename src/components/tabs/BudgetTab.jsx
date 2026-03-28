@@ -542,6 +542,11 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                 </span>
                 <span className="flex-1" />
                 <span className="text-[11px] text-text-muted">{dateLabel}</span>
+                {entry.documentId && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-pill)] text-[11px] font-medium border border-accent/20 bg-accent/10 text-accent">
+                    📄 Vault
+                  </span>
+                )}
                 {showPaidBy && entry.paidBy && (
                   <div className="flex items-center gap-1 text-text-muted">
                     <AvatarCircle profile={travelers.find(t => t.id === entry.paidBy)} size={16} />

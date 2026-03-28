@@ -6,6 +6,7 @@ import { packingCases } from './slices/packingSlice'
 import { votingCases } from './slices/votingSlice'
 import { citiesCases } from './slices/citiesSlice'
 import { tripCrudCases } from './slices/tripCrudSlice'
+import { documentCases } from './slices/documentSlice'
 
 // ─── Action Types ────────────────────────────────────────────────────────────
 export const ACTIONS = {
@@ -55,6 +56,14 @@ export const ACTIONS = {
   ADD_BOOKING_COMMENT: 'ADD_BOOKING_COMMENT',
   UPDATE_BOOKING_COMMENT: 'UPDATE_BOOKING_COMMENT',
   DELETE_BOOKING_COMMENT: 'DELETE_BOOKING_COMMENT',
+
+  // Documents
+  SET_DOCUMENTS_FOR_TRIP: 'SET_DOCUMENTS_FOR_TRIP',
+  ADD_DOCUMENT: 'ADD_DOCUMENT',
+  UPDATE_DOCUMENT: 'UPDATE_DOCUMENT',
+  DELETE_DOCUMENT: 'DELETE_DOCUMENT',
+  LINK_DOCUMENT: 'LINK_DOCUMENT',
+  UNLINK_DOCUMENT: 'UNLINK_DOCUMENT',
 
   // Budget
   UPDATE_BUDGET_CATEGORY: 'UPDATE_BUDGET_CATEGORY',
@@ -162,6 +171,7 @@ const allCases = {
   ...packingCases,
   ...votingCases,
   ...citiesCases,
+  ...documentCases,
 }
 
 // ─── Root reducer ─────────────────────────────────────────────────────────────

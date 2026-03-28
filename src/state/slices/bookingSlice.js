@@ -66,7 +66,7 @@ export const bookingCases = {
     const activeTripId = state.activeTripId
     return updateTrip(state, activeTripId, trip => {
       const next = {
-        id: generateId(),
+        id: payload.id || generateId(),
         status: 'not_started',
         priority: false,
         amountPaid: 0,
