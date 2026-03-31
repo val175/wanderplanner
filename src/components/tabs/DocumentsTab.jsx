@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, useEffect } from 'react'
 import { Eye, Download, Trash2 } from 'lucide-react'
 import TabHeader from '../common/TabHeader'
 import Card from '../shared/Card'
@@ -17,6 +17,14 @@ import { buildSplits } from '../../utils/splitwise'
 import { BOOKING_CATEGORIES } from '../../constants/tabs'
 import { formatDate } from '../../utils/helpers'
 import { hapticImpact } from '../../utils/haptics'
+
+const UPLOAD_MESSAGES = [
+  'Uploading file...',
+  'Analyzing document...',
+  'Classifying contents...',
+  'Linking to your trip...',
+  'Almost done...',
+]
 
 const CATEGORY_LABELS = {
   all: 'All',
@@ -155,6 +163,16 @@ export default function DocumentsTab() {
   const [search, setSearch] = useState('')
   const [selectedDocId, setSelectedDocId] = useState(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [uploadMsgIndex, setUploadMsgIndex] = useState(0)
+
+  useEffect(() => {
+    if (isUploading) {
+      const id = setInterval(() => setUploadMsgIndex(i => (i + 1) % UPLOAD_MESSAGES.length), 2500)
+      return () => clearInterval(id)
+    } else {
+      setUploadMsgIndex(0)
+    }
+  }, [isUploading])
 
   const tripDocs = getDocumentsForTrip(state, activeTrip?.id)
   const docs = useMemo(() => Object.values(tripDocs || {}).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)), [tripDocs])
@@ -439,6 +457,22 @@ export default function DocumentsTab() {
           </div>
         }
       />
+
+      <Modal isOpen={isUploading} onClose={() => {}} title="" maxWidth="max-w-sm">
+        <div className="flex flex-col items-center justify-center py-12 px-6 space-y-5 animate-fade-in text-center">
+          <div className="relative w-16 h-16 flex items-center justify-center">
+            <div className="absolute inset-0 border-4 border-accent/20 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-accent rounded-full border-t-transparent animate-spin"></div>
+            <span className="text-2xl animate-pulse">📄</span>
+          </div>
+          <div>
+            <h3 className="text-xl font-heading font-semibold text-text-primary mb-1">
+              {UPLOAD_MESSAGES[uploadMsgIndex]}
+            </h3>
+            <p className="text-sm text-text-muted">Hang tight, this usually takes a few seconds.</p>
+          </div>
+        </div>
+      </Modal>
 
       <PreviewModal
         doc={selectedDoc}
