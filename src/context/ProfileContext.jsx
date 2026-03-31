@@ -135,7 +135,7 @@ export function ProfileProvider({ user, children }) {
     if (!profileDocRef) return
     const merged = { ...currentUserProfile, ...updates }
     setCurrentUserProfile(merged)
-    await setDoc(profileDocRef, merged)
+    await setDoc(profileDocRef, updates, { merge: true })
   }, [currentUserProfile, profileDocRef]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── XP & Level progression ─────────────────────────────────────────────
