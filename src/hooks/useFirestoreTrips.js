@@ -65,6 +65,7 @@ export function useFirestoreTrips(userId) {
   const [firestoreLoading, setFirestoreLoading] = useState(true)
   const [pendingInvite, setPendingInvite] = useState(null)
   const prevTripsRef = useRef({})
+  const prevDocsByTripRef = useRef({})
   const isRemoteUpdateRef = useRef(false)
 
   // ── 1. Real-time listener: Shared Root → local state ─────────────────────
@@ -236,34 +237,44 @@ export function useFirestoreTrips(userId) {
     setPendingInvite(null)
   }, [])
 
-  // ── 2. Outbound sync: local state → Firestore ────────────────────────────
+  // ── 2. Outbound sync: local state → Firestore (trips + documents, unified) ──
+  // Writing both in one setDoc prevents a feedback loop where separate document
+  // writes trigger Firestore snapshots that set isRemoteUpdateRef, causing the
+  // trip sync (with spendingLog) to be skipped indefinitely.
   useEffect(() => {
     if (!userId) return
     if (isRemoteUpdateRef.current) {
       isRemoteUpdateRef.current = false
+      // Update prev refs so we don't re-write Firestore data on the next local change
+      prevTripsRef.current = state.trips
+      prevDocsByTripRef.current = state.documentsByTrip || {}
       return
     }
 
     const currentTrips = state.trips
     const previousTrips = prevTripsRef.current
+    const currentDocs = state.documentsByTrip || {}
+    const previousDocs = prevDocsByTripRef.current
 
-    Object.keys(currentTrips).forEach((id) => {
-      if (currentTrips[id] !== previousTrips[id]) {
-        const tripData = currentTrips[id]
-        if (tripData?.deletedAt) return
-        // Ensure current user and all travelerIds are in memberIds on write
-        const memberIds = Array.from(new Set([
-          ...(tripData.memberIds || []),
-          ...(tripData.travelerIds || []),
-          userId
-        ]))
+    // Collect all trip IDs where either the trip data or its documents changed
+    const idsToSync = new Set([
+      ...Object.keys(currentTrips).filter(id => currentTrips[id] !== previousTrips[id]),
+      ...Object.keys(currentDocs).filter(id => currentDocs[id] !== previousDocs[id]),
+    ])
 
-        setDoc(
-          doc(tripsRef, id),
-          { ...tripData, memberIds, _updatedAt: serverTimestamp() },
-          { merge: true }
-        ).catch(console.error)
-      }
+    idsToSync.forEach((id) => {
+      const tripData = currentTrips[id]
+      if (!tripData || tripData?.deletedAt) return
+      const memberIds = Array.from(new Set([
+        ...(tripData.memberIds || []),
+        ...(tripData.travelerIds || []),
+        userId
+      ]))
+      setDoc(
+        doc(tripsRef, id),
+        { ...tripData, documents: currentDocs[id] || {}, memberIds, _updatedAt: serverTimestamp() },
+        { merge: true }
+      ).catch(console.error)
     })
 
     Object.keys(previousTrips).forEach((id) => {
@@ -273,20 +284,8 @@ export function useFirestoreTrips(userId) {
     })
 
     prevTripsRef.current = currentTrips
-  }, [state.trips, userId])
-
-  // ── 2b. Outbound sync: local documents → Firestore ──────────────────────
-  useEffect(() => {
-    if (!userId) return
-    const currentByTrip = state.documentsByTrip || {}
-    Object.entries(currentByTrip).forEach(([tripId, docs]) => {
-      setDoc(
-        doc(tripsRef, tripId),
-        { documents: docs || {}, _updatedAt: serverTimestamp() },
-        { merge: true }
-      ).catch(console.error)
-    })
-  }, [state.documentsByTrip, userId])
+    prevDocsByTripRef.current = currentDocs
+  }, [state.trips, state.documentsByTrip, userId])
 
   // ── 3. Dark mode ─────────────────────────────────────────────────────────
   useEffect(() => {
