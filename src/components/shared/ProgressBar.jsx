@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion'
+
 export default function ProgressBar({
   value = 0,
   max = 100,
@@ -18,9 +20,11 @@ export default function ProgressBar({
         </div>
       )}
       <div className={`w-full bg-border rounded-full overflow-hidden ${height}`}>
-        <div
-          className={`${height} ${colorClass} rounded-full transition-all duration-700 ease-out`}
-          style={{ width: `${pct}%` }}
+        <motion.div
+          className={`${height} ${colorClass} rounded-full`}
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.8, ease: [0.2, 0, 0, 1] }}
         />
       </div>
     </div>

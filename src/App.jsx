@@ -100,11 +100,116 @@ const TAB_LABELS = {
   'wrap-up': 'Wrap-up',
 }
 
+// Skeleton block helper
+function Sk({ className = '' }) {
+  return <div className={`skeleton ${className}`} />
+}
+
 function TabLoadingState({ activeTab }) {
-  const label = TAB_LABELS[activeTab] || 'tab'
+  // Table-style skeleton for list-heavy tabs
+  if (['bookings', 'budget', 'todo', 'packing', 'documents'].includes(activeTab)) {
+    return (
+      <div className="space-y-4 animate-fade-in">
+        <div className="bg-bg-card border border-border rounded-[var(--radius-md)] overflow-hidden">
+          <div className="p-4 border-b border-border/50 flex items-center justify-between">
+            <Sk className="h-4 w-28" />
+            <Sk className="h-7 w-20 rounded-[var(--radius-md)]" />
+          </div>
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="flex items-center gap-4 px-4 py-3 border-t border-border/20">
+              <Sk className="h-4 w-4 rounded-sm shrink-0" />
+              <Sk className="h-3.5 flex-1" style={{ maxWidth: `${55 + (i * 7) % 30}%` }} />
+              <Sk className="h-5 w-16 rounded-[var(--radius-pill)]" />
+              <Sk className="h-3.5 w-20" />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  // Bento-style skeleton for overview + map-adjacent tabs
+  if (['overview', 'cities', 'voting'].includes(activeTab)) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 animate-fade-in">
+        <div className="lg:col-span-8 flex flex-col gap-5">
+          {/* Hero card */}
+          <div className="bg-bg-card border border-border rounded-[var(--radius-md)] p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <Sk className="h-3 w-24" />
+              <Sk className="h-5 w-28 rounded-[var(--radius-pill)]" />
+            </div>
+            <div className="flex gap-3">
+              <Sk className="h-10 w-10 rounded-[var(--radius-md)] shrink-0" />
+              <div className="flex-1 space-y-2">
+                <Sk className="h-4 w-40" />
+                <Sk className="h-3 w-full" />
+                <Sk className="h-3 w-3/4" />
+              </div>
+            </div>
+          </div>
+          {/* Attention card */}
+          <div className="bg-bg-card border border-border rounded-[var(--radius-md)] overflow-hidden">
+            <div className="p-4 border-b border-border/50 flex items-center justify-between">
+              <Sk className="h-3 w-32" />
+              <Sk className="h-5 w-14 rounded-[var(--radius-pill)]" />
+            </div>
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex items-center gap-4 px-5 py-4 border-t border-border/20">
+                <Sk className="h-10 w-10 rounded-[var(--radius-md)] shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <Sk className="h-3.5 w-44" />
+                  <Sk className="h-2.5 w-20" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="lg:col-span-4 flex flex-col gap-5">
+          {/* Health card */}
+          <div className="bg-bg-card border border-border rounded-[var(--radius-md)] overflow-hidden">
+            {['weather', 'readiness', 'budget'].map((section) => (
+              <div key={section} className="p-4 border-t first:border-t-0 border-border/40 space-y-3">
+                <Sk className="h-3 w-20" />
+                <Sk className="h-8 w-16" />
+                <Sk className="h-1.5 w-full rounded-full" />
+              </div>
+            ))}
+          </div>
+          {/* Destinations card */}
+          <div className="bg-bg-card border border-border rounded-[var(--radius-md)] overflow-hidden">
+            <div className="px-4 py-3 border-b border-border/40">
+              <Sk className="h-3 w-24" />
+            </div>
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3 px-4 py-3 border-t border-border/20">
+                <Sk className="h-6 w-6 rounded-full shrink-0" />
+                <div className="flex-1 space-y-1">
+                  <Sk className="h-3.5 w-24" />
+                  <Sk className="h-2.5 w-16" />
+                </div>
+                <Sk className="h-3 w-6" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Simple single-card skeleton for everything else
   return (
-    <div className="flex min-h-[320px] items-center justify-center rounded-[var(--radius-lg)] border border-border bg-bg-card px-6 py-10 text-sm text-text-muted">
-      Loading {label}...
+    <div className="bg-bg-card border border-border rounded-[var(--radius-md)] p-6 space-y-4 animate-fade-in">
+      <div className="flex items-center justify-between">
+        <Sk className="h-4 w-32" />
+        <Sk className="h-7 w-24 rounded-[var(--radius-md)]" />
+      </div>
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="flex items-center gap-4">
+          <Sk className="h-3 flex-1" style={{ maxWidth: `${60 + (i * 9) % 35}%` }} />
+          <Sk className="h-3 w-20" />
+        </div>
+      ))}
     </div>
   )
 }

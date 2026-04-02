@@ -1,4 +1,5 @@
-import React, { forwardRef } from 'react'
+import { forwardRef } from 'react'
+import { motion } from 'framer-motion'
 
 const sizes = {
     sm: 'px-3 py-1.5 text-xs',
@@ -12,6 +13,8 @@ const variants = {
     ghost: 'bg-accent/5 text-accent border border-accent/20 hover:bg-accent/10 hover:border-accent/40',
     danger: 'bg-danger text-white hover:bg-danger/90 border border-transparent'
 }
+
+const springTransition = { type: 'spring', stiffness: 400, damping: 25 }
 
 const Button = forwardRef(function Button({
     type = 'button',
@@ -29,16 +32,19 @@ const Button = forwardRef(function Button({
     const disabledStyles = disabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
 
     return (
-        <button
+        <motion.button
             ref={ref}
             type={type}
             onClick={onClick}
             disabled={disabled}
             className={`${baseStyles} ${sizeStyles} ${variantStyles} ${disabledStyles} ${className}`}
+            whileHover={disabled ? {} : { scale: 1.01 }}
+            whileTap={disabled ? {} : { scale: 0.97 }}
+            transition={springTransition}
             {...props}
         >
             {children}
-        </button>
+        </motion.button>
     )
 })
 

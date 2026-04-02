@@ -1,3 +1,7 @@
+import { motion } from 'framer-motion'
+
+const springTransition = { type: 'spring', stiffness: 400, damping: 28 }
+
 export default function Card({ children, className = '', hover = false, onClick, padding = 'p-5', type = 'button', ...props }) {
   const classes = `
     bg-bg-card border border-border rounded-[var(--radius-md)]
@@ -10,14 +14,16 @@ export default function Card({ children, className = '', hover = false, onClick,
 
   if (onClick) {
     return (
-      <button
+      <motion.button
         type={type}
         onClick={onClick}
         className={classes}
+        whileHover={{ y: -2, transition: springTransition }}
+        whileTap={{ scale: 0.98, transition: springTransition }}
         {...props}
       >
         {children}
-      </button>
+      </motion.button>
     )
   }
 

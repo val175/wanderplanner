@@ -31,6 +31,7 @@ export default function TodoTab() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [activeTodo, setActiveTodo] = useState(null)
   const [selectedTodoId, setSelectedTodoId] = useState(null)
+  const [flashedTodoId, setFlashedTodoId] = useState(null)
 
   if (!activeTrip) return null
   const trip = activeTrip
@@ -54,6 +55,9 @@ export default function TodoTab() {
     dispatch({ type: ACTIONS.UPDATE_TODO, payload: { id: todoId, updates: { status: next, done: next === 'done' } } })
     if (current !== 'done' && next === 'done') {
       awardXp('todo_cleared', 5)
+      // Flash the completed row
+      setFlashedTodoId(todoId)
+      setTimeout(() => setFlashedTodoId(null), 600)
       if (completedCount + 1 === totalCount && totalCount > 0) {
         setCelebration(c => c + 1)
         showToast("You're all set! Have an amazing trip 🌟")
@@ -367,6 +371,7 @@ export default function TodoTab() {
                         currentUserProfile={currentUserProfile}
                         isReadOnly={isReadOnly}
                         canDrag={false}
+                        isFlashing={flashedTodoId === todo.id}
                       />
                     ))
                   )}

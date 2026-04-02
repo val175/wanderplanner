@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { TAB_CONFIG } from '../../constants/tabs'
@@ -105,9 +106,11 @@ function TripSwitcher({ trips, activeTrip, activeTripId, onSelect, onNewTrip }) 
 
 function NavLink({ tabId, label, emoji, isActive, onClick, hasNotification }) {
   return (
-    <button
+    <motion.button
       onClick={() => onClick(tabId)}
       className={`w-full flex items-center justify-between px-3 py-1.5 rounded-[var(--radius-sm)] transition-colors text-sm ${isActive ? 'bg-accent/10 text-accent font-semibold' : 'text-text-secondary hover:text-text-primary hover:bg-bg-hover'}`}
+      whileTap={{ scale: 0.97 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
     >
       <div className="flex items-center gap-2.5">
         <span className="text-base">{emoji}</span>
@@ -116,7 +119,7 @@ function NavLink({ tabId, label, emoji, isActive, onClick, hasNotification }) {
       {hasNotification && (
         <div className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse mr-1" />
       )}
-    </button>
+    </motion.button>
   )
 }
 

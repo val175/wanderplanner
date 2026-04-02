@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import ProgressBar from '../shared/ProgressBar'
+import AnimatedNumber from '../shared/AnimatedNumber'
 import { useTripContext } from '../../context/TripContext'
 import { auth } from '../../firebase/config'
 import { calculateReadiness, getReadinessBreakdown } from '../../utils/readiness'
@@ -124,8 +125,8 @@ function TodayAtAGlance({ trip }) {
 
             {loading ? (
               <div className="mt-2 space-y-2">
-                <div className="h-3 bg-bg-hover rounded w-full animate-pulse" />
-                <div className="h-3 bg-bg-hover rounded w-3/4 animate-pulse" />
+                <div className="skeleton h-3 w-full" />
+                <div className="skeleton h-3 w-3/4" />
               </div>
             ) : (
               <p className="mt-1.5 text-sm text-text-secondary leading-relaxed font-heading font-normal text-balance">
@@ -538,11 +539,11 @@ function TripHealthCard({ trip, onTabSwitch }) {
             )}
           </div>
           {effectiveWeatherStatus === 'loading' && (
-            <div className="flex items-center gap-3 animate-pulse mt-3">
-              <div className="w-10 h-10 rounded-full bg-bg-secondary shrink-0" />
+            <div className="flex items-center gap-3 mt-3">
+              <div className="skeleton w-10 h-10 rounded-full shrink-0" />
               <div className="space-y-1.5 flex-1">
-                <div className="h-3 bg-bg-secondary rounded w-16" />
-                <div className="h-2 bg-bg-secondary rounded w-12" />
+                <div className="skeleton h-3 w-16" />
+                <div className="skeleton h-2 w-12" />
               </div>
             </div>
           )}
@@ -553,8 +554,8 @@ function TripHealthCard({ trip, onTabSwitch }) {
                 <div className="flex flex-col">
                   <div className="text-4xl leading-none mb-2">{emoji}</div>
                   <div className="flex items-baseline gap-1.5">
-                    <span className="font-heading font-semibold text-2xl text-text-primary">{weather.temp}°</span>
-                    <span className="text-xs text-text-muted">feels {weather.feelsLike}°</span>
+                    <AnimatedNumber value={weather.temp} suffix="°" className="font-heading font-semibold text-2xl text-text-primary" stiffness={60} damping={18} />
+                    <span className="text-xs text-text-muted">feels <AnimatedNumber value={weather.feelsLike} suffix="°" stiffness={60} damping={18} /></span>
                   </div>
                 </div>
                 <div className="text-right">
@@ -578,8 +579,10 @@ function TripHealthCard({ trip, onTabSwitch }) {
         >
           <div className="flex items-center justify-between">
             <Label>TRIP READINESS</Label>
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-[var(--radius-pill)] tabular-nums border ${readinessPill.color}`}>
-              {readinessPill.label}
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-[var(--radius-pill)] tabular-nums border inline-flex items-center gap-0.5 ${readinessPill.color}`}>
+              {readiness === 100 ? '✅ Complete' : (
+                <><AnimatedNumber value={readiness} suffix="%" stiffness={60} damping={18} /> complete</>
+              )}
             </span>
           </div>
 

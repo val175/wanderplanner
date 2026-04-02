@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef, useEffect } from 'react'
+import AnimatedNumber from '../shared/AnimatedNumber'
 import { createPortal } from 'react-dom'
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../firebase/config'
@@ -167,7 +168,8 @@ function CountdownPill({ targetDate }) {
 
   return (
     <span className="inline-flex items-center px-2.5 py-0.5 rounded-[var(--radius-pill)] bg-bg-secondary border border-border text-xs font-semibold uppercase tracking-wider text-text-muted whitespace-nowrap">
-      <span className="text-accent font-semibold mr-1">{countdown.days}</span> days away
+      <AnimatedNumber value={countdown.days} className="text-accent font-semibold mr-1" stiffness={60} damping={18} />
+      {' '}days away
     </span>
   )
 }

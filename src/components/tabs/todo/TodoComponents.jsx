@@ -248,7 +248,7 @@ export function TodoMobileCard({ todo, onDelete, onClick, resolveProfile, tripTr
   )
 }
 
-export function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfile, tripTravelers, currentUserProfile, isReadOnly, dragAttributes, dragListeners, canDrag, isBoard, onStatusChange, onClick }) {
+export function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resolveProfile, tripTravelers, currentUserProfile, isReadOnly, dragAttributes, dragListeners, canDrag, isBoard, onStatusChange, onClick, isFlashing }) {
   const deepLink = getDeepLinkTarget(todo.text)
   const status = getTodoStatus(todo)
   const pastDue = status !== 'done' && isPastDue(todo.dueDate)
@@ -316,7 +316,9 @@ export function TodoItem({ todo, onToggle, onUpdate, onDelete, onDeepLink, resol
   return (
     <div
       onClick={onClick}
-      className={`flex flex-col group transition-opacity duration-200 ${status === 'done' ? 'opacity-60' : ''} cursor-pointer hover:bg-bg-hover/50`}
+      className={`flex flex-col group transition-colors duration-300 cursor-pointer ${
+        isFlashing ? 'bg-success/10' : status === 'done' ? 'opacity-60 hover:bg-bg-hover/50' : 'hover:bg-bg-hover/50'
+      }`}
     >
       <div className="flex items-center gap-2 py-3">
         <div className="flex-1 min-w-0 flex items-center gap-2 px-2">

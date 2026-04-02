@@ -377,6 +377,7 @@ export default function PackingTab() {
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [viewMode, setViewMode] = useState('group') // 'group' | 'me'
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [flashedItemId, setFlashedItemId] = useState(null)
 
   if (!activeTrip) return null
 
@@ -413,9 +414,25 @@ export default function PackingTab() {
   const onToggle = useCallback((itemId) => {
     triggerHaptic('light')
     const item = items.find(p => p.id === itemId)
+    const isPacking = item && !item.packed
+
     dispatch({ type: ACTIONS.TOGGLE_PACKING_ITEM, payload: { itemId, userId: currentUserProfile?.id } })
-    if (item && !item.packed) {
-      // Show celebration only if packing the last visible item
+
+    if (isPacking) {
+      // Flash the row briefly
+      setFlashedItemId(itemId)
+      setTimeout(() => setFlashedItemId(null), 600)
+
+      // Category-complete: all other items in this category are already packed
+      const category = item.category || 'misc'
+      const catItems = items.filter(p => (p.category || 'misc') === category)
+      const othersCategoryPacked = catItems.every(p => p.id === itemId || p.packed)
+      if (othersCategoryPacked && catItems.length > 1) {
+        const catLabel = CATEGORIES.find(c => c.id === category)
+        showToast(`${catLabel?.emoji || '✅'} All ${catLabel?.label || category} packed!`, 'success')
+      }
+
+      // All-packed celebration
       if (packed + 1 === total && total > 0) {
         setCelebration(c => c + 1)
         showToast("All packed! You're ready to go 🧳")
@@ -709,7 +726,9 @@ export default function PackingTab() {
           return (
             <div
               key={item.id}
-              className={`bg-bg-card border border-border p-3 rounded-[var(--radius-md)] transition-colors ${item.packed ? 'opacity-60' : ''}`}
+              className={`bg-bg-card border border-border p-3 rounded-[var(--radius-md)] transition-colors duration-300 ${
+                flashedItemId === item.id ? 'bg-success/10 border-success/20' : item.packed ? 'opacity-60' : ''
+              }`}
             >
               {/* Zone 1 — header */}
               <div className="flex items-start gap-3 mb-2">
@@ -801,7 +820,10 @@ export default function PackingTab() {
               {table.getRowModel().rows.map(row => (
                 <tr
                   key={row.id}
-                  className={`group border-t border-border/20 transition-colors ${row.original.packed ? 'hover:bg-bg-hover/20' : 'hover:bg-bg-hover/50'
+                  className={`group border-t border-border/20 transition-colors duration-300 ${
+                    flashedItemId === row.original.id
+                      ? 'bg-success/10'
+                      : row.original.packed ? 'hover:bg-bg-hover/20' : 'hover:bg-bg-hover/50'
                     }`}
                 >
                   {row.getVisibleCells().map(cell => (
