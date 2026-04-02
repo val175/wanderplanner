@@ -257,10 +257,11 @@ function AuthenticatedApp({ user, signOutUser }) {
     
     const latestName = currentUserProfile.name || 'Traveler'
     const latestPhoto = currentUserProfile.customPhoto || currentUserProfile.photo || null
+    const snapPhoto = snapshotEntry?.photo || null
     
     const needsRefresh = !snapshotEntry || 
                         snapshotEntry.name !== latestName || 
-                        snapshotEntry.photo !== latestPhoto
+                        snapPhoto !== latestPhoto
                         
     if (needsRefresh) {
       dispatch({ 

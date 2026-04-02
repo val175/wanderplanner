@@ -67,6 +67,8 @@ export function useFirestoreTrips(userId) {
   const prevTripsRef = useRef({})
   const prevDocsByTripRef = useRef({})
   const isRemoteUpdateRef = useRef(false)
+  const syncTimeoutRef = useRef(null)
+  const pendingSyncIdsRef = useRef(new Set())
 
   // ── 1. Real-time listener: Shared Root → local state ─────────────────────
   useEffect(() => {
@@ -259,29 +261,46 @@ export function useFirestoreTrips(userId) {
     // Collect all trip IDs where either the trip data or its documents changed
     const idsToSync = new Set([
       ...Object.keys(currentTrips).filter(id => currentTrips[id] !== previousTrips[id]),
-      ...Object.keys(currentDocs).filter(id => currentDocs[id] !== previousDocs[id]),
+      ...Object.keys(currentDocs).filter(id => JSON.stringify(currentDocs[id]) !== JSON.stringify(previousDocs[id])),
     ])
 
-    idsToSync.forEach((id) => {
-      const tripData = currentTrips[id]
-      if (!tripData || tripData?.deletedAt) return
-      const memberIds = Array.from(new Set([
-        ...(tripData.memberIds || []),
-        ...(tripData.travelerIds || []),
-        userId
-      ]))
-      setDoc(
-        doc(tripsRef, id),
-        { ...tripData, documents: currentDocs[id] || {}, memberIds, _updatedAt: serverTimestamp() },
-        { merge: true }
-      ).catch(console.error)
-    })
+    // Add to pending sync IDs to gather changes occurring during the debounce window
+    idsToSync.forEach(id => pendingSyncIdsRef.current.add(id))
 
-    Object.keys(previousTrips).forEach((id) => {
-      if (!currentTrips[id]) {
-        console.warn(`[Wanderplan] Trip ${id} deleted locally. Outbound sync no longer auto-deletes.`)
-      }
-    })
+    if (pendingSyncIdsRef.current.size === 0) {
+      prevTripsRef.current = currentTrips
+      prevDocsByTripRef.current = currentDocs
+      return
+    }
+
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current)
+    }
+
+    syncTimeoutRef.current = setTimeout(() => {
+      pendingSyncIdsRef.current.forEach((id) => {
+        const tripData = currentTrips[id]
+        if (!tripData || tripData?.deletedAt) return
+        const memberIds = Array.from(new Set([
+          ...(tripData.memberIds || []),
+          ...(tripData.travelerIds || []),
+          userId
+        ]))
+        setDoc(
+          doc(tripsRef, id),
+          { ...tripData, documents: currentDocs[id] || {}, memberIds, _updatedAt: serverTimestamp() },
+          { merge: true }
+        ).catch(console.error)
+      })
+
+      Object.keys(previousTrips).forEach((id) => {
+        if (!currentTrips[id]) {
+          console.warn(`[Wanderplan] Trip ${id} deleted locally. Outbound sync no longer auto-deletes.`)
+        }
+      })
+      
+      pendingSyncIdsRef.current.clear()
+    }, 1000)
 
     prevTripsRef.current = currentTrips
     prevDocsByTripRef.current = currentDocs

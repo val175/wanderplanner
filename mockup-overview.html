@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wanderplan — Overview Tab Mockup (Elevated)</title>
+
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+
+<style>
+  /* ── Anthropic Fonts ── */
+  @font-face {
+    font-family: "Anthropic Sans";
+    font-weight: 300 800;
+    font-style: normal;
+    font-display: swap;
+    src: url("https://cdn.prod.website-files.com/67ce28cfec624e2b733f8a52/6931e8a95706378cf227c83d_AnthropicSans-Roman-Web.woff2") format("woff2");
+  }
+  @font-face {
+    font-family: "Anthropic Sans";
+    font-weight: 300 800;
+    font-style: italic;
+    font-display: swap;
+    src: url("https://cdn.prod.website-files.com/67ce28cfec624e2b733f8a52/6931e8a96f4a2fb0fac5769d_AnthropicSans-Italic-Web.woff2") format("woff2");
+  }
+  @font-face {
+    font-family: "Anthropic Serif";
+    font-weight: 300 800;
+    font-style: normal;
+    font-display: swap;
+    src: url("https://cdn.prod.website-files.com/67ce28cfec624e2b733f8a52/6931e8aa15739b7c09d56ee1_AnthropicSerif-Roman-Web.woff2") format("woff2");
+  }
+  @font-face {
+    font-family: "Anthropic Serif";
+    font-weight: 300 800;
+    font-style: italic;
+    font-display: swap;
+    src: url("https://cdn.prod.website-files.com/67ce28cfec624e2b733f8a52/6931e8aaff2421cbb9f4cebe_AnthropicSerif-Italic-Web.woff2") format("woff2");
+  }
+
+  /* ── Design Tokens ── */
+  :root {
+    --bg-primary: #F4F2EF;
+    --bg-secondary: #ECEAE5;
+    --bg-sidebar: #FAFAF8;
+    --bg-card: #FFFFFF;
+    --bg-hover: #F0EEE9;
+
+    --accent: #D97757;
+    --accent-hover: #C15F3C;
+
+    --text-primary: #1A1A18;
+    --text-secondary: #3D3929;
+    --text-muted: #9B9A93;
+
+    --border: #E0DDD6;
+    --border-strong: #CCC8BF;
+
+    --success: #788C5D;
+    --info: #6A9BCC;
+    --warning: #D4A72C;
+    --danger: #C15F3C;
+
+    /* NEW: Warm card shadows */
+    --shadow-card: 0 1px 3px 0 rgba(58, 50, 38, 0.06), 0 1px 2px -1px rgba(58, 50, 38, 0.04);
+    --shadow-card-hover: 0 4px 12px -2px rgba(58, 50, 38, 0.08);
+
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-xl: 20px;
+    --radius-pill: 999px;
+
+    --font-sans: "Anthropic Sans", system-ui, sans-serif;
+    --font-serif: "Anthropic Serif", Georgia, serif;
+    --font-wanda: "Instrument Serif", Georgia, serif;
+  }
+
+  /* ── Reset & Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* ── Canvas Atmosphere (NEW) ── */
+  .canvas-atmosphere {
+    position: relative;
+  }
+  .canvas-atmosphere::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 85% 8%, rgba(217, 119, 87, 0.08), transparent 55%),
+      radial-gradient(ellipse at 15% 90%, rgba(106, 155, 204, 0.04), transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .canvas-atmosphere::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 180px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Layout ── */
+  .app-shell { display: flex; min-height: 100vh; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 300px;
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    z-index: 10;
+  }
+
+  .trip-switcher {
+    padding: 16px 12px 8px;
+  }
+  .trip-switcher-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px;
+    border-radius: var(--radius-md);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s;
+    font-family: var(--font-sans);
+  }
+  .trip-switcher-btn:hover { background: var(--bg-hover); }
+  .trip-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 2px; }
+  .trip-name { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+  .trip-chevron { color: var(--text-muted); font-size: 12px; transition: transform 0.2s; }
+
+  /* NEW: Decorative separator */
+  .nav-separator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 24px;
+    margin: 12px 0;
+  }
+  .nav-separator::before, .nav-separator::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    opacity: 0.6;
+  }
+  .nav-separator span {
+    color: var(--text-muted);
+    font-size: 8px;
+    opacity: 0.5;
+  }
+
+  .nav-section { padding: 0 12px; }
+  .nav-section-label {
+    padding: 0 12px;
+    margin-bottom: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+  }
+
+  .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 12px; /* NEW: increased from 6px */
+    border-radius: var(--radius-sm);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--text-secondary);
+    transition: all 0.15s;
+    text-align: left;
+    position: relative;
+  }
+  .nav-link:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+  /* NEW: Active state with left-edge indicator */
+  .nav-link.active {
+    background: rgba(217, 119, 87, 0.1);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .nav-link.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 16px;
+    width: 3px;
+    border-radius: 999px;
+    background: var(--accent);
+  }
+
+  .nav-emoji { font-size: 16px; width: 20px; text-align: center; }
+
+  /* Sidebar Footer */
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .brand-mark {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-primary);
+  }
+  .brand-wand { font-size: 1.5rem; line-height: 1; }
+  .brand-name {
+    font-family: var(--font-wanda);
+    font-size: 1.25rem;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .brand-name em { font-style: italic; }
+
+  .sidebar-actions { display: flex; gap: 4px; }
+  .sidebar-action-btn {
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: var(--radius-md);
+    border: none; background: transparent;
+    color: var(--text-muted); cursor: pointer;
+    transition: all 0.15s;
+    font-size: 14px;
+  }
+  .sidebar-action-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  /* ── Main Content ── */
+  .main-content {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── Trip Header ── */
+  .trip-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-sidebar);
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    backdrop-filter: blur(12px);
+    background: rgba(250, 250, 248, 0.85);
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .header-emoji { font-size: 28px; }
+  .header-info { display: flex; flex-direction: column; }
+  .header-trip-name { font-size: 18px; font-weight: 700; color: var(--text-primary); font-family: var(--font-sans); }
+  /* NEW: Serif date range */
+  .header-date-range {
+    font-family: var(--font-serif);
+    font-size: 13px;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: 1px;
+  }
+
+  .header-right { display: flex; align-items: center; gap: 16px; }
+
+  /* NEW: Countdown hero element */
+  .countdown-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 16px;
+    border-radius: var(--radius-md);
+    background: rgba(217, 119, 87, 0.06);
+    border: 1px solid rgba(217, 119, 87, 0.15);
+  }
+  .countdown-number {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1.1;
+    font-family: var(--font-sans);
+    letter-spacing: -0.02em;
+  }
+  .countdown-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+  }
+
+  /* Avatar stack */
+  .avatar-stack { display: flex; align-items: center; }
+  .avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--bg-sidebar);
+    background: var(--bg-secondary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: var(--text-secondary);
+    overflow: hidden;
+  }
+  .avatar + .avatar { margin-left: -8px; }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* Progress Ring */
+  .progress-ring-wrap {
+    position: relative;
+    width: 44px; height: 44px;
+  }
+  .progress-ring-wrap svg { transform: rotate(-90deg); }
+  .progress-ring-bg { fill: none; stroke: var(--border); stroke-width: 3; }
+  .progress-ring-fill {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 3;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s ease;
+  }
+  .progress-ring-label {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: var(--text-primary);
+  }
+
+  /* ── Tab Content Area ── */
+  .tab-content {
+    padding: 24px 32px 80px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* ── Card (ELEVATED) ── */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    /* NEW: Warm micro-shadow */
+    box-shadow: var(--shadow-card);
+    transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
+  }
+  .card:hover {
+    box-shadow: var(--shadow-card-hover);
+  }
+  .card-padded { padding: 20px; }
+
+  /* NEW: Accent top-border variants */
+  .card-accent-danger { border-top: 2px solid var(--danger); }
+  .card-accent-accent { border-top: 2px solid var(--accent); }
+  .card-accent-info { border-top: 2px solid var(--info); }
+  .card-accent-success { border-top: 2px solid var(--success); }
+
+  /* ── Labels ── */
+  .label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+  }
+  .label-accent { color: var(--accent); }
+  .label-danger { color: var(--danger); }
+  .label-info { color: var(--info); }
+
+  /* ── Pills / Badges ── */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: var(--radius-pill);
+    border: 1px solid;
+    font-family: var(--font-sans);
+  }
+  .pill-success { background: rgba(120, 140, 93, 0.1); color: var(--success); border-color: rgba(120, 140, 93, 0.2); }
+  .pill-danger { background: rgba(193, 95, 60, 0.1); color: var(--danger); border-color: rgba(193, 95, 60, 0.1); }
+  .pill-warning { background: rgba(212, 167, 44, 0.1); color: var(--warning); border-color: rgba(212, 167, 44, 0.2); }
+  .pill-info { background: rgba(106, 155, 204, 0.1); color: var(--info); border-color: rgba(106, 155, 204, 0.2); }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  .btn:active { transform: scale(0.97); } /* NEW: Spring-like tap */
+  .btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-color: var(--border);
+  }
+  .btn-secondary:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-strong);
+  }
+
+  /* ── Progress Bar ── */
+  .progress-track {
+    width: 100%;
+    height: 6px;
+    background: rgba(224, 221, 214, 0.3);
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: var(--radius-pill);
+    transition: width 0.8s ease;
+  }
+  .progress-fill-info { background: var(--info); }
+  .progress-fill-success { background: var(--success); }
+  .progress-fill-warning { background: var(--warning); }
+  .progress-fill-accent { background: var(--accent); }
+  .progress-fill-danger { background: var(--danger); }
+
+  .progress-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .progress-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  /* ── Bento Grid ── */
+  .bento-grid {
+    display: grid;
+    grid-template-columns: 8fr 4fr;
+    gap: 20px;
+  }
+  .bento-left { display: flex; flex-direction: column; gap: 20px; }
+  .bento-right { display: flex; flex-direction: column; gap: 20px; }
+
+  /* ── Hero Card: Today at a Glance (NEW) ── */
+  .hero-card {
+    background: linear-gradient(135deg, rgba(217, 119, 87, 0.05) 0%, rgba(255,255,255,0.8) 50%, rgba(106, 155, 204, 0.03) 100%);
+    border: 1px solid rgba(217, 119, 87, 0.15);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    box-shadow: var(--shadow-card), 0 0 0 1px rgba(217, 119, 87, 0.04);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-card::after {
+    content: '';
+    position: absolute;
+    top: -60px;
+    right: -40px;
+    width: 180px;
+    height: 180px;
+    background: radial-gradient(circle, rgba(217, 119, 87, 0.06), transparent 70%);
+    pointer-events: none;
+  }
+  .hero-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; position: relative; z-index: 1; }
+  .hero-body { display: flex; align-items: flex-start; gap: 14px; position: relative; z-index: 1; }
+  .hero-day-badge {
+    width: 44px; height: 44px;
+    border-radius: var(--radius-md);
+    background: var(--bg-secondary);
+    border: 1px solid rgba(224, 221, 214, 0.5);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .hero-day-title {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.3;
+  }
+  /* NEW: Serif for AI summary body text */
+  .hero-summary {
+    font-family: var(--font-serif);
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.65;
+    margin-top: 6px;
+  }
+
+  /* ── Attention Cell ── */
+  .attention-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    border: none;
+    background: transparent;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-family: var(--font-sans);
+  }
+  .attention-item:hover { background: var(--bg-hover); }
+  .attention-item + .attention-item { border-top: 1px solid rgba(224, 221, 214, 0.3); }
+  .attention-icon {
+    width: 40px; height: 40px;
+    border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .attention-icon-danger { background: rgba(193, 95, 60, 0.1); }
+  .attention-icon-warning { background: rgba(212, 167, 44, 0.1); }
+  .attention-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+  .attention-subtitle { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .attention-arrow { font-size: 11px; color: var(--text-muted); opacity: 0; transition: opacity 0.15s; margin-left: auto; flex-shrink: 0; }
+  .attention-item:hover .attention-arrow { opacity: 0.4; }
+
+  /* ── Timeline ── */
+  .timeline { position: relative; padding-left: 12px; }
+  .timeline-line {
+    position: absolute;
+    left: 23px;
+    top: 24px;
+    bottom: 24px;
+    width: 2px;
+    background: rgba(224, 221, 214, 0.4);
+  }
+  .timeline-day { position: relative; padding-left: 40px; }
+  .timeline-day + .timeline-day { margin-top: 32px; }
+  .day-badge {
+    position: absolute;
+    left: 0; top: 0;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: var(--text-muted);
+    z-index: 2;
+  }
+  .day-location { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+  .day-subtitle { font-size: 10px; color: var(--text-muted); margin-left: 8px; }
+  .day-activities { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .activity-row { display: flex; align-items: center; gap: 14px; }
+  .activity-emoji { font-size: 18px; width: 28px; text-align: center; flex-shrink: 0; }
+  .activity-name { font-size: 12px; font-weight: 700; color: var(--text-primary); }
+  .activity-remark { font-size: 10px; color: var(--text-muted); }
+  .activity-time {
+    font-size: 10px;
+    font-family: "JetBrains Mono", monospace;
+    color: var(--text-muted);
+    padding: 2px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-secondary);
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  /* ── Weather Block ── */
+  .weather-row { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+  .weather-emoji { font-size: 40px; line-height: 1; margin-bottom: 8px; } /* NEW: Bigger */
+  .weather-temp { font-size: 32px; font-weight: 700; color: var(--text-primary); line-height: 1; } /* NEW: Bigger */
+  .weather-feels { font-size: 12px; color: var(--text-muted); margin-left: 6px; }
+  .weather-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500; }
+
+  /* ── Destinations ── */
+  .dest-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-top: 1px solid rgba(224, 221, 214, 0.4);
+  }
+  .dest-flag { font-size: 20px; }
+  .dest-city { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .dest-country { font-size: 10px; color: var(--text-muted); }
+  .dest-nights { font-size: 10px; color: var(--text-muted); margin-left: auto; }
+
+  /* ── Entrance Animations ── */
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .stagger-1 { animation: fade-in-up 0.5s cubic-bezier(0.2, 0, 0, 1) both; animation-delay: 0ms; }
+  .stagger-2 { animation: fade-in-up 0.5s cubic-bezier(0.2, 0, 0, 1) both; animation-delay: 80ms; }
+  .stagger-3 { animation: fade-in-up 0.5s cubic-bezier(0.2, 0, 0, 1) both; animation-delay: 160ms; }
+  .stagger-4 { animation: fade-in-up 0.5s cubic-bezier(0.2, 0, 0, 1) both; animation-delay: 240ms; }
+  .stagger-5 { animation: fade-in-up 0.5s cubic-bezier(0.2, 0, 0, 1) both; animation-delay: 320ms; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+
+  /* ── XP Bar (Sidebar) ── */
+  .xp-row {
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .xp-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600; color: var(--text-secondary);
+    border: 2px solid var(--success);
+    flex-shrink: 0;
+  }
+  .xp-info { flex: 1; min-width: 0; }
+  .xp-labels { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .xp-level { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+  .xp-count { font-size: 10px; font-weight: 500; color: var(--text-muted); }
+  .xp-bar { width: 100%; height: 4px; border-radius: var(--radius-pill); background: rgba(224, 221, 214, 0.2); overflow: hidden; }
+  .xp-fill { height: 100%; border-radius: var(--radius-pill); background: var(--success); width: 65%; }
+
+  /* ── Quick-start cards ── */
+  .quickstart-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .quickstart-card {
+    padding: 16px;
+    cursor: pointer;
+  }
+  .quickstart-card:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-2px); /* NEW: lift on hover */
+  }
+  .quickstart-emoji { font-size: 24px; margin-bottom: 12px; }
+  .quickstart-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-primary); }
+  .quickstart-desc { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+
+  /* ── Comparison Toggle ── */
+  .comparison-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+    display: flex;
+    justify-content: center;
+    padding: 12px 24px;
+    gap: 12px;
+  }
+  .comparison-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    display: flex;
+    align-items: center;
+    margin-right: 8px;
+  }
+  .toggle-btn {
+    padding: 8px 20px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .toggle-btn:hover { border-color: var(--border-strong); }
+  .toggle-btn.active {
+    background: var(--accent);
+    color: white;
+    border-color: transparent;
+  }
+
+  /* Card header row pattern */
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+  }
+  .card-section {
+    padding: 16px 20px;
+  }
+  .card-section + .card-section {
+    border-top: 1px solid rgba(224, 221, 214, 0.4);
+  }
+
+  /* Clickable card section */
+  .card-section-clickable {
+    cursor: pointer;
+    transition: background 0.15s;
+    border-radius: var(--radius-md);
+  }
+  .card-section-clickable:hover { background: var(--bg-hover); }
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- ═══════════ SIDEBAR ═══════════ -->
+  <aside class="sidebar">
+    <!-- Trip Switcher -->
+    <div class="trip-switcher">
+      <button class="trip-switcher-btn">
+        <div>
+          <div class="trip-label">Trip</div>
+          <div class="trip-name">🇯🇵 Japan Golden Week</div>
+        </div>
+        <span class="trip-chevron">&#9662;</span>
+      </button>
+    </div>
+
+    <!-- NEW: Decorative separator -->
+    <div class="nav-separator"><span>&diamond;</span></div>
+
+    <!-- Nav: The Plan -->
+    <div class="nav-section">
+      <div class="nav-section-label">The Plan</div>
+      <nav style="display: flex; flex-direction: column; gap: 2px;">
+        <button class="nav-link active">
+          <span class="nav-emoji">🗺️</span> Overview
+        </button>
+        <button class="nav-link">
+          <span class="nav-emoji">📍</span> Map
+        </button>
+        <button class="nav-link">
+          <span class="nav-emoji">📅</span> Itinerary
+        </button>
+        <button class="nav-link">
+          <span class="nav-emoji">🏙️</span> Cities
+        </button>
+        <button class="nav-link">
+          <span class="nav-emoji">🎫</span> Bookings
+        </button>
+      </nav>
+    </div>
+
+    <!-- NEW: Decorative separator -->
+    <div class="nav-separator"><span>&diamond;</span></div>
+
+    <!-- Nav: Tools -->
+    <div class="nav-section">
+      <div class="nav-section-label">Tools & Collab</div>
+      <nav style="display: flex; flex-direction: column; gap: 2px;">
+        <button class="nav-link">
+          <span class="nav-emoji">🗳️</span> Voting
+        </button>
+        <button class="nav-link">
+          <span class="nav-emoji">💰</span> Budget
+        </button>
+        <button class="nav-link">
+          <span class="nav-emoji">✅</span> To-Do
+        </button>
+        <button class="nav-link">
+          <span class="nav-emoji">📄</span> Documents
+        </button>
+        <button class="nav-link">
+          <span class="nav-emoji">🧳</span> Packing
+        </button>
+      </nav>
+    </div>
+
+    <!-- XP Row -->
+    <div class="xp-row" style="margin-top: auto;">
+      <div class="xp-avatar">VR</div>
+      <div class="xp-info">
+        <div class="xp-labels">
+          <span class="xp-level">Lvl 5 &bull; 🌍 Explorer</span>
+          <span class="xp-count">650/1000 XP</span>
+        </div>
+        <div class="xp-bar"><div class="xp-fill"></div></div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="sidebar-footer">
+      <div class="brand-mark">
+        <span class="brand-wand">🪄</span>
+        <span class="brand-name"><em>Wander</em>plan</span>
+      </div>
+      <div class="sidebar-actions">
+        <button class="sidebar-action-btn" title="Toggle theme">🌙</button>
+        <button class="sidebar-action-btn" title="Sign out">↗</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════ MAIN CONTENT ═══════════ -->
+  <div class="main-content canvas-atmosphere">
+
+    <!-- Trip Header -->
+    <header class="trip-header">
+      <div class="header-left">
+        <span class="header-emoji">🇯🇵</span>
+        <div class="header-info">
+          <div class="header-trip-name">Japan Golden Week</div>
+          <!-- NEW: Serif date range -->
+          <div class="header-date-range">April 26 &ndash; May 10, 2026</div>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <!-- NEW: Countdown hero -->
+        <div class="countdown-block stagger-3">
+          <span class="countdown-number">24</span>
+          <span class="countdown-label">days to go</span>
+        </div>
+
+        <!-- Avatar Stack -->
+        <div class="avatar-stack">
+          <div class="avatar" style="background: #E8D5C4;">V</div>
+          <div class="avatar" style="background: #C4D5E8;">A</div>
+        </div>
+
+        <!-- Progress Ring -->
+        <div class="progress-ring-wrap">
+          <svg width="44" height="44" viewBox="0 0 44 44">
+            <circle class="progress-ring-bg" cx="22" cy="22" r="18" />
+            <circle class="progress-ring-fill" cx="22" cy="22" r="18"
+              stroke-dasharray="113.1"
+              stroke-dashoffset="39.6" />
+          </svg>
+          <div class="progress-ring-label">65%</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+      <div class="bento-grid">
+
+        <!-- ═══ LEFT COLUMN ═══ -->
+        <div class="bento-left">
+
+          <!-- ── Hero: Today at a Glance (NEW DESIGN) ── -->
+          <div class="hero-card stagger-1">
+            <div class="hero-header">
+              <span class="label label-accent">Today at a Glance</span>
+              <span class="pill pill-success">🪄 Wanda Summary</span>
+            </div>
+            <div class="hero-body">
+              <div class="hero-day-badge">🏯</div>
+              <div style="flex: 1; min-width: 0;">
+                <h3 class="hero-day-title">Day 3: Kyoto</h3>
+                <!-- NEW: Serif summary text -->
+                <p class="hero-summary">
+                  Today you're exploring Kyoto's eastern hills &mdash; starting with the iconic Fushimi Inari gates at sunrise,
+                  then wandering through the bamboo groves of Arashiyama before a traditional kaiseki lunch in Gion.
+                  The evening is free for temple-hopping or soaking in an onsen.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Needs Attention (with accent border) ── -->
+          <div class="card card-accent-danger stagger-2">
+            <div class="card-header">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="label label-danger">Needs Attention</span>
+              </div>
+              <span class="pill pill-danger">4 items</span>
+            </div>
+
+            <div>
+              <button class="attention-item">
+                <div class="attention-icon attention-icon-danger">🚨</div>
+                <div>
+                  <div class="attention-title">Book Shinkansen tickets</div>
+                  <div class="attention-subtitle">Overdue 3d</div>
+                </div>
+                <span class="attention-arrow">View &rarr;</span>
+              </button>
+              <button class="attention-item">
+                <div class="attention-icon attention-icon-danger">⚡</div>
+                <div>
+                  <div class="attention-title">Apply for Japan Rail Pass</div>
+                  <div class="attention-subtitle">Due in 5d</div>
+                </div>
+                <span class="attention-arrow">View &rarr;</span>
+              </button>
+              <button class="attention-item">
+                <div class="attention-icon attention-icon-warning">🏨</div>
+                <div>
+                  <div class="attention-title">No accommodation for Osaka</div>
+                  <div class="attention-subtitle">Add to Bookings</div>
+                </div>
+                <span class="attention-arrow">View &rarr;</span>
+              </button>
+              <button class="attention-item">
+                <div class="attention-icon attention-icon-warning">🧳</div>
+                <div>
+                  <div class="attention-title">Packing not started</div>
+                  <div class="attention-subtitle">24d to go</div>
+                </div>
+                <span class="attention-arrow">View &rarr;</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- ── Up Next: Timeline ── -->
+          <div class="card stagger-3">
+            <div class="card-header">
+              <div>
+                <span class="label label-info">UP NEXT</span>
+                <h3 style="font-size: 17px; font-weight: 700; color: var(--text-primary); margin-top: 4px;">First 48 Hours</h3>
+              </div>
+              <button class="btn btn-secondary">View Full Itinerary &rarr;</button>
+            </div>
+
+            <div style="padding: 0 20px 20px;">
+              <div class="timeline">
+                <div class="timeline-line"></div>
+
+                <div class="timeline-day">
+                  <div class="day-badge">D1</div>
+                  <div>
+                    <span class="day-location">Tokyo</span>
+                    <span class="day-subtitle">Arrival & Settlement</span>
+                  </div>
+                  <div class="day-activities">
+                    <div class="activity-row">
+                      <span class="activity-emoji">✈️</span>
+                      <div>
+                        <div class="activity-name">Flight NRT &rarr; Narita</div>
+                        <div class="activity-remark">Philippine Airlines PR 428</div>
+                      </div>
+                      <span class="activity-time">14:30</span>
+                    </div>
+                    <div class="activity-row">
+                      <span class="activity-emoji">🏨</span>
+                      <div>
+                        <div class="activity-name">Check in Shinjuku Hotel</div>
+                        <div class="activity-remark">Gracery Shinjuku</div>
+                      </div>
+                      <span class="activity-time">18:00</span>
+                    </div>
+                    <div class="activity-row">
+                      <span class="activity-emoji">🍜</span>
+                      <div>
+                        <div class="activity-name">Omoide Yokocho</div>
+                        <div class="activity-remark">Yakitori alley dinner</div>
+                      </div>
+                      <span class="activity-time">20:00</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="timeline-day">
+                  <div class="day-badge">D2</div>
+                  <div>
+                    <span class="day-location">Tokyo</span>
+                    <span class="day-subtitle">Exploration</span>
+                  </div>
+                  <div class="day-activities">
+                    <div class="activity-row">
+                      <span class="activity-emoji">⛩️</span>
+                      <div>
+                        <div class="activity-name">Meiji Shrine</div>
+                        <div class="activity-remark">Morning visit</div>
+                      </div>
+                      <span class="activity-time">09:00</span>
+                    </div>
+                    <div class="activity-row">
+                      <span class="activity-emoji">🛍️</span>
+                      <div>
+                        <div class="activity-name">Harajuku & Shibuya</div>
+                        <div class="activity-remark">Shopping + Shibuya crossing</div>
+                      </div>
+                      <span class="activity-time">13:00</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Quick Start Row ── -->
+          <div class="quickstart-grid stagger-4">
+            <div class="card quickstart-card">
+              <div class="quickstart-emoji">🎫</div>
+              <div class="quickstart-title">Add a Booking</div>
+              <div class="quickstart-desc">Flights, hotels, activities</div>
+            </div>
+            <div class="card quickstart-card">
+              <div class="quickstart-emoji">✅</div>
+              <div class="quickstart-title">Create To-Dos</div>
+              <div class="quickstart-desc">Visas, vaccines, admin</div>
+            </div>
+            <div class="card quickstart-card">
+              <div class="quickstart-emoji">🧳</div>
+              <div class="quickstart-title">Start Packing</div>
+              <div class="quickstart-desc">Build your checklist</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ RIGHT COLUMN ═══ -->
+        <div class="bento-right">
+
+          <!-- ── Trip Health: Weather + Readiness + Budget ── -->
+          <div class="card stagger-2" style="padding: 0;">
+
+            <!-- Weather -->
+            <div class="card-section">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="label">Right Now</span>
+                  <span style="font-size: 12px; color: var(--text-muted);">Tokyo</span>
+                </div>
+                <div style="display: flex; gap: 4px;">
+                  <button class="btn btn-secondary" style="width: 24px; height: 24px; padding: 0; font-size: 10px;">&lsaquo;</button>
+                  <button class="btn btn-secondary" style="width: 24px; height: 24px; padding: 0; font-size: 10px;">&rsaquo;</button>
+                </div>
+              </div>
+              <div class="weather-row">
+                <div>
+                  <!-- NEW: Larger weather display -->
+                  <div class="weather-emoji">🌤️</div>
+                  <div style="display: flex; align-items: baseline; gap: 6px;">
+                    <span class="weather-temp">22&deg;</span>
+                    <span class="weather-feels">feels 19&deg;</span>
+                  </div>
+                </div>
+                <div style="text-align: right;">
+                  <div class="weather-label">Partly Cloudy</div>
+                  <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; opacity: 0.5;">🇯🇵 Tokyo</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Readiness -->
+            <div class="card-section card-section-clickable">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span class="label">Trip Readiness</span>
+                <span class="pill pill-warning">65% complete</span>
+              </div>
+              <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 16px;">
+                <div class="progress-row">
+                  <div class="progress-labels">
+                    <span>Bookings</span>
+                    <span>3/5</span>
+                  </div>
+                  <div class="progress-track">
+                    <div class="progress-fill progress-fill-info" style="width: 60%;"></div>
+                  </div>
+                </div>
+                <div class="progress-row">
+                  <div class="progress-labels">
+                    <span>To-Dos</span>
+                    <span>8/12</span>
+                  </div>
+                  <div class="progress-track">
+                    <div class="progress-fill progress-fill-success" style="width: 66%;"></div>
+                  </div>
+                </div>
+                <div class="progress-row">
+                  <div class="progress-labels">
+                    <span>Packing</span>
+                    <span>0/24</span>
+                  </div>
+                  <div class="progress-track">
+                    <div class="progress-fill progress-fill-warning" style="width: 0%;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Budget -->
+            <div class="card-section">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span class="label">Budget</span>
+                <span class="pill pill-success">$1,240 spent</span>
+              </div>
+              <div style="margin-top: 16px;">
+                <div class="progress-track" style="height: 6px;">
+                  <div class="progress-fill progress-fill-accent" style="width: 41%;"></div>
+                </div>
+                <div class="progress-labels" style="margin-top: 8px; font-size: 11px; font-weight: 600; letter-spacing: -0.02em;">
+                  <span>$0</span>
+                  <span>$3,000</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Destinations ── -->
+          <div class="card stagger-4" style="padding: 0; overflow: hidden;">
+            <div class="card-header">
+              <span class="label">Destinations</span>
+              <button class="btn btn-secondary">View Map &rarr;</button>
+            </div>
+            <div class="dest-row">
+              <span class="dest-flag">🇯🇵</span>
+              <div style="flex: 1;">
+                <div class="dest-city">Tokyo</div>
+                <div class="dest-country">Japan</div>
+              </div>
+              <span class="dest-nights">5n</span>
+            </div>
+            <div class="dest-row">
+              <span class="dest-flag">🇯🇵</span>
+              <div style="flex: 1;">
+                <div class="dest-city">Kyoto</div>
+                <div class="dest-country">Japan</div>
+              </div>
+              <span class="dest-nights">4n</span>
+            </div>
+            <div class="dest-row">
+              <span class="dest-flag">🇯🇵</span>
+              <div style="flex: 1;">
+                <div class="dest-city">Osaka</div>
+                <div class="dest-country">Japan</div>
+              </div>
+              <span class="dest-nights">3n</span>
+            </div>
+            <div class="dest-row">
+              <span class="dest-flag">🇯🇵</span>
+              <div style="flex: 1;">
+                <div class="dest-city">Hakone</div>
+                <div class="dest-country">Japan</div>
+              </div>
+              <span class="dest-nights">2n</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

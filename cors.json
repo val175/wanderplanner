@@ -1,0 +1,7 @@
+[
+  {
+    "origin": ["http://localhost:5173", "https://planner.vlbonite.co", "https://wanderplanner-dbee7.web.app", "https://wanderplanner-dbee7.firebaseapp.com"],
+    "method": ["GET", "PUT", "POST", "DELETE", "HEAD", "OPTIONS"],
+    "maxAgeSeconds": 3600
+  }
+]

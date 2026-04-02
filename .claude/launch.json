@@ -3,10 +3,16 @@
   "configurations": [
     {
       "name": "Wanderplan Dev",
-      "runtimeExecutable": "npm",
+      "runtimeExecutable": "/opt/homebrew/bin/npm",
       "runtimeArgs": ["run", "dev"],
       "port": 5173,
       "autoPort": true
+    },
+    {
+      "name": "Mockup",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "3457"],
+      "port": 3457
     }
   ]
 }
