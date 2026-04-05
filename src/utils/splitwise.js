@@ -20,11 +20,24 @@ export function calculateBalances(spendingLog, travelers) {
     const knownIds = new Set(travelers.map(t => t.id))
 
     for (const entry of spendingLog) {
-        const { paidBy, splits } = entry
-        if (!paidBy || !splits) continue
+        const { paidBy, splits, splitBetween, amount } = entry
+        if (!paidBy) continue
         if (!knownIds.has(paidBy)) continue  // unknown payer — skip entirely
 
-        for (const [id, share] of Object.entries(splits)) {
+        // If splits map is absent, reconstruct equal splits from splitBetween.
+        // This handles expenses saved before all travelers were added to the trip.
+        let effectiveSplits = splits
+        if (!effectiveSplits) {
+            const members = Array.isArray(splitBetween)
+                ? splitBetween.filter(id => knownIds.has(id))
+                : []
+            if (members.length > 0 && amount > 0) {
+                effectiveSplits = buildSplits(amount, members, 'equal')
+            }
+        }
+        if (!effectiveSplits) continue
+
+        for (const [id, share] of Object.entries(effectiveSplits)) {
             const shareNum = Number(share)     // coerce in case stored as string
             if (id === paidBy) continue        // payer's own share — zero net
             if (!knownIds.has(id)) continue    // unknown member — skip this split

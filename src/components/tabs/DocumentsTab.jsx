@@ -64,20 +64,28 @@ function resolveExpenseCategory(type, budget = []) {
   )
   if (directMatch) return directMatch.name
 
-  const aliases = {
-    food: ['food', 'restaurant', 'dining', 'meal'],
-    lodging: ['lodging', 'hotel', 'stay'],
-    flight: ['flight', 'airfare', 'airline'],
-    activity: ['activity', 'tour', 'ticket', 'event'],
-    transport: ['transport', 'transfer', 'bus', 'train', 'taxi'],
-    shopping: ['shopping', 'retail', 'store'],
-    concert: ['concert', 'music', 'show'],
-  }
+  // Budget category IDs are random UUIDs, so match by category name instead.
+  // Each entry is [concept, terms[]]. For each budget category, find which group
+  // its name belongs to, then check if the expense type matches the same group.
+  const aliases = [
+    ['flight',    ['flight', 'flights', 'airfare', 'airline']],
+    ['food',      ['food', 'restaurant', 'restaurants', 'dining', 'meal']],
+    ['lodging',   ['lodging', 'hotel', 'stay', 'accommodation', 'hostel', 'resort']],
+    ['activity',  ['activity', 'tour', 'ticket', 'event', 'entrance', 'admission']],
+    ['transport', ['transport', 'transfer', 'bus', 'train', 'taxi', 'grab', 'transit']],
+    ['shopping',  ['shopping', 'retail', 'store', 'mall']],
+    ['concert',   ['concert', 'music', 'show', 'festival', 'gig']],
+  ]
 
   for (const category of budget) {
-    const bucket = aliases[category.id] || []
-    if (bucket.some(term => normalized.includes(term))) {
-      return category.name
+    const catName = (category.name || '').toLowerCase()
+    for (const [, terms] of aliases) {
+      if (terms.some(term => catName.includes(term))) {
+        if (terms.some(term => normalized.includes(term))) {
+          return category.name
+        }
+        break
+      }
     }
   }
 
