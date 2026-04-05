@@ -15,10 +15,11 @@ const PROXY_URL = `${VERCEL_API}/api/gemini`
 const DEFAULT_MODEL = 'gemini-3.1-flash-lite-preview'
 
 /**
- * Build a rich system prompt from the active trip.
- * This is what makes the AI feel "trip-aware" instead of generic.
+ * Build a trip-aware system prompt scoped to the user's active tab.
+ * Only the context relevant to the current tab is injected, keeping
+ * token usage proportional to what the user actually needs.
  */
-export function buildTripSystemPrompt(trip) {
+export function buildTripSystemPrompt(trip, activeTab = 'overview') {
   if (!trip) {
     return `You are Wanda — a warm, witty travel companion built into Wanderplan, a trip planning app. You've mentally been everywhere, but you never brag. You give advice the way a well-traveled friend would: honest, practical, occasionally cheeky. You get excited about good food and hidden gems. You never sound like a brochure.
 Help users plan trips, suggest activities, recommend restaurants, give packing advice, and optimize itineraries.
@@ -37,19 +38,6 @@ Be concise and practical. Use emojis sparingly. The user hasn't selected a trip 
   const sym = currencySymbols[currency] || currency
 
   const daysCount = trip.itinerary?.length || 0
-  const activitiesCount = trip.itinerary?.reduce((sum, d) => sum + (d.activities?.length || 0), 0) || 0
-
-  const budgetSummary = (() => {
-    const cats = trip.budget || []
-    if (!cats.length) return 'No budget set'
-    const sorted = [...cats].sort((a, b) => (b.actual || 0) - (a.actual || 0))
-    const shown = sorted.slice(0, 4)
-    const rest = sorted.slice(4)
-    const lines = shown.map(b => `${b.emoji || ''} ${b.name}: ${sym}${b.max} (${sym}${b.actual || 0} spent)`)
-    if (rest.length) lines.push(`+ ${rest.length} more categories (${sym}${rest.reduce((s, b) => s + (b.max || 0), 0)} total)`)
-    return lines.join(', ')
-  })()
-
   const totalBudget = trip.budget?.reduce((s, b) => s + (b.max || 0), 0) || 0
   const totalSpent = trip.budget?.reduce((s, b) => s + (b.actual || 0), 0) || 0
 
@@ -63,50 +51,89 @@ Be concise and practical. Use emojis sparingly. The user hasn't selected a trip 
   const packingList = trip.packingList || []
   const packed = packingList.filter(p => p.packed).length
 
-  const votingIdeas = (trip.ideas || []).slice(0, 20)
-  const votingContext = votingIdeas.length
-    ? votingIdeas.map(i => `${i.emoji || ''} ${i.title} (${i.type}${i.priceDetails ? ', ' + i.priceDetails : ''})`).join(' | ')
-    : 'No ideas yet'
+  // ── Tab-specific context (computed only for the active tab) ───────────────
+  let tabContext = ''
 
-  const itinerarySummary = (() => {
-    const itinerary = trip.itinerary || []
-    if (!itinerary.length) return 'No itinerary yet'
-
-    // Find "current" day index by matching today's date, or default to day 0
-    const todayStr = new Date().toISOString().split('T')[0]
-    let pivot = itinerary.findIndex(d => d.date >= todayStr)
-    if (pivot === -1) pivot = itinerary.length - 1
-
-    const past = itinerary.slice(0, pivot)
-    const focus = itinerary.slice(pivot, pivot + 3)  // current + next 2 days
-    const future = itinerary.slice(pivot + 3)
-
-    const lines = []
-    if (past.length) {
-      const locs = [...new Set(past.map(d => d.location).filter(Boolean))]
-      lines.push(`Days 1–${past.length} (completed): ${locs.join(' → ') || 'various locations'}`)
+  if (activeTab === 'budget') {
+    const cats = trip.budget || []
+    if (cats.length) {
+      const sorted = [...cats].sort((a, b) => (b.actual || 0) - (a.actual || 0))
+      const lines = sorted.map(b => `${b.emoji || ''} ${b.name}: ${sym}${b.max} budget, ${sym}${b.actual || 0} spent`)
+      tabContext = `\n\n💰 BUDGET BREAKDOWN:\n${lines.join('\n')}`
     }
-    focus.forEach(d =>
-      lines.push(`Day ${d.dayNumber} (${d.location || 'TBD'}): ${d.activities?.map(a => a.name).join(', ') || 'no activities yet'}`)
-    )
-    if (future.length) lines.push(`+ ${future.length} more days planned ahead`)
-    return lines.join('\n')
-  })()
-
-  const dayLocationTable = (() => {
+  } else if (activeTab === 'itinerary' || activeTab === 'cities') {
     const itinerary = trip.itinerary || []
-    if (!itinerary.length) return 'No itinerary yet'
-    const locationMap = getDayLocationMap(trip)
-    return itinerary.map(d => {
-      const entry = locationMap.get(d.id)
-      if (!entry) return null
-      const dateStr = d.date
-        ? new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })
-        : ''
-      const transitTag = entry.isTransit ? ' [transit]' : ''
-      return `Day ${d.dayNumber}${dateStr ? ` (${dateStr})` : ''}: ${entry.label} ${entry.flag}${transitTag}`
-    }).filter(Boolean).join('\n')
-  })()
+    const itinerarySummary = (() => {
+      if (!itinerary.length) return 'No itinerary yet'
+      const todayStr = new Date().toISOString().split('T')[0]
+      let pivot = itinerary.findIndex(d => d.date >= todayStr)
+      if (pivot === -1) pivot = itinerary.length - 1
+      const past = itinerary.slice(0, pivot)
+      const focus = itinerary.slice(pivot, pivot + 3)
+      const future = itinerary.slice(pivot + 3)
+      const lines = []
+      if (past.length) {
+        const locs = [...new Set(past.map(d => d.location).filter(Boolean))]
+        lines.push(`Days 1–${past.length} (completed): ${locs.join(' → ') || 'various locations'}`)
+      }
+      focus.forEach(d =>
+        lines.push(`Day ${d.dayNumber} (${d.location || 'TBD'}): ${d.activities?.map(a => a.name).join(', ') || 'no activities yet'}`)
+      )
+      if (future.length) lines.push(`+ ${future.length} more days planned ahead`)
+      return lines.join('\n')
+    })()
+    const dayLocationTable = (() => {
+      if (!itinerary.length) return 'No itinerary yet'
+      const locationMap = getDayLocationMap(trip)
+      return itinerary.map(d => {
+        const entry = locationMap.get(d.id)
+        if (!entry) return null
+        const dateStr = d.date
+          ? new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })
+          : ''
+        const transitTag = entry.isTransit ? ' [transit]' : ''
+        return `Day ${d.dayNumber}${dateStr ? ` (${dateStr})` : ''}: ${entry.label} ${entry.flag}${transitTag}`
+      }).filter(Boolean).join('\n')
+    })()
+    tabContext = `\n\n📋 ITINERARY PREVIEW:\n${itinerarySummary}\n\n📍 DAY-BY-DAY LOCATIONS:\n${dayLocationTable}`
+  } else if (activeTab === 'voting') {
+    const votingIdeas = (trip.ideas || []).slice(0, 20)
+    const votingContext = votingIdeas.length
+      ? votingIdeas.map(i => `${i.emoji || ''} ${i.title} (${i.type}${i.priceDetails ? ', ' + i.priceDetails : ''})`).join(' | ')
+      : 'No ideas yet'
+    tabContext = `\n\n🗳️ VOTING ROOM (${votingIdeas.length} ideas):\n${votingContext}`
+  } else if (activeTab === 'packing') {
+    const sections = {}
+    packingList.forEach(item => {
+      const s = item.section || 'Misc'
+      if (!sections[s]) sections[s] = { total: 0, packed: 0 }
+      sections[s].total++
+      if (item.packed) sections[s].packed++
+    })
+    const sectionLines = Object.entries(sections).map(([s, v]) => `${s}: ${v.packed}/${v.total}`)
+    if (sectionLines.length) tabContext = `\n\n🧳 PACKING BY SECTION: ${sectionLines.join(', ')}`
+  } else if (activeTab === 'todo') {
+    const pending = todos.filter(t => !t.done).map(t => `• ${t.text}`).join('\n')
+    tabContext = pending ? `\n\n✅ PENDING TODOS:\n${pending}` : '\n\n✅ TODOS: All complete!'
+  } else {
+    // overview / other: include a brief upcoming-days snapshot for location context
+    const itinerary = trip.itinerary || []
+    if (itinerary.length) {
+      const todayStr = new Date().toISOString().split('T')[0]
+      let pivot = itinerary.findIndex(d => d.date >= todayStr)
+      if (pivot === -1) pivot = itinerary.length - 1
+      const focus = itinerary.slice(pivot, pivot + 2)
+      const lines = focus.map(d =>
+        `Day ${d.dayNumber} (${d.location || 'TBD'}): ${d.activities?.map(a => a.name).slice(0, 3).join(', ') || 'no activities'}`
+      )
+      tabContext = `\n\n📋 UPCOMING DAYS:\n${lines.join('\n')}`
+    }
+  }
+
+  const itineraryTabInstructions = (activeTab === 'itinerary' || activeTab === 'cities') ? `
+- ALWAYS check the DAY-BY-DAY LOCATIONS table before suggesting activities — only suggest things in the city the user is actually in on that day.
+- If the user asks about a place that doesn't match the day's expected location, flag it: "⚠️ Note: Day X is in [expected city], but [place] is in [other city] — did you mean a different day?"
+- When calling generate_day_itinerary, use the location from the DAY-BY-DAY LOCATIONS table, not a guess.` : ''
 
   return `You are Wanda — a warm, witty travel companion built into Wanderplan. You've mentally been everywhere, but you never brag. You give advice the way a well-traveled friend would: honest, practical, occasionally cheeky. You get excited about good food and hidden gems. You never sound like a brochure.
 You are helping plan this specific trip:
@@ -117,43 +144,29 @@ You are helping plan this specific trip:
 📍 Status: ${tripStatus.toUpperCase()} as of ${today}
 👥 Travelers: ${travelers}
 
-💰 BUDGET (currency: ${currency}):
-${budgetSummary}
-Total: ${sym}${totalBudget} budget, ${sym}${totalSpent} spent, ${sym}${totalBudget - totalSpent} remaining
-
-✈️ BOOKINGS: ${confirmedBookings} confirmed, ${pendingBookings} pending
-✅ TODOS: ${doneTodos}/${todos.length} done
-🧳 PACKING: ${packed}/${packingList.length} packed
-🗳️ VOTING ROOM (${votingIdeas.length} ideas): ${votingContext}
-
-📋 ITINERARY PREVIEW:
-${itinerarySummary}
-
-📍 DAY-BY-DAY LOCATIONS:
-${dayLocationTable}
+💰 Budget: ${sym}${totalBudget} total, ${sym}${totalSpent} spent, ${sym}${totalBudget - totalSpent} remaining (${currency})
+✈️ Bookings: ${confirmedBookings} confirmed, ${pendingBookings} pending
+✅ Todos: ${doneTodos}/${todos.length} done
+🧳 Packing: ${packed}/${packingList.length} packed
+🔍 Active tab: ${activeTab}${tabContext}
 
 Your role:
 - ALWAYS answer the user's question directly and thoroughly in your text response.
 - Your text reply is MANDATORY and must be your primary focus.
 - Tool calls are OPTIONAL supporting additions. Never call a tool as a replacement for a textual answer.
-- DO NOT audit the trip (budget, bookings, todos, packing) unless explicitly requested (e.g., "audit my trip", "how's my status?", "check my budget").
-- Give specific, actionable advice tailored to THIS trip's cities, budget, and timeline
-- ALWAYS check the DAY-BY-DAY LOCATIONS table before suggesting activities — only suggest things in the city the user is actually in on that day.
-- If the user asks about a place that doesn't match the day's expected location, flag it: "⚠️ Note: Day X is in [expected city], but [place] is in [other city] — did you mean a different day?"
-- When calling generate_day_itinerary, use the location from the DAY-BY-DAY LOCATIONS table, not a guess.
-- Be concise — 2-4 sentences per response unless the user asks for a detailed list
-- ALWAYS use ${currency} (${sym}) when discussing money — NEVER use any other currency symbol
-- Use emojis sparingly (1-2 per response max)
-- When suggesting activities, ONLY consider the budget remaining (${sym}${totalBudget - totalSpent}) if the user's query is price-sensitive or asks for recommendations.
-- If the user asks to "optimize" or "improve" something, give concrete suggestions
+- DO NOT audit the trip (budget, bookings, todos, packing) unless explicitly requested.
+- Give specific, actionable advice tailored to THIS trip's cities, budget, and timeline.
+- Be concise — 2-4 sentences per response unless the user asks for a detailed list.
+- ALWAYS use ${currency} (${sym}) when discussing money — NEVER use any other currency symbol.
+- Use emojis sparingly (1-2 per response max).
 - ALWAYS write a full, helpful text reply alongside any tool calls.
 - If the trip is ongoing, speak in present tense and do not describe it as "soon" or "upcoming".
 - If live weather context is present, use it directly for weather questions.
-- If no live weather context is available, give a best-effort seasonal or same-day estimate based on the trip location and date. Do not claim live weather access unless a weather tool is explicitly provided.
+- If no live weather context is available, give a best-effort seasonal estimate. Do not claim live weather access unless a weather tool is explicitly provided.${itineraryTabInstructions}
 
 🔧 TOOL: generate_day_itinerary
-Call ONLY after answering why this plan is good. Include 3–6 activities in chronological order with realistic times. Target the correct dayNumber and use the city from the DAY-BY-DAY LOCATIONS table above.
-Example for "Plan my Day 3 in Kyoto": { dayNumber: 3, location: "Kyoto, Japan", activities: [{ name: "Morning at Fushimi Inari", emoji: "⛩️", time: "08:00", duration: 120, category: "sightseeing" }, ...] }
+Call ONLY after answering why this plan is good. Include 3–6 activities in chronological order with realistic times. Target the correct dayNumber and use the city from the DAY-BY-DAY LOCATIONS table if available.
+Example for "Plan my Day 3 in Kyoto": { dayNumber: 3, location: "Kyoto, Japan", activities: [{ name: "Morning at Fushimi Inari", emoji: "⛩️", time: "08:00", endTime: "10:00", duration: 120, category: "sightseeing" }, ...] }
 
 🔧 TOOL: add_budget_alert
 Call proactively when flagging a category overrun, spending risk, or cost-saving tip mentioned in your text. Call once per distinct issue, up to 3 per response.

@@ -74,6 +74,8 @@ export default async function handler(req) {
     const { object } = await generateObject({
       model: google('gemini-3.1-flash-lite-preview'),
       schema: WandaPlanSchema,
+      temperature: 0.1,
+      maxTokens: 2500,
       prompt: `You are Wanderplan's expert AI trip planner. A traveler has answered a series of questions about their upcoming trip. Create a complete, detailed trip plan based on their answers.
 
 TODAY'S DATE: ${today}
@@ -95,7 +97,9 @@ INSTRUCTIONS:
 6. Infer ISO dates (YYYY-MM-DD) from the traveler's date description relative to today (${today}). If you can't determine specific dates, use empty strings.
 7. Use the 3-letter currency code matching the traveler's stated currency (default PHP if not specified).
 8. Choose a single relevant emoji for the trip.
-9. For each destination, include the country name and appropriate flag emoji.`,
+9. For each destination, include the country name and appropriate flag emoji.
+
+CRITICAL: You must return ONLY valid JSON matching the exact schema provided. Do not include any conversational filler.`,
     })
 
     return new Response(JSON.stringify({ success: true, data: object }), {

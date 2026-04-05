@@ -9,7 +9,7 @@ import { useLiveWeatherContext } from '../../hooks/useLiveWeatherContext'
 import { wandaRuntime } from '../../utils/wandaRuntime'
 
 function buildVoiceSystemPrompt(activeTrip, weatherContext) {
-  const base = buildTripSystemPrompt(activeTrip)
+  const base = buildTripSystemPrompt(activeTrip, wandaRuntime.activeTab)
   const weather = weatherContext ? `LIVE WEATHER:\n${weatherContext}` : ''
   const tab = wandaRuntime.activeTab ? `ACTIVE TAB: ${wandaRuntime.activeTab}` : ''
   const ui = wandaRuntime.uiContext ? `UI CONTEXT: ${wandaRuntime.uiContext}` : ''

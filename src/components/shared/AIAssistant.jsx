@@ -17,12 +17,12 @@ import { useLiveWeatherContext } from '../../hooks/useLiveWeatherContext';
 import { wandaRuntime } from '../../utils/wandaRuntime';
 import { TAB_CONFIG } from '../../constants/tabs';
 
-let _systemPromptRef = buildTripSystemPrompt(null);
+let _activeTripRef = null;
 
 const chatTransport = new DefaultChatTransport({
   api: 'https://wanderplan-rust.vercel.app/api/chat',
   body: () => ({
-    systemPrompt: _systemPromptRef,
+    systemPrompt: buildTripSystemPrompt(_activeTripRef, wandaRuntime.activeTab),
     weatherContext: wandaRuntime.weatherContext,
     activeTab: wandaRuntime.activeTab,
     selectedMapPoint: wandaRuntime.selectedMapPoint,
@@ -230,7 +230,7 @@ export default function AIAssistant() {
   }
 
   useEffect(() => {
-    _systemPromptRef = buildTripSystemPrompt(activeTrip);
+    _activeTripRef = activeTrip;
   }, [activeTrip]);
 
   const { messages, sendMessage, status, error, addToolResult, setMessages } = useChat({

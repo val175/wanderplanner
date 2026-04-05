@@ -236,19 +236,23 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
     setIsSearchingAI(true)
     hapticImpact('light')
     try {
-      const tripSummary = {
-        itinerary: activeTrip.itinerary || [],
-        bookings: activeTrip.bookings || [],
-        todos: activeTrip.todos || [],
-        spendingLog: activeTrip.spendingLog || [],
-        ideas: activeTrip.ideas || [],
-        polls: activeTrip.polls || []
+      const minifiedTrip = {
+        id: activeTrip.id,
+        name: activeTrip.name,
+        destinations: activeTrip.destinations || [],
+        ideas: (activeTrip.ideas || []).map(i => ({ id: i.id, title: i.title, description: i.description, type: i.type })),
+        itinerary: (activeTrip.itinerary || []).map(d => ({
+          id: d.id,
+          dayNumber: d.dayNumber,
+          location: d.location,
+          activities: (d.activities || []).map(a => ({ id: a.id, name: a.name, category: a.category, location: a.location })),
+        })),
       }
 
       const res = await fetch('https://wanderplan-rust.vercel.app/api/semantic-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, trip: tripSummary })
+        body: JSON.stringify({ query, trip: minifiedTrip })
       })
       if (!res.ok) throw new Error('Failed AI search')
       const data = await res.json()
