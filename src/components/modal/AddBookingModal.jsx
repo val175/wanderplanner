@@ -22,6 +22,9 @@ const LOADING_MESSAGES = [
 
 const inputCls = 'w-full px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors'
 
+const VALID_CATEGORY_IDS = new Set(BOOKING_CATEGORIES.map(c => c.id))
+const toValidCategory = (val) => VALID_CATEGORY_IDS.has(val) ? val : BOOKING_CATEGORIES[0].id
+
 export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
   const { activeTrip, dispatch, showToast } = useTripContext()
   const { currentUserProfile } = useProfiles()
@@ -30,10 +33,11 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
   const [mode, setMode] = useState('input') // 'input' | 'processing' | 'review'
   const [loadingMsgIdx, setLoadingMsgIdx] = useState(0)
   const [error, setError] = useState(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [form, setForm] = useState({
     name: '',
-    category: initialCategory || BOOKING_CATEGORIES[0].id,
+    category: toValidCategory(initialCategory),
     estimatedCost: '',
   })
 
@@ -43,11 +47,12 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
   useEffect(() => {
     if (isOpen) {
       setMode('input')
-      setForm({ name: '', category: initialCategory || BOOKING_CATEGORIES[0].id, estimatedCost: '' })
+      setForm({ name: '', category: toValidCategory(initialCategory), estimatedCost: '' })
       setReviewForm(null)
       setPendingUpload(null)
       setError(null)
       setLoadingMsgIdx(0)
+      setIsSubmitting(false)
     }
   }, [isOpen, initialCategory])
 
@@ -104,7 +109,7 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
 
       setReviewForm({
         name: data.title || '',
-        category: data.type || BOOKING_CATEGORIES[0].id,
+        category: toValidCategory(data.type),
         startDate: data.date ? data.date.split('T')[0] : '',
         confirmationNumber: data.confirmationNumber || '',
         amountPaid: typeof data.amountPaid === 'number' ? data.amountPaid : (Number(data.amountPaid) || 0),
@@ -158,6 +163,8 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
   }
 
   const handleReviewAdd = async () => {
+    if (!pendingUpload || isSubmitting) return
+    setIsSubmitting(true)
     const bookingId = generateId()
     const { prepared, vector, uploadedBy, documentTitle } = pendingUpload
 
@@ -217,6 +224,7 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
     })
 
     showToast(`"${reviewForm.name || documentTitle}" added! ✨`)
+    setIsSubmitting(false)
     onClose()
   }
 
@@ -442,8 +450,8 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
               <Button variant="secondary" onClick={() => setMode('input')}>
                 ← Re-upload
               </Button>
-              <Button onClick={handleReviewAdd}>
-                Add Booking
+              <Button onClick={handleReviewAdd} disabled={isSubmitting}>
+                {isSubmitting ? 'Saving...' : 'Add Booking'}
               </Button>
             </div>
           </div>

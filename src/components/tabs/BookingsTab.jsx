@@ -130,7 +130,7 @@ export default function BookingsTab() {
 
       <AddBookingModal
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
+        onClose={() => { setIsAddModalOpen(false); setInitialBookingCategory(null) }}
         initialCategory={initialBookingCategory}
       />
 
