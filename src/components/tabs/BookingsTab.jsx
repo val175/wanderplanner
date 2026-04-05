@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import Card from '../shared/Card'
 import Button from '../shared/Button'
-import Modal from '../shared/Modal'
 import Select, { SelectItem } from '../shared/Select'
 import TabHeader from '../common/TabHeader'
 import { useTripContext } from '../../context/TripContext'
@@ -15,90 +13,7 @@ import BookingsTable from './BookingsTable'
 import BookingsKanban from './BookingsKanban'
 import EmptyState from '../shared/EmptyState'
 import BookingDrawer from './BookingDrawer'
-import SnapToAddZone from '../shared/SnapToAddZone'
-
-function AddBookingModal({ isOpen, onClose, onAdd, initialCategory }) {
-  const [bookingData, setBookingData] = useState({
-    name: '',
-    category: initialCategory || BOOKING_CATEGORIES[0].id,
-    estimatedCost: 0
-  })
-
-  useEffect(() => {
-    if (isOpen) {
-      setBookingData({ name: '', category: initialCategory || BOOKING_CATEGORIES[0].id, estimatedCost: 0 })
-    }
-  }, [isOpen, initialCategory])
-
-  const handleSubmit = (e) => {
-    e?.preventDefault()
-    if (!bookingData.name.trim()) return
-    onAdd({
-      name: bookingData.name.trim(),
-      category: bookingData.category,
-      amountPaid: Number(bookingData.estimatedCost) || 0,
-      status: 'to_book',
-      confirmationNumber: '',
-      providerLink: '',
-      location: '',
-    })
-    setBookingData({ name: '', category: BOOKING_CATEGORIES[0].id, estimatedCost: 0 })
-    onClose()
-  }
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title="🎫 Add New Booking">
-      <div className="p-6 space-y-4">
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Booking Name</label>
-          <input
-            value={bookingData.name}
-            onChange={e => setBookingData(prev => ({ ...prev, name: e.target.value }))}
-            placeholder="e.g. Flight to Tokyo"
-            className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors"
-            autoFocus
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Category</label>
-            <Select
-              value={bookingData.category}
-              onValueChange={v => setBookingData(prev => ({ ...prev, category: v }))}
-            >
-              {BOOKING_CATEGORIES.map(c => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.emoji} {c.label}
-                </SelectItem>
-              ))}
-            </Select>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Est. Cost</label>
-            <input
-              type="number"
-              value={bookingData.estimatedCost}
-              onChange={e => setBookingData(prev => ({ ...prev, estimatedCost: e.target.value }))}
-              placeholder="0.00"
-              className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors"
-            />
-          </div>
-        </div>
-
-        <div className="pt-4 flex justify-end gap-3 border-t border-border mt-6">
-          <Button variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={!bookingData.name.trim()}>
-            Add Booking
-          </Button>
-        </div>
-      </div>
-    </Modal>
-  )
-}
+import AddBookingModal from '../modal/AddBookingModal'
 
 const TOGGLEABLE_COLUMNS = [
   { id: 'cost', label: 'Cost' },
@@ -110,7 +25,6 @@ export default function BookingsTab() {
   const { activeTrip, dispatch, showToast, isReadOnly } = useTripContext()
   const { currentUserProfile } = useProfiles()
   const [filter, setFilter] = useState('all')
-  const actorId = currentUserProfile?.uid || currentUserProfile?.id
   const [viewMode, setViewMode] = useState('table')
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [initialBookingCategory, setInitialBookingCategory] = useState(null)
@@ -172,6 +86,8 @@ export default function BookingsTab() {
     ).map(c => ({ id: c.id, label: `${c.emoji} ${c.label}` })),
   ]
 
+  const actorId = currentUserProfile?.uid || currentUserProfile?.id
+
   const handleUpdate = (id, updates, overrideActorId = null) => {
     dispatch({ type: ACTIONS.UPDATE_BOOKING, payload: { id, updates, actorId: overrideActorId || actorId } })
   }
@@ -179,10 +95,6 @@ export default function BookingsTab() {
   const handleDelete = (id) => {
     dispatch({ type: ACTIONS.DELETE_BOOKING, payload: id })
     if (selectedBookingId === id) setSelectedBookingId(null)
-  }
-
-  const handleAdd = (data) => {
-    dispatch({ type: ACTIONS.ADD_BOOKING, payload: { ...data, actorId } })
   }
 
   const handleExport = () => {
@@ -219,11 +131,8 @@ export default function BookingsTab() {
       <AddBookingModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onAdd={handleAdd}
         initialCategory={initialBookingCategory}
       />
-
-      {!isReadOnly && <SnapToAddZone />}
 
       <TabHeader
         leftSlot={
@@ -320,7 +229,7 @@ export default function BookingsTab() {
           hiddenColumns={hiddenColumns}
           onUpdate={handleUpdate}
           onDelete={handleDelete}
-          onAdd={isReadOnly ? null : handleAdd}
+          onAdd={isReadOnly ? null : () => setIsAddModalOpen(true)}
           onRowClick={(booking) => setSelectedBookingId(booking.id)}
           isReadOnly={isReadOnly}
         />
@@ -338,7 +247,12 @@ export default function BookingsTab() {
         <EmptyState
           emoji="🎫"
           title={filter !== 'all' ? `No ${filter} bookings yet.` : 'No bookings added yet.'}
-          subtitle={filter === 'all' ? 'Enter one below or drop a booking board.' : undefined}
+          subtitle={filter === 'all' ? 'Add one manually or upload a confirmation PDF or screenshot.' : undefined}
+          action={!isReadOnly && filter === 'all' && (
+            <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="gap-1.5">
+              <span className="text-base leading-none">🎫</span> Add Booking
+            </Button>
+          )}
           className="mt-4"
         />
       )}
