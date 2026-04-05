@@ -4,6 +4,7 @@ import multer from 'multer'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import 'dotenv/config'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
