@@ -1,5 +1,6 @@
 import { forwardRef } from 'react'
 import { motion } from 'framer-motion'
+import { spring } from '../../lib/motion'
 
 const sizes = {
     sm: 'px-3 py-1.5 text-xs',
@@ -14,8 +15,6 @@ const variants = {
     danger: 'bg-danger text-white hover:bg-danger/90 border border-transparent'
 }
 
-const springTransition = { type: 'spring', stiffness: 400, damping: 25 }
-
 const Button = forwardRef(function Button({
     type = 'button',
     variant = 'primary',
@@ -26,7 +25,7 @@ const Button = forwardRef(function Button({
     disabled = false,
     ...props
 }, ref) {
-    const baseStyles = 'inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary'
+    const baseStyles = 'inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] font-semibold transition-colors focus-ring'
     const sizeStyles = sizes[size] || sizes.md
     const variantStyles = variants[variant] || variants.primary
     const disabledStyles = disabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
@@ -40,7 +39,7 @@ const Button = forwardRef(function Button({
             className={`${baseStyles} ${sizeStyles} ${variantStyles} ${disabledStyles} ${className}`}
             whileHover={disabled ? {} : { scale: 1.01 }}
             whileTap={disabled ? {} : { scale: 0.97 }}
-            transition={springTransition}
+            transition={spring.snappy}
             {...props}
         >
             {children}

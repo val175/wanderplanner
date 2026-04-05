@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { spring } from '../../lib/motion'
 
 const DISMISS_MS = 3000
 
@@ -67,7 +68,7 @@ function ToastContent({ message, type }) {
       initial={{ y: 20, opacity: 0, scale: 0.95 }}
       animate={{ y: 0, opacity: 1, scale: 1 }}
       exit={{ y: 12, opacity: 0, scale: 0.95 }}
-      transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+      transition={spring.bouncy}
       className={`
         fixed bottom-6 md:bottom-6 left-1/2 -translate-x-1/2 z-[60]
         min-w-[240px] max-w-sm overflow-hidden
