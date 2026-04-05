@@ -2,6 +2,59 @@ import { generateId, cloneDeep } from '../../utils/helpers'
 import { updateTrip } from '../reducerUtils'
 import { getEffectiveStatus } from '../../utils/tripStatus'
 
+// ── Budget actuals recompute ──────────────────────────────────────────────────
+// Same alias table as budgetSlice — kept in sync manually if updated.
+const BUDGET_ALIASES = [
+  ['flight',    ['flight', 'flights', 'airfare', 'airline', 'air']],
+  ['food',      ['food', 'restaurant', 'restaurants', 'dining', 'meal', 'meals', 'drinks', 'drink', 'food & drink']],
+  ['lodging',   ['lodging', 'hotel', 'accommodation', 'accommodations', 'hostel', 'resort', 'stay', 'airbnb']],
+  ['activity',  ['activity', 'activities', 'tour', 'ticket', 'tickets', 'event', 'entrance', 'admission']],
+  ['transport', ['transport', 'transportation', 'transfer', 'bus', 'train', 'taxi', 'grab', 'transit', 'car', 'ferry']],
+  ['shopping',  ['shopping', 'retail', 'store', 'mall']],
+  ['concert',   ['concert', 'music', 'show', 'festival', 'gig']],
+]
+
+function resolveToName(category, budget) {
+  if (!category) return category
+  const norm = String(category).toLowerCase().trim()
+  const exact = budget.find(b => b.name?.toLowerCase() === norm)
+  if (exact) return exact.name
+  for (const [, terms] of BUDGET_ALIASES) {
+    if (terms.includes(norm)) {
+      const matched = budget.find(b => {
+        const bNorm = b.name?.toLowerCase() ?? ''
+        return terms.some(t => bNorm === t || bNorm.includes(t))
+      })
+      if (matched) return matched.name
+    }
+  }
+  const sub = budget.find(b => {
+    const bNorm = b.name?.toLowerCase() ?? ''
+    return bNorm.includes(norm) || norm.includes(bNorm)
+  })
+  return sub ? sub.name : category
+}
+
+/**
+ * Recomputes budget[].actual from the spendingLog in place.
+ * Also normalises spending entry categories to the resolved budget name.
+ */
+function recomputeBudgetActuals(trip) {
+  if (!trip?.budget?.length) return trip
+  const zero = Object.fromEntries(trip.budget.map(b => [b.name, 0]))
+  const spendingLog = (trip.spendingLog || []).map(entry => {
+    const resolved = resolveToName(entry.category, trip.budget)
+    if (zero[resolved] !== undefined) zero[resolved] += Number(entry.amount) || 0
+    return resolved !== entry.category ? { ...entry, category: resolved } : entry
+  })
+  // Accumulate entries whose resolved name didn't match any budget category
+  const budget = trip.budget.map(b => ({
+    ...b,
+    actual: zero[b.name] ?? b.actual ?? 0,
+  }))
+  return { ...trip, spendingLog, budget }
+}
+
 export const tripCrudCases = {
   SET_ACTIVE_TRIP: (state, payload) =>
     ({ ...state, activeTripId: payload, activeTab: 'overview' }),
@@ -112,7 +165,11 @@ export const tripCrudCases = {
       : { trips: payload, deletedIds: [] }
 
     const mergedTrips = { ...state.trips }
-    Object.assign(mergedTrips, newTrips)
+    // Recompute budget actuals from the spending log — fixes stale data where
+    // entries stored with category 'flight' weren't rolling into 'Flights'.
+    Object.entries(newTrips || {}).forEach(([id, trip]) => {
+      mergedTrips[id] = recomputeBudgetActuals(trip)
+    })
     deletedIds.forEach(id => { delete mergedTrips[id] })
     const documentsByTrip = { ...(state.documentsByTrip || {}) }
     Object.entries(newTrips || {}).forEach(([tripId, trip]) => {

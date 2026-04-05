@@ -53,8 +53,12 @@ app.post('/upload', upload.single('file'), (req, res) => {
   
   const tripId = req.body.tripId || 'general'
   
-  // The public URL assuming the API is hosted at the current domain base URL
-  const publicUrl = `${req.protocol}://${req.get('host')}/uploads/${tripId}/${req.file.filename}`
+  // Use the configured public base URL (set via PUBLIC_URL env var) so stored
+  // download URLs are always correct, regardless of reverse-proxy host headers.
+  const baseUrl = process.env.PUBLIC_URL
+    ? process.env.PUBLIC_URL.replace(/\/$/, '')
+    : `${req.protocol}://${req.get('host')}`
+  const publicUrl = `${baseUrl}/uploads/${tripId}/${req.file.filename}`
   
   res.json({
     success: true,
