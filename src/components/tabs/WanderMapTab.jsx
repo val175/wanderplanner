@@ -271,16 +271,16 @@ export default function WanderMapTab() {
             },
         }))
         // Deduplicate airport markers by coordinate string
-        const airportMap = new Map()
+        const airportIndex = {}
         flights.forEach(b => {
             const ok = String(b.origin.coords)
             const dk = String(b.destination.coords)
-            if (!airportMap.has(ok)) airportMap.set(ok, { coords: b.origin.coords, label: b.origin.placeName || '' })
-            if (!airportMap.has(dk)) airportMap.set(dk, { coords: b.destination.coords, label: b.destination.placeName || '' })
+            if (!airportIndex[ok]) airportIndex[ok] = { coords: b.origin.coords, label: b.origin.placeName || '' }
+            if (!airportIndex[dk]) airportIndex[dk] = { coords: b.destination.coords, label: b.destination.placeName || '' }
         })
         return {
             flightRoutes: { type: 'FeatureCollection', features: routes },
-            flightAirports: [...airportMap.values()],
+            flightAirports: Object.values(airportIndex),
         }
     }, [activeTrip?.bookings])
 
