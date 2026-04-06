@@ -775,14 +775,12 @@ export default function WanderMapTab() {
                             icon={<Layers size={14} />}
                             label="Flow Path"
                         />
-                        {flightRoutes.features.length > 0 && (
-                            <LayerButton
-                                active={layers.flights}
-                                onClick={() => toggleLayer('flights')}
-                                icon={<span className="text-sm leading-none">✈️</span>}
-                                label="Flights"
-                            />
-                        )}
+                        <LayerButton
+                            active={layers.flights}
+                            onClick={() => toggleLayer('flights')}
+                            icon={<span className="text-sm leading-none">✈️</span>}
+                            label="Flights"
+                        />
                         <div className="h-px bg-border/50 mx-2 my-0.5" />
                         {/* Recenter button */}
                         <button
