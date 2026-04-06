@@ -294,8 +294,16 @@ export default function WanderMapTab() {
             setPlanePosition(null)
             return
         }
-        const LEG_DURATION = 7000 // ms per flight leg
-        const TOTAL = LEG_DURATION * features.length
+        // Per-leg duration scaled by chord distance in lon/lat degrees [3s–7s]
+        const legDuration = (coords) => {
+            const [x1, y1] = coords[0], [x2, y2] = coords[coords.length - 1]
+            const dist = Math.hypot(x2 - x1, y2 - y1)
+            return Math.max(3000, Math.min(7000, 3000 + (dist / 50) * 4000))
+        }
+        const durations = features.map(f => legDuration(f.geometry.coordinates))
+        // Cumulative start time for each leg: [0, d0, d0+d1, ...]
+        const cumulative = durations.reduce((acc, d) => { acc.push(acc[acc.length - 1] + d); return acc }, [0])
+        const TOTAL = cumulative[cumulative.length - 1]
         let startTime = null
 
         const EMPTY_FC = { type: 'FeatureCollection', features: [] }
@@ -303,8 +311,12 @@ export default function WanderMapTab() {
         const animate = (timestamp) => {
             if (!startTime) startTime = timestamp
             const elapsed = (timestamp - startTime) % TOTAL
-            const activeIdx = Math.floor(elapsed / LEG_DURATION)
-            const t = (elapsed % LEG_DURATION) / LEG_DURATION
+            // Find which leg we're in via cumulative offsets
+            let activeIdx = durations.length - 1
+            for (let i = 0; i < durations.length; i++) {
+                if (elapsed < cumulative[i + 1]) { activeIdx = i; break }
+            }
+            const t = (elapsed - cumulative[activeIdx]) / durations[activeIdx]
 
             const feature = features[activeIdx]
             if (!feature) { planeAnimRef.current = requestAnimationFrame(animate); return }
