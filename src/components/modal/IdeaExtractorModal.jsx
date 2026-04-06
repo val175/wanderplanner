@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Modal from '../shared/Modal'
 import Button from '../shared/Button'
+import Input from '../shared/Input'
 import { useTripContext } from '../../context/TripContext'
 import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
@@ -81,14 +82,13 @@ export default function IdeaExtractorModal({ isOpen, onClose }) {
                     Paste a link from TikTok, TripAdvisor, Airbnb, or any blog to let Wanda generate an idea card.
                 </p>
                 <form onSubmit={handleExtract} className="space-y-4">
-                    <input
+                    <Input
                         type="text"
                         value={url}
                         onChange={e => setUrl(e.target.value)}
                         placeholder="https://..."
                         disabled={isExtracting}
                         autoFocus
-                        className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent placeholder:text-text-muted"
                     />
                     <div className="flex justify-end gap-3 pt-1">
                         <Button type="button" variant="secondary" size="sm" onClick={handleClose} disabled={isExtracting}>

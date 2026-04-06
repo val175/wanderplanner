@@ -57,6 +57,7 @@ Use Tailwind's semantic size classes. **Never use arbitrary pixel sizes** (`text
 #### Intentional exceptions (do NOT change these)
 - `text-[10px]` in `TripHeader.jsx` → `ProgressRing` label (`labelClassName`) — 12px overflows the ring SVG
 - `text-[10px]` in `TripHeader.jsx` → `<kbd>` keyboard shortcut badge — intentionally tiny, matches system UI convention
+- `text-[10px]` in compact visualization chips where the content would otherwise wrap or lose meaning
 
 ### Font Families
 
@@ -93,7 +94,7 @@ import Label from '../shared/Label'
 
 ### Baseline spec (from `StatusBadge.jsx`)
 ```
-inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-[var(--radius-pill)]
+inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold rounded-[var(--radius-pill)]
 ```
 
 ### Inline contextual badges (booking status, todo priority, etc.)
@@ -106,6 +107,11 @@ inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold rounded-[var(
 ```
 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-[var(--radius-pill)] bg-bg-secondary text-text-muted
 ```
+
+### Generic badge primitive
+- Use `src/components/shared/Badge.jsx` for reusable semantic badges.
+- Default tone should be neutral unless the content itself conveys status, priority, or alert state.
+- Keep badge labels short. When the content gets longer than a word or two, it should probably be a `Label`, `Button`, or inline text instead.
 
 ### Anti-patterns
 - `rounded-full` → use `rounded-[var(--radius-pill)]`
@@ -176,6 +182,11 @@ Shared select pattern:
 - Use `bg-bg-input`, `rounded-[var(--radius-md)]`, and the tokenized focus ring for all select triggers.
 - Keep the trigger text aligned with standard inputs instead of inventing per-tab dropdown styles.
 
+### Canonical input primitive
+- Use `src/components/shared/Input.jsx` for all single-line text, search, email, URL, number, and compact inline inputs.
+- Default input density should match `text-sm` with `px-3 py-2`; use the `sm` size for compact controls that need `px-2 py-1.5`.
+- Avoid rebuilding input chrome in feature components unless the control is intentionally a special-case editor or in-canvas tool.
+
 ## Modals
 
 Use `src/components/shared/Modal.jsx` for all dialogs, drawers, and sheet-style forms.
@@ -185,6 +196,8 @@ Use `src/components/shared/Modal.jsx` for all dialogs, drawers, and sheet-style 
 - Always provide a `Dialog.Title` through the shared component
 - Keep the close control inside the modal chrome instead of duplicating a separate header bar
 - Prefer the shared modal surface over custom overlays so focus handling and escape behavior stay consistent
+- Use the shared overlay opacity and content shell for any custom portal-based dialog that cannot use `Modal` directly.
+- Destructive confirmations should use `ConfirmDialog`, not a generic dialog.
 
 ---
 
@@ -244,6 +257,17 @@ Empty-state guidance:
 - Keep the composition centered and short.
 - Use `action` for the primary CTA, and `wandaPrompt` when Wanda can help users move forward.
 - Prefer this shared block over inventing a one-off hero or helper message inside each tab.
+
+---
+
+## Exceptions
+
+These are the only deliberate departures from the standard system that should be preserved unless the design language changes:
+
+- Micro text in dense geometry where `text-xs` would break layout or legibility.
+- Map labels, charts, and screenshots where the UI is part of a visual artifact rather than a form or control.
+- Brand-specific one-offs such as the Wanda serif wordmark treatment and presentation-mode art direction.
+- Third-party logo fills and external data-driven colors in charts or maps.
 
 ---
 

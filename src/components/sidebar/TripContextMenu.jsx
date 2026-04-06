@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
-import * as Dialog from '@radix-ui/react-dialog'
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { useTripContext } from '../../context/TripContext'
@@ -8,6 +7,9 @@ import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { getEffectiveStatus } from '../../utils/tripStatus'
 import ConfirmDialog from '../shared/ConfirmDialog'
+import Button from '../shared/Button'
+import Input from '../shared/Input'
+import Modal from '../shared/Modal'
 import ShareTripModal from '../modal/ShareTripModal'
 import SettleUpModal from '../modal/SettleUpModal'
 
@@ -144,40 +146,30 @@ export default function TripContextMenu({ tripId, tripName, children }) {
       </DropdownMenu.Root>
 
       {/* Inline rename dialog — replaces window.prompt */}
-      <Dialog.Root open={showRenameDialog} onOpenChange={open => !open && setShowRenameDialog(false)}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-[9998] bg-text-primary/30 backdrop-blur-sm animate-fade-in" />
-          <Dialog.Content
-            aria-describedby={undefined}
-            className="fixed z-[9999] w-full max-w-sm bg-bg-primary border border-border rounded-[var(--radius-xl)] p-6 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-scale-in focus:outline-none"
-          >
-            <Dialog.Title className="font-heading font-semibold text-xl text-text-primary mb-4">
-              Rename trip
-            </Dialog.Title>
-            <input
-              autoFocus
-              value={renameValue}
-              onChange={e => setRenameValue(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleRenameConfirm()}
-              className="w-full px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary focus:border-accent focus:outline-none transition-colors mb-4"
-            />
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowRenameDialog(false)}
-                className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleRenameConfirm}
-                className="px-4 py-2 text-sm font-medium bg-accent text-white rounded-[var(--radius-md)] hover:bg-accent-hover transition-colors"
-              >
-                Rename
-              </button>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+      <Modal
+        isOpen={showRenameDialog}
+        onClose={() => setShowRenameDialog(false)}
+        title="Rename trip"
+        maxWidth="max-w-sm"
+      >
+        <div className="px-6 pb-6 pt-2 space-y-4">
+          <Input
+            autoFocus
+            value={renameValue}
+            onChange={e => setRenameValue(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleRenameConfirm()}
+            placeholder="Trip name"
+          />
+          <div className="flex gap-3 justify-end">
+            <Button variant="secondary" onClick={() => setShowRenameDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleRenameConfirm}>
+              Rename
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <ConfirmDialog
         isOpen={showDeleteConfirm}

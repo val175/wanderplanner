@@ -6,6 +6,8 @@ import { ACTIONS } from '../../state/tripReducer'
 import { TAB_CONFIG } from '../../constants/tabs'
 import { hapticImpact, hapticSelection } from '../../utils/haptics'
 import { formatDate } from '../../utils/helpers'
+import Input from '../shared/Input'
+import Label from '../shared/Label'
 
 const TABS = {
   itinerary: { label: 'Itinerary', emoji: '📅' },
@@ -312,13 +314,14 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
         {/* Search Header */}
         <div className="flex items-center px-4 py-4 border-b border-border/50 gap-3">
           <Search className="text-text-muted shrink-0" size={20} />
-          <input
+          <Input
+            variant="bare"
             ref={inputRef}
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search or jump to..."
-            className="flex-1 bg-transparent border-none text-text-primary placeholder:text-text-muted text-base sm:text-lg outline-none"
+            className="flex-1 text-base sm:text-lg"
           />
           {query && (
             <button onClick={() => setQuery('')} className="p-1 rounded-full hover:bg-bg-hover text-text-muted transition-colors">
@@ -335,7 +338,7 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
           {query.trim() === '' ? (
             // Command list (empty state)
             <div className="flex flex-col px-2 py-2">
-              <p className="px-4 pt-2 pb-1 text-[11px] font-semibold text-text-muted uppercase tracking-wide">Commands</p>
+              <Label className="block px-4 pt-2 pb-1">Commands</Label>
               {COMMANDS.map((cmd, idx) => {
                 const isSelected = idx === selectedIndex
                 return (
@@ -355,7 +358,7 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
                   </button>
                 )
               })}
-              <p className="px-4 pt-3 pb-1 text-[11px] text-text-muted">
+              <p className="px-4 pt-3 pb-1 text-xs text-text-muted">
                 💡 type <kbd className="font-mono px-1 py-0.5 rounded bg-bg-input border border-border">/</kbd> for quick actions
               </p>
             </div>
@@ -382,9 +385,9 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
             <div className="flex flex-col px-2 pb-2">
               {/* Commands section (when typing) */}
               {allItems.some(i => i.isCommand) && (
-                <p className="px-4 pt-2 pb-1 text-[11px] font-semibold text-text-muted uppercase tracking-wide">
+                <Label className="block px-4 pt-2 pb-1">
                   {isSlashMode ? 'Quick Actions' : 'Commands'}
-                </p>
+                </Label>
               )}
               {allItems.map((item, idx) => {
                 const isSelected = idx === selectedIndex
@@ -397,7 +400,7 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
                 return (
                   <React.Fragment key={item.isCommand ? item.id : `${item.tab}-${item.id}`}>
                     {showResultsHeader && (
-                      <p className="px-4 pt-3 pb-1 text-[11px] font-semibold text-text-muted uppercase tracking-wide">Results</p>
+                      <Label className="block px-4 pt-3 pb-1">Results</Label>
                     )}
                     <button
                       onClick={() => handleSelect(item)}
@@ -427,7 +430,7 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-2.5 bg-bg-sidebar border-t border-border flex items-center justify-between text-[11px] text-text-muted">
+        <div className="px-4 py-2.5 bg-bg-sidebar border-t border-border flex items-center justify-between text-xs text-text-muted">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5"><kbd className="font-sans px-1 py-0.5 rounded bg-bg-input border border-border">↑↓</kbd> to navigate</span>
             <span className="flex items-center gap-1.5"><kbd className="font-sans px-1 py-0.5 rounded bg-bg-input border border-border">↵</kbd> to select</span>

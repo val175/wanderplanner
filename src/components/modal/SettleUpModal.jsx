@@ -6,6 +6,8 @@ import { ACTIONS } from '../../state/tripReducer'
 import { calculateBalances, simplifyDebts } from '../../utils/splitwise'
 import { formatCurrency } from '../../utils/helpers'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
+import Button from '../shared/Button'
+import Label from '../shared/Label'
 
 export default function SettleUpModal({ tripId, onClose }) {
     const { state, dispatch, showToast } = useTripContext()
@@ -63,9 +65,9 @@ export default function SettleUpModal({ tripId, onClose }) {
                         </div>
                     ) : (
                         <div className="space-y-2">
-                            <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-3">
+                            <Label className="mb-3 block">
                                 Simplified Debts ({transactions.length} transfer{transactions.length !== 1 ? 's' : ''})
-                            </p>
+                            </Label>
                             {transactions.map((txn, i) => {
                                 const from = resolveProfile(txn.from)
                                 const to = resolveProfile(txn.to)
@@ -90,19 +92,19 @@ export default function SettleUpModal({ tripId, onClose }) {
 
                 {/* Actions */}
                 <div className="flex flex-col gap-2">
-                    <button
+                    <Button
                         type="button"
                         onClick={handleArchive}
-                        className="w-full flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-semibold rounded-[var(--radius-md)] bg-accent text-white hover:bg-accent-hover active:scale-[0.98] transition-all"
+                        className="w-full"
                     >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8v13H3V8" /><path d="M1 3h22v5H1z" /><path d="M10 12h4" /></svg>
                         {allSettled ? 'Archive Trip' : 'Settled — Archive Trip'}
-                    </button>
+                    </Button>
                     {!allSettled && (
                         <button
                             type="button"
                             onClick={handleArchive}
-                            className="w-full text-sm text-text-muted hover:text-text-primary transition-colors py-2"
+                            className="w-full rounded-[var(--radius-md)] py-2 text-sm text-text-muted transition-colors hover:text-text-primary"
                         >
                             Skip & Archive anyway
                         </button>

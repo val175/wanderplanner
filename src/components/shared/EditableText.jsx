@@ -68,14 +68,14 @@ export default function EditableText({
   }
 
   return (
-    <Tag
+      <Tag
       onClick={() => {
         if (!readOnly) {
           setDraft(value); setEditing(true)
         }
       }}
       className={`
-        rounded-[var(--radius-md)] px-1 -mx-1 border border-transparent
+        block max-w-full min-w-0 align-top rounded-[var(--radius-md)] px-1 -mx-1 border border-transparent
         ${readOnly ? 'cursor-default' : 'cursor-pointer hover:border-border/50 hover:bg-bg-hover'} transition-colors duration-150
         ${!value ? 'text-text-muted italic' : ''}
         ${className}

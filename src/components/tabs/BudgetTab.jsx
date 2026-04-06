@@ -10,6 +10,7 @@ import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { formatCurrency, formatDate } from '../../utils/helpers'
 import Button from '../shared/Button'
+import Input from '../shared/Input'
 import EmptyState from '../shared/EmptyState'
 import DatePicker from '../shared/DatePicker'
 import AvatarCircle from '../shared/AvatarCircle'
@@ -79,11 +80,10 @@ function AddExpenseModal({ isOpen, onClose, onAdd, travelers, categories }) {
       <div className="p-6 space-y-4">
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Description</label>
-          <input
+          <Input
             value={expenseData.description}
             onChange={e => setExpenseData(prev => ({ ...prev, description: e.target.value }))}
             placeholder="e.g. Dinner at 7-Eleven"
-            className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors"
             autoFocus
           />
         </div>
@@ -91,12 +91,12 @@ function AddExpenseModal({ isOpen, onClose, onAdd, travelers, categories }) {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Amount</label>
-            <input
+            <Input
               type="number"
               value={expenseData.amount}
               onChange={e => setExpenseData(prev => ({ ...prev, amount: e.target.value }))}
               placeholder="0.00"
-              className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 font-mono focus:outline-none focus:border-accent transition-colors"
+              className="font-mono"
             />
           </div>
           <div className="space-y-1.5">
@@ -795,17 +795,17 @@ export default function BudgetTab() {
       <TabHeader
         leftSlot={
           <div className="w-full md:max-w-[240px]">
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search expenses..."
-              className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] px-3 py-[7px] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors"
-            />
+              <Input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search expenses..."
+                className="py-[7px]"
+              />
           </div>
         }
         rightSlot={
           <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
-            <Select value={categoryFilter} onValueChange={setCategoryFilter} className="!w-auto min-w-[140px] h-[30px] text-xs shrink-0" size="sm">
+            <Select value={categoryFilter} onValueChange={setCategoryFilter} className="!w-auto min-w-[140px] shrink-0" size="sm">
               <SelectItem value="all">All Categories</SelectItem>
               {budget.map(cat => (
                 <SelectItem key={cat.id} value={cat.name}>

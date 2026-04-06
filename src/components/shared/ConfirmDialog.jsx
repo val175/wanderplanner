@@ -1,5 +1,9 @@
 import * as AlertDialog from '@radix-ui/react-alert-dialog'
 import Button from './Button'
+import {
+  dialogContentClass,
+  dialogOverlayClass,
+} from './surfaceStyles'
 
 export default function ConfirmDialog({
   isOpen,
@@ -13,15 +17,13 @@ export default function ConfirmDialog({
   return (
     <AlertDialog.Root open={isOpen} onOpenChange={open => !open && onClose()}>
       <AlertDialog.Portal>
-        <AlertDialog.Overlay className="fixed inset-0 z-[9998] bg-text-primary/30 backdrop-blur-sm animate-fade-in" />
+        <AlertDialog.Overlay className={dialogOverlayClass} />
         <AlertDialog.Content
-          className="
-            fixed z-[9999] w-full max-w-sm
-            bg-bg-primary border border-border rounded-[var(--radius-xl)]
-            animate-scale-in p-6
+          className={`
+            ${dialogContentClass}
+            max-w-sm animate-scale-in p-6
             top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
-            focus:outline-none
-          "
+          `}
         >
           <AlertDialog.Title className="font-heading font-semibold text-xl text-text-primary mb-2 text-balance">
             {title}
@@ -33,7 +35,7 @@ export default function ConfirmDialog({
 
           <div className="flex gap-3 justify-end">
             <AlertDialog.Cancel asChild>
-              <Button variant="ghost" size="md" onClick={onClose}>
+              <Button variant="secondary" size="md" onClick={onClose}>
                 Cancel
               </Button>
             </AlertDialog.Cancel>

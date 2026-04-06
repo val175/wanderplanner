@@ -5,6 +5,7 @@ export default function Card({ children, className = '', hover = false, onClick,
   const classes = `
     bg-bg-card border border-border rounded-[var(--radius-md)]
     transition-colors duration-200
+    ${onClick ? 'min-h-11' : ''}
     ${padding}
     ${hover || onClick ? 'hover:border-border-strong' : ''}
     ${onClick ? 'cursor-pointer text-left w-full appearance-none focus-ring' : ''}

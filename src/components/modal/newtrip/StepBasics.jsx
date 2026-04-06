@@ -3,6 +3,7 @@ import { useProfiles } from '../../../context/ProfileContext'
 import DatePicker from '../../shared/DatePicker'
 import AvatarCircle from '../../shared/AvatarCircle'
 import { TRIP_EMOJIS } from '../../../constants/emojis'
+import Input from '../../shared/Input'
 
 export default function StepBasics({ form, setForm }) {
   const [customEmoji, setCustomEmoji] = useState('')
@@ -41,14 +42,11 @@ export default function StepBasics({ form, setForm }) {
 
       <div>
         <label className="block text-sm font-medium text-text-secondary mb-1.5">Trip Name</label>
-        <input
+        <Input
           type="text"
           value={form.name}
           onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
           placeholder="e.g. Summer in Europe"
-          className="w-full px-3 py-2.5 bg-bg-input border border-border rounded-[var(--radius-md)]
-                     text-text-primary placeholder:text-text-muted
-                     focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
           autoFocus
         />
       </div>
@@ -76,14 +74,11 @@ export default function StepBasics({ form, setForm }) {
           <span className="text-2xl w-9 h-9 flex items-center justify-center border border-border rounded-[var(--radius-sm)] bg-bg-secondary">
             {form.emoji}
           </span>
-          <input
+          <Input
             type="text"
             value={customEmoji}
             onChange={e => handleCustomEmoji(e.target.value)}
             placeholder="Or type any emoji…"
-            className="flex-1 px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-md)]
-                       text-text-primary placeholder:text-text-muted
-                       focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
           />
         </div>
       </div>

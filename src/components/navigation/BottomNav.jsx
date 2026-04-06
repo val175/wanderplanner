@@ -78,7 +78,7 @@ export default function BottomNav() {
                             <span className="relative inline-flex">
                                 <span className={`text-xl ${isActive ? 'scale-110' : ''} transition-transform`}>{tab.emoji}</span>
                                 {tabId === 'overview' && badges.overview && (
-                                    <span className="absolute -top-1 -right-2 min-w-[14px] h-[14px] flex items-center justify-center rounded-[var(--radius-pill)] bg-danger text-[9px] font-bold text-white px-[3px] leading-none">
+                                    <span className="absolute -top-1 -right-2 min-w-[16px] h-[16px] flex items-center justify-center rounded-[var(--radius-pill)] bg-danger px-[4px] text-xs font-bold leading-none text-white">
                                         {badges.overview > 9 ? '9+' : badges.overview}
                                     </span>
                                 )}
@@ -86,7 +86,7 @@ export default function BottomNav() {
                                     <span className="absolute -top-0.5 -right-1 w-2 h-2 rounded-full bg-warning" />
                                 )}
                             </span>
-                            <span className="text-[10px] font-medium tracking-tight">{tab.label}</span>
+                            <span className="text-xs font-medium tracking-tight">{tab.label}</span>
                         </button>
                     )
                 })}

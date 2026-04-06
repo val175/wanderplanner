@@ -1,22 +1,31 @@
 import * as Dialog from '@radix-ui/react-dialog'
+import {
+  dialogCloseClass,
+  dialogContentClass,
+  dialogOverlayClass,
+} from './surfaceStyles'
 
-export default function Modal({ isOpen, onClose, children, className = '', maxWidth = 'max-w-xl', title }) {
+export default function Modal({
+  isOpen,
+  onClose,
+  children,
+  className = '',
+  maxWidth = 'max-w-xl',
+  title,
+  description,
+}) {
   return (
     <Dialog.Root open={isOpen} onOpenChange={open => !open && onClose()}>
       <Dialog.Portal>
-        {/* Backdrop */}
-        <Dialog.Overlay className="fixed inset-0 z-[9998] bg-text-primary/30 backdrop-blur-sm animate-fade-in" />
+        <Dialog.Overlay className={dialogOverlayClass} />
 
-        {/* Panel — slides up from bottom on mobile, scales in centered on desktop */}
         <Dialog.Content
-          aria-describedby={undefined}
           onEscapeKeyDown={onClose}
           onPointerDownOutside={e => e.preventDefault()}
           className={`
-            fixed z-[9999] w-full ${maxWidth}
-            bg-bg-card border border-border
+            ${dialogContentClass}
+            ${maxWidth}
             rounded-t-[var(--radius-xl)] md:rounded-[var(--radius-xl)]
-            max-h-[95vh] md:max-h-[90vh] overflow-y-auto
             animate-slide-up md:animate-scale-in
             pb-[env(safe-area-inset-bottom)] md:pb-0
             bottom-0 left-1/2 -translate-x-1/2
@@ -25,32 +34,35 @@ export default function Modal({ isOpen, onClose, children, className = '', maxWi
             ${className}
           `}
         >
-          {/* Mobile drag indicator pill */}
           <div className="flex justify-center pt-3 pb-1 md:hidden">
             <div className="w-12 h-1.5 bg-border rounded-full opacity-60" />
           </div>
 
-          {/* Accessibility: always render a DialogTitle; visually hidden when no title prop */}
           {!title && (
             <Dialog.Title className="sr-only">Dialog</Dialog.Title>
           )}
 
-          {/* Optional title header */}
           {title && (
-            <div className="flex items-center justify-between px-6 pt-5 pb-1">
+            <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-1">
               <Dialog.Title className="font-heading font-semibold text-lg text-text-primary text-balance">
                 {title}
               </Dialog.Title>
 
               <Dialog.Close
                 onClick={onClose}
-                className="p-1.5 rounded-[var(--radius-sm)] text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors duration-150"
+                className={dialogCloseClass}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 6L6 18M6 6l12 12" />
                 </svg>
               </Dialog.Close>
             </div>
+          )}
+
+          {description && (
+            <Dialog.Description className="px-6 pb-1 text-sm text-text-secondary text-balance">
+              {description}
+            </Dialog.Description>
           )}
 
           {children}

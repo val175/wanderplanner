@@ -443,7 +443,7 @@ export default function DocumentsTab() {
               placeholder="Search docs..."
               className="w-44 max-w-[45vw] px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
             />
-            <Select value={filter} onValueChange={setFilter} className="!w-auto min-w-[150px] h-9 text-xs">
+            <Select value={filter} onValueChange={setFilter} className="!w-auto min-w-[150px]" size="sm">
               {categories.map(cat => (
                 <SelectItem key={cat} value={cat}>
                   {CATEGORY_LABELS[cat] || cat}

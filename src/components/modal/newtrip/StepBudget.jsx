@@ -1,4 +1,5 @@
 import Select, { SelectItem } from '../../shared/Select'
+import Input from '../../shared/Input'
 import { CURRENCIES } from '../../../constants/currencies'
 
 export default function StepBudget({ form, setForm }) {
@@ -41,18 +42,18 @@ export default function StepBudget({ form, setForm }) {
               <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-2">
                 <div className="relative">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-text-muted">{symbol}</span>
-                  <input type="number" min="0" value={cat.min || ''}
+                  <Input type="number" min="0" value={cat.min || ''}
                     onChange={e => handleCategoryUpdate(i, 'min', e.target.value)}
                     placeholder="Min"
-                    className="w-full pl-7 pr-2 py-1.5 bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary text-sm text-right focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
+                    className="pl-7 pr-2 text-right"
                   />
                 </div>
                 <div className="relative">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-text-muted">{symbol}</span>
-                  <input type="number" min="0" value={cat.max || ''}
+                  <Input type="number" min="0" value={cat.max || ''}
                     onChange={e => handleCategoryUpdate(i, 'max', e.target.value)}
                     placeholder="Max"
-                    className="w-full pl-7 pr-2 py-1.5 bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary text-sm text-right focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
+                    className="pl-7 pr-2 text-right"
                   />
                 </div>
                 {(cat.max > 0) && (
