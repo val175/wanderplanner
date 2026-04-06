@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Map, { Marker, Source, Layer, NavigationControl } from 'react-map-gl';
 import { motion } from 'framer-motion';
-import { MapPin, Sparkles, Layers, Navigation } from 'lucide-react';
+import { MapPin, Navigation } from 'lucide-react';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 import { useTripContext } from '../../context/TripContext';
@@ -257,11 +257,13 @@ export default function WanderMapTab() {
     // ── Flight route GeoJSON (great-circle arcs from booked flights) ──────────
     const { flightRoutes, flightAirports } = useMemo(() => {
         const bookings = activeTrip?.bookings || []
-        const flights = bookings.filter(b =>
-            b.category === 'flight' &&
-            Array.isArray(b.origin?.coords) &&
-            Array.isArray(b.destination?.coords)
-        )
+        const flights = bookings
+            .filter(b =>
+                b.category === 'flight' &&
+                Array.isArray(b.origin?.coords) &&
+                Array.isArray(b.destination?.coords)
+            )
+            .sort((a, b) => (a.bookByDate || a.startDate || '').localeCompare(b.bookByDate || b.startDate || ''))
         const routes = flights.map(b => ({
             type: 'Feature',
             properties: { id: b.id, name: b.name, status: b.status },
@@ -284,36 +286,61 @@ export default function WanderMapTab() {
         }
     }, [activeTrip?.bookings])
 
-    // ── Animated airplane positions along each flight arc ─────────────────────
-    const [planePositions, setPlanePositions] = useState({})
+    // ── Sequential animated airplane — one leg at a time, in itinerary order ──
+    const [planePosition, setPlanePosition] = useState(null) // { id, coords, bearing }
     const planeAnimRef = useRef(null)
 
     useEffect(() => {
         const features = flightRoutes.features
         if (!layers.flights || features.length === 0) {
-            setPlanePositions({})
+            setPlanePosition(null)
             return
         }
-        const DURATION = 9000 // ms per full traversal
+        const LEG_DURATION = 7000 // ms per flight leg
+        const TOTAL = LEG_DURATION * features.length
         let startTime = null
+
+        const EMPTY_FC = { type: 'FeatureCollection', features: [] }
 
         const animate = (timestamp) => {
             if (!startTime) startTime = timestamp
-            const elapsed = timestamp - startTime
-            const next = {}
-            features.forEach((feature, i) => {
-                const coords = feature.geometry.coordinates
-                const stagger = (i * (DURATION / features.length)) % DURATION
-                const t = ((elapsed + stagger) % DURATION) / DURATION
-                const idx = Math.min(Math.floor(t * (coords.length - 1)), coords.length - 2)
-                const bearing = getBearing(coords[idx], coords[idx + 1])
-                next[feature.properties.id] = { coords: coords[idx], bearing }
+            const elapsed = (timestamp - startTime) % TOTAL
+            const activeIdx = Math.floor(elapsed / LEG_DURATION)
+            const t = (elapsed % LEG_DURATION) / LEG_DURATION
+
+            const feature = features[activeIdx]
+            if (!feature) { planeAnimRef.current = requestAnimationFrame(animate); return }
+
+            const coords = feature.geometry.coordinates
+            const idx = Math.min(Math.floor(t * (coords.length - 1)), coords.length - 2)
+
+            // Progressive arc — update Mapbox source directly (no React re-render)
+            try {
+                const src = mapRef.current?.getMap?.()?.getSource('flight-arc-active')
+                if (src) {
+                    src.setData({
+                        type: 'Feature',
+                        properties: {},
+                        geometry: { type: 'LineString', coordinates: coords.slice(0, idx + 2) },
+                    })
+                }
+            } catch {}
+
+            setPlanePosition({
+                id: feature.properties.id,
+                coords: coords[idx],
+                bearing: getBearing(coords[idx], coords[idx + 1]),
             })
-            setPlanePositions(next)
             planeAnimRef.current = requestAnimationFrame(animate)
         }
         planeAnimRef.current = requestAnimationFrame(animate)
-        return () => cancelAnimationFrame(planeAnimRef.current)
+        return () => {
+            cancelAnimationFrame(planeAnimRef.current)
+            // Clear active arc on cleanup
+            try {
+                mapRef.current?.getMap?.()?.getSource('flight-arc-active')?.setData(EMPTY_FC)
+            } catch {}
+        }
     }, [layers.flights, flightRoutes])
 
     // Reset day filter when trip changes
@@ -689,19 +716,26 @@ export default function WanderMapTab() {
                         </Marker>
                     ))}
 
-                    {/* ── Flight Routes (great-circle arcs) ── */}
+                    {/* ── Flight routes: ghost arcs (all legs, always visible) ── */}
                     {layers.flights && flightRoutes.features.length > 0 && (
-                        <Source id="flight-routes" type="geojson" data={flightRoutes}>
+                        <Source id="flight-routes-ghost" type="geojson" data={flightRoutes}>
                             <Layer
-                                id="flight-routes-line"
+                                id="flight-routes-ghost-line"
                                 type="line"
                                 layout={{ 'line-join': 'round', 'line-cap': 'round' }}
-                                paint={{
-                                    'line-color': '#7CA2CE',
-                                    'line-width': 2,
-                                    'line-opacity': 0.7,
-                                    'line-dasharray': [3, 2],
-                                }}
+                                paint={{ 'line-color': '#7CA2CE', 'line-width': 1.5, 'line-opacity': 0.2 }}
+                            />
+                        </Source>
+                    )}
+
+                    {/* ── Flight routes: progressive arc for the active leg ── */}
+                    {layers.flights && (
+                        <Source id="flight-arc-active" type="geojson" data={{ type: 'FeatureCollection', features: [] }}>
+                            <Layer
+                                id="flight-arc-active-line"
+                                type="line"
+                                layout={{ 'line-join': 'round', 'line-cap': 'round' }}
+                                paint={{ 'line-color': '#7CA2CE', 'line-width': 2.5, 'line-opacity': 0.9 }}
                             />
                         </Source>
                     )}
@@ -723,16 +757,14 @@ export default function WanderMapTab() {
                         </Marker>
                     ))}
 
-                    {/* ── Animated airplane icons ── */}
-                    {layers.flights && Object.entries(planePositions).map(([id, { coords, bearing }]) => (
-                        <Marker key={`plane-${id}`} longitude={coords[0]} latitude={coords[1]} anchor="center">
-                            <div
-                                style={{ transform: `rotate(${bearing - 45}deg)`, fontSize: '18px', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.4))' }}
-                            >
+                    {/* ── Animated airplane icon (single, sequential) ── */}
+                    {layers.flights && planePosition && (
+                        <Marker key={`plane-${planePosition.id}`} longitude={planePosition.coords[0]} latitude={planePosition.coords[1]} anchor="center">
+                            <div style={{ transform: `rotate(${planePosition.bearing - 45}deg)`, fontSize: '18px', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.4))' }}>
                                 ✈️
                             </div>
                         </Marker>
-                    ))}
+                    )}
 
                     {/* ── Selected Point Drawer ── */}
                     {selectedPoint && (
@@ -761,19 +793,6 @@ export default function WanderMapTab() {
                             onClick={() => toggleLayer('itinerary')}
                             icon={<MapPin size={14} />}
                             label="Itinerary"
-                        />
-                        <LayerButton
-                            active={layers.discovery}
-                            onClick={() => toggleLayer('discovery')}
-                            icon={<Sparkles size={14} />}
-                            label="Discovery"
-                        />
-                        <div className="h-px bg-border/50 mx-2 my-0.5" />
-                        <LayerButton
-                            active={layers.animatedPath}
-                            onClick={() => toggleLayer('animatedPath')}
-                            icon={<Layers size={14} />}
-                            label="Flow Path"
                         />
                         <LayerButton
                             active={layers.flights}
