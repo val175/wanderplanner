@@ -16,6 +16,40 @@ import { GLOBAL_CATEGORIES } from '../../constants/categories';
 
 const MACRO_ZOOM_THRESHOLD = 8;
 
+// ── Bearing between two [lon, lat] points (degrees, 0 = north) ────────────────
+function getBearing([lon1, lat1], [lon2, lat2]) {
+    const toRad = d => d * Math.PI / 180
+    const toDeg = r => r * 180 / Math.PI
+    const dLon = toRad(lon2 - lon1)
+    const φ1 = toRad(lat1), φ2 = toRad(lat2)
+    const y = Math.sin(dLon) * Math.cos(φ2)
+    const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(dLon)
+    return toDeg(Math.atan2(y, x))
+}
+
+function greatCirclePoints([lon1, lat1], [lon2, lat2], n = 80) {
+    const toRad = d => d * Math.PI / 180
+    const toDeg = r => r * 180 / Math.PI
+    const φ1 = toRad(lat1), λ1 = toRad(lon1)
+    const φ2 = toRad(lat2), λ2 = toRad(lon2)
+    // Convert to 3-D unit vectors
+    const x1 = Math.cos(φ1) * Math.cos(λ1), y1 = Math.cos(φ1) * Math.sin(λ1), z1 = Math.sin(φ1)
+    const x2 = Math.cos(φ2) * Math.cos(λ2), y2 = Math.cos(φ2) * Math.sin(λ2), z2 = Math.sin(φ2)
+    const dot = x1 * x2 + y1 * y2 + z1 * z2
+    const angle = Math.acos(Math.max(-1, Math.min(1, dot)))
+    if (angle < 1e-10) return [[lon1, lat1], [lon2, lat2]]
+    const sinA = Math.sin(angle)
+    const points = []
+    for (let i = 0; i <= n; i++) {
+        const t = i / n
+        const a = Math.sin((1 - t) * angle) / sinA
+        const b = Math.sin(t * angle) / sinA
+        const x = a * x1 + b * x2, y = a * y1 + b * y2, z = a * z1 + b * z2
+        points.push([toDeg(Math.atan2(y, x)), toDeg(Math.asin(z))])
+    }
+    return points
+}
+
 // Pin color palette — matches OverviewTab route map
 const PIN_COLORS = {
     start: '#7CA2CE',
@@ -155,6 +189,7 @@ export default function WanderMapTab() {
         itinerary: true,
         discovery: true,
         animatedPath: true,
+        flights: true,
     });
     const [isMapLoaded, setIsMapLoaded] = useState(false);
     
@@ -218,6 +253,68 @@ export default function WanderMapTab() {
         
         return result;
     }, [filterDayId, visibleItineraryCoords]);
+
+    // ── Flight route GeoJSON (great-circle arcs from booked flights) ──────────
+    const { flightRoutes, flightAirports } = useMemo(() => {
+        const bookings = activeTrip?.bookings || []
+        const flights = bookings.filter(b =>
+            b.category === 'flight' &&
+            Array.isArray(b.origin?.coords) &&
+            Array.isArray(b.destination?.coords)
+        )
+        const routes = flights.map(b => ({
+            type: 'Feature',
+            properties: { id: b.id, name: b.name, status: b.status },
+            geometry: {
+                type: 'LineString',
+                coordinates: greatCirclePoints(b.origin.coords, b.destination.coords),
+            },
+        }))
+        // Deduplicate airport markers by coordinate string
+        const airportMap = new Map()
+        flights.forEach(b => {
+            const ok = String(b.origin.coords)
+            const dk = String(b.destination.coords)
+            if (!airportMap.has(ok)) airportMap.set(ok, { coords: b.origin.coords, label: b.origin.placeName || '' })
+            if (!airportMap.has(dk)) airportMap.set(dk, { coords: b.destination.coords, label: b.destination.placeName || '' })
+        })
+        return {
+            flightRoutes: { type: 'FeatureCollection', features: routes },
+            flightAirports: [...airportMap.values()],
+        }
+    }, [activeTrip?.bookings])
+
+    // ── Animated airplane positions along each flight arc ─────────────────────
+    const [planePositions, setPlanePositions] = useState({})
+    const planeAnimRef = useRef(null)
+
+    useEffect(() => {
+        const features = flightRoutes.features
+        if (!layers.flights || features.length === 0) {
+            setPlanePositions({})
+            return
+        }
+        const DURATION = 9000 // ms per full traversal
+        let startTime = null
+
+        const animate = (timestamp) => {
+            if (!startTime) startTime = timestamp
+            const elapsed = timestamp - startTime
+            const next = {}
+            features.forEach((feature, i) => {
+                const coords = feature.geometry.coordinates
+                const stagger = (i * (DURATION / features.length)) % DURATION
+                const t = ((elapsed + stagger) % DURATION) / DURATION
+                const idx = Math.min(Math.floor(t * (coords.length - 1)), coords.length - 2)
+                const bearing = getBearing(coords[idx], coords[idx + 1])
+                next[feature.properties.id] = { coords: coords[idx], bearing }
+            })
+            setPlanePositions(next)
+            planeAnimRef.current = requestAnimationFrame(animate)
+        }
+        planeAnimRef.current = requestAnimationFrame(animate)
+        return () => cancelAnimationFrame(planeAnimRef.current)
+    }, [layers.flights, flightRoutes])
 
     // Reset day filter when trip changes
     useEffect(() => {
@@ -390,8 +487,8 @@ export default function WanderMapTab() {
         'line-color': '#D97757',
         'line-width': 2.5,
         'line-dasharray': [2, 2.5],
-        'line-opacity': filterDayId ? 0.15 : isMicroView ? 0.45 : 0.85,
-    }), [isMicroView, filterDayId]);
+        'line-opacity': (filterDayId || (layers.flights && flightRoutes.features.length > 0)) ? 0.15 : isMicroView ? 0.45 : 0.85,
+    }), [isMicroView, filterDayId, layers.flights, flightRoutes.features.length]);
 
     const toggleLayer = (key) => {
         hapticSelection();
@@ -592,6 +689,51 @@ export default function WanderMapTab() {
                         </Marker>
                     ))}
 
+                    {/* ── Flight Routes (great-circle arcs) ── */}
+                    {layers.flights && flightRoutes.features.length > 0 && (
+                        <Source id="flight-routes" type="geojson" data={flightRoutes}>
+                            <Layer
+                                id="flight-routes-line"
+                                type="line"
+                                layout={{ 'line-join': 'round', 'line-cap': 'round' }}
+                                paint={{
+                                    'line-color': '#7CA2CE',
+                                    'line-width': 2,
+                                    'line-opacity': 0.7,
+                                    'line-dasharray': [3, 2],
+                                }}
+                            />
+                        </Source>
+                    )}
+
+                    {/* ── Airport markers ── */}
+                    {layers.flights && flightAirports.map((airport, i) => (
+                        <Marker key={`airport-${i}`} longitude={airport.coords[0]} latitude={airport.coords[1]} anchor="center">
+                            <motion.div
+                                initial={{ scale: 0, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ type: 'spring', stiffness: 300, damping: 20, delay: i * 0.05 }}
+                                className="flex flex-col items-center gap-1"
+                            >
+                                <div className="w-3 h-3 rounded-full bg-[#7CA2CE] border-2 border-white shadow-md" />
+                                <div className="bg-[#0F172A] text-white text-[9px] font-semibold px-1.5 py-0.5 rounded-[4px] whitespace-nowrap max-w-[90px] truncate">
+                                    {airport.label.split(',')[0]}
+                                </div>
+                            </motion.div>
+                        </Marker>
+                    ))}
+
+                    {/* ── Animated airplane icons ── */}
+                    {layers.flights && Object.entries(planePositions).map(([id, { coords, bearing }]) => (
+                        <Marker key={`plane-${id}`} longitude={coords[0]} latitude={coords[1]} anchor="center">
+                            <div
+                                style={{ transform: `rotate(${bearing - 45}deg)`, fontSize: '18px', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.4))' }}
+                            >
+                                ✈️
+                            </div>
+                        </Marker>
+                    ))}
+
                     {/* ── Selected Point Drawer ── */}
                     {selectedPoint && (
                         <div className="absolute top-4 right-4 z-20 max-w-[280px]">
@@ -633,6 +775,14 @@ export default function WanderMapTab() {
                             icon={<Layers size={14} />}
                             label="Flow Path"
                         />
+                        {flightRoutes.features.length > 0 && (
+                            <LayerButton
+                                active={layers.flights}
+                                onClick={() => toggleLayer('flights')}
+                                icon={<span className="text-sm leading-none">✈️</span>}
+                                label="Flights"
+                            />
+                        )}
                         <div className="h-px bg-border/50 mx-2 my-0.5" />
                         {/* Recenter button */}
                         <button
