@@ -13,6 +13,7 @@ import { ACTIONS } from '../../state/tripReducer'
 import { formatCurrency } from '../../utils/helpers'
 import { hapticImpact, hapticSelection } from '../../utils/haptics'
 import LocationAutocomplete from '../shared/LocationAutocomplete'
+import AirportAutocomplete from '../shared/AirportAutocomplete'
 import Label from '../shared/Label'
 
 // ── Cost Input ──────────────────────────────────────────────────────────────
@@ -39,9 +40,11 @@ function CostInput({ value, currency, onChange, disabled }) {
 }
 
 // ── FlightEndpointRow ────────────────────────────────────────────────────────
-function FlightEndpointRow({ label, value, cityHint, isReadOnly, onSave }) {
+function FlightEndpointRow({ label, value, isReadOnly, onSave }) {
   const [editing, setEditing] = useState(false)
-  const placeName = typeof value === 'string' ? value : value?.placeName || ''
+  const iata = value?.iata || ''
+  const placeName = value?.placeName || ''
+  const city = value?.city || ''
 
   return (
     <div className="flex items-start gap-3 px-3">
@@ -49,10 +52,9 @@ function FlightEndpointRow({ label, value, cityHint, isReadOnly, onSave }) {
       <div className="flex-1 min-w-0 py-2">
         {editing && !isReadOnly ? (
           <div>
-            <LocationAutocomplete
-              initialValue={placeName}
-              cityHint={cityHint}
-              placeholder="Airport or city…"
+            <AirportAutocomplete
+              value={value}
+              autoFocus
               onSelect={(data) => { onSave(data); setEditing(false) }}
             />
             <button onClick={() => setEditing(false)} className="mt-1.5 text-xs text-text-muted hover:text-text-primary">
@@ -60,16 +62,23 @@ function FlightEndpointRow({ label, value, cityHint, isReadOnly, onSave }) {
             </button>
           </div>
         ) : (
-          <div className="flex items-start justify-between gap-2">
-            <span className="text-sm text-text-secondary truncate block">
-              {placeName || <span className="italic text-text-muted">Not set</span>}
-            </span>
+          <div className="flex items-center justify-between gap-2">
+            {iata ? (
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="font-mono text-xs font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded shrink-0">
+                  {iata}
+                </span>
+                <span className="text-sm text-text-secondary truncate">{city || placeName}</span>
+              </div>
+            ) : (
+              <span className="text-sm italic text-text-muted">Not set</span>
+            )}
             {!isReadOnly && (
               <button
                 onClick={() => setEditing(true)}
-                className="text-[11px] text-text-muted hover:text-accent transition-colors shrink-0 mt-0.5"
+                className="text-[11px] text-text-muted hover:text-accent transition-colors shrink-0"
               >
-                {placeName ? 'Change' : 'Add'}
+                {iata ? 'Change' : 'Add'}
               </button>
             )}
           </div>
@@ -340,14 +349,12 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
                 <FlightEndpointRow
                   label="From"
                   value={booking.origin}
-                  cityHint={cityHint}
                   isReadOnly={isReadOnly}
                   onSave={val => onUpdate(booking.id, { origin: val }, actorId)}
                 />
                 <FlightEndpointRow
                   label="To"
                   value={booking.destination}
-                  cityHint={cityHint}
                   isReadOnly={isReadOnly}
                   onSave={val => onUpdate(booking.id, { destination: val }, actorId)}
                 />

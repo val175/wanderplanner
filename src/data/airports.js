@@ -1,0 +1,292 @@
+/**
+ * Curated registry of major international airports.
+ * coords: [longitude, latitude] — matches GeoJSON / Mapbox convention.
+ */
+export const AIRPORTS = [
+  // ── Southeast Asia ─────────────────────────────────────────────────────────
+  { iata: 'SIN', name: 'Singapore Changi Airport',           city: 'Singapore',       country: 'Singapore',    coords: [103.989, 1.359] },
+  { iata: 'BKK', name: 'Suvarnabhumi Airport',               city: 'Bangkok',         country: 'Thailand',     coords: [100.747, 13.681] },
+  { iata: 'DMK', name: 'Don Mueang International Airport',   city: 'Bangkok',         country: 'Thailand',     coords: [100.607, 13.913] },
+  { iata: 'HKT', name: 'Phuket International Airport',       city: 'Phuket',          country: 'Thailand',     coords: [98.317, 8.113] },
+  { iata: 'CNX', name: 'Chiang Mai International Airport',   city: 'Chiang Mai',      country: 'Thailand',     coords: [98.963, 18.767] },
+  { iata: 'USM', name: 'Koh Samui Airport',                  city: 'Koh Samui',       country: 'Thailand',     coords: [100.062, 9.548] },
+  { iata: 'KUL', name: 'Kuala Lumpur International Airport', city: 'Kuala Lumpur',    country: 'Malaysia',     coords: [101.710, 2.745] },
+  { iata: 'SZB', name: 'Sultan Abdul Aziz Shah Airport',     city: 'Kuala Lumpur',    country: 'Malaysia',     coords: [101.550, 3.131] },
+  { iata: 'PEN', name: 'Penang International Airport',       city: 'Penang',          country: 'Malaysia',     coords: [100.277, 5.298] },
+  { iata: 'BKI', name: 'Kota Kinabalu International Airport',city: 'Kota Kinabalu',   country: 'Malaysia',     coords: [116.051, 5.923] },
+  { iata: 'MNL', name: 'Ninoy Aquino International Airport', city: 'Manila',          country: 'Philippines',  coords: [121.020, 14.509] },
+  { iata: 'CEB', name: 'Mactan–Cebu International Airport',  city: 'Cebu',            country: 'Philippines',  coords: [123.979, 10.308] },
+  { iata: 'DVO', name: 'Francisco Bangoy International Airport', city: 'Davao',       country: 'Philippines',  coords: [125.646, 7.126] },
+  { iata: 'CGK', name: 'Soekarno–Hatta International Airport', city: 'Jakarta',       country: 'Indonesia',    coords: [106.656, -6.126] },
+  { iata: 'DPS', name: 'Ngurah Rai International Airport',   city: 'Bali',            country: 'Indonesia',    coords: [115.167, -8.748] },
+  { iata: 'SUB', name: 'Juanda International Airport',       city: 'Surabaya',        country: 'Indonesia',    coords: [112.787, -7.380] },
+  { iata: 'HAN', name: 'Noi Bai International Airport',      city: 'Hanoi',           country: 'Vietnam',      coords: [105.806, 21.221] },
+  { iata: 'SGN', name: 'Tan Son Nhat International Airport', city: 'Ho Chi Minh City',country: 'Vietnam',      coords: [106.652, 10.818] },
+  { iata: 'DAD', name: 'Da Nang International Airport',      city: 'Da Nang',         country: 'Vietnam',      coords: [108.199, 16.044] },
+  { iata: 'PNH', name: 'Phnom Penh International Airport',   city: 'Phnom Penh',      country: 'Cambodia',     coords: [104.844, 11.547] },
+  { iata: 'REP', name: 'Siem Reap International Airport',    city: 'Siem Reap',       country: 'Cambodia',     coords: [103.813, 13.411] },
+  { iata: 'VTE', name: 'Wattay International Airport',       city: 'Vientiane',       country: 'Laos',         coords: [102.563, 17.988] },
+  { iata: 'RGN', name: 'Yangon International Airport',       city: 'Yangon',          country: 'Myanmar',      coords: [96.133, 16.907] },
+  { iata: 'BWN', name: 'Brunei International Airport',       city: 'Bandar Seri Begawan', country: 'Brunei',   coords: [114.928, 4.944] },
+
+  // ── East Asia ──────────────────────────────────────────────────────────────
+  { iata: 'NRT', name: 'Narita International Airport',       city: 'Tokyo',           country: 'Japan',        coords: [140.386, 35.765] },
+  { iata: 'HND', name: 'Tokyo Haneda Airport',               city: 'Tokyo',           country: 'Japan',        coords: [139.781, 35.549] },
+  { iata: 'KIX', name: 'Kansai International Airport',       city: 'Osaka',           country: 'Japan',        coords: [135.244, 34.427] },
+  { iata: 'ITM', name: 'Osaka Itami Airport',                city: 'Osaka',           country: 'Japan',        coords: [135.438, 34.785] },
+  { iata: 'NGO', name: 'Chubu Centrair International Airport', city: 'Nagoya',        country: 'Japan',        coords: [136.805, 34.858] },
+  { iata: 'CTS', name: 'New Chitose Airport',                city: 'Sapporo',         country: 'Japan',        coords: [141.692, 42.775] },
+  { iata: 'OKA', name: 'Naha Airport',                       city: 'Okinawa',         country: 'Japan',        coords: [127.647, 26.196] },
+  { iata: 'FUK', name: 'Fukuoka Airport',                    city: 'Fukuoka',         country: 'Japan',        coords: [130.451, 33.585] },
+  { iata: 'ICN', name: 'Incheon International Airport',      city: 'Seoul',           country: 'South Korea',  coords: [126.451, 37.469] },
+  { iata: 'GMP', name: 'Gimpo International Airport',        city: 'Seoul',           country: 'South Korea',  coords: [126.791, 37.558] },
+  { iata: 'PUS', name: 'Gimhae International Airport',       city: 'Busan',           country: 'South Korea',  coords: [128.939, 35.180] },
+  { iata: 'PEK', name: 'Beijing Capital International Airport', city: 'Beijing',      country: 'China',        coords: [116.588, 40.072] },
+  { iata: 'PKX', name: 'Beijing Daxing International Airport', city: 'Beijing',       country: 'China',        coords: [116.411, 39.510] },
+  { iata: 'PVG', name: 'Shanghai Pudong International Airport', city: 'Shanghai',     country: 'China',        coords: [121.806, 31.143] },
+  { iata: 'SHA', name: 'Shanghai Hongqiao International Airport', city: 'Shanghai',   country: 'China',        coords: [121.336, 31.198] },
+  { iata: 'CAN', name: 'Guangzhou Baiyun International Airport', city: 'Guangzhou',   country: 'China',        coords: [113.299, 23.392] },
+  { iata: 'SZX', name: 'Shenzhen Bao\'an International Airport', city: 'Shenzhen',   country: 'China',        coords: [113.811, 22.639] },
+  { iata: 'CTU', name: 'Chengdu Tianfu International Airport', city: 'Chengdu',       country: 'China',        coords: [104.445, 30.312] },
+  { iata: 'KMG', name: 'Kunming Changshui International Airport', city: 'Kunming',    country: 'China',        coords: [102.929, 25.101] },
+  { iata: 'HKG', name: 'Hong Kong International Airport',    city: 'Hong Kong',       country: 'Hong Kong',    coords: [113.915, 22.309] },
+  { iata: 'MFM', name: 'Macau International Airport',        city: 'Macau',           country: 'Macau',        coords: [113.592, 22.150] },
+  { iata: 'TPE', name: 'Taiwan Taoyuan International Airport', city: 'Taipei',        country: 'Taiwan',       coords: [121.233, 25.078] },
+  { iata: 'TSA', name: 'Taipei Songshan Airport',            city: 'Taipei',          country: 'Taiwan',       coords: [121.552, 25.069] },
+  { iata: 'ULN', name: 'Chinggis Khaan International Airport', city: 'Ulaanbaatar',   country: 'Mongolia',     coords: [107.747, 47.843] },
+
+  // ── South Asia ─────────────────────────────────────────────────────────────
+  { iata: 'DEL', name: 'Indira Gandhi International Airport', city: 'Delhi',          country: 'India',        coords: [77.103, 28.557] },
+  { iata: 'BOM', name: 'Chhatrapati Shivaji Maharaj International Airport', city: 'Mumbai', country: 'India', coords: [72.868, 19.089] },
+  { iata: 'BLR', name: 'Kempegowda International Airport',   city: 'Bangalore',       country: 'India',        coords: [77.706, 13.199] },
+  { iata: 'MAA', name: 'Chennai International Airport',      city: 'Chennai',         country: 'India',        coords: [80.169, 12.990] },
+  { iata: 'CCU', name: 'Netaji Subhas Chandra Bose International Airport', city: 'Kolkata', country: 'India', coords: [88.447, 22.655] },
+  { iata: 'HYD', name: 'Rajiv Gandhi International Airport', city: 'Hyderabad',       country: 'India',        coords: [78.430, 17.232] },
+  { iata: 'COK', name: 'Cochin International Airport',       city: 'Kochi',           country: 'India',        coords: [76.401, 10.152] },
+  { iata: 'CMB', name: 'Bandaranaike International Airport', city: 'Colombo',         country: 'Sri Lanka',    coords: [79.884, 7.180] },
+  { iata: 'DAC', name: 'Hazrat Shahjalal International Airport', city: 'Dhaka',       country: 'Bangladesh',   coords: [90.398, 23.843] },
+  { iata: 'KTM', name: 'Tribhuvan International Airport',    city: 'Kathmandu',       country: 'Nepal',        coords: [85.360, 27.697] },
+  { iata: 'MLE', name: 'Velana International Airport',       city: 'Malé',            country: 'Maldives',     coords: [73.529, 4.192] },
+  { iata: 'ISB', name: 'Islamabad International Airport',    city: 'Islamabad',       country: 'Pakistan',     coords: [72.852, 33.617] },
+  { iata: 'KHI', name: 'Jinnah International Airport',       city: 'Karachi',         country: 'Pakistan',     coords: [67.161, 24.906] },
+  { iata: 'LHE', name: 'Allama Iqbal International Airport', city: 'Lahore',          country: 'Pakistan',     coords: [74.403, 31.521] },
+  { iata: 'KBL', name: 'Hamid Karzai International Airport', city: 'Kabul',           country: 'Afghanistan',  coords: [69.212, 34.566] },
+
+  // ── Middle East ────────────────────────────────────────────────────────────
+  { iata: 'DXB', name: 'Dubai International Airport',        city: 'Dubai',           country: 'UAE',          coords: [55.364, 25.253] },
+  { iata: 'DWC', name: 'Al Maktoum International Airport',   city: 'Dubai',           country: 'UAE',          coords: [55.161, 24.897] },
+  { iata: 'AUH', name: 'Abu Dhabi International Airport',    city: 'Abu Dhabi',       country: 'UAE',          coords: [54.651, 24.433] },
+  { iata: 'DOH', name: 'Hamad International Airport',        city: 'Doha',            country: 'Qatar',        coords: [51.608, 25.274] },
+  { iata: 'BAH', name: 'Bahrain International Airport',      city: 'Manama',          country: 'Bahrain',      coords: [50.634, 26.270] },
+  { iata: 'KWI', name: 'Kuwait International Airport',       city: 'Kuwait City',     country: 'Kuwait',       coords: [47.969, 29.227] },
+  { iata: 'MCT', name: 'Muscat International Airport',       city: 'Muscat',          country: 'Oman',         coords: [58.285, 23.594] },
+  { iata: 'RUH', name: 'King Khalid International Airport',  city: 'Riyadh',          country: 'Saudi Arabia', coords: [46.699, 24.958] },
+  { iata: 'JED', name: 'King Abdulaziz International Airport', city: 'Jeddah',        country: 'Saudi Arabia', coords: [39.157, 21.680] },
+  { iata: 'DMM', name: 'King Fahd International Airport',    city: 'Dammam',          country: 'Saudi Arabia', coords: [49.799, 26.471] },
+  { iata: 'AMM', name: 'Queen Alia International Airport',   city: 'Amman',           country: 'Jordan',       coords: [35.993, 31.723] },
+  { iata: 'BEY', name: 'Beirut Rafic Hariri International Airport', city: 'Beirut',  country: 'Lebanon',      coords: [35.489, 33.821] },
+  { iata: 'TLV', name: 'Ben Gurion International Airport',   city: 'Tel Aviv',        country: 'Israel',       coords: [34.887, 32.011] },
+  { iata: 'IST', name: 'Istanbul Airport',                   city: 'Istanbul',        country: 'Turkey',       coords: [28.742, 41.275] },
+  { iata: 'SAW', name: 'Istanbul Sabiha Gökçen Airport',    city: 'Istanbul',        country: 'Turkey',       coords: [29.309, 40.898] },
+  { iata: 'ESB', name: 'Ankara Esenboğa Airport',           city: 'Ankara',          country: 'Turkey',       coords: [32.688, 40.128] },
+  { iata: 'CAI', name: 'Cairo International Airport',        city: 'Cairo',           country: 'Egypt',        coords: [31.405, 30.122] },
+
+  // ── Europe ─────────────────────────────────────────────────────────────────
+  { iata: 'LHR', name: 'Heathrow Airport',                   city: 'London',          country: 'UK',           coords: [-0.461, 51.477] },
+  { iata: 'LGW', name: 'Gatwick Airport',                    city: 'London',          country: 'UK',           coords: [-0.190, 51.148] },
+  { iata: 'STN', name: 'Stansted Airport',                   city: 'London',          country: 'UK',           coords: [0.235, 51.885] },
+  { iata: 'LTN', name: 'Luton Airport',                      city: 'London',          country: 'UK',           coords: [-0.368, 51.875] },
+  { iata: 'LCY', name: 'London City Airport',                city: 'London',          country: 'UK',           coords: [0.055, 51.505] },
+  { iata: 'MAN', name: 'Manchester Airport',                 city: 'Manchester',      country: 'UK',           coords: [-2.275, 53.354] },
+  { iata: 'EDI', name: 'Edinburgh Airport',                  city: 'Edinburgh',       country: 'UK',           coords: [-3.373, 55.950] },
+  { iata: 'BHX', name: 'Birmingham Airport',                 city: 'Birmingham',      country: 'UK',           coords: [-1.748, 52.454] },
+  { iata: 'CDG', name: 'Charles de Gaulle Airport',          city: 'Paris',           country: 'France',       coords: [2.550, 49.013] },
+  { iata: 'ORY', name: 'Orly Airport',                       city: 'Paris',           country: 'France',       coords: [2.359, 48.724] },
+  { iata: 'NCE', name: 'Nice Côte d\'Azur Airport',         city: 'Nice',            country: 'France',       coords: [7.215, 43.665] },
+  { iata: 'LYS', name: 'Lyon–Saint-Exupéry Airport',        city: 'Lyon',            country: 'France',       coords: [5.091, 45.726] },
+  { iata: 'MRS', name: 'Marseille Provence Airport',         city: 'Marseille',       country: 'France',       coords: [5.215, 43.436] },
+  { iata: 'AMS', name: 'Amsterdam Schiphol Airport',         city: 'Amsterdam',       country: 'Netherlands',  coords: [4.764, 52.309] },
+  { iata: 'FRA', name: 'Frankfurt Airport',                  city: 'Frankfurt',       country: 'Germany',      coords: [8.570, 50.033] },
+  { iata: 'MUC', name: 'Munich Airport',                     city: 'Munich',          country: 'Germany',      coords: [11.787, 48.354] },
+  { iata: 'TXL', name: 'Berlin Tegel Airport',               city: 'Berlin',          country: 'Germany',      coords: [13.288, 52.560] },
+  { iata: 'BER', name: 'Berlin Brandenburg Airport',         city: 'Berlin',          country: 'Germany',      coords: [13.510, 52.367] },
+  { iata: 'HAM', name: 'Hamburg Airport',                    city: 'Hamburg',         country: 'Germany',      coords: [9.988, 53.630] },
+  { iata: 'DUS', name: 'Düsseldorf Airport',                 city: 'Düsseldorf',      country: 'Germany',      coords: [6.757, 51.290] },
+  { iata: 'STR', name: 'Stuttgart Airport',                  city: 'Stuttgart',       country: 'Germany',      coords: [9.222, 48.690] },
+  { iata: 'CGN', name: 'Cologne Bonn Airport',               city: 'Cologne',         country: 'Germany',      coords: [7.143, 50.866] },
+  { iata: 'ZRH', name: 'Zurich Airport',                     city: 'Zurich',          country: 'Switzerland',  coords: [8.549, 47.464] },
+  { iata: 'GVA', name: 'Geneva Airport',                     city: 'Geneva',          country: 'Switzerland',  coords: [6.109, 46.238] },
+  { iata: 'VIE', name: 'Vienna International Airport',       city: 'Vienna',          country: 'Austria',      coords: [16.570, 48.110] },
+  { iata: 'BCN', name: 'Barcelona El Prat Airport',          city: 'Barcelona',       country: 'Spain',        coords: [2.078, 41.297] },
+  { iata: 'MAD', name: 'Adolfo Suárez Madrid–Barajas Airport', city: 'Madrid',       country: 'Spain',        coords: [-3.567, 40.494] },
+  { iata: 'AGP', name: 'Málaga Airport',                     city: 'Málaga',          country: 'Spain',        coords: [-4.499, 36.675] },
+  { iata: 'PMI', name: 'Palma de Mallorca Airport',          city: 'Palma',           country: 'Spain',        coords: [2.738, 39.552] },
+  { iata: 'VLC', name: 'Valencia Airport',                   city: 'Valencia',        country: 'Spain',        coords: [-0.481, 39.489] },
+  { iata: 'FCO', name: 'Leonardo da Vinci International Airport', city: 'Rome',       country: 'Italy',        coords: [12.252, 41.800] },
+  { iata: 'LIN', name: 'Milan Linate Airport',               city: 'Milan',           country: 'Italy',        coords: [9.277, 45.445] },
+  { iata: 'MXP', name: 'Milan Malpensa Airport',             city: 'Milan',           country: 'Italy',        coords: [8.723, 45.630] },
+  { iata: 'VCE', name: 'Venice Marco Polo Airport',          city: 'Venice',          country: 'Italy',        coords: [12.352, 45.505] },
+  { iata: 'NAP', name: 'Naples International Airport',       city: 'Naples',          country: 'Italy',        coords: [14.291, 40.886] },
+  { iata: 'ATH', name: 'Athens International Airport',       city: 'Athens',          country: 'Greece',       coords: [23.944, 37.936] },
+  { iata: 'SKG', name: 'Thessaloniki Airport',               city: 'Thessaloniki',    country: 'Greece',       coords: [22.971, 40.519] },
+  { iata: 'HER', name: 'Heraklion International Airport',    city: 'Heraklion',       country: 'Greece',       coords: [25.181, 35.340] },
+  { iata: 'LIS', name: 'Humberto Delgado Airport',           city: 'Lisbon',          country: 'Portugal',     coords: [-9.136, 38.774] },
+  { iata: 'OPO', name: 'Porto Airport',                      city: 'Porto',           country: 'Portugal',     coords: [-8.681, 41.235] },
+  { iata: 'FAO', name: 'Faro Airport',                       city: 'Faro',            country: 'Portugal',     coords: [-7.966, 37.014] },
+  { iata: 'BRU', name: 'Brussels Airport',                   city: 'Brussels',        country: 'Belgium',      coords: [4.484, 50.901] },
+  { iata: 'CPH', name: 'Copenhagen Airport',                 city: 'Copenhagen',      country: 'Denmark',      coords: [12.656, 55.618] },
+  { iata: 'ARN', name: 'Stockholm Arlanda Airport',          city: 'Stockholm',       country: 'Sweden',       coords: [17.919, 59.651] },
+  { iata: 'OSL', name: 'Oslo Gardermoen Airport',            city: 'Oslo',            country: 'Norway',       coords: [11.100, 60.194] },
+  { iata: 'HEL', name: 'Helsinki-Vantaa Airport',            city: 'Helsinki',        country: 'Finland',      coords: [24.963, 60.317] },
+  { iata: 'DUB', name: 'Dublin Airport',                     city: 'Dublin',          country: 'Ireland',      coords: [-6.270, 53.421] },
+  { iata: 'WAW', name: 'Warsaw Chopin Airport',              city: 'Warsaw',          country: 'Poland',       coords: [20.968, 52.166] },
+  { iata: 'PRG', name: 'Václav Havel Airport Prague',        city: 'Prague',          country: 'Czech Republic', coords: [14.260, 50.101] },
+  { iata: 'BUD', name: 'Budapest Ferenc Liszt International Airport', city: 'Budapest', country: 'Hungary',  coords: [19.261, 47.437] },
+  { iata: 'OTP', name: 'Henri Coandă International Airport', city: 'Bucharest',       country: 'Romania',      coords: [26.085, 44.572] },
+  { iata: 'SOF', name: 'Sofia Airport',                      city: 'Sofia',           country: 'Bulgaria',     coords: [23.411, 42.696] },
+  { iata: 'KBP', name: 'Boryspil International Airport',     city: 'Kyiv',            country: 'Ukraine',      coords: [30.895, 50.345] },
+  { iata: 'SVO', name: 'Sheremetyevo International Airport', city: 'Moscow',          country: 'Russia',       coords: [37.415, 55.972] },
+  { iata: 'DME', name: 'Domodedovo International Airport',   city: 'Moscow',          country: 'Russia',       coords: [37.906, 55.409] },
+  { iata: 'LED', name: 'Pulkovo Airport',                    city: 'St. Petersburg',  country: 'Russia',       coords: [30.263, 59.800] },
+  { iata: 'HRK', name: 'Kharkiv International Airport',      city: 'Kharkiv',         country: 'Ukraine',      coords: [36.290, 49.925] },
+
+  // ── North America ──────────────────────────────────────────────────────────
+  { iata: 'JFK', name: 'John F. Kennedy International Airport', city: 'New York',     country: 'USA',          coords: [-73.779, 40.641] },
+  { iata: 'EWR', name: 'Newark Liberty International Airport', city: 'New York',      country: 'USA',          coords: [-74.169, 40.689] },
+  { iata: 'LGA', name: 'LaGuardia Airport',                  city: 'New York',        country: 'USA',          coords: [-73.874, 40.777] },
+  { iata: 'LAX', name: 'Los Angeles International Airport',  city: 'Los Angeles',     country: 'USA',          coords: [-118.408, 33.943] },
+  { iata: 'SFO', name: 'San Francisco International Airport', city: 'San Francisco',  country: 'USA',          coords: [-122.379, 37.619] },
+  { iata: 'SJC', name: 'Norman Y. Mineta San Jose International Airport', city: 'San Jose', country: 'USA',   coords: [-121.929, 37.362] },
+  { iata: 'OAK', name: 'Oakland International Airport',      city: 'Oakland',         country: 'USA',          coords: [-122.221, 37.721] },
+  { iata: 'SEA', name: 'Seattle–Tacoma International Airport', city: 'Seattle',       country: 'USA',          coords: [-122.309, 47.449] },
+  { iata: 'ORD', name: 'O\'Hare International Airport',      city: 'Chicago',         country: 'USA',          coords: [-87.905, 41.979] },
+  { iata: 'MDW', name: 'Midway International Airport',       city: 'Chicago',         country: 'USA',          coords: [-87.752, 41.786] },
+  { iata: 'ATL', name: 'Hartsfield–Jackson Atlanta International Airport', city: 'Atlanta', country: 'USA',  coords: [-84.428, 33.637] },
+  { iata: 'DFW', name: 'Dallas/Fort Worth International Airport', city: 'Dallas',     country: 'USA',          coords: [-97.038, 32.897] },
+  { iata: 'MIA', name: 'Miami International Airport',        city: 'Miami',           country: 'USA',          coords: [-80.290, 25.796] },
+  { iata: 'FLL', name: 'Fort Lauderdale–Hollywood International Airport', city: 'Fort Lauderdale', country: 'USA', coords: [-80.152, 26.072] },
+  { iata: 'MCO', name: 'Orlando International Airport',      city: 'Orlando',         country: 'USA',          coords: [-81.309, 28.429] },
+  { iata: 'BOS', name: 'Logan International Airport',        city: 'Boston',          country: 'USA',          coords: [-71.005, 42.365] },
+  { iata: 'DEN', name: 'Denver International Airport',       city: 'Denver',          country: 'USA',          coords: [-104.673, 39.856] },
+  { iata: 'LAS', name: 'Harry Reid International Airport',   city: 'Las Vegas',       country: 'USA',          coords: [-115.152, 36.080] },
+  { iata: 'PHX', name: 'Phoenix Sky Harbor International Airport', city: 'Phoenix',   country: 'USA',          coords: [-112.012, 33.438] },
+  { iata: 'IAH', name: 'George Bush Intercontinental Airport', city: 'Houston',       country: 'USA',          coords: [-95.341, 29.984] },
+  { iata: 'HOU', name: 'William P. Hobby Airport',           city: 'Houston',         country: 'USA',          coords: [-95.279, 29.645] },
+  { iata: 'IAD', name: 'Washington Dulles International Airport', city: 'Washington', country: 'USA',          coords: [-77.456, 38.945] },
+  { iata: 'DCA', name: 'Ronald Reagan Washington National Airport', city: 'Washington', country: 'USA',        coords: [-77.038, 38.852] },
+  { iata: 'BWI', name: 'Baltimore/Washington International Airport', city: 'Baltimore', country: 'USA',        coords: [-76.668, 39.176] },
+  { iata: 'MSP', name: 'Minneapolis–Saint Paul International Airport', city: 'Minneapolis', country: 'USA',   coords: [-93.222, 44.882] },
+  { iata: 'DTW', name: 'Detroit Metropolitan Airport',       city: 'Detroit',         country: 'USA',          coords: [-83.354, 42.213] },
+  { iata: 'PDX', name: 'Portland International Airport',     city: 'Portland',        country: 'USA',          coords: [-122.597, 45.589] },
+  { iata: 'SAN', name: 'San Diego International Airport',    city: 'San Diego',       country: 'USA',          coords: [-117.190, 32.734] },
+  { iata: 'CLT', name: 'Charlotte Douglas International Airport', city: 'Charlotte',  country: 'USA',          coords: [-80.943, 35.214] },
+  { iata: 'PHL', name: 'Philadelphia International Airport', city: 'Philadelphia',    country: 'USA',          coords: [-75.241, 39.872] },
+  { iata: 'SLC', name: 'Salt Lake City International Airport', city: 'Salt Lake City', country: 'USA',         coords: [-111.978, 40.789] },
+  { iata: 'HNL', name: 'Daniel K. Inouye International Airport', city: 'Honolulu',    country: 'USA',          coords: [-157.924, 21.319] },
+  { iata: 'ANC', name: 'Ted Stevens Anchorage International Airport', city: 'Anchorage', country: 'USA',      coords: [-149.996, 61.175] },
+  { iata: 'YYZ', name: 'Toronto Pearson International Airport', city: 'Toronto',      country: 'Canada',       coords: [-79.631, 43.678] },
+  { iata: 'YVR', name: 'Vancouver International Airport',    city: 'Vancouver',       country: 'Canada',       coords: [-123.184, 49.195] },
+  { iata: 'YUL', name: 'Montréal-Pierre Elliott Trudeau Airport', city: 'Montreal',   country: 'Canada',       coords: [-73.741, 45.471] },
+  { iata: 'YYC', name: 'Calgary International Airport',      city: 'Calgary',         country: 'Canada',       coords: [-114.013, 51.132] },
+  { iata: 'YEG', name: 'Edmonton International Airport',     city: 'Edmonton',        country: 'Canada',       coords: [-113.580, 53.310] },
+  { iata: 'YOW', name: 'Ottawa Macdonald–Cartier International Airport', city: 'Ottawa', country: 'Canada',   coords: [-75.669, 45.324] },
+  { iata: 'MEX', name: 'Benito Juárez International Airport', city: 'Mexico City',    country: 'Mexico',       coords: [-99.072, 19.436] },
+  { iata: 'CUN', name: 'Cancún International Airport',       city: 'Cancún',          country: 'Mexico',       coords: [-86.877, 21.037] },
+  { iata: 'GDL', name: 'Don Miguel Hidalgo y Costilla International Airport', city: 'Guadalajara', country: 'Mexico', coords: [-103.311, 20.521] },
+  { iata: 'MTY', name: 'Monterrey International Airport',    city: 'Monterrey',       country: 'Mexico',       coords: [-100.107, 25.778] },
+
+  // ── Central America & Caribbean ────────────────────────────────────────────
+  { iata: 'PTY', name: 'Tocumen International Airport',      city: 'Panama City',     country: 'Panama',       coords: [-79.384, 9.071] },
+  { iata: 'SJO', name: 'Juan Santamaría International Airport', city: 'San José',     country: 'Costa Rica',   coords: [-84.209, 9.994] },
+  { iata: 'GUA', name: 'La Aurora International Airport',    city: 'Guatemala City',  country: 'Guatemala',    coords: [-90.527, 14.583] },
+  { iata: 'HAV', name: 'José Martí International Airport',   city: 'Havana',          country: 'Cuba',         coords: [-82.410, 22.989] },
+  { iata: 'MBJ', name: 'Sangster International Airport',     city: 'Montego Bay',     country: 'Jamaica',      coords: [-77.914, 18.504] },
+  { iata: 'NAS', name: 'Lynden Pindling International Airport', city: 'Nassau',       country: 'Bahamas',      coords: [-77.466, 25.039] },
+  { iata: 'PUJ', name: 'Punta Cana International Airport',   city: 'Punta Cana',      country: 'Dominican Republic', coords: [-68.363, 18.567] },
+  { iata: 'SJU', name: 'Luis Muñoz Marín International Airport', city: 'San Juan',    country: 'Puerto Rico',  coords: [-66.002, 18.440] },
+
+  // ── South America ──────────────────────────────────────────────────────────
+  { iata: 'GRU', name: 'São Paulo/Guarulhos International Airport', city: 'São Paulo', country: 'Brazil',     coords: [-46.473, -23.432] },
+  { iata: 'CGH', name: 'São Paulo Congonhas Airport',        city: 'São Paulo',        country: 'Brazil',      coords: [-46.657, -23.627] },
+  { iata: 'GIG', name: 'Rio de Janeiro/Galeão International Airport', city: 'Rio de Janeiro', country: 'Brazil', coords: [-43.244, -22.809] },
+  { iata: 'SDU', name: 'Santos Dumont Airport',              city: 'Rio de Janeiro',   country: 'Brazil',      coords: [-43.164, -22.910] },
+  { iata: 'BSB', name: 'Brasília International Airport',     city: 'Brasília',         country: 'Brazil',      coords: [-47.921, -15.869] },
+  { iata: 'EZE', name: 'Ministro Pistarini International Airport', city: 'Buenos Aires', country: 'Argentina', coords: [-58.535, -34.822] },
+  { iata: 'AEP', name: 'Jorge Newbery Airfield',             city: 'Buenos Aires',     country: 'Argentina',   coords: [-58.416, -34.559] },
+  { iata: 'SCL', name: 'Arturo Merino Benítez International Airport', city: 'Santiago', country: 'Chile',      coords: [-70.785, -33.393] },
+  { iata: 'BOG', name: 'El Dorado International Airport',    city: 'Bogotá',           country: 'Colombia',    coords: [-74.146, 4.702] },
+  { iata: 'MDE', name: 'José María Córdova International Airport', city: 'Medellín',  country: 'Colombia',    coords: [-75.423, 6.165] },
+  { iata: 'LIM', name: 'Jorge Chávez International Airport', city: 'Lima',             country: 'Peru',        coords: [-77.115, -12.022] },
+  { iata: 'UIO', name: 'Mariscal Sucre International Airport', city: 'Quito',          country: 'Ecuador',     coords: [-78.357, -0.142] },
+  { iata: 'GYE', name: 'José Joaquín de Olmedo International Airport', city: 'Guayaquil', country: 'Ecuador', coords: [-79.883, -2.157] },
+  { iata: 'CCS', name: 'Simón Bolívar International Airport', city: 'Caracas',         country: 'Venezuela',   coords: [-67.007, 10.603] },
+  { iata: 'ASU', name: 'Silvio Pettirossi International Airport', city: 'Asunción',    country: 'Paraguay',    coords: [-57.520, -25.240] },
+  { iata: 'MVD', name: 'Carrasco International Airport',     city: 'Montevideo',       country: 'Uruguay',     coords: [-56.031, -34.838] },
+  { iata: 'LPB', name: 'El Alto International Airport',      city: 'La Paz',           country: 'Bolivia',     coords: [-68.193, -16.514] },
+
+  // ── Africa ─────────────────────────────────────────────────────────────────
+  { iata: 'JNB', name: 'O.R. Tambo International Airport',   city: 'Johannesburg',    country: 'South Africa', coords: [28.246, -26.133] },
+  { iata: 'CPT', name: 'Cape Town International Airport',    city: 'Cape Town',       country: 'South Africa', coords: [18.602, -33.965] },
+  { iata: 'DUR', name: 'King Shaka International Airport',   city: 'Durban',          country: 'South Africa', coords: [31.100, -29.614] },
+  { iata: 'NBO', name: 'Jomo Kenyatta International Airport', city: 'Nairobi',        country: 'Kenya',        coords: [36.924, -1.319] },
+  { iata: 'ADD', name: 'Addis Ababa Bole International Airport', city: 'Addis Ababa', country: 'Ethiopia',     coords: [38.799, 8.978] },
+  { iata: 'LOS', name: 'Murtala Muhammed International Airport', city: 'Lagos',       country: 'Nigeria',      coords: [3.321, 6.577] },
+  { iata: 'ABV', name: 'Nnamdi Azikiwe International Airport', city: 'Abuja',         country: 'Nigeria',      coords: [7.263, 9.006] },
+  { iata: 'ACC', name: 'Kotoka International Airport',       city: 'Accra',           country: 'Ghana',        coords: [-0.167, 5.605] },
+  { iata: 'CMN', name: 'Mohammed V International Airport',   city: 'Casablanca',      country: 'Morocco',      coords: [-7.590, 33.368] },
+  { iata: 'RAK', name: 'Marrakesh Menara Airport',           city: 'Marrakesh',       country: 'Morocco',      coords: [-8.036, 31.607] },
+  { iata: 'TUN', name: 'Tunis-Carthage International Airport', city: 'Tunis',         country: 'Tunisia',      coords: [10.228, 36.851] },
+  { iata: 'ALG', name: 'Houari Boumediene Airport',          city: 'Algiers',         country: 'Algeria',      coords: [3.215, 36.691] },
+  { iata: 'DAR', name: 'Julius Nyerere International Airport', city: 'Dar es Salaam', country: 'Tanzania',     coords: [39.202, -6.878] },
+  { iata: 'ZNZ', name: 'Abeid Amani Karume International Airport', city: 'Zanzibar',  country: 'Tanzania',     coords: [39.225, -6.222] },
+  { iata: 'EBB', name: 'Entebbe International Airport',      city: 'Entebbe',         country: 'Uganda',       coords: [32.444, 0.042] },
+  { iata: 'DKR', name: 'Léopold Sédar Senghor International Airport', city: 'Dakar',  country: 'Senegal',      coords: [-17.490, 14.740] },
+  { iata: 'MRU', name: 'Sir Seewoosagur Ramgoolam International Airport', city: 'Mauritius', country: 'Mauritius', coords: [57.683, -20.430] },
+
+  // ── Oceania ────────────────────────────────────────────────────────────────
+  { iata: 'SYD', name: 'Sydney Kingsford Smith Airport',     city: 'Sydney',          country: 'Australia',    coords: [151.177, -33.947] },
+  { iata: 'MEL', name: 'Melbourne Airport',                  city: 'Melbourne',       country: 'Australia',    coords: [144.843, -37.673] },
+  { iata: 'BNE', name: 'Brisbane Airport',                   city: 'Brisbane',        country: 'Australia',    coords: [153.117, -27.384] },
+  { iata: 'PER', name: 'Perth Airport',                      city: 'Perth',           country: 'Australia',    coords: [115.967, -31.940] },
+  { iata: 'ADL', name: 'Adelaide Airport',                   city: 'Adelaide',        country: 'Australia',    coords: [138.531, -34.945] },
+  { iata: 'CNS', name: 'Cairns Airport',                     city: 'Cairns',          country: 'Australia',    coords: [145.755, -16.886] },
+  { iata: 'DRW', name: 'Darwin International Airport',       city: 'Darwin',          country: 'Australia',    coords: [130.877, -12.415] },
+  { iata: 'AKL', name: 'Auckland Airport',                   city: 'Auckland',        country: 'New Zealand',  coords: [174.792, -37.008] },
+  { iata: 'CHC', name: 'Christchurch International Airport', city: 'Christchurch',    country: 'New Zealand',  coords: [172.532, -43.489] },
+  { iata: 'WLG', name: 'Wellington International Airport',   city: 'Wellington',      country: 'New Zealand',  coords: [174.805, -41.327] },
+  { iata: 'NAN', name: 'Nadi International Airport',         city: 'Nadi',            country: 'Fiji',         coords: [177.443, -17.755] },
+  { iata: 'PPT', name: 'Faa\'a International Airport',       city: 'Papeete',         country: 'French Polynesia', coords: [-149.607, -17.553] },
+  { iata: 'GUM', name: 'Antonio B. Won Pat International Airport', city: 'Guam',      country: 'Guam',         coords: [144.796, 13.484] },
+]
+
+/**
+ * Search airports by IATA code, name, city, or country.
+ * Returns up to 8 best matches, IATA prefix matches ranked first.
+ */
+export function searchAirports(query) {
+  const q = query.trim().toLowerCase()
+  if (q.length < 1) return []
+
+  const iataMatches = []
+  const otherMatches = []
+
+  for (const airport of AIRPORTS) {
+    const iataLower = airport.iata.toLowerCase()
+    const nameLower = airport.name.toLowerCase()
+    const cityLower = airport.city.toLowerCase()
+    const countryLower = airport.country.toLowerCase()
+
+    if (iataLower.startsWith(q)) {
+      iataMatches.push(airport)
+    } else if (
+      nameLower.includes(q) ||
+      cityLower.includes(q) ||
+      countryLower.includes(q) ||
+      iataLower.includes(q)
+    ) {
+      otherMatches.push(airport)
+    }
+  }
+
+  return [...iataMatches, ...otherMatches].slice(0, 8)
+}
