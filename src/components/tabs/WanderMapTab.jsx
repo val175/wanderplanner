@@ -27,27 +27,25 @@ function getBearing([lon1, lat1], [lon2, lat2]) {
     return toDeg(Math.atan2(y, x))
 }
 
-function greatCirclePoints([lon1, lat1], [lon2, lat2], n = 80) {
-    const toRad = d => d * Math.PI / 180
-    const toDeg = r => r * 180 / Math.PI
-    const φ1 = toRad(lat1), λ1 = toRad(lon1)
-    const φ2 = toRad(lat2), λ2 = toRad(lon2)
-    // Convert to 3-D unit vectors
-    const x1 = Math.cos(φ1) * Math.cos(λ1), y1 = Math.cos(φ1) * Math.sin(λ1), z1 = Math.sin(φ1)
-    const x2 = Math.cos(φ2) * Math.cos(λ2), y2 = Math.cos(φ2) * Math.sin(λ2), z2 = Math.sin(φ2)
-    const dot = x1 * x2 + y1 * y2 + z1 * z2
-    const angle = Math.acos(Math.max(-1, Math.min(1, dot)))
-    if (angle < 1e-10) return [[lon1, lat1], [lon2, lat2]]
-    const sinA = Math.sin(angle)
-    const points = []
+// Quadratic Bézier arc — control point pushed upward by 30% of chord length,
+// giving a visible curve on Mercator regardless of route distance.
+function arcPoints([lon1, lat1], [lon2, lat2], n = 80) {
+    const midLon = (lon1 + lon2) / 2
+    const midLat = (lat1 + lat2) / 2
+    const chord = Math.hypot(lon2 - lon1, lat2 - lat1)
+    // Perpendicular offset: rotate chord 90° CCW (push "up-left" of route direction)
+    const dx = lon2 - lon1, dy = lat2 - lat1
+    const cpLon = midLon + dy * 0.3
+    const cpLat = midLat - dx * 0.3 + chord * 0.15
+    const pts = []
     for (let i = 0; i <= n; i++) {
-        const t = i / n
-        const a = Math.sin((1 - t) * angle) / sinA
-        const b = Math.sin(t * angle) / sinA
-        const x = a * x1 + b * x2, y = a * y1 + b * y2, z = a * z1 + b * z2
-        points.push([toDeg(Math.atan2(y, x)), toDeg(Math.asin(z))])
+        const t = i / n, u = 1 - t
+        pts.push([
+            u * u * lon1 + 2 * u * t * cpLon + t * t * lon2,
+            u * u * lat1 + 2 * u * t * cpLat + t * t * lat2,
+        ])
     }
-    return points
+    return pts
 }
 
 // Pin color palette — matches OverviewTab route map
@@ -269,7 +267,7 @@ export default function WanderMapTab() {
             properties: { id: b.id, name: b.name, status: b.status },
             geometry: {
                 type: 'LineString',
-                coordinates: greatCirclePoints(b.origin.coords, b.destination.coords),
+                coordinates: arcPoints(b.origin.coords, b.destination.coords),
             },
         }))
         // Deduplicate airport markers by coordinate string
