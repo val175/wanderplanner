@@ -1,4 +1,5 @@
 import * as RadixSelect from '@radix-ui/react-select'
+import { popoverSurfaceClass } from './surfaceStyles'
 
 /* ─────────────────────────────────────────────────────────────
    Select — Radix-powered dropdown replacing native <select>.
@@ -13,14 +14,15 @@ import * as RadixSelect from '@radix-ui/react-select'
 ───────────────────────────────────────────────────────────── */
 
 const sizeClasses = {
-  sm: 'px-2 py-1.5',
-  md: 'px-3 py-2',
-  lg: 'px-3 py-2.5',
+  sm: 'h-9 px-3',
+  md: 'h-11 px-3',
+  lg: 'h-11 px-3',
 }
 
 const baseTriggerCls = `
   w-full flex items-center justify-between gap-2
   text-sm bg-bg-input border border-border rounded-[var(--radius-md)]
+  leading-none
   text-inherit
   focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary
   transition-colors cursor-pointer
@@ -55,7 +57,7 @@ export default function Select({
           position="popper"
           sideOffset={6}
           avoidCollisions
-          className="z-[9999] min-w-[var(--radix-select-trigger-width)] max-h-72 bg-bg-card border border-border rounded-[var(--radius-md)] overflow-hidden animate-scale-in"
+          className={`${popoverSurfaceClass} min-w-[var(--radix-select-trigger-width)] max-h-72 animate-scale-in`}
         >
           <RadixSelect.ScrollUpButton className="flex items-center justify-center h-6 bg-bg-input text-text-muted">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

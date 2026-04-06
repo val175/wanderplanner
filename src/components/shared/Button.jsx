@@ -3,15 +3,16 @@ import { motion } from 'framer-motion'
 import { spring } from '../../lib/motion'
 
 const sizes = {
-    sm: 'px-3 py-1.5 text-xs',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-6 py-3 text-sm' // Larger padding but keeps text-sm for clean aesthetics
+    sm: 'h-9 px-3 text-sm leading-none',
+    md: 'h-11 px-4 text-sm leading-none',
+    lg: 'h-11 px-6 text-sm leading-none' // Larger padding but keeps text-sm for clean aesthetics
 }
 
 const variants = {
     primary: 'bg-accent text-white hover:bg-accent-hover border border-transparent',
     secondary: 'bg-bg-secondary text-text-primary border border-border hover:bg-bg-hover hover:border-border-strong',
     ghost: 'bg-accent/5 text-accent border border-accent/20 hover:bg-accent/10 hover:border-accent/40',
+    success: 'bg-success/10 text-success border border-success/20 hover:bg-success/15',
     danger: 'bg-danger text-white hover:bg-danger/90 border border-transparent'
 }
 
@@ -25,7 +26,7 @@ const Button = forwardRef(function Button({
     disabled = false,
     ...props
 }, ref) {
-    const baseStyles = 'inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] font-semibold transition-colors focus-ring'
+    const baseStyles = 'inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] font-semibold leading-none transition-colors focus-ring touch-manipulation'
     const sizeStyles = sizes[size] || sizes.md
     const variantStyles = variants[variant] || variants.primary
     const disabledStyles = disabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''

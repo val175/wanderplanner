@@ -662,7 +662,7 @@ export default function PackingTab() {
         }
         rightSlot={
           <>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter} className="!w-auto min-w-[140px] h-7 text-xs shrink-0" size="sm">
+            <Select value={categoryFilter} onValueChange={setCategoryFilter} className="!w-auto min-w-[140px] shrink-0" size="sm">
               {filters.map(f => (
                 <SelectItem key={f.id} value={f.id}>
                   {f.label === 'All' ? 'All Items' : f.label}
@@ -671,19 +671,19 @@ export default function PackingTab() {
             </Select>
 
             <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
-              <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
-                <button
-                  onClick={() => setViewMode('group')}
-                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${viewMode === 'group' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
-                >
-                  Everyone
-                </button>
-                <button
-                  onClick={() => setViewMode('me')}
-                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all ${viewMode === 'me' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
-                >
-                  Just Me
-                </button>
+            <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0 h-9">
+              <button
+                onClick={() => setViewMode('group')}
+                className={`px-3 text-sm font-medium rounded-[var(--radius-sm)] transition-all ${viewMode === 'group' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+              >
+                Everyone
+              </button>
+              <button
+                onClick={() => setViewMode('me')}
+                className={`px-3 text-sm font-medium rounded-[var(--radius-sm)] transition-all ${viewMode === 'me' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+              >
+                Just Me
+              </button>
               </div>
 
               {!isReadOnly && (

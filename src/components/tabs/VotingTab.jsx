@@ -144,21 +144,21 @@ export default function VotingTab() {
           {/* Toolbar */}
           <div className={`transition-all duration-300 flex flex-col md:flex-row md:items-center justify-end border-b border-border pb-4 mb-2 relative gap-2 ${isCreatingPoll ? '-mt-2' : ''}`}>
             <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
-              <Select value={filter} onValueChange={setFilter} className="!w-auto min-w-[140px] h-[30px] text-xs shrink-0" size="sm">
+              <Select value={filter} onValueChange={setFilter} className="!w-auto min-w-[140px] shrink-0" size="sm">
                 <SelectItem value="all">All Categories</SelectItem>
                 {GLOBAL_CATEGORIES.map(cat => (
                   <SelectItem key={cat.id} value={cat.id}>{cat.emoji} {cat.label}</SelectItem>
                 ))}
               </Select>
 
-              <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
+              <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0 h-9">
                 <button id="idea-view-table" onClick={() => switchView('table')}
-                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${ideaView === 'table' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}>
+                  className={`px-3 text-sm font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${ideaView === 'table' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
                   Table
                 </button>
                 <button id="idea-view-grid" onClick={() => switchView('grid')}
-                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${ideaView === 'grid' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}>
+                  className={`px-3 text-sm font-medium rounded-[var(--radius-sm)] transition-colors flex items-center gap-1.5 ${ideaView === 'grid' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>
                   Grid
                 </button>

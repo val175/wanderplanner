@@ -8,6 +8,7 @@ import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { BOOKING_CATEGORIES } from '../../constants/tabs'
 import { hapticImpact } from '../../utils/haptics'
+import { LayoutGrid, LayoutList, Plus } from 'lucide-react'
 
 import BookingsTable from './BookingsTable'
 import BookingsKanban from './BookingsKanban'
@@ -116,6 +117,8 @@ export default function BookingsTab() {
     trip.bookings?.find(b => b.id === selectedBookingId),
     [trip.bookings, selectedBookingId])
 
+  const toolbarIconCls = 'h-3.5 w-3.5 shrink-0'
+
   return (
     <div className="space-y-0 animate-fade-in relative pb-24">
 
@@ -150,26 +153,26 @@ export default function BookingsTab() {
         }
         rightSlot={
           <>
-            <Select value={filter} onValueChange={setFilter} className="!w-auto min-w-[140px] h-7 text-xs shrink-0" size="sm">
+            <Select value={filter} onValueChange={setFilter} className="!w-auto min-w-[140px] shrink-0" size="sm">
               {filters.map(f => (
                 <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
               ))}
             </Select>
 
             <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide md:overflow-visible shrink-0 pb-2 md:pb-0">
-              <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0">
+              <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0 h-9">
                 <button
                   onClick={() => setViewMode('table')}
-                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all flex items-center gap-1.5 ${viewMode === 'table' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+                  className={`px-3 text-sm font-medium rounded-[var(--radius-sm)] transition-all flex items-center gap-1.5 ${viewMode === 'table' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="3" y1="15" x2="21" y2="15" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" /></svg>
+                  <LayoutList className={toolbarIconCls} />
                   Table
                 </button>
                 <button
                   onClick={() => setViewMode('board')}
-                  className={`px-3 py-1 text-xs font-medium rounded-[var(--radius-sm)] transition-all flex items-center gap-1.5 ${viewMode === 'board' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+                  className={`px-3 text-sm font-medium rounded-[var(--radius-sm)] transition-all flex items-center gap-1.5 ${viewMode === 'board' ? 'bg-bg-card text-accent shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
+                  <LayoutGrid className={toolbarIconCls} />
                   Board
                 </button>
               </div>
@@ -200,7 +203,8 @@ export default function BookingsTab() {
               {!isReadOnly && (
                 <div className="hidden md:block shrink-0">
                   <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="gap-1.5">
-                    <span className="text-base leading-none">🎫</span> New Booking
+                    <Plus className={toolbarIconCls} />
+                    New Booking
                   </Button>
                 </div>
               )}
@@ -213,9 +217,9 @@ export default function BookingsTab() {
       {!isReadOnly && createPortal(
         <button
           onClick={() => { hapticImpact('medium'); setIsAddModalOpen(true) }}
-          className="fixed bottom-[80px] right-4 z-40 block md:hidden bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2"
+          className="fixed bottom-[80px] right-4 z-40 block md:hidden bg-accent text-white rounded-full px-4 py-3 font-semibold flex items-center gap-2 min-h-11"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+          <Plus className="h-4 w-4 shrink-0" />
           New Booking
         </button>,
         document.body
