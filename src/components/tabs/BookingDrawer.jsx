@@ -244,171 +244,182 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin">
 
-          {/* Properties Panel */}
-          <div className="rounded-[var(--radius-md)] border border-border/40 overflow-hidden divide-y divide-border/30">
+          {/* Properties Panel — fields adapt per category */}
+          {(() => {
+            const cat = booking.category || 'other'
+            const dateLabel = { flight: 'Departure', lodging: 'Check-in', food: 'Reservation', concert: 'Show Date' }[cat] || 'Date'
+            const confLabel = { flight: 'Flight #', concert: 'Ticket #', food: 'Res #', lodging: 'Conf #' }[cat] || 'Conf #'
+            const showDate = cat !== 'shopping'
+            const showConf = !['shopping'].includes(cat)
+            const showLocation = cat !== 'flight'
 
-            {/* Status */}
-            <div className="flex items-center gap-3 px-3 min-h-[42px]">
-              <Label className="w-20 shrink-0">Status</Label>
-              <div className="flex-1 py-1.5">
-                <Select
-                  value={migrateStatus(booking.status)}
-                  onValueChange={val => { hapticSelection(); onUpdate(booking.id, { status: val }, actorId) }}
-                  disabled={isReadOnly}
-                  className={`text-left font-semibold text-xs ${(MONDAY_STATUSES.find(s => s.value === migrateStatus(booking.status)) || MONDAY_STATUSES[0]).colors}`}
-                >
-                  {MONDAY_STATUSES.map(s => (
-                    <SelectItem key={s.value} value={s.value}>
-                      <span className="inline-flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${s.value === 'confirmed' ? 'bg-success' : s.value === 'cancelled' ? 'bg-danger' : s.value === 'requested' ? 'bg-blue-500' : 'bg-warning'}`} />
-                        {s.label}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </Select>
-              </div>
-            </div>
+            return (
+              <div className="rounded-[var(--radius-md)] border border-border/40 overflow-hidden divide-y divide-border/30">
 
-            {/* Category */}
-            <div className="flex items-center gap-3 px-3 min-h-[42px]">
-              <Label className="w-20 shrink-0">Category</Label>
-              <div className="flex-1 py-1.5">
-                <select
-                  value={booking.category || BOOKING_CATEGORIES[0].id}
-                  onChange={e => { hapticSelection(); onUpdate(booking.id, { category: e.target.value }, actorId) }}
-                  disabled={isReadOnly}
-                  className="bg-bg-input border border-border rounded-[var(--radius-md)] text-xs font-medium text-text-secondary px-2 py-1.5 focus:outline-none focus:border-accent transition-colors w-full"
-                >
-                  {BOOKING_CATEGORIES.map(c => (
-                    <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Date */}
-            <div className="flex items-center gap-3 px-3 min-h-[42px]">
-              <Label className="w-20 shrink-0">Date</Label>
-              <div className="flex-1 py-1.5">
-                <DatePicker
-                  value={booking.bookByDate || booking.startDate || ''}
-                  onChange={val => onUpdate(booking.id, { bookByDate: val }, actorId)}
-                  className={`text-text-primary text-sm block w-full border border-border bg-bg-input rounded-[var(--radius-md)] px-2 py-1.5 ${isReadOnly ? 'cursor-default' : 'cursor-pointer hover:border-accent/50'} transition-colors`}
-                  placeholder="Add date…"
-                  disabled={isReadOnly}
-                />
-              </div>
-            </div>
-
-            {/* Cost */}
-            <div className="flex items-center gap-3 px-3 min-h-[42px]">
-              <Label className="w-20 shrink-0">Cost</Label>
-              <div className="flex-1 py-1.5">
-                <CostInput
-                  value={booking.amountPaid}
-                  currency={currency}
-                  onChange={val => onUpdate(booking.id, { amountPaid: val }, actorId)}
-                  disabled={isReadOnly}
-                />
-              </div>
-            </div>
-
-            {/* Conf # */}
-            <div className="flex items-center gap-3 px-3 min-h-[42px]">
-              <Label className="w-20 shrink-0">Conf #</Label>
-              <div className="flex-1 min-w-0 py-1.5">
-                <EditableText
-                  value={booking.confirmationNumber || ''}
-                  onSave={val => onUpdate(booking.id, { confirmationNumber: val }, actorId)}
-                  className="text-accent font-mono text-sm block"
-                  inputClassName="w-full"
-                  placeholder="Add confirmation…"
-                  readOnly={isReadOnly}
-                />
-              </div>
-            </div>
-
-            {/* Link */}
-            <div className="flex items-center gap-3 px-3 min-h-[42px]">
-              <Label className="w-20 shrink-0">Link</Label>
-              <div className="flex-1 min-w-0 py-1.5">
-                <EditableText
-                  value={booking.providerLink || ''}
-                  onSave={val => onUpdate(booking.id, { providerLink: val }, actorId)}
-                  className="text-accent text-sm block truncate"
-                  inputClassName="w-full"
-                  placeholder="Add URL…"
-                  readOnly={isReadOnly}
-                />
-              </div>
-            </div>
-
-            {/* Flight-specific: Origin & Destination */}
-            {booking.category === 'flight' && (
-              <>
-                <FlightEndpointRow
-                  label="From"
-                  value={booking.origin}
-                  isReadOnly={isReadOnly}
-                  onSave={val => onUpdate(booking.id, { origin: val }, actorId)}
-                />
-                <FlightEndpointRow
-                  label="To"
-                  value={booking.destination}
-                  isReadOnly={isReadOnly}
-                  onSave={val => onUpdate(booking.id, { destination: val }, actorId)}
-                />
-              </>
-            )}
-
-            {/* Location */}
-            <div className="flex items-start gap-3 px-3">
-              <Label className="w-20 shrink-0 pt-[13px]">Location</Label>
-              <div className="flex-1 min-w-0 py-2">
-                {editingLocation && !isReadOnly ? (
-                  <div>
-                    <LocationAutocomplete
-                      initialValue={locationLabel}
-                      cityHint={cityHint}
-                      onSelect={(locationData) => {
-                        onUpdate(booking.id, { location: locationData }, actorId)
-                        setEditingLocation(false)
-                        hapticSelection()
-                      }}
-                    />
-                    <button
-                      onClick={() => setEditingLocation(false)}
-                      className="mt-1.5 text-xs text-text-muted hover:text-text-primary"
-                    >Cancel</button>
+                {/* Status — always */}
+                <div className="flex items-center gap-3 px-3 min-h-[42px]">
+                  <Label className="w-20 shrink-0">Status</Label>
+                  <div className="flex-1 py-1.5">
+                    <Select
+                      value={migrateStatus(booking.status)}
+                      onValueChange={val => { hapticSelection(); onUpdate(booking.id, { status: val }, actorId) }}
+                      disabled={isReadOnly}
+                      className={`text-left font-semibold text-xs ${(MONDAY_STATUSES.find(s => s.value === migrateStatus(booking.status)) || MONDAY_STATUSES[0]).colors}`}
+                    >
+                      {MONDAY_STATUSES.map(s => (
+                        <SelectItem key={s.value} value={s.value}>
+                          <span className="inline-flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full ${s.value === 'confirmed' ? 'bg-success' : s.value === 'cancelled' ? 'bg-danger' : s.value === 'requested' ? 'bg-blue-500' : 'bg-warning'}`} />
+                            {s.label}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </Select>
                   </div>
-                ) : (
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <span className="text-sm text-text-secondary truncate block">
-                        {locationLabel || <span className="italic text-text-muted">No location set</span>}
-                      </span>
-                      {booking.location?.rating != null && (
-                        <span className="mt-0.5 flex items-center gap-1 text-[11px] text-text-muted">
-                          <span>⭐ {booking.location.rating}</span>
-                          {booking.location.reviewCount != null && <span>({booking.location.reviewCount.toLocaleString()})</span>}
-                          {booking.location.openingHours && <span>· {booking.location.openingHours}</span>}
-                        </span>
+                </div>
+
+                {/* Category — always */}
+                <div className="flex items-center gap-3 px-3 min-h-[42px]">
+                  <Label className="w-20 shrink-0">Category</Label>
+                  <div className="flex-1 py-1.5">
+                    <select
+                      value={booking.category || BOOKING_CATEGORIES[0].id}
+                      onChange={e => { hapticSelection(); onUpdate(booking.id, { category: e.target.value }, actorId) }}
+                      disabled={isReadOnly}
+                      className="bg-bg-input border border-border rounded-[var(--radius-md)] text-xs font-medium text-text-secondary px-2 py-1.5 focus:outline-none focus:border-accent transition-colors w-full"
+                    >
+                      {BOOKING_CATEGORIES.map(c => (
+                        <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Flight: From / To — immediately after category */}
+                {cat === 'flight' && (
+                  <>
+                    <FlightEndpointRow
+                      label="From"
+                      value={booking.origin}
+                      isReadOnly={isReadOnly}
+                      onSave={val => onUpdate(booking.id, { origin: val }, actorId)}
+                    />
+                    <FlightEndpointRow
+                      label="To"
+                      value={booking.destination}
+                      isReadOnly={isReadOnly}
+                      onSave={val => onUpdate(booking.id, { destination: val }, actorId)}
+                    />
+                  </>
+                )}
+
+                {/* Location — all except flights */}
+                {showLocation && (
+                  <div className="flex items-start gap-3 px-3">
+                    <Label className="w-20 shrink-0 pt-[13px]">Location</Label>
+                    <div className="flex-1 min-w-0 py-2">
+                      {editingLocation && !isReadOnly ? (
+                        <div>
+                          <LocationAutocomplete
+                            initialValue={locationLabel}
+                            cityHint={cityHint}
+                            onSelect={(locationData) => {
+                              onUpdate(booking.id, { location: locationData }, actorId)
+                              setEditingLocation(false)
+                              hapticSelection()
+                            }}
+                          />
+                          <button onClick={() => setEditingLocation(false)} className="mt-1.5 text-xs text-text-muted hover:text-text-primary">Cancel</button>
+                        </div>
+                      ) : (
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <span className="text-sm text-text-secondary truncate block">
+                              {locationLabel || <span className="italic text-text-muted">No location set</span>}
+                            </span>
+                            {booking.location?.rating != null && (
+                              <span className="mt-0.5 flex items-center gap-1 text-[11px] text-text-muted">
+                                <span>⭐ {booking.location.rating}</span>
+                                {booking.location.reviewCount != null && <span>({booking.location.reviewCount.toLocaleString()})</span>}
+                                {booking.location.openingHours && <span>· {booking.location.openingHours}</span>}
+                              </span>
+                            )}
+                          </div>
+                          {!isReadOnly && (
+                            <button onClick={() => setEditingLocation(true)} className="text-[11px] text-text-muted hover:text-accent transition-colors shrink-0 mt-0.5">
+                              {locationLabel ? 'Change' : 'Add'}
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
-                    {!isReadOnly && (
-                      <button
-                        onClick={() => setEditingLocation(true)}
-                        className="text-[11px] text-text-muted hover:text-accent transition-colors shrink-0 mt-0.5"
-                      >
-                        {locationLabel ? 'Change' : 'Add'}
-                      </button>
-                    )}
                   </div>
                 )}
-              </div>
-            </div>
 
-          </div>
+                {/* Date — contextual label, hidden for shopping */}
+                {showDate && (
+                  <div className="flex items-center gap-3 px-3 min-h-[42px]">
+                    <Label className="w-20 shrink-0">{dateLabel}</Label>
+                    <div className="flex-1 py-1.5">
+                      <DatePicker
+                        value={booking.bookByDate || booking.startDate || ''}
+                        onChange={val => onUpdate(booking.id, { bookByDate: val }, actorId)}
+                        className={`text-text-primary text-sm block w-full border border-border bg-bg-input rounded-[var(--radius-md)] px-2 py-1.5 ${isReadOnly ? 'cursor-default' : 'cursor-pointer hover:border-accent/50'} transition-colors`}
+                        placeholder="Add date…"
+                        disabled={isReadOnly}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Cost — always */}
+                <div className="flex items-center gap-3 px-3 min-h-[42px]">
+                  <Label className="w-20 shrink-0">Cost</Label>
+                  <div className="flex-1 py-1.5">
+                    <CostInput
+                      value={booking.amountPaid}
+                      currency={currency}
+                      onChange={val => onUpdate(booking.id, { amountPaid: val }, actorId)}
+                      disabled={isReadOnly}
+                    />
+                  </div>
+                </div>
+
+                {/* Conf # — contextual label, hidden for shopping */}
+                {showConf && (
+                  <div className="flex items-center gap-3 px-3 min-h-[42px]">
+                    <Label className="w-20 shrink-0">{confLabel}</Label>
+                    <div className="flex-1 min-w-0 py-1.5">
+                      <EditableText
+                        value={booking.confirmationNumber || ''}
+                        onSave={val => onUpdate(booking.id, { confirmationNumber: val }, actorId)}
+                        className="text-accent font-mono text-sm block"
+                        inputClassName="w-full"
+                        placeholder="Add confirmation…"
+                        readOnly={isReadOnly}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Link — always */}
+                <div className="flex items-center gap-3 px-3 min-h-[42px]">
+                  <Label className="w-20 shrink-0">Link</Label>
+                  <div className="flex-1 min-w-0 py-1.5">
+                    <EditableText
+                      value={booking.providerLink || ''}
+                      onSave={val => onUpdate(booking.id, { providerLink: val }, actorId)}
+                      className="text-accent text-sm block truncate"
+                      inputClassName="w-full"
+                      placeholder="Add URL…"
+                      readOnly={isReadOnly}
+                    />
+                  </div>
+                </div>
+
+              </div>
+            )
+          })()}
 
           <hr className="border-border/30" />
 
