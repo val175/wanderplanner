@@ -12,6 +12,10 @@ const PRODUCTION_ORIGIN = 'https://planner.vlbonite.co'
 function getAllowedOrigin(req) {
     const origin = req.headers?.origin || (req.headers?.get && req.headers.get('origin')) || ''
 
+    if (process.env.VERCEL_ENV === 'production') {
+        return origin === PRODUCTION_ORIGIN ? origin : PRODUCTION_ORIGIN
+    }
+
     if (
         origin === PRODUCTION_ORIGIN ||
         origin.endsWith('.vlbonite.co') ||
