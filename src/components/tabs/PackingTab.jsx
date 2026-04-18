@@ -153,14 +153,14 @@ const CATEGORIES = [
 ]
 
 const STARTER_ITEMS = [
-  { name: 'Passport', category: 'documents', qty: 1 },
-  { name: 'Travel insurance', category: 'documents', qty: 1 },
-  { name: 'Flight / hotel bookings printout', category: 'documents', qty: 1 },
-  { name: 'Local SIM or roaming plan', category: 'documents', qty: 1 },
-  { name: 'T-shirts', category: 'clothing', qty: 4 },
+  { name: 'Passports', category: 'documents', qty: 1 },
+  { name: 'Travel insurance printouts', category: 'documents', qty: 1 },
+  { name: 'Flight / hotel confirmations', category: 'documents', qty: 1 },
+  { name: 'Local SIM or roaming notes', category: 'documents', qty: 1 },
+  { name: 'T-shirts', category: 'clothing', qty: 6 },
   { name: 'Comfortable walking shoes', category: 'clothing', qty: 1 },
   { name: 'Light jacket / rain layer', category: 'clothing', qty: 1 },
-  { name: 'Underwear & socks', category: 'clothing', qty: 5 },
+  { name: 'Underwear & socks', category: 'clothing', qty: 7 },
   { name: 'Phone charger', category: 'tech', qty: 1 },
   { name: 'Universal power adapter', category: 'tech', qty: 1 },
   { name: 'Portable battery pack', category: 'tech', qty: 1 },

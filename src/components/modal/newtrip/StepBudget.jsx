@@ -19,8 +19,8 @@ export default function StepBudget({ form, setForm }) {
   return (
     <div className="space-y-5 animate-fade-in">
       <div>
-        <h2 className="font-heading font-semibold text-xl text-text-primary mb-1">Set your budget</h2>
-        <p className="text-sm text-text-muted font-medium">Optional. You can always add this later.</p>
+        <h2 className="font-heading font-semibold text-xl text-text-primary mb-1">Set your group budget</h2>
+        <p className="text-sm text-text-muted font-medium">Optional. You can always add or adjust this later.</p>
       </div>
 
       <div>

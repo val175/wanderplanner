@@ -56,6 +56,12 @@ export const itineraryCases = {
       ...trip,
       itinerary: trip.itinerary.map(d => {
         if (d.id !== payload.dayId) return d
+        const defaultParticipantIds = Array.isArray(trip.travelerIds)
+          ? trip.travelerIds.filter(Boolean)
+          : []
+        const explicitParticipantIds = Array.isArray(payload.activity?.participantIds)
+          ? payload.activity.participantIds.filter(Boolean)
+          : []
         const newActivity = {
           id: `act-${Date.now()}`,
           time: '09:00 AM',
@@ -65,7 +71,11 @@ export const itineraryCases = {
           name: 'New Activity',
           location: '',
           notes: '',
+          participantIds: explicitParticipantIds.length > 0 ? explicitParticipantIds : defaultParticipantIds,
           ...(payload.activity || {}),
+        }
+        if (!Array.isArray(newActivity.participantIds) || newActivity.participantIds.length === 0) {
+          newActivity.participantIds = defaultParticipantIds
         }
         if (!newActivity.endTime && newActivity.time) {
           newActivity.endTime = addMinutesToTime(newActivity.time, newActivity.duration || 60)

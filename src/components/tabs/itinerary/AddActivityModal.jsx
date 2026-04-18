@@ -3,12 +3,14 @@ import Modal from '../../shared/Modal'
 import Button from '../../shared/Button'
 import TimePicker from '../../shared/TimePicker'
 import Select, { SelectItem } from '../../shared/Select'
+import TravelerMultiSelect from '../../shared/TravelerMultiSelect'
 import { addMinutesToTime, formatDate } from '../../../utils/helpers'
 import { GLOBAL_CATEGORIES } from '../../../constants/categories'
 import { getConflicts } from './itineraryUtils'
 
-export default function AddActivityModal({ isOpen, onClose, itinerary, onAdd }) {
-  const [activityData, setActivityData] = useState({ name: '', time: '', dayId: '', duration: 60, endTime: '' })
+export default function AddActivityModal({ isOpen, onClose, itinerary, onAdd, travelers = [] }) {
+  const allTravelerIds = travelers.map(t => t.id).filter(Boolean)
+  const [activityData, setActivityData] = useState({ name: '', time: '', dayId: '', duration: 60, endTime: '', participantIds: [] })
 
   useEffect(() => {
     if (activityData.time && activityData.duration) {
@@ -21,9 +23,9 @@ export default function AddActivityModal({ isOpen, onClose, itinerary, onAdd }) 
 
   useEffect(() => {
     if (isOpen) {
-      setActivityData({ name: '', time: '', dayId: itinerary[0]?.id || '', duration: 60, endTime: '' })
+      setActivityData({ name: '', time: '', dayId: itinerary[0]?.id || '', duration: 60, endTime: '', participantIds: allTravelerIds })
     }
-  }, [isOpen, itinerary])
+  }, [isOpen, itinerary, allTravelerIds])
 
   const conflicts = useMemo(() => {
     if (!activityData.dayId || !activityData.time || !activityData.endTime) return []
@@ -42,6 +44,7 @@ export default function AddActivityModal({ isOpen, onClose, itinerary, onAdd }) 
         duration: activityData.duration,
         endTime: activityData.endTime,
         category: activityData.category || 'other',
+        participantIds: activityData.participantIds?.length ? activityData.participantIds : allTravelerIds,
       },
     })
     onClose()
@@ -91,6 +94,14 @@ export default function AddActivityModal({ isOpen, onClose, itinerary, onAdd }) 
             ))}
           </Select>
         </div>
+
+        <TravelerMultiSelect
+          travelers={travelers}
+          selectedIds={activityData.participantIds}
+          onChange={next => setActivityData(prev => ({ ...prev, participantIds: next }))}
+          label="Travelers"
+          helperText="Leave this on everyone to keep the activity shared across the whole trip."
+        />
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">

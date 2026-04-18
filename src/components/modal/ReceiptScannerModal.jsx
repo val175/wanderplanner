@@ -77,13 +77,13 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
     // Default payer to current user or first traveler
     useEffect(() => {
         if (isOpen) {
-            setPayerId(currentUserProfile?.uid || activeTrip?.travelersSnapshot?.[0]?.uid || '')
+            setPayerId(currentUserProfile?.uid || travelerProfiles?.[0]?.id || activeTrip?.travelersSnapshot?.[0]?.uid || '')
             setStep(1)
             setIsScanning(false)
             setPendingItems([])
             setReceiptDocumentId('')
         }
-    }, [isOpen, currentUserProfile?.uid, activeTrip?.travelersSnapshot])
+    }, [isOpen, currentUserProfile?.uid, travelerProfiles, activeTrip?.travelersSnapshot])
 
     // Loading message rotation
     useEffect(() => {
@@ -224,10 +224,14 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
     }
 
     const handleApprove = () => {
-        const travelerIds = activeTrip.travelersSnapshot.map(p => p.uid || p.id)
+        const travelerIds = travelerProfiles.map(p => p.id || p.uid).filter(Boolean)
+        const allTravelerIds = travelerIds.length > 0
+            ? travelerIds
+            : (activeTrip.travelersSnapshot || []).map(p => p.uid || p.id).filter(Boolean)
+        const splitMembers = allTravelerIds.length > 0 ? allTravelerIds : [payerId].filter(Boolean)
 
         pendingItems.forEach(item => {
-            const splits = buildSplits(item.amountPHP, travelerIds, 'equal')
+            const splits = buildSplits(item.amountPHP, splitMembers, 'equal')
             dispatch({
                 type: ACTIONS.ADD_SPENDING,
                 payload: {
@@ -236,9 +240,12 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
                     amount: item.amountPHP,
                     category: item.category,
                     paidBy: payerId,
-                    splitBetween: travelerIds,
+                    splitBetween: splitMembers,
+                    travelerIds: splitMembers,
+                    paxCount: splitMembers.length || 1,
                     splits,
                     splitMode: 'equal',
+                    splitStrategy: 'all',
                     documentId: receiptDocumentId || '',
                 }
             })

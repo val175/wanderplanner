@@ -281,6 +281,9 @@ export default function DocumentsTab() {
             status: parsed.status || 'confirmed',
             notes: parsed.notes || '',
             providerLink: parsed.providerLink || null,
+            travelerIds,
+            paxCount: travelerIds.length || 1,
+            seriesId: parsed.groupId || parsed.seriesId || null,
             documentIds: [bookingRecord.id],
             attachments: [{
               id: bookingRecord.id,
@@ -323,8 +326,11 @@ export default function DocumentsTab() {
               category: resolveExpenseCategory(item.category, tripBudget),
               paidBy: firstTravelerId,
               splitBetween: travelerIds,
+              travelerIds,
+              paxCount: travelerIds.length || 1,
               splits: buildSplits(Number((Number(item.amount || 0) * conversionRate).toFixed(2)), travelerIds, 'equal'),
               splitMode: 'equal',
+              splitStrategy: 'all',
             }))
           : []
 
@@ -337,8 +343,11 @@ export default function DocumentsTab() {
               category: resolveExpenseCategory(parsedType, tripBudget),
               paidBy: firstTravelerId,
               splitBetween: travelerIds,
+              travelerIds,
+              paxCount: travelerIds.length || 1,
               splits: buildSplits(toBase64Number(parsed.amountPaid) || toBase64Number(parsed.amount), travelerIds, 'equal'),
               splitMode: 'equal',
+              splitStrategy: 'all',
             }]
 
         const expenseDoc = await uploadDocumentToStorage({

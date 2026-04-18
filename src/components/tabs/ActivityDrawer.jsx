@@ -7,12 +7,14 @@ import EditableText from '../shared/EditableText'
 import Button from '../shared/Button'
 import TimePicker from '../shared/TimePicker'
 import AvatarCircle from '../shared/AvatarCircle'
+import TravelerMultiSelect from '../shared/TravelerMultiSelect'
 import LocationAutocomplete from '../shared/LocationAutocomplete'
 import { hapticImpact, hapticSelection } from '../../utils/haptics'
 import { GLOBAL_CATEGORIES } from '../../constants/categories'
 import { getDayLocationMap, detectLocationConflict } from '../../utils/tripGeo'
 import { MapPin } from 'lucide-react'
 import Label from '../shared/Label'
+import { useTripTravelers } from '../../hooks/useTripTravelers'
 
 function CategorySelect({ value, onChange, disabled }) {
   return (
@@ -32,6 +34,7 @@ function CategorySelect({ value, onChange, disabled }) {
 export default function ActivityDrawer({ activity, dayId, onClose, onViewOnMap }) {
   const { activeTrip, dispatch, isReadOnly } = useTripContext()
   const { currentUserProfile, resolveProfile } = useProfiles()
+  const travelers = useTripTravelers()
   const [mounted, setMounted] = useState(false)
   const [visible, setVisible] = useState(false)
   const [editingLocation, setEditingLocation] = useState(false)
@@ -42,6 +45,11 @@ export default function ActivityDrawer({ activity, dayId, onClose, onViewOnMap }
   const [notesDraft, setNotesDraft] = useState('')
   const feedRef = useRef(null)
   const actorId = currentUserProfile?.uid || currentUserProfile?.id
+  const tripTravelerIds = useMemo(() => travelers.map(t => t.id).filter(Boolean), [travelers])
+  const activityParticipantIds = useMemo(() => {
+    if (Array.isArray(activity?.participantIds) && activity.participantIds.length > 0) return activity.participantIds
+    return tripTravelerIds
+  }, [activity?.participantIds, tripTravelerIds])
 
   // Derive day context for display and location proximity
   const day = useMemo(() =>
@@ -244,6 +252,25 @@ export default function ActivityDrawer({ activity, dayId, onClose, onViewOnMap }
                   disabled={isReadOnly}
                 />
               </div>
+            </div>
+
+            {/* Travelers */}
+            <div className="px-3 py-3">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <Label className="w-20 shrink-0">Travelers</Label>
+                <span className="text-xs text-text-muted font-medium">
+                  {activityParticipantIds.length} pax
+                </span>
+              </div>
+              <TravelerMultiSelect
+                travelers={travelers}
+                selectedIds={activityParticipantIds}
+                onChange={next => update({ participantIds: next })}
+                label="Included travelers"
+                helperText="Select everyone who is part of this activity."
+                disabled={isReadOnly}
+                className="!mb-0"
+              />
             </div>
 
             {/* Location */}

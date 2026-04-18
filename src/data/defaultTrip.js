@@ -3,7 +3,7 @@
  */
 export const DEFAULT_TRIP = {
   id: 'sea-adventure-2026',
-  name: "Val & Partner's SEA Adventure",
+  name: 'SEA Group Adventure',
   emoji: '🌴',
   destinations: [
     { city: 'Cebu', country: 'Philippines', flag: '🇵🇭' },
@@ -14,7 +14,7 @@ export const DEFAULT_TRIP = {
   ],
   startDate: '2026-11-14',
   endDate: '2026-11-22',
-  travelers: 2,
+  travelers: 10,
   currency: 'PHP',
   createdAt: '2025-01-01T00:00:00.000Z',
 
@@ -72,7 +72,7 @@ export const DEFAULT_TRIP = {
       emoji: '🏝️',
       activities: [
         { id: 'a16', time: '08:00', duration: 120, endTime: '10:00', name: 'Beach morning & swim', emoji: '🏖️', notes: 'Chaweng Beach' },
-        { id: 'a17', time: '11:00', duration: 180, endTime: '14:00', name: 'Four Seasons Day Pass', emoji: '💆', notes: 'Pool, beach, spa — day pass for 2' },
+        { id: 'a17', time: '11:00', duration: 180, endTime: '14:00', name: 'Four Seasons Day Pass', emoji: '💆', notes: 'Pool, beach, spa — day pass for the group' },
         { id: 'a18', time: '15:00', duration: 120, endTime: '17:00', name: 'Explore Fisherman\'s Village', emoji: '🚶', notes: 'Bophut area, cute shops and cafés' },
         { id: 'a19', time: '19:00', duration: 120, endTime: '21:00', name: 'Thai dinner on the beach', emoji: '🍜', notes: 'Pad Thai, green curry, mango sticky rice' },
       ],
@@ -232,7 +232,7 @@ export const DEFAULT_TRIP = {
     },
     {
       id: 'b8',
-      name: 'Four Seasons day pass, 2 pax',
+      name: 'Four Seasons day pass, group booking',
       category: 'activity',
       status: 'not_started',
       confirmationNumber: '',
@@ -243,7 +243,7 @@ export const DEFAULT_TRIP = {
     },
     {
       id: 'b9',
-      name: 'MCR Concert tickets, 2 pax',
+      name: 'MCR Concert tickets, group booking',
       category: 'concert',
       status: 'not_started',
       confirmationNumber: '',
@@ -257,7 +257,7 @@ export const DEFAULT_TRIP = {
   todos: [
     { id: 't1', text: 'Apply for Malaysia e-NTL', category: 'Admin', done: false, dueDate: '2026-10-01', priority: 'high' },
     { id: 't2', text: 'Check Thailand visa requirements', category: 'Admin', done: false, dueDate: '2026-10-01', priority: 'high' },
-    { id: 't3', text: 'Get travel insurance for 2 people', category: 'Admin', done: false, dueDate: '2026-10-15', priority: 'high' },
+    { id: 't3', text: 'Get travel insurance for the whole group', category: 'Admin', done: false, dueDate: '2026-10-15', priority: 'high' },
     { id: 't4', text: 'Notify bank about international transactions', category: 'Finances', done: false, dueDate: '2026-11-01', priority: 'normal' },
     { id: 't5', text: 'Download offline maps: Singapore, Koh Samui, KL', category: 'Tech', done: false, dueDate: '2026-11-10', priority: 'normal' },
     { id: 't6', text: 'Exchange/load PHP to SGD, THB, MYR', category: 'Finances', done: false, dueDate: '2026-11-10', priority: 'normal' },
@@ -280,17 +280,17 @@ export const DEFAULT_TRIP = {
 
   packingList: [
     // Documents
-    { id: 'p1', name: 'Passports (2)', section: 'Documents', packed: false },
+    { id: 'p1', name: 'Passports (10)', section: 'Documents', packed: false },
     { id: 'p2', name: 'Travel insurance printouts', section: 'Documents', packed: false },
     { id: 'p3', name: 'Flight confirmations (printed)', section: 'Documents', packed: false },
     { id: 'p4', name: 'Hotel confirmations', section: 'Documents', packed: false },
     { id: 'p5', name: 'MCR concert tickets / QR codes', section: 'Documents', packed: false },
     { id: 'p6', name: 'Malaysia e-NTL printout', section: 'Documents', packed: false },
     // Clothing
-    { id: 'p7', name: 'T-shirts (6)', section: 'Clothing', packed: false },
+    { id: 'p7', name: 'T-shirts (10)', section: 'Clothing', packed: false },
     { id: 'p8', name: 'Shorts (3)', section: 'Clothing', packed: false },
     { id: 'p9', name: 'Light pants (2)', section: 'Clothing', packed: false },
-    { id: 'p10', name: 'Swimwear (2)', section: 'Clothing', packed: false },
+    { id: 'p10', name: 'Swimwear (10)', section: 'Clothing', packed: false },
     { id: 'p11', name: 'Comfortable walking shoes', section: 'Clothing', packed: false },
     { id: 'p12', name: 'Flip flops / sandals', section: 'Clothing', packed: false },
     { id: 'p13', name: 'Light rain jacket', section: 'Clothing', packed: false },
@@ -361,7 +361,7 @@ export const DEFAULT_TRIP = {
     },
   ],
 
-  notes: 'This trip is our big Southeast Asia adventure — the MCR concert in KL is the anchor event. Build the rest of the trip around it!',
+  notes: 'This trip is a big Southeast Asia group adventure — the MCR concert in KL is the anchor event. Build the rest of the trip around it!',
 }
 
 export function createEmptyTrip(overrides = {}) {

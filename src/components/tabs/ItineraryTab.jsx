@@ -17,6 +17,7 @@ import { wandaRuntime, setWandaRuntime } from '../../utils/wandaRuntime'
 import { useDrag } from '@use-gesture/react'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useSmartLocation } from '../../hooks/useSmartLocation'
+import { useTripTravelers } from '../../hooks/useTripTravelers'
 
 // ── Shared utilities only needed by the main component ─────────────────────
 function sortItineraryDays(days) {
@@ -83,6 +84,7 @@ function findDayForMapPoint(point, itinerary) {
 // ── Main Itinerary Tab ─────────────────────────────────────────────────────
 export default function ItineraryTab() {
   const { activeTrip, dispatch, isReadOnly } = useTripContext()
+  const travelers = useTripTravelers()
   const isMobile = useMediaQuery('(max-width: 767px)')
   const [viewMode, setViewMode] = useState('table')
   const [activeDayIndex, setActiveDayIndex] = useState(0)
@@ -212,6 +214,7 @@ export default function ItineraryTab() {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         itinerary={itinerary}
+        travelers={travelers}
         onAdd={({ dayId, activity }) => {
           dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId, activity } })
         }}

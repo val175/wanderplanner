@@ -1,6 +1,19 @@
 import { generateId } from '../../utils/helpers'
 import { updateTrip, STATUS_CYCLE } from '../reducerUtils'
 
+function normalizeTravelerIds(trip, booking = {}) {
+  const explicit = Array.isArray(booking.travelerIds)
+    ? booking.travelerIds.filter(Boolean)
+    : []
+  if (explicit.length > 0) return Array.from(new Set(explicit))
+  const tripIds = Array.isArray(trip.travelerIds) && trip.travelerIds.length > 0
+    ? trip.travelerIds
+    : Array.isArray(trip.travelersSnapshot)
+      ? trip.travelersSnapshot.map(person => person.id || person.uid).filter(Boolean)
+      : []
+  return Array.from(new Set(tripIds.filter(Boolean)))
+}
+
 /**
  * Unifies booking-budget synchronization logic.
  * Handles adding/removing expenses based on booking status transitions.
@@ -9,6 +22,8 @@ import { updateTrip, STATUS_CYCLE } from '../reducerUtils'
 export function syncBookingBudget(trip, prev, next, actorId = null) {
   let spendingLog = trip.spendingLog || []
   let budget = trip.budget || []
+  const bookingTravelerIds = normalizeTravelerIds(trip, next)
+  const bookingPaxCount = Number(next.paxCount || bookingTravelerIds.length || trip.travelers || 1)
 
   const wasConfirmed = prev?.status === 'confirmed'
   const isConfirmed = next.status === 'confirmed'
@@ -43,7 +58,9 @@ export function syncBookingBudget(trip, prev, next, actorId = null) {
       amount: cost,
       category: catName,
       paidBy: actorId || trip.travelerIds?.[0] || '',
-      splitBetween: trip.travelerIds || [],
+      splitBetween: bookingTravelerIds,
+      travelerIds: bookingTravelerIds,
+      paxCount: bookingPaxCount,
       splits: {},
       splitMode: 'equal',
       date: new Date().toISOString().slice(0, 10),
@@ -65,6 +82,7 @@ export const bookingCases = {
   ADD_BOOKING: (state, payload) => {
     const activeTripId = state.activeTripId
     return updateTrip(state, activeTripId, trip => {
+      const travelerIds = normalizeTravelerIds(trip, payload)
       const next = {
         id: payload.id || generateId(),
         status: 'not_started',
@@ -74,6 +92,11 @@ export const bookingCases = {
         currency: trip.currency,
         ...payload,
       }
+      next.travelerIds = Array.isArray(payload.travelerIds)
+        ? Array.from(new Set(payload.travelerIds.filter(Boolean)))
+        : travelerIds
+      next.paxCount = Number(payload.paxCount || next.travelerIds.length || trip.travelers || 1)
+      next.seriesId = payload.seriesId || null
       const { spendingLog, budget } = syncBookingBudget(trip, null, next, payload.actorId)
       return { ...trip, bookings: [next, ...trip.bookings], spendingLog, budget }
     })
@@ -84,7 +107,21 @@ export const bookingCases = {
     return updateTrip(state, activeTripId, trip => {
       const prev = trip.bookings.find(b => b.id === payload.id)
       if (!prev) return trip
-      const next = { ...prev, ...payload.updates }
+      const next = {
+        ...prev,
+        ...payload.updates,
+      }
+      if (payload.updates?.travelerIds !== undefined) {
+        next.travelerIds = Array.isArray(payload.updates.travelerIds)
+          ? Array.from(new Set(payload.updates.travelerIds.filter(Boolean)))
+          : []
+      }
+      if (payload.updates?.paxCount !== undefined) {
+        next.paxCount = Number(payload.updates.paxCount) || 0
+      } else {
+        const travelerIds = normalizeTravelerIds(trip, next)
+        next.paxCount = Number(next.paxCount || travelerIds.length || trip.travelers || 1)
+      }
       const { spendingLog, budget } = syncBookingBudget(trip, prev, next, payload.actorId)
       const bookings = trip.bookings.map(b => b.id === payload.id ? next : b)
       return { ...trip, bookings, spendingLog, budget }

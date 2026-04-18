@@ -57,19 +57,27 @@ async function buildMapboxUrl(destinations) {
 /* ─────────────────────────────────────────────────────────────
    AI caption generation (one call → 5 captions)
 ───────────────────────────────────────────────────────────── */
-async function generateCaptions(trip) {
-    const confirmed   = (trip.bookings   || []).filter(b => b.status === 'booked').length
-    const totalBooks  = (trip.bookings   || []).length
+async function generateCaptions(trip, travelerCount = trip.travelers || 1) {
+    const bookings    = trip.bookings || []
+    const confirmed   = bookings.filter(b => b.status === 'booked' || b.status === 'confirmed').length
+    const totalBooks  = bookings.length
+    const confirmedPax = bookings.reduce((sum, booking) => {
+        if (booking.status !== 'booked' && booking.status !== 'confirmed') return sum
+        const pax = Number(booking.paxCount || (Array.isArray(booking.travelerIds) ? booking.travelerIds.length : 0) || 1)
+        return sum + pax
+    }, 0)
     const openTodos   = (trip.todos      || []).filter(t => !t.done).length
     const packing     = trip.packingList || []
     const packingPct  = packing.length ? Math.round((packing.filter(p => p.packed).length / packing.length) * 100) : null
-    const budgetTotal = (trip.budget || []).reduce((s, b) => s + (b.max || 0), 0)
-    const perPerson   = budgetTotal && trip.travelers ? Math.round(budgetTotal / trip.travelers) : 0
+    // Budget max values are stored per-person; multiply by travelerCount for the group total
+    const perPerson   = (trip.budget || []).reduce((s, b) => s + (b.max || 0), 0)
+    const trav        = Math.max(travelerCount || 1, 1)
+    const budgetTotal = perPerson * trav
     const route       = (trip.destinations || []).map(d => d.city).filter(Boolean).join(' → ')
     const countdown   = daysUntil(trip.startDate)
 
     const summary = { name: trip.name, emoji: trip.emoji, route, days: (trip.itinerary || []).length,
-        travelers: trip.travelers, daysUntil: countdown, confirmed, totalBooks,
+        travelers: travelerCount, daysUntil: countdown, confirmed, confirmedPax, totalBooks,
         perPerson, currency: trip.currency, openTodos, packingPct }
 
     const text = await callAI([
@@ -98,10 +106,12 @@ function getCountdownLabel(startDate) {
     return 'Trip is underway 🌍'
 }
 
-function getBudgetInfo(trip) {
-    const total = (trip.budget || []).reduce((s, b) => s + (b.max || 0), 0)
-    const trav  = Math.max(trip.travelers || 1, 1)
-    return { total, perPerson: total > 0 ? Math.round(total / trav) : 0 }
+function getBudgetInfo(trip, travelerCount = trip.travelers || 1) {
+    // Budget max values are stored per-person (same convention as BudgetHealthCard "per-person" view).
+    // Sum them to get the total per-person estimate, then multiply for the group total.
+    const perPerson = (trip.budget || []).reduce((s, b) => s + (b.max || 0), 0)
+    const trav = Math.max(travelerCount || 1, 1)
+    return { total: perPerson * trav, perPerson }
 }
 
 const CURRENCY_SYMBOLS = { USD: '$', EUR: '€', GBP: '£', JPY: '¥', PHP: '₱', AUD: 'A$',
@@ -140,7 +150,7 @@ function WandaCaption({ text, loading, dark = false }) {
 /* ─────────────────────────────────────────────────────────────
    Slide 1 — Cover (photo hero)
 ───────────────────────────────────────────────────────────── */
-function SlideCover({ trip, travelerProfiles, coverPhoto, caption, loadingCaption }) {
+function SlideCover({ trip, travelerProfiles, coverPhoto, caption, loadingCaption, travelerCount }) {
     const route     = (trip.destinations || []).map(d => [d.flag, d.city].filter(Boolean).join(' ')).join('  ·  ')
     const countdown = getCountdownLabel(trip.startDate)
 
@@ -165,7 +175,7 @@ function SlideCover({ trip, travelerProfiles, coverPhoto, caption, loadingCaptio
                     {route    && <p className="text-sm text-white/70 font-medium">{route}</p>}
                     <p className="text-sm text-white/55">
                         {formatDateRange(trip.startDate, trip.endDate) || 'Dates TBA'}
-                        {trip.travelers > 1 && ` · ${trip.travelers} travelers`}
+                        {travelerCount > 1 && ` · ${travelerCount} travelers`}
                     </p>
                 </div>
                 {countdown && (
@@ -366,11 +376,16 @@ function SlideItinerary({ trip, cityPhotos, caption, loadingCaption }) {
 /* ─────────────────────────────────────────────────────────────
    Slide 4 — Budget & Bookings
 ───────────────────────────────────────────────────────────── */
-function SlideStatus({ trip, caption, loadingCaption }) {
-    const { total, perPerson } = getBudgetInfo(trip)
-    const confirmed  = (trip.bookings || []).filter(b => b.status === 'booked')
-    const pending    = (trip.bookings || []).filter(b => b.status !== 'booked')
-    const allBooks   = (trip.bookings || [])
+function SlideStatus({ trip, caption, loadingCaption, travelerCount }) {
+    const { total, perPerson } = getBudgetInfo(trip, travelerCount)
+    const bookings   = (trip.bookings || [])
+    const confirmed  = bookings.filter(b => b.status === 'booked' || b.status === 'confirmed')
+    const pending    = bookings.filter(b => b.status !== 'booked' && b.status !== 'confirmed')
+    const allBooks   = bookings
+    const confirmedPax = confirmed.reduce((sum, booking) => {
+        const pax = Number(booking.paxCount || (Array.isArray(booking.travelerIds) ? booking.travelerIds.length : 0) || 1)
+        return sum + pax
+    }, 0)
     const categories = (trip.budget || []).filter(b => b.max > 0).sort((a, b) => b.max - a.max).slice(0, 5)
     const sym        = CURRENCY_SYMBOLS[trip.currency] || trip.currency || '$'
 
@@ -397,14 +412,14 @@ function SlideStatus({ trip, caption, loadingCaption }) {
                             )}
                         </div>
                         <div className="bg-bg-secondary rounded-[var(--radius-lg)] p-4">
-                            <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2">Confirmed</p>
+                            <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2">Pax covered</p>
                             <p className="font-heading text-4xl font-black tracking-tighter text-text-primary leading-none">
-                                {confirmed.length}
-                                <span className="text-xl text-text-muted font-bold">/{allBooks.length}</span>
+                                {confirmedPax}
+                                <span className="text-xl text-text-muted font-bold">/{travelerCount}</span>
                             </p>
                             {pending.length > 0
-                                ? <p className="text-xs text-text-muted mt-1.5">{pending.length} still to book</p>
-                                : allBooks.length > 0 && <p className="text-xs text-success mt-1.5 font-medium">All booked ✓</p>
+                                ? <p className="text-xs text-text-muted mt-1.5">{pending.length} booking{pending.length !== 1 ? 's' : ''} still to confirm</p>
+                                : allBooks.length > 0 && <p className="text-xs text-success mt-1.5 font-medium">All bookings confirmed ✓</p>
                             }
                         </div>
                     </div>
@@ -586,6 +601,7 @@ const SLIDES = [
 export default function PresentationMode({ onClose }) {
     const { activeTrip }   = useTripContext()
     const travelerProfiles = useTripTravelers()
+    const travelerCount = travelerProfiles.length || activeTrip?.travelers || 1
 
     const [slide,          setSlide]          = useState(0)
     const [direction,      setDirection]      = useState(1)   // +1 forward, -1 back
@@ -619,13 +635,13 @@ export default function PresentationMode({ onClose }) {
         buildMapboxUrl(destinations).then(url => { if (!cancelled) setMapUrl(url) })
 
         // Generate Wanda captions
-        generateCaptions(trip)
+        generateCaptions(trip, travelerCount)
             .then(c  => { if (!cancelled) setCaptions(c) })
             .catch(e => { console.warn('[PresentationMode] Caption error:', e) })
             .finally(() => { if (!cancelled) setLoadingCaps(false) })
 
         return () => { cancelled = true }
-    }, [trip?.id])
+    }, [trip?.id, travelerCount])
 
     /* ── Navigation ── */
     const goTo = useCallback((i) => {
@@ -713,10 +729,10 @@ export default function PresentationMode({ onClose }) {
                             animation: `${direction > 0 ? 'pres-fwd' : 'pres-bwd'} 0.3s cubic-bezier(0.2,0,0,1) both`,
                         }}
                     >
-                        {slide === 0 && <SlideCover      trip={trip} travelerProfiles={travelerProfiles} coverPhoto={coverPhoto} caption={captions?.cover} loadingCaption={loadingCaps} />}
+                        {slide === 0 && <SlideCover      trip={trip} travelerProfiles={travelerProfiles} coverPhoto={coverPhoto} caption={captions?.cover} loadingCaption={loadingCaps} travelerCount={travelerCount} />}
                         {slide === 1 && <SlideMap        trip={trip} mapUrl={mapUrl} caption={captions?.map} loadingCaption={loadingCaps} />}
                         {slide === 2 && <SlideItinerary  trip={trip} cityPhotos={cityPhotos} caption={captions?.plan} loadingCaption={loadingCaps} />}
-                        {slide === 3 && <SlideStatus     trip={trip} caption={captions?.status} loadingCaption={loadingCaps} />}
+                        {slide === 3 && <SlideStatus     trip={trip} caption={captions?.status} loadingCaption={loadingCaps} travelerCount={travelerCount} />}
                         {slide === 4 && <SlideBeforeWeGo trip={trip} caption={captions?.prep}   loadingCaption={loadingCaps} />}
                     </div>
                 </div>
@@ -765,8 +781,9 @@ export default function PresentationMode({ onClose }) {
                 coverPhoto={coverPhoto}
                 captions={captions}
                 itinerary={[...(trip.itinerary || [])].sort((a, b) => a.dayNumber - b.dayNumber)}
-                confirmedBookings={(trip.bookings || []).filter(b => b.status === 'booked')}
-                budgetInfo={getBudgetInfo(trip)}
+                confirmedBookings={(trip.bookings || []).filter(b => b.status === 'booked' || b.status === 'confirmed')}
+                budgetInfo={getBudgetInfo(trip, travelerCount)}
+                travelerCount={travelerCount}
             />
         </div>,
         document.body
@@ -777,7 +794,7 @@ export default function PresentationMode({ onClose }) {
    Export Canvas — 1920×1080, inline styles only
    (html2canvas cannot read CSS custom properties)
 ───────────────────────────────────────────────────────────── */
-function ExportCanvas({ containerRef, trip, coverPhoto, captions, itinerary, confirmedBookings, budgetInfo }) {
+function ExportCanvas({ containerRef, trip, coverPhoto, captions, itinerary, confirmedBookings, budgetInfo, travelerCount }) {
     const route        = (trip.destinations || []).map(d => [d.flag, d.city].filter(Boolean).join(' ')).join(' → ')
     const countdownLbl = getCountdownLabel(trip.startDate)
     const { total, perPerson } = budgetInfo
@@ -822,7 +839,7 @@ function ExportCanvas({ containerRef, trip, coverPhoto, captions, itinerary, con
                                 <span style={{ width: '6px', height: '6px', borderRadius: '999px', backgroundColor: 'rgba(255,255,255,0.4)' }} />
                                 <p style={{ fontSize: '21px', color: 'rgba(255,255,255,0.58)', margin: 0 }}>
                                     {formatDateRange(trip.startDate, trip.endDate) || 'Dates TBA'}
-                                    {trip.travelers > 1 && ` · ${trip.travelers} travelers`}
+                                    {travelerCount > 1 && ` · ${travelerCount} travelers`}
                                 </p>
                             </div>
                         </div>
@@ -856,7 +873,7 @@ function ExportCanvas({ containerRef, trip, coverPhoto, captions, itinerary, con
                             <div>
                                 <p style={{ fontSize: '13px', fontWeight: 700, color: MUTE, margin: 0, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Travelers</p>
                                 <p style={{ fontSize: '38px', fontWeight: 800, letterSpacing: '-0.04em', margin: '8px 0 0', color: TXT, lineHeight: 1 }}>
-                                    {trip.travelers || 1}
+                                    {travelerCount}
                                 </p>
                             </div>
                         </div>
@@ -901,9 +918,9 @@ function ExportCanvas({ containerRef, trip, coverPhoto, captions, itinerary, con
                                 </p>
                             </div>
                             <div>
-                                <p style={{ fontSize: '13px', color: MUTE, margin: 0 }}>Bookings confirmed</p>
+                                <p style={{ fontSize: '13px', color: MUTE, margin: 0 }}>Pax covered</p>
                                 <p style={{ fontSize: '34px', fontWeight: 800, letterSpacing: '-0.04em', margin: '8px 0 0', lineHeight: 1 }}>
-                                    {confirmedBookings.length}<span style={{ fontSize: '20px', color: MUTE }}>/{trip.bookings?.length || 0}</span>
+                                    {confirmedBookings.reduce((sum, booking) => sum + Number(booking.paxCount || (Array.isArray(booking.travelerIds) ? booking.travelerIds.length : 0) || 1), 0)}<span style={{ fontSize: '20px', color: MUTE }}>/{travelerCount}</span>
                                 </p>
                             </div>
                         </div>

@@ -14,6 +14,7 @@ import Input from '../shared/Input'
 import EmptyState from '../shared/EmptyState'
 import DatePicker from '../shared/DatePicker'
 import AvatarCircle from '../shared/AvatarCircle'
+import TravelerMultiSelect from '../shared/TravelerMultiSelect'
 import { calculateBalances, simplifyDebts, buildSplits } from '../../utils/splitwise'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
 import Select, { SelectItem } from '../shared/Select'
@@ -38,13 +39,17 @@ function getSmallSettleCopy(from, to, tx) {
   return SMALL_SETTLE_COPY[hash % SMALL_SETTLE_COPY.length](from, to)
 }
 
-function AddExpenseModal({ isOpen, onClose, onAdd, travelers, categories }) {
+function AddExpenseModal({ isOpen, onClose, onAdd, travelers, categories, currency = 'PHP' }) {
+  const allTravelerIds = useMemo(() => travelers.map(t => t.id).filter(Boolean), [travelers])
   const [expenseData, setExpenseData] = useState({
     description: '',
     amount: '',
     category: categories[0]?.name || '',
     paidBy: travelers[0]?.id || ''
   })
+  const [splitMode, setSplitMode] = useState('all') // all | subset | custom
+  const [selectedTravelerIds, setSelectedTravelerIds] = useState([])
+  const [customShares, setCustomShares] = useState({})
 
   // Prefill check (if needed, though here it's simple state)
   useEffect(() => {
@@ -55,21 +60,59 @@ function AddExpenseModal({ isOpen, onClose, onAdd, travelers, categories }) {
         category: categories[0]?.name || '',
         paidBy: travelers[0]?.id || ''
       })
+      setSplitMode('all')
+      setSelectedTravelerIds(allTravelerIds)
+      setCustomShares({})
     }
-  }, [isOpen, categories, travelers])
+  }, [isOpen, categories, travelers, allTravelerIds])
+
+  const splitTravelerIds = splitMode === 'all'
+    ? allTravelerIds
+    : selectedTravelerIds
+
+  const memberIds = splitTravelerIds.length > 0 ? splitTravelerIds : allTravelerIds
+  const amountValue = Number(expenseData.amount) || 0
+  const resolvedCustomShares = useMemo(() => {
+    if (splitMode !== 'custom') return {}
+    return memberIds.reduce((acc, id) => {
+      acc[id] = Number(customShares[id]) || 0
+      return acc
+    }, {})
+  }, [splitMode, memberIds, customShares])
+  const customTotal = useMemo(
+    () => Object.values(resolvedCustomShares).reduce((sum, value) => sum + (Number(value) || 0), 0),
+    [resolvedCustomShares]
+  )
+  const customValid = splitMode !== 'custom' || Math.abs(customTotal - amountValue) < 0.01
+
+  useEffect(() => {
+    if (splitMode === 'all') {
+      setSelectedTravelerIds(allTravelerIds)
+    } else if (splitMode === 'subset' && selectedTravelerIds.length === 0) {
+      setSelectedTravelerIds(allTravelerIds)
+    } else if (splitMode === 'custom' && selectedTravelerIds.length === 0) {
+      setSelectedTravelerIds(allTravelerIds)
+    }
+  }, [splitMode, allTravelerIds, selectedTravelerIds.length])
 
   const handleSubmit = (e) => {
     e?.preventDefault()
     if (!expenseData.description.trim() || !expenseData.amount) return
-    const splits = buildSplits(Number(expenseData.amount), travelers.map(t => t.id), 'equal')
+    if (!customValid) return
+    const splitMembers = memberIds.length > 0 ? memberIds : allTravelerIds
+    const mode = splitMode === 'custom' ? 'amount' : 'equal'
+    const splits = buildSplits(amountValue, splitMembers, mode, resolvedCustomShares)
     onAdd({
       description: expenseData.description.trim(),
-      amount: Number(expenseData.amount),
+      amount: amountValue,
       category: expenseData.category,
       paidBy: expenseData.paidBy,
-      splitBetween: travelers.map(t => t.id),
+      splitBetween: splitMembers,
+      travelerIds: splitMembers,
+      paxCount: splitMembers.length || allTravelerIds.length || 1,
       splits,
-      splitMode: 'equal',
+      splitMode: mode,
+      splitStrategy: splitMode,
       date: new Date().toISOString()
     })
     onClose()
@@ -118,11 +161,106 @@ function AddExpenseModal({ isOpen, onClose, onAdd, travelers, categories }) {
           </Select>
         </div>
 
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Split</label>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => setSplitMode('all')}
+              className={`px-3 py-2 rounded-[var(--radius-md)] border text-xs font-semibold transition-colors ${
+                splitMode === 'all'
+                  ? 'bg-accent text-white border-accent'
+                  : 'bg-bg-secondary text-text-muted border-border hover:text-text-primary'
+              }`}
+            >
+              Everyone
+            </button>
+            <button
+              type="button"
+              onClick={() => { setSplitMode('subset'); if (selectedTravelerIds.length === 0) setSelectedTravelerIds(allTravelerIds) }}
+              className={`px-3 py-2 rounded-[var(--radius-md)] border text-xs font-semibold transition-colors ${
+                splitMode === 'subset'
+                  ? 'bg-accent text-white border-accent'
+                  : 'bg-bg-secondary text-text-muted border-border hover:text-text-primary'
+              }`}
+            >
+              Selected
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const nextIds = selectedTravelerIds.length === 0 ? allTravelerIds : selectedTravelerIds
+                setSplitMode('custom')
+                if (selectedTravelerIds.length === 0) setSelectedTravelerIds(nextIds)
+                if (nextIds.length > 0) {
+                  const equalShare = amountValue ? amountValue / nextIds.length : 0
+                  setCustomShares(Object.fromEntries(nextIds.map(id => [id, Number(equalShare.toFixed(2))])))
+                }
+              }}
+              className={`px-3 py-2 rounded-[var(--radius-md)] border text-xs font-semibold transition-colors ${
+                splitMode === 'custom'
+                  ? 'bg-accent text-white border-accent'
+                  : 'bg-bg-secondary text-text-muted border-border hover:text-text-primary'
+              }`}
+            >
+              Custom
+            </button>
+          </div>
+        </div>
+
+        {splitMode !== 'all' && (
+          <TravelerMultiSelect
+            travelers={travelers}
+            selectedIds={selectedTravelerIds}
+            onChange={setSelectedTravelerIds}
+            label="Split between"
+            helperText={splitMode === 'custom'
+              ? 'Enter how much each selected traveler owes.'
+              : 'Pick the travelers included in this expense.'}
+          />
+        )}
+
+        {splitMode === 'custom' && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-text-muted">
+              <span>Custom amounts</span>
+              <span className={customValid ? 'text-text-muted' : 'text-danger'}>
+                {formatCurrency(Math.round(customTotal), currency)}
+              </span>
+            </div>
+            <div className="space-y-2">
+              {memberIds.map(id => {
+                const traveler = travelers.find(t => t.id === id)
+                return (
+                  <div key={id} className="flex items-center gap-2">
+                    <AvatarCircle profile={traveler} size={24} />
+                    <span className="flex-1 text-sm text-text-primary font-medium truncate">
+                      {traveler?.name || 'Traveler'}
+                    </span>
+                    <Input
+                      type="number"
+                      value={customShares[id] ?? ''}
+                      onChange={e => setCustomShares(prev => ({ ...prev, [id]: e.target.value }))}
+                      placeholder="0"
+                      className="w-28 font-mono text-right"
+                    />
+                  </div>
+                )
+              })}
+            </div>
+            {!customValid && (
+              <p className="text-xs text-danger">
+                Custom amounts must add up to the expense total.
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="pt-4 flex justify-end gap-3 border-t border-border mt-6">
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!expenseData.description.trim() || !expenseData.amount}>
+      <Button onClick={handleSubmit} disabled={!expenseData.description.trim() || !expenseData.amount || !customValid}>
             Log Expense
           </Button>
         </div>
@@ -848,6 +986,7 @@ export default function BudgetTab() {
         onAdd={handleAddSpending}
         travelers={travelers}
         categories={budget}
+        currency={currency}
       />
 
       <TabHeader

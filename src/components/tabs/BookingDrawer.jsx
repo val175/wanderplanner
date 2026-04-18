@@ -7,8 +7,10 @@ import Select, { SelectItem } from '../shared/Select'
 import Button from '../shared/Button'
 import DatePicker from '../shared/DatePicker'
 import AvatarCircle from '../shared/AvatarCircle'
+import TravelerMultiSelect from '../shared/TravelerMultiSelect'
 import { useProfiles } from '../../context/ProfileContext'
 import { useTripContext } from '../../context/TripContext'
+import { useTripTravelers } from '../../hooks/useTripTravelers'
 import { ACTIONS } from '../../state/tripReducer'
 import { formatCurrency } from '../../utils/helpers'
 import { hapticImpact, hapticSelection } from '../../utils/haptics'
@@ -91,6 +93,7 @@ function FlightEndpointRow({ label, value, isReadOnly, onSave }) {
 export default function BookingDrawer({ booking, currency, onUpdate, onClose, isReadOnly }) {
   const { activeTrip, state, dispatch } = useTripContext()
   const { currentUserProfile, resolveProfile } = useProfiles()
+  const travelers = useTripTravelers()
   const [mounted, setMounted] = useState(false)
   const [visible, setVisible] = useState(false)
   const [isEditingNotes, setIsEditingNotes] = useState(false)
@@ -102,6 +105,11 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
   const feedRef = useRef(null)
   const actorId = currentUserProfile?.uid || currentUserProfile?.id
   const tripDocuments = state.documentsByTrip?.[activeTrip?.id] || {}
+  const tripTravelerIds = useMemo(() => travelers.map(t => t.id).filter(Boolean), [travelers])
+  const bookingTravelerIds = useMemo(() => {
+    if (Array.isArray(booking?.travelerIds) && booking.travelerIds.length > 0) return booking.travelerIds
+    return tripTravelerIds
+  }, [booking?.travelerIds, tripTravelerIds])
   const locationLabel = typeof booking?.location === 'string'
     ? booking.location
     : booking?.location?.placeName || ''
@@ -381,6 +389,53 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
                       currency={currency}
                       onChange={val => onUpdate(booking.id, { amountPaid: val }, actorId)}
                       disabled={isReadOnly}
+                    />
+                    {(() => {
+                      const pax = Number(booking.paxCount || bookingTravelerIds.length || 0)
+                      const cost = Number(booking.amountPaid || 0)
+                      if (pax > 1 && cost > 0) {
+                        return (
+                          <p className="text-[11px] text-text-muted mt-1 tabular-nums">
+                            {formatCurrency(Math.round(cost / pax), currency)} × {pax} pax
+                          </p>
+                        )
+                      }
+                      return null
+                    })()}
+                  </div>
+                </div>
+
+                <div className="px-3 py-3">
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <Label className="w-20 shrink-0">Travelers</Label>
+                    <span className="text-xs text-text-muted font-medium">
+                      {booking.paxCount || bookingTravelerIds.length || 1} pax
+                    </span>
+                  </div>
+                  <TravelerMultiSelect
+                    travelers={travelers}
+                    selectedIds={bookingTravelerIds}
+                    onChange={next => onUpdate(booking.id, {
+                      travelerIds: next,
+                      paxCount: next.length || tripTravelerIds.length || 1,
+                    }, actorId)}
+                    label="Included travelers"
+                    helperText="Select the travelers covered by this booking."
+                    disabled={isReadOnly}
+                    className="!mb-0"
+                  />
+                </div>
+
+                <div className="flex items-center gap-3 px-3 min-h-[42px]">
+                  <Label className="w-20 shrink-0">Series</Label>
+                  <div className="flex-1 min-w-0 py-1.5">
+                    <EditableText
+                      value={booking.seriesId || ''}
+                      onSave={val => onUpdate(booking.id, { seriesId: val.trim() || null }, actorId)}
+                      className="text-accent text-sm block truncate font-mono"
+                      inputClassName="w-full"
+                      placeholder="Add group ID…"
+                      readOnly={isReadOnly}
                     />
                   </div>
                 </div>

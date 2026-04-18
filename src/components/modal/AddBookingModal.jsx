@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useDropzone } from 'react-dropzone'
 import Modal from '../shared/Modal'
 import Button from '../shared/Button'
 import Select, { SelectItem } from '../shared/Select'
+import TravelerMultiSelect from '../shared/TravelerMultiSelect'
 import { useTripContext } from '../../context/TripContext'
 import { useProfiles } from '../../context/ProfileContext'
+import { useTripTravelers } from '../../hooks/useTripTravelers'
 import { ACTIONS } from '../../state/tripReducer'
 import { BOOKING_CATEGORIES } from '../../constants/tabs'
 import { generateId } from '../../utils/helpers'
@@ -28,6 +30,8 @@ const toValidCategory = (val) => VALID_CATEGORY_IDS.has(val) ? val : BOOKING_CAT
 export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
   const { activeTrip, dispatch, showToast } = useTripContext()
   const { currentUserProfile } = useProfiles()
+  const travelers = useTripTravelers()
+  const allTravelerIds = useMemo(() => travelers.map(t => t.id).filter(Boolean), [travelers])
   const actorId = currentUserProfile?.uid || currentUserProfile?.id
 
   const [mode, setMode] = useState('input') // 'input' | 'processing' | 'review'
@@ -39,22 +43,25 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
     name: '',
     category: toValidCategory(initialCategory),
     estimatedCost: '',
+    seriesId: '',
   })
 
   const [reviewForm, setReviewForm] = useState(null)
   const [pendingUpload, setPendingUpload] = useState(null)
+  const [travelerIds, setTravelerIds] = useState([])
 
   useEffect(() => {
     if (isOpen) {
       setMode('input')
-      setForm({ name: '', category: toValidCategory(initialCategory), estimatedCost: '' })
+      setForm({ name: '', category: toValidCategory(initialCategory), estimatedCost: '', seriesId: '' })
       setReviewForm(null)
       setPendingUpload(null)
       setError(null)
       setLoadingMsgIdx(0)
       setIsSubmitting(false)
+      setTravelerIds(allTravelerIds)
     }
-  }, [isOpen, initialCategory])
+  }, [isOpen, initialCategory, allTravelerIds])
 
   useEffect(() => {
     if (mode !== 'processing') return
@@ -117,6 +124,7 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
         status: data.status || 'confirmed',
         notes: data.notes || '',
         providerLink: data.providerLink || '',
+        seriesId: '',
       })
 
       setMode('review')
@@ -155,6 +163,9 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
         confirmationNumber: '',
         providerLink: '',
         location: '',
+        travelerIds,
+        paxCount: travelerIds.length || allTravelerIds.length || 1,
+        seriesId: form.seriesId.trim() || null,
         actorId,
       },
     })
@@ -206,6 +217,9 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
         status: reviewForm.status || 'confirmed',
         notes: reviewForm.notes,
         providerLink: reviewForm.providerLink || null,
+        travelerIds,
+        paxCount: travelerIds.length || allTravelerIds.length || 1,
+        seriesId: reviewForm.seriesId?.trim() || form.seriesId.trim() || null,
         ...(documentRecord && {
           documentIds: [documentRecord.id],
           attachments: [{
@@ -336,6 +350,26 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
               </div>
             </div>
 
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">
+                Series / Group ID
+              </label>
+              <input
+                value={form.seriesId}
+                onChange={e => setForm(p => ({ ...p, seriesId: e.target.value }))}
+                placeholder="e.g. flights-kul or hotel-sg"
+                className={inputCls}
+              />
+            </div>
+
+            <TravelerMultiSelect
+              travelers={travelers}
+              selectedIds={travelerIds}
+              onChange={setTravelerIds}
+              label="Travelers"
+              helperText="Leave as-is to apply this booking to the whole group."
+            />
+
             <div className="flex justify-end gap-3 pt-2 border-t border-border">
               <Button variant="secondary" onClick={onClose}>Cancel</Button>
               <Button onClick={handleManualAdd} disabled={!form.name.trim()}>
@@ -445,6 +479,26 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
                 />
               </div>
             </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">
+                Series / Group ID
+              </label>
+              <input
+                value={reviewForm.seriesId || ''}
+                onChange={e => setReviewForm(p => ({ ...p, seriesId: e.target.value }))}
+                placeholder="e.g. flights-kul or hotel-sg"
+                className={inputCls}
+              />
+            </div>
+
+            <TravelerMultiSelect
+              travelers={travelers}
+              selectedIds={travelerIds}
+              onChange={setTravelerIds}
+              label="Travelers"
+              helperText="Use this to mark flights, hotels, or activities for a subset of the trip."
+            />
 
             <div className="flex justify-between gap-3 pt-2 border-t border-border">
               <Button variant="secondary" onClick={() => setMode('input')}>

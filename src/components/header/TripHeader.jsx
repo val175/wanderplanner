@@ -72,6 +72,12 @@ function TravelerPicker({ trip, travelerProfiles, dispatch, isReadOnly }) {
   }, [open])
 
   const travelerCount = trip.travelers || 1
+  const visibleProfiles = travelerProfiles.slice(0, 4)
+  const hiddenCount = Math.max(travelerProfiles.length - visibleProfiles.length, 0)
+  const labelNames = travelerProfiles.slice(0, 2).map(p => (p.name || 'Anonymous').split(' ')[0])
+  const travelerLabel = hiddenCount > 0
+    ? `${labelNames.join(' & ')} +${hiddenCount}`
+    : travelerProfiles.map(p => (p.name || 'Anonymous').split(' ')[0]).join(' & ')
 
   return (
     <>
@@ -86,14 +92,19 @@ function TravelerPicker({ trip, travelerProfiles, dispatch, isReadOnly }) {
         {travelerProfiles.length > 0 ? (
           <>
             <div className="flex items-center">
-              {travelerProfiles.map((p, i) => (
+              {visibleProfiles.map((p, i) => (
                 <div key={p.id} className={`inline-flex ${i === 0 ? '' : '-ml-2'} border-2 border-bg-primary rounded-full`}>
                   <AvatarCircle profile={p} size={24} />
                 </div>
               ))}
+              {hiddenCount > 0 && (
+                <div className="-ml-2 border-2 border-bg-primary rounded-full bg-bg-secondary text-[10px] font-bold text-text-muted w-6 h-6 flex items-center justify-center">
+                  +{hiddenCount}
+                </div>
+              )}
             </div>
             <span className="text-sm font-medium text-text-secondary truncate max-w-[120px]">
-              {travelerProfiles.map(p => (p.name || 'Anonymous').split(' ')[0]).join(' & ')}
+              {travelerLabel}
             </span>
           </>
         ) : (

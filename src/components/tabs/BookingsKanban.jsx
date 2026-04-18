@@ -159,6 +159,11 @@ function SortableCard({ booking, currency, onRowClick, isReadOnly }) {
 // ── Shared Card Content (used by Sortable and Overlay) ───────────────────
 function BookingCardContent({ booking, currency, onRowClick, isOverlay, isReadOnly }) {
     const categoryConfig = BOOKING_CATEGORIES.find(c => c.id === booking.category) || BOOKING_CATEGORIES[0]
+    const scopeLabel = Array.isArray(booking?.travelerIds) && booking.travelerIds.length > 0
+        ? `${booking.travelerIds.length} pax`
+        : Number(booking?.paxCount) > 0
+            ? `${booking.paxCount} pax`
+            : 'Whole trip'
 
     return (
         <div
@@ -195,6 +200,9 @@ function BookingCardContent({ booking, currency, onRowClick, isOverlay, isReadOn
             <div className="flex items-center justify-between pt-2 border-t border-border/30 mt-2">
                 <span className="text-[11px] px-2 py-0.5 bg-bg-hover rounded-full text-text-muted">
                     {categoryConfig.label}
+                </span>
+                <span className="text-[11px] px-2 py-0.5 bg-bg-secondary rounded-full text-text-muted">
+                    {scopeLabel}
                 </span>
                 {booking.amountPaid > 0 && (
                     <span className="text-xs font-mono font-medium text-text-secondary">

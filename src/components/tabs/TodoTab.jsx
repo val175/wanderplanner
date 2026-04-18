@@ -93,7 +93,14 @@ export default function TodoTab() {
       const res = await fetch('https://wanderplan-rust.vercel.app/api/generate-checklist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ tripName: trip.name, destinations: trip.destinations, startDate: trip.startDate, endDate: trip.endDate })
+        body: JSON.stringify({
+          tripName: trip.name,
+          destinations: trip.destinations,
+          startDate: trip.startDate,
+          endDate: trip.endDate,
+          travelerCount: travelers.length || trip.travelers || 1,
+          travelerIds: tripTravelers,
+        })
       })
       if (!res.ok) throw new Error('API failed')
       const data = await res.json()

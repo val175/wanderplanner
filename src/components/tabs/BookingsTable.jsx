@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import React, { useState, useMemo } from 'react'
 import {
     useReactTable,
     getCoreRowModel,
@@ -68,6 +68,13 @@ function TypeDropdown({ value, onChange, disabled }) {
     )
 }
 
+function getBookingScopeLabel(booking) {
+    const explicitCount = Array.isArray(booking?.travelerIds) && booking.travelerIds.length > 0
+        ? booking.travelerIds.length
+        : Number(booking?.paxCount) || 0
+    if (explicitCount > 0) return `${explicitCount} pax`
+    return 'Whole trip'
+}
 
 // ── Main Table Component ───────────────────────────────────────────────────
 export default function BookingsTable({
@@ -98,7 +105,19 @@ export default function BookingsTable({
             header: 'Booking Name',
             size: 250,
             cell: info => (
-                <span className="text-[13px] font-medium text-text-primary truncate block">{info.getValue()}</span>
+                <div className="min-w-0">
+                    <span className="text-[13px] font-medium text-text-primary truncate block">{info.getValue()}</span>
+                    <span className="text-[11px] text-text-muted mt-0.5 block">{getBookingScopeLabel(info.row.original)}</span>
+                </div>
+            ),
+        },
+        {
+            id: 'scope',
+            accessorFn: row => getBookingScopeLabel(row),
+            header: 'Scope',
+            size: 100,
+            cell: info => (
+                <span className="text-xs font-medium text-text-secondary">{info.getValue()}</span>
             ),
         },
         {
@@ -227,56 +246,150 @@ export default function BookingsTable({
         getSortedRowModel: getSortedRowModel(),
     })
 
+    // Group bookings by seriesId for mobile card view
+    const groups = useMemo(() => {
+        const result = []
+        const seen = {} // seriesId => group index in result
+        for (const booking of data) {
+            const sid = booking.seriesId
+            if (sid) {
+                if (seen[sid] !== undefined) {
+                    result[seen[sid]].bookings.push(booking)
+                } else {
+                    seen[sid] = result.length
+                    result.push({ seriesId: sid, bookings: [booking] })
+                }
+            } else {
+                result.push({ seriesId: null, bookings: [booking] })
+            }
+        }
+        return result
+    }, [data])
+
     const isMobile = useMediaQuery('(max-width: 767px)')
 
     if (isMobile) {
         return (
             <div className="flex flex-col gap-3 pb-6">
-                {data.map(booking => {
-                    const categoryConfig = BOOKING_CATEGORIES.find(c => c.id === booking.category) || BOOKING_CATEGORIES[0]
-                    const status = MONDAY_STATUSES.find(s => s.value === migrateStatus(booking.status)) || MONDAY_STATUSES[0]
-                    return (
-                        <Card key={booking.id} className="p-3 border border-border cursor-pointer" onClick={() => onRowClick?.(booking)}>
-                            {/* HEADER */}
-                            <div className="flex items-start justify-between gap-2 mb-2">
-                                <div className="flex items-center gap-2 flex-1 min-w-0">
-                                    <span className="text-xl shrink-0">{categoryConfig.emoji}</span>
-                                    <p className="font-semibold text-[13px] text-text-primary truncate">{booking.name || 'Untitled'}</p>
+                {groups.map((group, gi) => {
+                    if (!group.seriesId) {
+                        // ungrouped — render normally
+                        const booking = group.bookings[0]
+                        const categoryConfig = BOOKING_CATEGORIES.find(c => c.id === booking.category) || BOOKING_CATEGORIES[0]
+                        const status = MONDAY_STATUSES.find(s => s.value === migrateStatus(booking.status)) || MONDAY_STATUSES[0]
+                        return (
+                            <Card key={booking.id} className="p-3 border border-border cursor-pointer" onClick={() => onRowClick?.(booking)}>
+                                {/* HEADER */}
+                                <div className="flex items-start justify-between gap-2 mb-2">
+                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                        <span className="text-xl shrink-0">{categoryConfig.emoji}</span>
+                                        <div className="min-w-0">
+                                            <p className="font-semibold text-[13px] text-text-primary truncate">{booking.name || 'Untitled'}</p>
+                                            <p className="text-[11px] text-text-muted mt-0.5">{getBookingScopeLabel(booking)}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
+                                        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${status.colors}`}>
+                                            {status.label}
+                                        </span>
+                                        {!isReadOnly && (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); triggerHaptic('medium'); onDelete(booking.id) }}
+                                                className="p-1 text-text-muted hover:text-danger transition-colors"
+                                                title="Delete booking"
+                                            >
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
-                                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${status.colors}`}>
-                                        {status.label}
-                                    </span>
-                                    {!isReadOnly && (
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); triggerHaptic('medium'); onDelete(booking.id) }}
-                                            className="p-1 text-text-muted hover:text-danger transition-colors"
-                                            title="Delete booking"
-                                        >
-                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-                                        </button>
-                                    )}
+                                {/* FOOTER */}
+                                <div className="flex items-center justify-between pt-2 border-t border-border/20" onClick={e => e.stopPropagation()}>
+                                    <DatePicker
+                                        value={booking.bookByDate || booking.startDate || ''}
+                                        onChange={val => onUpdate(booking.id, { bookByDate: val })}
+                                        className="text-[11px] text-text-muted cursor-pointer"
+                                        placeholder="Set date..."
+                                    />
+                                    <EditableText
+                                        value={booking.amountPaid ? String(booking.amountPaid) : ''}
+                                        displayValue={booking.amountPaid ? formatCurrency(booking.amountPaid, currency) : undefined}
+                                        onSave={newVal => onUpdate(booking.id, { amountPaid: Number(newVal) || 0 })}
+                                        className="text-[13px] font-mono font-semibold tabular-nums text-text-primary text-right"
+                                        inputClassName="w-full text-right"
+                                        placeholder={formatCurrency(0, currency)}
+                                    />
                                 </div>
-                            </div>
+                            </Card>
+                        )
+                    }
 
-                            {/* FOOTER — date (left) + cost (right) */}
-                            <div className="flex items-center justify-between pt-2 border-t border-border/20" onClick={e => e.stopPropagation()}>
-                                <DatePicker
-                                    value={booking.bookByDate || booking.startDate || ''}
-                                    onChange={val => onUpdate(booking.id, { bookByDate: val })}
-                                    className="text-[11px] text-text-muted cursor-pointer"
-                                    placeholder="Set date..."
-                                />
-                                <EditableText
-                                    value={booking.amountPaid ? String(booking.amountPaid) : ''}
-                                    displayValue={booking.amountPaid ? formatCurrency(booking.amountPaid, currency) : undefined}
-                                    onSave={newVal => onUpdate(booking.id, { amountPaid: Number(newVal) || 0 })}
-                                    className="text-[13px] font-mono font-semibold tabular-nums text-text-primary text-right"
-                                    inputClassName="w-full text-right"
-                                    placeholder={formatCurrency(0, currency)}
-                                />
+                    // Grouped series — render as a cluster
+                    const seriesTotal = group.bookings.reduce((s, b) => s + (Number(b.amountPaid) || 0), 0)
+                    return (
+                        <div key={`series-${group.seriesId}-${gi}`} className="rounded-[var(--radius-lg)] border border-accent/30 overflow-hidden">
+                            {/* Series label */}
+                            <div className="flex items-center justify-between px-3 py-2 bg-accent/5 border-b border-accent/20">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-accent">
+                                    Series: {group.seriesId}
+                                </span>
+                                {seriesTotal > 0 && (
+                                    <span className="text-[11px] font-mono font-semibold text-text-primary tabular-nums">
+                                        {formatCurrency(seriesTotal, currency)} total
+                                    </span>
+                                )}
                             </div>
-                        </Card>
+                            {/* Individual bookings in the series */}
+                            <div className="divide-y divide-border/20">
+                                {group.bookings.map(booking => {
+                                    const categoryConfig = BOOKING_CATEGORIES.find(c => c.id === booking.category) || BOOKING_CATEGORIES[0]
+                                    const status = MONDAY_STATUSES.find(s => s.value === migrateStatus(booking.status)) || MONDAY_STATUSES[0]
+                                    return (
+                                        <div key={booking.id} className="p-3 cursor-pointer hover:bg-bg-hover/40 transition-colors" onClick={() => onRowClick?.(booking)}>
+                                            <div className="flex items-start justify-between gap-2 mb-2">
+                                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                    <span className="text-xl shrink-0">{categoryConfig.emoji}</span>
+                                                    <div className="min-w-0">
+                                                        <p className="font-semibold text-[13px] text-text-primary truncate">{booking.name || 'Untitled'}</p>
+                                                        <p className="text-[11px] text-text-muted mt-0.5">{getBookingScopeLabel(booking)}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
+                                                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${status.colors}`}>
+                                                        {status.label}
+                                                    </span>
+                                                    {!isReadOnly && (
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); triggerHaptic('medium'); onDelete(booking.id) }}
+                                                            className="p-1 text-text-muted hover:text-danger transition-colors"
+                                                            title="Delete booking"
+                                                        >
+                                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center justify-between pt-2 border-t border-border/20" onClick={e => e.stopPropagation()}>
+                                                <DatePicker
+                                                    value={booking.bookByDate || booking.startDate || ''}
+                                                    onChange={val => onUpdate(booking.id, { bookByDate: val })}
+                                                    className="text-[11px] text-text-muted cursor-pointer"
+                                                    placeholder="Set date..."
+                                                />
+                                                <EditableText
+                                                    value={booking.amountPaid ? String(booking.amountPaid) : ''}
+                                                    displayValue={booking.amountPaid ? formatCurrency(booking.amountPaid, currency) : undefined}
+                                                    onSave={newVal => onUpdate(booking.id, { amountPaid: Number(newVal) || 0 })}
+                                                    className="text-[13px] font-mono font-semibold tabular-nums text-text-primary text-right"
+                                                    inputClassName="w-full text-right"
+                                                    placeholder={formatCurrency(0, currency)}
+                                                />
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
                     )
                 })}
             </div>
@@ -284,6 +397,19 @@ export default function BookingsTable({
     }
 
     // Fixed table layout to allow truncation and defined widths
+    // Compute row-level meta: is this the first or last row of a series group?
+    const seriesMap = useMemo(() => {
+        const m = {} // seriesId => [rowIndices]
+        table.getRowModel().rows.forEach((row, i) => {
+            const sid = row.original.seriesId
+            if (sid) {
+                if (!m[sid]) m[sid] = []
+                m[sid].push(i)
+            }
+        })
+        return m
+    }, [table])
+
     return (
         <Card className="border border-border overflow-hidden">
             <div className="w-full overflow-x-auto overflow-y-visible scrollbar-thin">
@@ -302,23 +428,63 @@ export default function BookingsTable({
                         </tr>
                     </thead>
                     <tbody>
-                        {table.getRowModel().rows.map(row => (
-                            <tr
-                                key={row.id}
-                                className="group hover:bg-bg-hover/50 transition-colors border-t border-border/20 cursor-pointer"
-                                onClick={(e) => { if (!e.target.closest('[data-no-drawer]')) onRowClick?.(row.original) }}
-                            >
-                                {row.getVisibleCells().map(cell => (
-                                    <td
-                                        key={cell.id}
-                                        className="px-2 py-3 align-middle overflow-hidden"
-                                        style={{ width: cell.column.id === 'name' ? '100%' : cell.column.getSize() }}
+                        {table.getRowModel().rows.map((row, rowIndex) => {
+                            const sid = row.original.seriesId
+                            const seriesRows = sid ? seriesMap[sid] : null
+                            const isFirstInSeries = sid && seriesRows?.[0] === rowIndex
+                            const isLastInSeries = sid && seriesRows?.[seriesRows.length - 1] === rowIndex
+                            const seriesTotal = isLastInSeries
+                                ? seriesRows.reduce((sum, i) => sum + (Number(table.getRowModel().rows[i]?.original?.amountPaid) || 0), 0)
+                                : 0
+                            const colCount = row.getVisibleCells().length
+
+                            return (
+                                <React.Fragment key={row.id}>
+                                    {/* Series header divider — appears before first row of each series group */}
+                                    {isFirstInSeries && (
+                                        <tr key={`series-header-${sid}`} className="bg-accent/5">
+                                            <td colSpan={colCount} className="px-3 py-1.5 border-t border-accent/20">
+                                                <span className="text-[10px] font-bold uppercase tracking-widest text-accent">
+                                                    Series: {sid}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    )}
+
+                                    <tr
+                                        key={row.id}
+                                        className={`group hover:bg-bg-hover/50 transition-colors border-t cursor-pointer ${
+                                            sid ? 'border-accent/10 bg-accent/[0.02]' : 'border-border/20'
+                                        }`}
+                                        onClick={(e) => { if (!e.target.closest('[data-no-drawer]')) onRowClick?.(row.original) }}
                                     >
-                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                    </td>
-                                ))}
-                            </tr>
-                        ))}
+                                        {row.getVisibleCells().map(cell => (
+                                            <td
+                                                key={cell.id}
+                                                className="px-2 py-3 align-middle overflow-hidden"
+                                                style={{ width: cell.column.id === 'name' ? '100%' : cell.column.getSize() }}
+                                            >
+                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            </td>
+                                        ))}
+                                    </tr>
+
+                                    {/* Series subtotal row — appears after last row of each series group */}
+                                    {isLastInSeries && seriesTotal > 0 && (
+                                        <tr key={`series-total-${sid}`} className="bg-accent/5 border-t border-accent/10">
+                                            <td colSpan={colCount - 2} className="px-3 py-1.5">
+                                                <span className="text-[10px] text-accent font-semibold">{seriesRows.length} bookings in this series</span>
+                                            </td>
+                                            <td className="px-2 py-1.5 text-right" colSpan={2}>
+                                                <span className="text-xs font-mono font-bold text-text-primary tabular-nums">
+                                                    {formatCurrency(seriesTotal, currency)}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </React.Fragment>
+                            )
+                        })}
                     </tbody>
                 </table>
             </div>

@@ -87,6 +87,7 @@ export default function ConcertTab() {
   const statusLabel = concertBooking.status === 'booked' || concertBooking.status === 'confirmed'
     ? '✅ Confirmed'
     : `⏳ ${(concertBooking.status || 'pending').replace('_', ' ')}`
+  const ticketCount = Number(concertBooking.paxCount || (Array.isArray(concertBooking.travelerIds) ? concertBooking.travelerIds.length : 0) || trip.travelers || 1)
 
   return (
     <div className="concert-theme rounded-[var(--radius-xl)] overflow-hidden animate-fade-in pb-24">
@@ -130,7 +131,7 @@ export default function ConcertTab() {
             <div>
               <h3 className="text-xs uppercase tracking-wider text-red-400/70 font-semibold mb-1">Tickets</h3>
               <p className="text-white font-medium">
-                {trip.travelers} pax · {statusLabel}
+                {ticketCount} pax · {statusLabel}
               </p>
               {concertBooking.confirmationNumber && (
                 <p className="text-text-muted text-xs font-mono mt-1">
