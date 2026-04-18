@@ -13,8 +13,8 @@ export async function extractTripFromPdf(fileUrl) {
     const pdfBuffer = await pdfResponse.arrayBuffer()
     const base64Content = Buffer.from(pdfBuffer).toString('base64')
 
-    // Use gemini-2.0-flash — significantly better at reading structured PDF tables than flash-lite
-    const extractionUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`
+    // Use gemini-2.5-flash — best available model on free plan for multimodal PDF extraction
+    const extractionUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-04-17:generateContent?key=${geminiKey}`
 
     const prompt = `
 You are an expert travel data extraction engine. Read the attached PDF and extract its COMPLETE day-by-day itinerary into a structured JSON Trip Draft.
