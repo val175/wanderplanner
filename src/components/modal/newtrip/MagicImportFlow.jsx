@@ -46,7 +46,7 @@ export default function MagicImportFlow({ onPlanReady, onBack }) {
             reader.readAsDataURL(selectedFile);
         });
 
-        res = await fetch('/api/extract-trip-pdf', {
+        res = await fetch('https://wanderplan-rust.vercel.app/api/extract-trip-pdf', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -129,29 +129,20 @@ export default function MagicImportFlow({ onPlanReady, onBack }) {
 
       <div className="p-4 bg-accent-muted/20 border border-accent/20 rounded-[var(--radius-lg)]">
         <p className="text-xs text-text-muted mb-3">Works great with Nomadic Matt, The Blonde Abroad, Travel + Leisure, and more.</p>
-        <div className="flex flex-col gap-2">
-          <div className="flex gap-2">
-            <input
-              type="url"
-              value={importUrl}
-              onChange={e => {
-                setImportUrl(e.target.value);
-                if (selectedFile) setSelectedFile(null); // Clear file if typing URL
-              }}
-              onKeyDown={e => e.key === 'Enter' && handleImport()}
-              placeholder="e.g. nomadicmatt.com/japan-itinerary"
-              autoFocus
-              className="flex-1 px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
-            />
-            <button
-              type="button"
-              onClick={handleImport}
-              disabled={isImporting || (!importUrl && !selectedFile)}
-              className="px-4 py-2 text-sm font-medium bg-accent hover:bg-accent-hover text-text-inverse rounded-[var(--radius-md)] disabled:opacity-50 transition-colors shrink-0 flex items-center gap-2"
-            >
-              Generate
-            </button>
-          </div>
+        <div className="flex flex-col gap-4">
+          
+          <input
+            type="url"
+            value={importUrl}
+            onChange={e => {
+              setImportUrl(e.target.value);
+              if (selectedFile) setSelectedFile(null);
+            }}
+            onKeyDown={e => e.key === 'Enter' && handleImport()}
+            placeholder="e.g. nomadicmatt.com/japan-itinerary"
+            autoFocus
+            className="w-full px-3 py-2 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
+          />
           
           <div className="flex items-center gap-3">
              <div className="h-[1px] flex-1 bg-border/50"></div>
@@ -159,29 +150,37 @@ export default function MagicImportFlow({ onPlanReady, onBack }) {
              <div className="h-[1px] flex-1 bg-border/50"></div>
           </div>
           
-          <div className="flex flex-col gap-2">
-             <input
-                type="file"
-                accept="application/pdf"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                className="hidden"
-             />
-             <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full flex items-center justify-center gap-2 px-3 py-full text-sm py-2 border border-dashed border-border hover:border-accent/50 rounded-[var(--radius-md)] text-text-secondary hover:text-text-primary transition-colors bg-bg-primary/50"
-             >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                   <polyline points="17 8 12 3 7 8" />
-                   <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
-                {selectedFile ? selectedFile.name : 'Upload PDF Itinerary'}
-             </button>
-          </div>
+          <input
+            type="file"
+            accept="application/pdf"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full flex items-center justify-center gap-2 px-3 text-sm py-2 border border-dashed border-border hover:border-accent/50 rounded-[var(--radius-md)] text-text-secondary hover:text-text-primary transition-colors bg-bg-primary/50"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+               <polyline points="17 8 12 3 7 8" />
+               <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            {selectedFile ? selectedFile.name : 'Upload PDF Itinerary'}
+          </button>
+          
         </div>
         {importError && <p className="text-xs text-danger mt-2">{importError}</p>}
+        
+        <button
+          type="button"
+          onClick={handleImport}
+          disabled={isImporting || (!importUrl && !selectedFile)}
+          className="mt-4 w-full px-4 py-2 text-sm font-medium bg-accent hover:bg-accent-hover text-text-inverse rounded-[var(--radius-md)] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+        >
+          Generate
+        </button>
       </div>
     </div>
   )
