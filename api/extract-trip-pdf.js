@@ -1,15 +1,20 @@
 import { verifyFirebaseToken } from './_auth.js'
 import { setCorsHeaders } from './_cors.js'
 
-export async function extractTripFromPdf(fileBuffer, mimeType) {
+export async function extractTripFromPdf(fileUrl) {
     const geminiKey = process.env.GEMINI_API_KEY
     if (!geminiKey) throw new Error('GEMINI_API_KEY is not configured')
 
+    // Fetch the PDF from the public URL and convert to base64 inline_data
+    const pdfResponse = await fetch(fileUrl)
+    if (!pdfResponse.ok) {
+        throw new Error(`Failed to fetch PDF from storage: ${pdfResponse.statusText}`)
+    }
+    const pdfBuffer = await pdfResponse.arrayBuffer()
+    const base64Content = Buffer.from(pdfBuffer).toString('base64')
+
     const extractionUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${geminiKey}`
     
-    // Convert buffer to base64
-    const base64Content = fileBuffer.toString('base64')
-
     const promptText = `
 You are an expert travel assistant. Extract the travel itinerary from this document and output a STRICT JSON object representing a "Trip Draft".
 
@@ -38,7 +43,7 @@ Requirements:
             parts: [
                 {
                     inline_data: {
-                        mime_type: mimeType,
+                        mime_type: 'application/pdf',
                         data: base64Content
                     }
                 }
@@ -122,7 +127,7 @@ Requirements:
         }
     }
 
-    console.log(`[extract-trip-pdf] Requesting extraction for mimeType: ${mimeType}`)
+    console.log(`[extract-trip-pdf] Requesting extraction for fileUrl: ${fileUrl} (${(pdfBuffer.byteLength / 1024).toFixed(1)} KB)`)
 
     const extractionResponse = await fetch(extractionUrl, {
         method: 'POST',
@@ -144,8 +149,7 @@ Requirements:
         throw new Error('No extraction result returned from AI')
     }
 
-    const parsedData = JSON.parse(textResult)
-    return parsedData
+    return JSON.parse(textResult)
 }
 
 export default async function handler(req, res) {
@@ -157,15 +161,12 @@ export default async function handler(req, res) {
         const authHeader = req.headers.authorization || req.headers.Authorization
         await verifyFirebaseToken(authHeader)
 
-        const { file, mimeType } = req.body
-        if (!file || !mimeType) {
-            return res.status(400).json({ error: 'Missing file or mimeType in request body' })
+        const { fileUrl } = req.body
+        if (!fileUrl) {
+            return res.status(400).json({ error: 'Missing fileUrl in request body' })
         }
 
-        // Handle base64 input
-        const fileBuffer = Buffer.from(file, 'base64')
-        const draftJson = await extractTripFromPdf(fileBuffer, mimeType)
-
+        const draftJson = await extractTripFromPdf(fileUrl)
         return res.status(200).json({ success: true, data: draftJson })
     } catch (error) {
         console.error('[extract-trip-pdf] Error:', error)

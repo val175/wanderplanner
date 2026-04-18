@@ -2,6 +2,10 @@
     "functions": {
         "api/**/*.js": {
             "maxDuration": 60
+        },
+        "api/extract-trip-pdf.js": {
+            "maxDuration": 60,
+            "memory": 1024
         }
     },
     "headers": [

@@ -38,27 +38,36 @@ export default function MagicImportFlow({ onPlanReady, onBack }) {
       
       let res;
       if (selectedFile) {
-        // Handle PDF File Upload
-        const reader = new FileReader();
-        const base64Data = await new Promise((resolve, reject) => {
-            reader.onload = () => resolve(reader.result.split(',')[1]);
-            reader.onerror = error => reject(error);
-            reader.readAsDataURL(selectedFile);
-        });
+        // Step 1: Upload PDF to Hostinger storage to get a public URL
+        // This avoids Vercel's 4.5MB JSON body size limit
+        const storageApiUrl = import.meta.env.VITE_STORAGE_API_URL || 'http://localhost:3001'
+        const formData = new FormData()
+        formData.append('file', selectedFile, selectedFile.name)
+        formData.append('tripId', 'magic-import')
 
+        const uploadRes = await fetch(`${storageApiUrl}/upload`, {
+          method: 'POST',
+          body: formData,
+        })
+        if (!uploadRes.ok) {
+          const uploadErr = await uploadRes.json().catch(() => ({}))
+          throw new Error(uploadErr.error || 'Failed to upload PDF to storage')
+        }
+        const uploadData = await uploadRes.json()
+        const fileUrl = uploadData.file?.url
+        if (!fileUrl) throw new Error('Storage did not return a file URL')
+
+        // Step 2: Send the public URL to the Vercel extract-trip-pdf API
         res = await fetch('https://wanderplan-rust.vercel.app/api/extract-trip-pdf', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             ...(token && { Authorization: `Bearer ${token}` })
           },
-          body: JSON.stringify({ 
-            file: base64Data, 
-            mimeType: selectedFile.type 
-          })
+          body: JSON.stringify({ fileUrl })
         });
       } else {
-        // Handle URL Upload
+        // Handle URL import
         res = await fetch('https://wanderplan-rust.vercel.app/api/extract-trip', {
           method: 'POST',
           headers: {
