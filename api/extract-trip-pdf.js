@@ -13,34 +13,78 @@ export async function extractTripFromPdf(fileUrl) {
     const pdfBuffer = await pdfResponse.arrayBuffer()
     const base64Content = Buffer.from(pdfBuffer).toString('base64')
 
-    const extractionUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${geminiKey}`
-    
-    const promptText = `
-You are an expert travel assistant. Extract the travel itinerary from this document and output a STRICT JSON object representing a "Trip Draft".
+    // Use gemini-2.0-flash — significantly better at reading structured PDF tables than flash-lite
+    const extractionUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`
 
-Requirements:
-1. Extract all logical destinations mentioned (cities/regions).
-2. Attempt to infer a start Date and end Date if mentioned (ISO 8601 format: YYYY-MM-DD). If no specific dates are mentioned but duration is (e.g., "7 days"), leave dates empty. If no dates are mentioned, leave them empty strings "".
-3. Suggest a fun "name" for the trip based on the document (e.g. "2 Weeks Backpacking Vietnam")
-4. Suggest a single relevant emoji for the trip.
-5. Create budget categories based on standard travel needs (Flights, Accommodation, Food, Activities, Transport).
-   - If the document mentions specific expected costs, use those.
-   - CRITICAL: If costs are not mentioned, use your world knowledge to infer realistic estimates for a middle-class traveler in PHP (Philippine Pesos) for the full trip duration.
-   - ALL COSTS MUST BE IN PHP. Convert from USD/EUR/AUD/etc. using current approximate exchange rates.
-6. CRITICAL: Every activity MUST have a "duration" (Integer, in minutes) and "endTime" (String, HH:mm). 
-   - Estimate durations based on the activity type (e.g., 90m for meals, 120m for museums, 120m-240m for flights, 30m for quick stops) if the source text doesn't specify.
-   - Calculate "endTime" based on "time" + "duration".
-   - If "time" is missing for an activity, still provide a "duration" and "endTime" based on your best guess of when the activity would likely happen.
+    const prompt = `
+You are an expert travel data extraction engine. Read the attached PDF and extract its COMPLETE day-by-day itinerary into a structured JSON Trip Draft.
 
-- For categories: Choose the closest fit from the list (lodging, flight, food, activity, transport, shopping, concert, other) based on the name/context. Use 'other' if unsure.
+CRITICAL RULES — READ CAREFULLY:
+- You MUST extract EVERY single day from the document. Do NOT skip any day.
+- You MUST extract EVERY activity row within each day. Do NOT summarize or combine rows.
+- If the PDF has a table with columns like Time / Activity / Budget / Notes, extract each row as a separate activity object.
+- Do not hallucinate activities. Only include what is explicitly written in the PDF.
+- If a budget amount is listed per activity, use it as estCost (in PHP unless otherwise stated).
+- Dates: If the document says "Day 00 – August 20, Thursday", set dayNumber=0, date="2026-08-20", and infer startDate/endDate from the first and last day found.
+- endDate MUST be set to the date of the LAST day in the document.
+- For each activity: infer category from context (lodging/flight/food/activity/transport/shopping/concert/other).
+- For each activity: estimate duration in minutes and calculate endTime = time + duration.
+- estCost: include the currency symbol if present (e.g. "₱3,500" or "3500.00"). Use the raw value from the PDF.
+- notes: include hotel options, tips, or any side notes from the PDF's Notes column.
+- transitEmoji: default to 🚕 unless a specific mode is obvious (✈️ flight, 🚗 car, 🚌 bus, 🛥️ ferry).
+
+The output MUST be a single raw JSON object matching this exact schema. DO NOT wrap in markdown. DO NOT add any explanation text.
+
+{
+  "name": "String — creative trip name based on the document",
+  "emoji": "String — single emoji",
+  "startDate": "YYYY-MM-DD",
+  "endDate": "YYYY-MM-DD",
+  "destinations": [
+    { "city": "String", "country": "String" }
+  ],
+  "currency": "PHP",
+  "budgetCategories": [
+    { "name": "Flights", "emoji": "✈️", "min": 0, "max": 0 },
+    { "name": "Accommodation", "emoji": "🏨", "min": 0, "max": 0 },
+    { "name": "Food", "emoji": "🍜", "min": 0, "max": 0 },
+    { "name": "Activities", "emoji": "🎯", "min": 0, "max": 0 },
+    { "name": "Transport", "emoji": "🚗", "min": 0, "max": 0 }
+  ],
+  "todos": [
+    { "text": "String — booking task or logistical note", "category": "String" }
+  ],
+  "itinerary": [
+    {
+      "dayNumber": 0,
+      "date": "YYYY-MM-DD",
+      "location": "String — main city/area for the day",
+      "activities": [
+        {
+          "time": "HH:MM AM/PM",
+          "duration": 60,
+          "endTime": "HH:mm",
+          "category": "String — one of: lodging, flight, food, activity, transport, shopping, concert, other",
+          "name": "String — exact activity name from the PDF",
+          "emoji": "String — single semantic emoji",
+          "location": "String — specific venue or route",
+          "estCost": "String — exact amount from PDF, e.g. ₱3,500",
+          "transit": "String — how to get to next spot, or empty",
+          "transitEmoji": "🚕",
+          "notes": "String — raw notes/hotel options from PDF, or empty"
+        }
+      ]
+    }
+  ]
+}
+
+Now extract the full itinerary from the attached PDF. Every day. Every row.
 `
 
     const extractionBody = {
-        system_instruction: {
-            parts: [{ text: promptText }]
-        },
         contents: [{
             parts: [
+                { text: prompt },
                 {
                     inline_data: {
                         mime_type: 'application/pdf',
@@ -50,84 +94,14 @@ Requirements:
             ]
         }],
         generationConfig: {
-            response_mime_type: "application/json",
-            response_schema: {
-                type: "OBJECT",
-                properties: {
-                  name: { type: "STRING" },
-                  emoji: { type: "STRING" },
-                  startDate: { type: "STRING" },
-                  endDate: { type: "STRING" },
-                  destinations: {
-                    type: "ARRAY",
-                    items: {
-                      type: "OBJECT",
-                      properties: {
-                        city: { type: "STRING" },
-                        country: { type: "STRING" }
-                      }
-                    }
-                  },
-                  currency: { type: "STRING" },
-                  budgetCategories: {
-                    type: "ARRAY",
-                    items: {
-                      type: "OBJECT",
-                      properties: {
-                        name: { type: "STRING" },
-                        emoji: { type: "STRING" },
-                        min: { type: "NUMBER" },
-                        max: { type: "NUMBER" }
-                      }
-                    }
-                  },
-                  todos: {
-                    type: "ARRAY",
-                    items: {
-                        type: "OBJECT",
-                        properties: {
-                            text: { type: "STRING" },
-                            category: { type: "STRING" }
-                        }
-                    }
-                  },
-                  itinerary: {
-                    type: "ARRAY",
-                    items: {
-                      type: "OBJECT",
-                      properties: {
-                        dayNumber: { type: "INTEGER" },
-                        date: { type: "STRING" },
-                        location: { type: "STRING" },
-                        activities: {
-                          type: "ARRAY",
-                          items: {
-                            type: "OBJECT",
-                            properties: {
-                              time: { type: "STRING" },
-                              duration: { type: "INTEGER" },
-                              endTime: { type: "STRING" },
-                              category: { type: "STRING" },
-                              name: { type: "STRING" },
-                              emoji: { type: "STRING" },
-                              location: { type: "STRING" },
-                              estCost: { type: "STRING" },
-                              transit: { type: "STRING" },
-                              transitEmoji: { type: "STRING" },
-                              notes: { type: "STRING" }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                },
-                required: ["name", "emoji", "destinations", "currency", "budgetCategories", "itinerary"]
-            }
+            temperature: 0.1,
+            response_mime_type: 'application/json'
+            // No response_schema — free-form JSON lets the model fully express the itinerary
+            // Schema constraints were causing the model to collapse rows into summaries
         }
     }
 
-    console.log(`[extract-trip-pdf] Requesting extraction for fileUrl: ${fileUrl} (${(pdfBuffer.byteLength / 1024).toFixed(1)} KB)`)
+    console.log(`[extract-trip-pdf] Extracting with gemini-2.0-flash — ${(pdfBuffer.byteLength / 1024).toFixed(1)} KB`)
 
     const extractionResponse = await fetch(extractionUrl, {
         method: 'POST',
@@ -136,20 +110,22 @@ Requirements:
     })
 
     if (!extractionResponse.ok) {
-        const err = await extractionResponse.json()
+        const err = await extractionResponse.json().catch(() => ({}))
         console.error('[extract-trip-pdf] Gemini API Error:', err)
         throw new Error(`Extraction failed: ${err.error?.message || extractionResponse.statusText}`)
     }
 
     const extractionData = await extractionResponse.json()
     const textResult = extractionData.candidates?.[0]?.content?.parts?.[0]?.text
-    
+
     if (!textResult) {
         console.error('[extract-trip-pdf] No text returned from Gemini:', extractionData)
         throw new Error('No extraction result returned from AI')
     }
 
-    return JSON.parse(textResult)
+    // Strip any accidental markdown fences the model may have added
+    const clean = textResult.replace(/```json/g, '').replace(/```/g, '').trim()
+    return JSON.parse(clean)
 }
 
 export default async function handler(req, res) {
