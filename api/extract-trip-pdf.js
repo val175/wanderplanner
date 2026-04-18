@@ -1,17 +1,9 @@
 import { verifyFirebaseToken } from './_auth.js'
 import { setCorsHeaders } from './_cors.js'
 
-export async function extractTripFromPdf(fileUrl) {
+export async function extractTripFromPdf(base64Content) {
     const geminiKey = process.env.GEMINI_API_KEY
     if (!geminiKey) throw new Error('GEMINI_API_KEY is not configured')
-
-    // Fetch the PDF from the public URL and convert to base64 inline_data
-    const pdfResponse = await fetch(fileUrl)
-    if (!pdfResponse.ok) {
-        throw new Error(`Failed to fetch PDF from storage: ${pdfResponse.statusText}`)
-    }
-    const pdfBuffer = await pdfResponse.arrayBuffer()
-    const base64Content = Buffer.from(pdfBuffer).toString('base64')
 
     // Use gemini-2.5-flash — best available model on free plan for multimodal PDF extraction
     const extractionUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-04-17:generateContent?key=${geminiKey}`
@@ -101,7 +93,7 @@ Now extract the full itinerary from the attached PDF. Every day. Every row.
         }
     }
 
-    console.log(`[extract-trip-pdf] Extracting with gemini-2.0-flash — ${(pdfBuffer.byteLength / 1024).toFixed(1)} KB`)
+    console.log(`[extract-trip-pdf] Extracting with gemini-2.5-flash — ${(base64Content.length * 0.75 / 1024).toFixed(1)} KB`)
 
     const extractionResponse = await fetch(extractionUrl, {
         method: 'POST',
@@ -137,12 +129,12 @@ export default async function handler(req, res) {
         const authHeader = req.headers.authorization || req.headers.Authorization
         await verifyFirebaseToken(authHeader)
 
-        const { fileUrl } = req.body
-        if (!fileUrl) {
-            return res.status(400).json({ error: 'Missing fileUrl in request body' })
+        const { file } = req.body
+        if (!file) {
+            return res.status(400).json({ error: 'Missing file (base64) in request body' })
         }
 
-        const draftJson = await extractTripFromPdf(fileUrl)
+        const draftJson = await extractTripFromPdf(file)
         return res.status(200).json({ success: true, data: draftJson })
     } catch (error) {
         console.error('[extract-trip-pdf] Error:', error)
