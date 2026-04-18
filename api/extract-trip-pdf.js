@@ -5,8 +5,8 @@ export async function extractTripFromPdf(base64Content) {
     const geminiKey = process.env.GEMINI_API_KEY
     if (!geminiKey) throw new Error('GEMINI_API_KEY is not configured')
 
-    // Use gemini-2.5-flash — best available model on free plan for multimodal PDF extraction
-    const extractionUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-04-17:generateContent?key=${geminiKey}`
+    // gemini-3.1-flash-lite-preview — confirmed working on this project's free plan + v1beta
+    const extractionUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${geminiKey}`
 
     const prompt = `
 You are an expert travel data extraction engine. Read the attached PDF and extract its COMPLETE day-by-day itinerary into a structured JSON Trip Draft.
