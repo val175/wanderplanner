@@ -156,6 +156,36 @@ export default function StepReview({ form, setForm }) {
             </div>
           )}
 
+          {/* Itinerary preview */}
+          {(form.itinerary || []).length > 0 && (
+            <div>
+              <p className="text-xs text-text-muted uppercase tracking-wider font-medium mb-2">
+                Itinerary <span className="normal-case font-normal">({form.itinerary.length} day{form.itinerary.length !== 1 ? 's' : ''} imported)</span>
+              </p>
+              <div className="space-y-2">
+                {form.itinerary.map((day, i) => (
+                  <div key={i} className="p-2.5 rounded-[var(--radius-md)] bg-bg-hover border border-border/60">
+                    <p className="text-xs font-semibold text-text-primary mb-1">
+                      Day {day.dayNumber ?? i + 1}{day.date ? ` · ${day.date}` : ''}{day.location ? ` — ${day.location}` : ''}
+                    </p>
+                    {(day.activities || []).length > 0 && (
+                      <div className="space-y-0.5 pl-1.5 border-l-2 border-accent/30">
+                        {day.activities.map((a, j) => (
+                          <p key={j} className="text-xs text-text-secondary leading-snug">
+                            {a.time ? <span className="text-text-muted mr-1.5">{a.time}</span> : null}
+                            {a.emoji ? <span className="mr-1">{a.emoji}</span> : null}
+                            {a.name}
+                            {a.estCost ? <span className="text-text-muted ml-1.5">· {a.estCost}</span> : null}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Packing List */}
           {Object.keys(packingBySection).length > 0 && (
             <div>

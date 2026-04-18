@@ -86,10 +86,8 @@ Now extract the full itinerary from the attached PDF. Every day. Every row.
             ]
         }],
         generationConfig: {
-            temperature: 0.1,
-            response_mime_type: 'application/json'
-            // No response_schema — free-form JSON lets the model fully express the itinerary
-            // Schema constraints were causing the model to collapse rows into summaries
+            temperature: 0.1
+            // No response_mime_type — free text output avoids JSON truncation on large itineraries
         }
     }
 
