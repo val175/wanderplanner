@@ -137,11 +137,15 @@ const CHART_COLORS = ['#E08D8D', '#DBC0A7', '#A3B18A', '#93AFBA'] // Coral, Peac
 const inputCls = 'w-full px-2 py-1.5 text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors'
 
 // ── Consolidated Budget Health Card ───────────────────────────────────────────
-function BudgetHealthCard({ budget, totals, currency, isReadOnly }) {
+function BudgetHealthCard({ budget, totals, currency, isReadOnly, viewMode, onViewModeChange, travelerCount }) {
   const { dispatch } = useTripContext()
-  const targetMax = totals.max || 1
-  const isOver = totals.actual > totals.max && totals.max > 0
-  const remaining = Math.max(0, totals.max - totals.actual)
+  const multiplier = viewMode === 'group' ? (travelerCount || 1) : 1
+  const displayMax = totals.max * multiplier
+  const displayActual = viewMode === 'per-person'
+    ? totals.actual / (travelerCount || 1)
+    : totals.actual
+  const targetMax = displayMax || 1
+  const isOver = displayActual > displayMax && displayMax > 0
 
   const [isAdding, setIsAdding] = useState(false)
   const [newCategoryId, setNewCategoryId] = useState('')
@@ -151,7 +155,6 @@ function BudgetHealthCard({ budget, totals, currency, isReadOnly }) {
     if (newCategoryId) {
       const cat = CATEGORY_MAP[newCategoryId]
       if (!cat) return
-      
       dispatch({
         type: ACTIONS.ADD_BUDGET_CATEGORY,
         payload: {
@@ -170,52 +173,90 @@ function BudgetHealthCard({ budget, totals, currency, isReadOnly }) {
 
   return (
     <Card className="p-4 border-border bg-bg-card">
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-3">
         <h3 className="font-heading font-semibold text-sm text-text-primary text-balance">Overall Budget</h3>
-
-        {!isReadOnly && !isAdding && (
-          <button
-            onClick={() => setIsAdding(true)}
-            className="text-[10px] font-bold uppercase tracking-wider text-accent hover:text-accent-hover transition-colors flex items-center gap-1"
-          >
-            <Plus size={10} strokeWidth={3} />
-            Add Category
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {travelerCount > 1 && (
+            <div className="flex items-center rounded-[var(--radius-pill)] border border-border bg-bg-secondary p-0.5 text-[10px] font-bold uppercase tracking-wider">
+              <button
+                onClick={() => onViewModeChange('per-person')}
+                className={`px-2 py-0.5 rounded-[var(--radius-pill)] transition-colors ${
+                  viewMode === 'per-person'
+                    ? 'bg-accent text-text-inverse'
+                    : 'text-text-muted hover:text-text-primary'
+                }`}
+              >
+                Per Person
+              </button>
+              <button
+                onClick={() => onViewModeChange('group')}
+                className={`px-2 py-0.5 rounded-[var(--radius-pill)] transition-colors ${
+                  viewMode === 'group'
+                    ? 'bg-accent text-text-inverse'
+                    : 'text-text-muted hover:text-text-primary'
+                }`}
+              >
+                Group
+              </button>
+            </div>
+          )}
+          {!isReadOnly && !isAdding && (
+            <button
+              onClick={() => setIsAdding(true)}
+              className="text-[10px] font-bold uppercase tracking-wider text-accent hover:text-accent-hover transition-colors flex items-center gap-1"
+            >
+              <Plus size={10} strokeWidth={3} />
+              Add
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="mb-4">
         <p className="text-[13px] text-text-secondary font-medium">
           <span className={`tabular-nums ${isOver ? 'text-danger' : 'text-text-primary'}`}>
-            {formatCurrency(Math.round(totals.actual), currency)}
+            {formatCurrency(Math.round(displayActual), currency)}
           </span>
           <span className="text-text-muted"> spent of </span>
-          <span className="text-text-primary tabular-nums">{formatCurrency(Math.round(totals.max), currency)}</span>
+          <span className="text-text-primary tabular-nums">{formatCurrency(Math.round(displayMax), currency)}</span>
         </p>
+        {travelerCount > 1 && viewMode === 'group' && (
+          <p className="text-[11px] text-text-muted mt-0.5">
+            {formatCurrency(Math.round(totals.max), currency)}/person × {travelerCount} travelers
+          </p>
+        )}
+        {travelerCount > 1 && viewMode === 'per-person' && (
+          <p className="text-[11px] text-text-muted mt-0.5">
+            Your estimated share of total group spend
+          </p>
+        )}
       </div>
 
       {/* Stacked bar */}
       <div className="h-3 w-full rounded-full bg-bg-secondary flex overflow-hidden border border-border/30 mb-6">
         {budget.map((cat, i) => {
-          if (!cat.actual || cat.actual <= 0) return null
-          const w = Math.min(100, (cat.actual / targetMax) * 100)
+          const catActual = viewMode === 'per-person' ? (cat.actual / (travelerCount || 1)) : cat.actual
+          if (!catActual || catActual <= 0) return null
+          const w = Math.min(100, (catActual / targetMax) * 100)
           return (
             <div key={cat.id} className="h-full border-r border-black/5 last:border-r-0 transition-all duration-300"
               style={{ width: `${w}%`, backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }}
-              title={`${cat.name}: ${formatCurrency(Math.round(cat.actual), currency)}`} />
+              title={`${cat.name}: ${formatCurrency(Math.round(catActual), currency)}`} />
           )
         })}
         {isOver && (
           <div className="h-full bg-danger/80 transition-all"
-            style={{ width: `${Math.min(40, ((totals.actual - totals.max) / totals.actual) * 100)}%` }} />
+            style={{ width: `${Math.min(40, ((displayActual - displayMax) / displayActual) * 100)}%` }} />
         )}
       </div>
 
       {/* Individual Category Bars */}
       <div className="space-y-4">
         {budget.map((cat, i) => {
-          const catIsOver = cat.actual > cat.max && cat.max > 0
-          const pct = cat.max > 0 ? Math.min(100, (cat.actual / cat.max) * 100) : 0
+          const catDisplayMax = cat.max * multiplier
+          const catDisplayActual = viewMode === 'per-person' ? (cat.actual / (travelerCount || 1)) : cat.actual
+          const catIsOver = catDisplayActual > catDisplayMax && catDisplayMax > 0
+          const pct = catDisplayMax > 0 ? Math.min(100, (catDisplayActual / catDisplayMax) * 100) : 0
           const color = CHART_COLORS[i % CHART_COLORS.length]
 
           return (
@@ -232,7 +273,7 @@ function BudgetHealthCard({ budget, totals, currency, isReadOnly }) {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className={`text-[11px] font-mono font-bold tabular-nums ${catIsOver ? 'text-danger' : 'text-text-primary'}`}>
-                    {formatCurrency(Math.round(cat.actual || 0), currency)}
+                    {formatCurrency(Math.round(catDisplayActual), currency)}
                   </span>
                   <EditableText
                     value={cat.max > 0 ? String(cat.max) : ''}
@@ -244,7 +285,7 @@ function BudgetHealthCard({ budget, totals, currency, isReadOnly }) {
                     className="text-[10px] text-text-muted/60 font-medium"
                     inputClassName="w-20"
                     readOnly={isReadOnly}
-                    displayValue={cat.max > 0 ? `/${formatCurrency(Math.round(cat.max), currency)}` : '/Set limit'}
+                    displayValue={catDisplayMax > 0 ? `/${formatCurrency(Math.round(catDisplayMax), currency)}` : '/Set limit'}
                   />
                   {!isReadOnly && (
                     <button
@@ -260,6 +301,12 @@ function BudgetHealthCard({ budget, totals, currency, isReadOnly }) {
                 <div className="h-full rounded-full transition-all duration-500"
                   style={{ width: `${pct}%`, backgroundColor: catIsOver ? 'var(--color-danger)' : color }} />
               </div>
+              {/* Per-person label in group mode */}
+              {viewMode === 'group' && travelerCount > 1 && cat.max > 0 && (
+                <p className="text-[10px] text-text-muted mt-0.5">
+                  {formatCurrency(Math.round(cat.max), currency)}/person
+                </p>
+              )}
             </div>
           )
         })}
@@ -752,6 +799,17 @@ export default function BudgetTab() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [showScanModal, setShowScanModal] = useState(false)
 
+  // Per-person / group toggle — persisted per trip in localStorage
+  const travelerCount = travelers.length || activeTrip?.travelers || 1
+  const viewModeKey = `budget-view-mode-${activeTrip?.id}`
+  const [budgetViewMode, setBudgetViewMode] = useState(() => {
+    try { return localStorage.getItem(viewModeKey) || 'per-person' } catch { return 'per-person' }
+  })
+  const handleViewModeChange = (mode) => {
+    setBudgetViewMode(mode)
+    try { localStorage.setItem(viewModeKey, mode) } catch { /* ignore */ }
+  }
+
   useEffect(() => {
     const handler = () => setIsAddModalOpen(true)
     window.addEventListener('open-add-expense', handler)
@@ -903,6 +961,9 @@ export default function BudgetTab() {
             totals={totals}
             currency={currency}
             isReadOnly={isReadOnly}
+            viewMode={budgetViewMode}
+            onViewModeChange={handleViewModeChange}
+            travelerCount={travelerCount}
           />
         </div>
       </div>
