@@ -253,6 +253,14 @@ export default function DocumentsTab() {
       if (workflow === 'booking') {
         const bookingId = generateId()
         const category = resolveBookingCategory(parsedType)
+        const amountPaid = toBase64Number(parsed.amountPaid)
+
+        // Determine pax count from AI-extracted passengerCount, clamped to actual traveler count
+        const aiPaxCount = Math.max(1, Math.round(Number(parsed.passengerCount) || 0))
+        const bookingPaxCount = (aiPaxCount > 1 && aiPaxCount <= travelerIds.length)
+          ? aiPaxCount
+          : travelerIds.length || 1
+
         const bookingRecord = await uploadDocumentToStorage({
           file: preparedFile.storageFile,
           prepared: preparedFile,
@@ -277,12 +285,12 @@ export default function DocumentsTab() {
             startDate: parsed.date ? parsed.date.split('T')[0] : '',
             location: parsed.location || '',
             confirmationNumber: parsed.confirmationNumber || '',
-            amountPaid: toBase64Number(parsed.amountPaid),
+            amountPaid,
             status: parsed.status || 'confirmed',
             notes: parsed.notes || '',
             providerLink: parsed.providerLink || null,
             travelerIds,
-            paxCount: travelerIds.length || 1,
+            paxCount: bookingPaxCount,
             seriesId: parsed.groupId || parsed.seriesId || null,
             documentIds: [bookingRecord.id],
             attachments: [{
@@ -298,7 +306,37 @@ export default function DocumentsTab() {
           }
         })
 
-        showToast?.(`"${parsedTitle}" added to Bookings`)
+        // Also log to the spending log so the Budget tab reflects this cost.
+        // Flights, transport and lodging all carry a real monetary cost — split
+        // equally among the travelers covered by this booking.
+        const BUDGET_BOOKING_TYPES = new Set(['flight', 'lodging', 'transport', 'concert', 'activity'])
+        if (amountPaid > 0 && BUDGET_BOOKING_TYPES.has(parsedType)) {
+          const splitMembers = travelerIds.slice(0, bookingPaxCount)
+          const spendCategory = resolveExpenseCategory(parsedType, tripBudget)
+          const expenseId = generateId()
+          dispatch({
+            type: ACTIONS.ADD_SPENDING,
+            payload: {
+              id: expenseId,
+              description: parsedTitle,
+              amount: amountPaid,
+              category: spendCategory,
+              paidBy: firstTravelerId,
+              splitBetween: splitMembers,
+              travelerIds: splitMembers,
+              paxCount: splitMembers.length,
+              splits: buildSplits(amountPaid, splitMembers, 'equal'),
+              splitMode: 'equal',
+              splitStrategy: 'all',
+              source: 'booking',
+              bookingId,
+              documentId: bookingRecord.id,
+              date: parsed.date ? parsed.date.split('T')[0] : new Date().toISOString().slice(0, 10),
+            }
+          })
+        }
+
+        showToast?.(`"${parsedTitle}" added to Bookings & Budget`)
         hapticImpact('light')
         return
       }

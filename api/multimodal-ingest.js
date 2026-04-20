@@ -57,7 +57,9 @@ export async function multimodalIngest(fileBuffer, mimeType) {
                     amountPaid: { type: "NUMBER" },
                     providerLink: { type: "STRING" },
                     notes: { type: "STRING" },
-                    status: { type: "STRING", enum: ["confirmed", "requested", "to_book", "idea"] }
+                    status: { type: "STRING", enum: ["confirmed", "requested", "to_book", "idea"] },
+                    passengerCount: { type: "INTEGER", description: "Number of passengers, guests, or seats this booking covers. Set to 1 if not applicable or unknown." },
+                    perPersonAmount: { type: "NUMBER", description: "Cost per person if the total covers multiple passengers. Leave 0 if the amount is already per-person or unknown." }
                 },
                 required: ["type", "title", "date", "location", "status"]
             }

@@ -515,12 +515,24 @@ function GroupBalancesCard({ spendingLog, travelers, currency }) {
   const [showSettle, setShowSettle] = useState(false)
   const coffeeThreshold = 250
 
-  // Total amount paid by each traveler
+  // Effective share per traveler — uses the splits map when available so
+  // a group expense (e.g. 1 person pays for all) shows each person's real cost.
+  // Falls back to attributing the full amount to the payer for single-person entries.
   const spent = useMemo(() => {
     const t = {}
     travelers.forEach(tr => { t[tr.id] = 0 })
     spendingLog.forEach(e => {
-      if (e.paidBy && t[e.paidBy] !== undefined) t[e.paidBy] += e.amount || 0
+      const amount = e.amount || 0
+      if (!amount) return
+      if (e.splits && Object.keys(e.splits).length > 0) {
+        // Use the explicit splits map — what each person actually owes for this expense
+        Object.entries(e.splits).forEach(([id, share]) => {
+          if (t[id] !== undefined) t[id] += Number(share) || 0
+        })
+      } else if (e.paidBy && t[e.paidBy] !== undefined) {
+        // No splits map — single-person entry, attribute full amount to payer
+        t[e.paidBy] += amount
+      }
     })
     return t
   }, [spendingLog, travelers])
@@ -870,7 +882,12 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                   <td className="py-3 px-2">
                     <span className="flex items-center gap-1.5">
                       <span className="text-[13px] font-medium text-text-primary">{entry.description}</span>
-                      {showPaidBy && entry.splits && Object.keys(entry.splits).length < travelers.length && (
+                      {entry.paxCount > 1 && (
+                        <span title={`Split between ${entry.paxCount} travelers`} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[var(--radius-pill)] text-[9px] font-bold uppercase tracking-wider border border-accent/25 bg-accent/8 text-accent/80 leading-none">
+                          👥 {entry.paxCount}x
+                        </span>
+                      )}
+                      {showPaidBy && entry.splits && Object.keys(entry.splits).length < travelers.length && !(entry.paxCount > 1) && (
                         <span title="Split mismatch" className="text-[10px] cursor-help">⚠️</span>
                       )}
                     </span>
