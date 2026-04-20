@@ -8,6 +8,7 @@ export const TAB_CONFIG = [
   { id: 'budget', label: 'Budget', emoji: '💰' },
   { id: 'todo', label: 'To-Do', emoji: '✅' },
   { id: 'voting', label: 'Voting', emoji: '🗳️' },
+  { id: 'videos', label: 'How-To', emoji: '🎬' },
   { id: 'cities', label: 'Cities', emoji: '🏙️' },
   { id: 'documents', label: 'Documents', emoji: '📄' },
   { id: 'packing', label: 'Packing', emoji: '🧳' },

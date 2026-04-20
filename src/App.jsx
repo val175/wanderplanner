@@ -38,6 +38,7 @@ const BudgetTab = lazy(() => import('./components/tabs/BudgetTab'))
 const TodoTab = lazy(() => import('./components/tabs/TodoTab'))
 const DocumentsTab = lazy(() => import('./components/tabs/DocumentsTab'))
 const VotingTab = lazy(() => import('./components/tabs/VotingTab'))
+const HowToVideosTab = lazy(() => import('./components/tabs/HowToVideosTab'))
 const CitiesTab = lazy(() => import('./components/tabs/CitiesTab'))
 const PackingTab = lazy(() => import('./components/tabs/PackingTab'))
 const ConcertTab = lazy(() => import('./components/tabs/ConcertTab'))
@@ -66,6 +67,7 @@ function TabPanel({ activeTab, onTabSwitch }) {
           case 'todo': return <TodoTab />
           case 'documents': return <DocumentsTab />
           case 'voting': return <VotingTab />
+          case 'videos': return <HowToVideosTab />
           case 'cities': return <CitiesTab />
           case 'packing': return <PackingTab />
           case 'concert': return <ConcertTab />
@@ -93,6 +95,7 @@ const TAB_LABELS = {
   todo: 'Tasks',
   documents: 'Documents',
   voting: 'Voting',
+  videos: 'How-To',
   cities: 'Cities',
   packing: 'Packing',
   concert: 'Concert',
