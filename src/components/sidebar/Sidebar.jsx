@@ -12,7 +12,12 @@ import { getEffectiveStatus } from '../../utils/tripStatus'
 import { getLevelForXp, getXpProgress, getNextLevel } from '../../constants/xpLevels'
 
 const THE_PLAN_IDS = ['overview', 'wandermap', 'itinerary', 'cities', 'bookings']
-const TOOLS_IDS = ['voting', 'videos', 'budget', 'todo', 'documents', 'packing', 'concert']
+// 'videos' (How-To) is excluded from the nav — accessible via the footer Help button
+const COLLABORATE_NAV_IDS = ['budget', 'todo', 'voting', 'documents', 'packing', 'concert']
+
+// ─────────────────────────────────────────────────
+// Trip Switcher sub-components
+// ─────────────────────────────────────────────────
 
 function TripGroup({ title, trips, activeTripId, onSelect }) {
   if (!trips || trips.length === 0) return null
@@ -61,22 +66,34 @@ function TripSwitcher({ trips, activeTrip, activeTripId, onSelect, onNewTrip }) 
   })
 
   return (
-    <div className="relative px-3 pt-4 pb-2" ref={dropdownRef}>
+    <div className="relative px-3 py-2.5" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-2 rounded-[var(--radius-md)] hover:bg-bg-hover transition-colors text-left"
+        className="w-full flex items-center justify-between px-2 py-1.5 rounded-[var(--radius-md)] hover:bg-bg-hover transition-colors text-left group"
       >
-        <div className="flex flex-col overflow-hidden">
-          <span className="text-xs text-text-muted font-semibold uppercase tracking-wider mb-0.5">Trip</span>
-          <span className="text-sm font-semibold text-text-primary truncate">
-            {activeTrip ? `${activeTrip.emoji} ${activeTrip.name || 'Untitled Trip'}` : 'Select a Trip'}
-          </span>
+        <div className="flex items-center gap-2 overflow-hidden">
+          {activeTrip && (
+            <span className="text-lg shrink-0">{activeTrip.emoji}</span>
+          )}
+          <div className="flex flex-col overflow-hidden">
+            <span className="text-[9px] text-text-muted font-bold uppercase tracking-widest leading-none mb-0.5">
+              Active Trip
+            </span>
+            <span className="text-sm font-semibold text-text-primary truncate leading-tight">
+              {activeTrip ? (activeTrip.name || 'Untitled Trip') : 'Select a Trip'}
+            </span>
+          </div>
         </div>
-        <svg className={`shrink-0 w-4 h-4 text-text-muted transition-transform ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        <svg
+          className={`shrink-0 w-3.5 h-3.5 text-text-muted group-hover:text-text-secondary transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+        >
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
       </button>
 
       {isOpen && (
-        <div className="absolute top-[85%] left-3 right-3 mt-1 bg-bg-card border border-border rounded-[var(--radius-md)] z-50 py-1.5 max-h-[60vh] overflow-y-auto">
+        <div className="absolute top-[90%] left-3 right-3 mt-1 bg-bg-card border border-border rounded-[var(--radius-md)] z-50 py-1.5 max-h-[60vh] overflow-y-auto">
           {trips.length > 0 ? (
             <>
               <TripGroup title="Ongoing" trips={ongoingTrips} activeTripId={activeTripId} onSelect={(id) => { onSelect(id); setIsOpen(false) }} />
@@ -104,6 +121,10 @@ function TripSwitcher({ trips, activeTrip, activeTripId, onSelect, onNewTrip }) 
   )
 }
 
+// ─────────────────────────────────────────────────
+// NavLink
+// ─────────────────────────────────────────────────
+
 function NavLink({ tabId, label, emoji, isActive, onClick, hasNotification }) {
   return (
     <motion.button
@@ -122,6 +143,10 @@ function NavLink({ tabId, label, emoji, isActive, onClick, hasNotification }) {
     </motion.button>
   )
 }
+
+// ─────────────────────────────────────────────────
+// Main Sidebar
+// ─────────────────────────────────────────────────
 
 export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
   const { state, dispatch, activeTrip, sortedTrips } = useTripContext()
@@ -153,16 +178,81 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
     if (isMobile) closeSidebar()
   }
 
+  const handleHelpClick = () => {
+    dispatch({ type: ACTIONS.SET_TAB, payload: 'videos' })
+    if (isMobile) closeSidebar()
+  }
+
   const thePlanTabs = TAB_CONFIG.filter(t => THE_PLAN_IDS.includes(t.id))
-  let toolsTabs = TAB_CONFIG.filter(t => TOOLS_IDS.includes(t.id))
+  let collaborateTabs = TAB_CONFIG.filter(t => COLLABORATE_NAV_IDS.includes(t.id))
   // Filter conditional concert tab
-  toolsTabs = toolsTabs.filter(t => !t.conditional || (t.conditional && activeTrip?.concertTheme))
+  collaborateTabs = collaborateTabs.filter(t => !t.conditional || (t.conditional && activeTrip?.concertTheme))
 
   const hasTrips = sortedTrips.length > 0
 
   const sidebarContent = (
     <aside className="flex flex-col h-full w-[var(--sidebar-width)] bg-bg-sidebar border-r border-border">
-      {/* Workspace Switcher */}
+
+      {/* ══════════════════════════════════════ */}
+      {/* ZONE 1: USER IDENTITY CARD            */}
+      {/* Floating card — breathes with air on   */}
+      {/* all sides. Not competing with header.  */}
+      {/* 40px avatar, XP bar with numbers.      */}
+      {/* ══════════════════════════════════════ */}
+      <div className="px-3 pt-3 pb-2">
+        <div className="p-3">
+
+          {/* Avatar row */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowProfiles(true)}
+              className="rounded-full shrink-0 hover:opacity-85 transition-opacity"
+              aria-label="Your profile and wanderers"
+              title="Manage wanderers"
+            >
+              <AvatarCircle
+                profile={currentUserProfile || { name: user?.displayName, photo: user?.photoURL }}
+                size={40}
+                levelColor={currentLevel.frameColor}
+              />
+            </button>
+
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-text-primary truncate leading-tight">
+                {currentUserProfile?.name || user?.displayName || 'Traveler'}
+              </p>
+              <p className="text-[10px] font-medium truncate leading-none mt-0.5" style={{ color: currentLevel.frameColor }}>
+                {currentLevel.emoji} {currentLevel.title} · Lvl {currentLevel.level}
+              </p>
+            </div>
+          </div>
+
+          {/* XP bar — full tracker with numbers, per user preference */}
+          <div className="mt-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[9px] font-bold text-text-muted uppercase tracking-widest">XP Progress</span>
+              <span className="text-[9px] font-semibold tabular-nums" style={{ color: currentLevel.frameColor }}>
+                {nextLevel ? `${xpProgress.current} / ${xpProgress.needed} XP` : '✨ Max Level'}
+              </span>
+            </div>
+            <div className="w-full h-1.5 rounded-full bg-border/30 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{
+                  width: `${xpProgress.pct}%`,
+                  background: currentLevel.frameColor,
+                  boxShadow: `0 0 6px ${currentLevel.frameColor}88`,
+                }}
+              />
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════ */}
+      {/* ZONE 2: TRIP SWITCHER                  */}
+      {/* ══════════════════════════════════════ */}
       <TripSwitcher
         trips={sortedTrips}
         activeTrip={activeTrip}
@@ -171,12 +261,16 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
         onNewTrip={onNewTrip}
       />
 
+      {/* ══════════════════════════════════════ */}
+      {/* ZONE 3: PRIMARY NAV (scrollable)       */}
+      {/* ══════════════════════════════════════ */}
       <div className="flex-1 overflow-y-auto px-3 pb-4 scrollbar-hide flex flex-col gap-6 mt-2">
         {hasTrips && (
           <>
+            {/* The Plan */}
             <div>
               <div className="px-3 mb-1">
-                <Label>The Plan</Label>
+                <Label>Planning</Label>
               </div>
               <nav className="flex flex-col gap-[2px]">
                 {thePlanTabs.map(tab => (
@@ -192,12 +286,13 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
               </nav>
             </div>
 
+            {/* Collaborate (renamed from "Tools & Collab", How-To removed) */}
             <div>
               <div className="px-3 mb-1">
-                <Label>Tools & Collab</Label>
+                <Label>Tools</Label>
               </div>
               <nav className="flex flex-col gap-[2px]">
-                {toolsTabs.map(tab => (
+                {collaborateTabs.map(tab => (
                   <NavLink
                     key={tab.id}
                     tabId={tab.id}
@@ -205,7 +300,6 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
                     emoji={tab.emoji}
                     isActive={state.activeTab === tab.id}
                     onClick={handleTabClick}
-                    // Basic placeholder notification logic, can be hooked into poll data
                     hasNotification={tab.id === 'voting' && activeTrip?.polls?.filter(p => !p.resolved).length > 0}
                   />
                 ))}
@@ -215,98 +309,79 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
         )}
       </div>
 
-        {/* XP meter row — now ABOVE the footer line */}
-        <div className="px-4 py-2 mt-auto flex items-center gap-3">
-          {/* Avatar with level ring */}
-          <div className="relative shrink-0">
-            <button
-              onClick={() => setShowProfiles(true)}
-              className="rounded-full transition-all"
-              aria-label="Your profile and wanderers"
-              title={`${currentLevel.title} · ${xp} XP`}
-            >
-              <AvatarCircle
-                profile={currentUserProfile || { name: user?.displayName, photo: user?.photoURL }}
-                size={32}
-                levelColor={currentLevel.frameColor}
-              />
-            </button>
-            {/* Level badge removed per request */}
-          </div>
-
-          {/* XP bar + labels */}
-          <div className="flex-1 min-w-0 flex flex-col justify-center">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider truncate mr-2">
-                Lvl {currentLevel.level} • {currentLevel.emoji} {currentLevel.title}
-              </span>
-              <span className="text-[10px] font-medium text-text-muted whitespace-nowrap">
-                {nextLevel ? `${xpProgress.current}/${xpProgress.needed} XP` : '✨ Max'}
-              </span>
-            </div>
-            <div className="w-full h-1 rounded-full bg-border/20 overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{
-                  width: `${xpProgress.pct}%`,
-                  background: currentLevel.frameColor,
-                  boxShadow: `0 0 6px ${currentLevel.frameColor}88`,
-                }}
-              />
-            </div>
-          </div>
+      {/* ══════════════════════════════════════ */}
+      {/* ZONE 4: FOOTER (pinned)               */}
+      {/* No border — subtle bg tint + spacing   */}
+      {/* Logo left — Help + Dark Mode + Logout  */}
+      {/* ══════════════════════════════════════ */}
+      <div className="px-4 py-3 flex items-center justify-between">
+        {/* Branding */}
+        <div className="flex items-center gap-1.5 px-1 text-text-primary">
+          <span style={{ fontSize: '1.5rem', lineHeight: 1 }} aria-hidden="true">🪄</span>
+          <span style={{
+            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontWeight: 400,
+            fontSize: '1.25rem',
+            letterSpacing: '-0.02em',
+            lineHeight: 1,
+          }}>
+            <span style={{ fontStyle: 'italic' }}>Wander</span>plan
+          </span>
         </div>
 
-        {/* Footer Branding section */}
-        <div className="px-4 py-3 border-t border-border mt-auto flex items-center justify-between">
-          <div className="flex items-center gap-1.5 px-1 text-text-primary">
-            <span style={{ fontSize: '1.5rem', lineHeight: 1 }} aria-hidden="true">🪄</span>
-            <span style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
-              fontWeight: 400,
-              fontSize: '1.25rem',
-              letterSpacing: '-0.02em',
-              lineHeight: 1,
-            }}>
-              <span style={{ fontStyle: 'italic' }}>Wander</span>plan
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={handleToggleDarkMode}
-              className="p-1.5 rounded-[var(--radius-md)] text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
-              aria-label={state.darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-              title="Toggle theme"
-            >
-              {state.darkMode ? (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="5" />
-                  <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
-                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                  <line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" />
-                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-                </svg>
-              ) : (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-                </svg>
-              )}
-            </button>
-            <button
-              onClick={signOutUser}
-              className="p-1.5 rounded-[var(--radius-md)] text-text-muted hover:text-danger hover:bg-danger/10 transition-colors ml-1"
-              aria-label="Sign out"
-              title="Sign out"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
+        {/* Utility actions: Help · Dark Mode · Sign Out */}
+        <div className="flex items-center gap-0.5">
+          {/* Help → opens the How-To / Videos tab */}
+          <button
+            onClick={handleHelpClick}
+            className={`p-1.5 rounded-[var(--radius-sm)] transition-colors ${state.activeTab === 'videos' ? 'text-accent bg-accent/10' : 'text-text-muted hover:text-text-primary hover:bg-bg-hover'}`}
+            aria-label="Open How-To tutorials"
+            title="How-To tutorials"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </button>
+
+          {/* Dark mode toggle */}
+          <button
+            onClick={handleToggleDarkMode}
+            className="p-1.5 rounded-[var(--radius-sm)] text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+            aria-label={state.darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            title="Toggle theme"
+          >
+            {state.darkMode ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="5" />
+                <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                <line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" />
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
               </svg>
-            </button>
-          </div>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            )}
+          </button>
+
+          {/* Sign out */}
+          <button
+            onClick={signOutUser}
+            className="p-1.5 rounded-[var(--radius-sm)] text-text-muted hover:text-danger hover:bg-danger/10 transition-colors"
+            aria-label="Sign out"
+            title="Sign out"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
         </div>
-      
+      </div>
 
     </aside>
   )

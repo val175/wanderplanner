@@ -1,8 +1,9 @@
 import { useMemo, useState, useRef, useEffect } from 'react'
-import AnimatedNumber from '../shared/AnimatedNumber'
 import { createPortal } from 'react-dom'
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import AnimatedNumber from '../shared/AnimatedNumber'
+import { TRIP_EMOJIS } from '../../constants/emojis'
 import { db } from '../../firebase/config'
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import ProgressRing from '../shared/ProgressRing'
 import AvatarCircle from '../shared/AvatarCircle'
 import DatePicker from '../shared/DatePicker'
@@ -171,15 +172,14 @@ function TravelerPicker({ trip, travelerProfiles, dispatch, isReadOnly }) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   CountdownPill — compact days to departure
+   CountdownInline — simple inline text, not a pill badge
 ───────────────────────────────────────────────────────────── */
-function CountdownPill({ targetDate }) {
+function CountdownInline({ targetDate, fallback, className = 'text-sm text-text-muted' }) {
   const countdown = useCountdown(targetDate)
-  if (!targetDate || countdown.expired) return null
-
+  if (!targetDate || countdown.expired) return fallback ? <span className={`whitespace-nowrap ${className}`}>{fallback}</span> : null
   return (
-    <span className="inline-flex items-center px-2.5 py-0.5 rounded-[var(--radius-pill)] bg-bg-secondary border border-border text-xs font-semibold uppercase tracking-wider text-text-muted whitespace-nowrap">
-      <AnimatedNumber value={countdown.days} className="text-accent font-semibold mr-1" stiffness={60} damping={18} />
+    <span className={`inline-flex items-center gap-1 whitespace-nowrap ${className}`}>
+      <AnimatedNumber value={countdown.days} className="font-semibold tabular-nums" stiffness={60} damping={18} />
       {' '}days away
     </span>
   )
@@ -250,6 +250,156 @@ function InlineTripName({ value, onSave }) {
         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
       </svg>
     </button>
+  )
+}
+
+/* ─────────────────────────────────────────────────────────────
+   TripTitleEditor — unified emoji + title editor
+   Clicking emoji or title both enter edit mode.
+   Emoji picker appears alongside the input.
+───────────────────────────────────────────────────────────── */
+function TripTitleEditor({ trip, onRename, onEmojiChange }) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(trip.name)
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
+  const [emojiPickerCoords, setEmojiPickerCoords] = useState({ top: 0, left: 0 })
+  const inputRef = useRef(null)
+  const emojiBtnRef = useRef(null)
+  const emojiPickerRef = useRef(null)
+
+  useEffect(() => { if (!editing) setDraft(trip.name) }, [trip.name, editing])
+
+  const startEdit = () => {
+    setDraft(trip.name)
+    setEditing(true)
+    setTimeout(() => { inputRef.current?.focus(); inputRef.current?.select() }, 0)
+  }
+
+  const save = () => {
+    const trimmed = (draft || '').trim()
+    if (trimmed && trimmed !== trip.name) onRename(trimmed)
+    else setDraft(trip.name)
+    setEditing(false)
+    setEmojiPickerOpen(false)
+  }
+
+  const cancel = () => { setDraft(trip.name); setEditing(false); setEmojiPickerOpen(false) }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); save() }
+    if (e.key === 'Escape') cancel()
+  }
+
+  const handleEmojiButtonClick = () => {
+    if (!editing) startEdit()
+    if (emojiBtnRef.current) {
+      const r = emojiBtnRef.current.getBoundingClientRect()
+      setEmojiPickerCoords({ top: r.bottom + 6, left: r.left })
+    }
+    setEmojiPickerOpen(o => !o)
+  }
+
+  const handleEmojiSelect = (emoji) => {
+    onEmojiChange(emoji)
+    setEmojiPickerOpen(false)
+  }
+
+  useEffect(() => {
+    if (!emojiPickerOpen) return
+    const handler = (e) => {
+      if (
+        emojiBtnRef.current && !emojiBtnRef.current.contains(e.target) &&
+        emojiPickerRef.current && !emojiPickerRef.current.contains(e.target)
+      ) setEmojiPickerOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [emojiPickerOpen])
+
+  return (
+    <div className="flex items-center gap-1.5 min-w-0 flex-1">
+
+      {/* Emoji — clicking enters edit mode + opens picker */}
+      <button
+        ref={emojiBtnRef}
+        onClick={handleEmojiButtonClick}
+        className="text-lg md:text-2xl leading-none shrink-0 rounded-[var(--radius-sm)] hover:bg-bg-hover p-1 -m-1 transition-colors"
+        title={editing ? 'Change emoji' : 'Edit trip'}
+        aria-label="Edit trip emoji"
+      >
+        {trip.emoji}
+      </button>
+
+      {/* Title — view or input */}
+      {editing ? (
+        <input
+          ref={inputRef}
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          onBlur={save}
+          onKeyDown={handleKeyDown}
+          className="font-heading text-xl md:text-2xl font-semibold text-text-primary leading-tight
+                     bg-transparent border-b border-accent outline-none min-w-0 flex-1"
+          aria-label="Edit trip name"
+        />
+      ) : (
+        <button
+          onClick={startEdit}
+          className="group flex items-center gap-1 min-w-0 text-left flex-1"
+          aria-label={`Trip name: ${trip.name}. Click to edit.`}
+        >
+          <h1 className="font-heading text-lg md:text-2xl font-bold text-text-primary
+                         leading-tight truncate
+                         group-hover:underline group-hover:decoration-border-strong group-hover:underline-offset-4">
+            {trip.name}
+          </h1>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            className="shrink-0 text-text-muted mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+            aria-hidden="true">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+        </button>
+      )}
+
+      {/* Emoji picker portal */}
+      {emojiPickerOpen && createPortal(
+        <div
+          ref={emojiPickerRef}
+          style={{ position: 'fixed', top: emojiPickerCoords.top, left: emojiPickerCoords.left }}
+          className="z-[9999] bg-bg-card border border-border rounded-[var(--radius-lg)] p-2.5 shadow-xl w-[232px]"
+        >
+          <div className="grid grid-cols-8 gap-1 mb-2">
+            {TRIP_EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => handleEmojiSelect(emoji)}
+                className={`w-7 h-7 flex items-center justify-center text-base rounded-[var(--radius-sm)] transition-all
+                  ${trip.emoji === emoji
+                    ? 'bg-accent/15 ring-2 ring-accent scale-110'
+                    : 'hover:bg-bg-hover'
+                  }`}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+          <input
+            type="text"
+            placeholder="Or type any emoji…"
+            className="w-full text-sm px-2 py-1.5 rounded-[var(--radius-sm)] bg-bg-secondary border border-border text-text-primary placeholder-text-muted outline-none focus:border-accent/50"
+            onChange={e => {
+              const match = e.target.value.match(/\p{Emoji}/u)
+              if (match) handleEmojiSelect(match[0])
+            }}
+          />
+        </div>,
+        document.body
+      )}
+
+    </div>
   )
 }
 
@@ -595,9 +745,12 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
     }
   }
 
-  /* ── Status badge (reused in both rows) ── */
+  const handleEmojiChange = (emoji) =>
+    dispatch({ type: ACTIONS.UPDATE_TRIP, payload: { id: trip.id, updates: { emoji } } })
+
+  /* ── Mobile-only quiet status badge ── */
   const StatusBadge = () => (
-    <span className="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-[var(--radius-pill)] bg-bg-secondary border border-border text-xs font-semibold uppercase tracking-wider text-text-muted whitespace-nowrap">
+    <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-[var(--radius-sm)] bg-bg-secondary text-[11px] font-semibold uppercase tracking-wider text-text-muted whitespace-nowrap">
       {statusLabel}
     </span>
   )
@@ -629,18 +782,8 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
 
                 {isReadOnly
                   ? <h1 className="font-heading text-lg md:text-2xl font-bold text-text-primary leading-tight truncate flex-1 min-w-0">{trip.emoji} {trip.name}</h1>
-                  : (
-                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                      <span className="text-lg md:text-2xl leading-none shrink-0" role="img" aria-label="Trip emoji">{trip.emoji}</span>
-                      <InlineTripName value={trip.name} onSave={handleRename} />
-                    </div>
-                  )
+                  : <TripTitleEditor trip={trip} onRename={handleRename} onEmojiChange={handleEmojiChange} />
                 }
-
-                {/* Desktop-only status badge in title row — moved inside the group for better spacing */}
-                <span className="hidden lg:inline-flex shrink-0 items-center px-2.5 py-0.5 rounded-[var(--radius-pill)] bg-bg-secondary border border-border text-xs font-semibold uppercase tracking-wider text-text-muted whitespace-nowrap ml-2">
-                  {statusLabel}
-                </span>
               </div>
 
               {/* Mobile main actions: Status, Search, Dots */}
@@ -667,28 +810,25 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
                </div>
             </div>
 
-            {/* Row 3 (Mobile) / Row 2 (Desktop): Destinations */}
+            {/* Meta row (desktop): Date leads · then Cities */}
             <div className="flex items-center min-w-0 pl-10 md:pl-0">
               <div className="flex items-center gap-x-2 flex-1 min-w-0 text-sm text-text-muted overflow-x-auto no-scrollbar whitespace-nowrap mask-fade-right pb-1">
-                
-                {destinations.length > 0 && (
-                  <div className="shrink-0 min-w-0">
-                    <CityBreadcrumbs destinations={destinations} />
-                  </div>
-                )}
 
-                {/* Desktop layout metadata helpers */}
-                <span className="hidden lg:inline opacity-40 text-xs shrink-0">·</span>
+                {/* Date anchors the row — desktop only */}
                 <div className="hidden lg:flex shrink-0 items-center">
                   <DateRangeEditor trip={trip} dispatch={dispatch} isReadOnly={isReadOnly} />
                 </div>
 
-                {!isReadOnly && trip.startDate && tripStatus === 'upcoming' && (
-                  <div className="shrink-0 hidden lg:block">
-                    <span className="opacity-40 text-xs shrink-0 mx-2">·</span>
-                    <CountdownPill targetDate={trip.startDate} />
-                  </div>
+                {/* Cities follow */}
+                {destinations.length > 0 && (
+                  <>
+                    <span className="hidden lg:inline opacity-40 text-xs shrink-0">·</span>
+                    <div className="shrink-0 min-w-0">
+                      <CityBreadcrumbs destinations={destinations} />
+                    </div>
+                  </>
                 )}
+
               </div>
             </div>
           </div>
@@ -696,14 +836,29 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
           {/* ── RIGHT — Desktop-only global actions ── */}
           <div className="hidden lg:flex shrink-0 items-center justify-end gap-3">
 
-            {/* Readiness ring */}
-            <div className="flex items-center gap-2">
+            {/* Trip Status + Readiness + Countdown — unified "trip health" widget */}
+            <div className="flex items-center gap-2.5">
               <ProgressRing value={readiness} size={36} strokeWidth={3.5} labelClassName="text-[10px] font-semibold" />
               <div className="flex flex-col justify-center">
-                <span className="text-xs font-semibold uppercase tracking-wider text-text-muted leading-tight">Readiness</span>
-                <span className={`text-xs font-semibold leading-tight ${readiness >= 100 ? 'text-success' : 'text-text-primary/70'}`}>
-                  {readiness >= 100 ? 'Ready To Go!' : 'On Track'}
+                {/* Status pill */}
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-[var(--radius-sm)] bg-bg-secondary text-[10px] font-bold uppercase tracking-wider text-text-muted whitespace-nowrap w-fit mb-1">
+                  {statusLabel}
                 </span>
+                {/* Readiness quality · Countdown on one line */}
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-[11px] font-semibold leading-tight whitespace-nowrap ${readiness >= 100 ? 'text-success' : 'text-text-primary/70'}`}>
+                    {readiness >= 100 ? 'Ready!' : 'On Track'}
+                  </span>
+                {tripStatus === 'upcoming' && trip.startDate && (
+                    <>
+                      <span className="text-text-muted/40 text-[11px]">·</span>
+                      <CountdownInline
+                        targetDate={trip.startDate}
+                        className={`text-[11px] font-semibold leading-tight ${readiness >= 100 ? 'text-success' : 'text-text-primary/70'}`}
+                      />
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
