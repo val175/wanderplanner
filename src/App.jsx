@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from './firebase/config'
 import { TripContext, useTripContext } from './context/TripContext'
 import { ProfileProvider, useProfiles } from './context/ProfileContext'
@@ -490,9 +490,25 @@ function useAccessCheck(uid) {
   useEffect(() => {
     if (!uid) return
     getDoc(doc(db, 'users', uid))
-      .then(snap => setIsAllowed(snap.exists() && snap.data()?.allowed === true))
-      .catch(() => setIsAllowed(false))
-      .finally(() => setChecking(false))
+      .then(snap => {
+        if (snap.exists() && snap.data()?.allowed === true) {
+          setIsAllowed(true)
+          setChecking(false)
+        } else {
+          // Automate the whitelist: immediately grant access to new users who sign in.
+          setDoc(doc(db, 'users', uid), { allowed: true }, { merge: true })
+            .then(() => setIsAllowed(true))
+            .catch(err => {
+              console.error('Failed to auto-whitelist user:', err)
+              setIsAllowed(false)
+            })
+            .finally(() => setChecking(false))
+        }
+      })
+      .catch(() => {
+        setIsAllowed(false)
+        setChecking(false)
+      })
   }, [uid])
 
   return { checking, isAllowed }
