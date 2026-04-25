@@ -810,7 +810,7 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
                </div>
             </div>
 
-            {/* Meta row (desktop): Date leads · then Cities */}
+            {/* Meta row (desktop): Dates · Cities · Wanderers — full trip identity strip */}
             <div className="flex items-center min-w-0 pl-10 md:pl-0">
               <div className="flex items-center gap-x-2 flex-1 min-w-0 text-sm text-text-muted overflow-x-auto no-scrollbar whitespace-nowrap mask-fade-right pb-1">
 
@@ -823,11 +823,17 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
                 {destinations.length > 0 && (
                   <>
                     <span className="hidden lg:inline opacity-40 text-xs shrink-0">·</span>
-                    <div className="shrink-0 min-w-0">
+                    <div className="hidden lg:flex shrink-0 min-w-0">
                       <CityBreadcrumbs destinations={destinations} />
                     </div>
                   </>
                 )}
+
+                {/* Wanderers — part of trip identity, not actions */}
+                <span className="hidden lg:inline opacity-40 text-xs shrink-0">·</span>
+                <div className="hidden lg:flex shrink-0 items-center">
+                  <TravelerPicker trip={trip} travelerProfiles={travelerProfiles} dispatch={dispatch} isReadOnly={isReadOnly} />
+                </div>
 
               </div>
             </div>
@@ -861,8 +867,6 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
                 </div>
               </div>
             </div>
-
-            <TravelerPicker trip={trip} travelerProfiles={travelerProfiles} dispatch={dispatch} isReadOnly={isReadOnly} />
 
             {/* Search */}
             <button
