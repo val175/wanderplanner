@@ -9,6 +9,9 @@ import { useProfiles } from '../../context/ProfileContext'
 import AvatarCircle from '../shared/AvatarCircle'
 import { hapticImpact, hapticSelection } from '../../utils/haptics'
 import Label from '../shared/Label'
+import { useTripTravelers } from '../../hooks/useTripTravelers'
+import MentionTextarea from '../shared/MentionTextarea'
+import CommentText from '../shared/CommentText'
 
 function TodoStatusSelect({ value, onChange, disabled }) {
   const current = TODO_STATUSES.find(s => s.id === value) || TODO_STATUSES[0]
@@ -159,6 +162,7 @@ export default function TodoDrawer({ todo, travelers, onUpdate, onAddComment, on
   const [mounted, setMounted] = useState(false)
   const [visible, setVisible] = useState(false)
   const [draftComment, setDraftComment] = useState('')
+  const [draftMentions, setDraftMentions] = useState([])
   const [editingCommentId, setEditingCommentId] = useState(null)
   const [editDraft, setEditDraft] = useState('')
   const [isEditingNotes, setIsEditingNotes] = useState(false)
@@ -210,8 +214,9 @@ export default function TodoDrawer({ todo, travelers, onUpdate, onAddComment, on
     if (isReadOnly) return
     const text = draftComment.trim()
     if (!text) return
-    onAddComment?.(todo.id, text, actorId)
+    onAddComment?.(todo.id, text, actorId, draftMentions)
     setDraftComment('')
+    setDraftMentions([])
     hapticImpact('medium')
   }
 
@@ -433,9 +438,7 @@ export default function TodoDrawer({ todo, travelers, onUpdate, onAddComment, on
                             </div>
                           </div>
                         ) : (
-                          <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-                            {comment.text}
-                          </p>
+                          <CommentText text={comment.text} travelers={travelers} />
                         )}
                       </div>
                     </div>
@@ -450,17 +453,13 @@ export default function TodoDrawer({ todo, travelers, onUpdate, onAddComment, on
         <div className="border-t border-border px-4 py-3 bg-bg-card">
           <div className="flex items-center gap-3">
             <AvatarCircle profile={currentUserProfile} size={28} />
-            <input
+            <MentionTextarea
               value={draftComment}
-              onChange={e => setDraftComment(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  handlePost()
-                }
-              }}
-              onFocus={() => hapticSelection()}
-              placeholder={isReadOnly ? 'Updates are read-only' : 'Write an update...'}
+              onChange={setDraftComment}
+              onMentionsChange={setDraftMentions}
+              travelers={travelers}
+              onEnter={handlePost}
+              placeholder={isReadOnly ? 'Updates are read-only' : 'Write an update… (@ to mention)'}
               disabled={isReadOnly}
               className="flex-1 bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-muted font-heading"
             />

@@ -15,6 +15,8 @@ import { getDayLocationMap, detectLocationConflict } from '../../utils/tripGeo'
 import { MapPin } from 'lucide-react'
 import Label from '../shared/Label'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
+import MentionTextarea from '../shared/MentionTextarea'
+import CommentText from '../shared/CommentText'
 
 function CategorySelect({ value, onChange, disabled }) {
   return (
@@ -39,6 +41,7 @@ export default function ActivityDrawer({ activity, dayId, onClose, onViewOnMap }
   const [visible, setVisible] = useState(false)
   const [editingLocation, setEditingLocation] = useState(false)
   const [draftComment, setDraftComment] = useState('')
+  const [draftMentions, setDraftMentions] = useState([])
   const [editingCommentId, setEditingCommentId] = useState(null)
   const [editDraft, setEditDraft] = useState('')
   const [isEditingNotes, setIsEditingNotes] = useState(false)
@@ -119,8 +122,9 @@ export default function ActivityDrawer({ activity, dayId, onClose, onViewOnMap }
     if (isReadOnly) return
     const text = draftComment.trim()
     if (!text) return
-    dispatch({ type: ACTIONS.ADD_ACTIVITY_COMMENT, payload: { dayId, activityId: activity.id, text, actorId } })
+    dispatch({ type: ACTIONS.ADD_ACTIVITY_COMMENT, payload: { dayId, activityId: activity.id, text, actorId, mentions: draftMentions } })
     setDraftComment('')
+    setDraftMentions([])
     hapticImpact('medium')
   }
 
@@ -449,7 +453,7 @@ export default function ActivityDrawer({ activity, dayId, onClose, onViewOnMap }
                             </div>
                           </div>
                         ) : (
-                          <p className="mt-2 text-sm text-text-secondary leading-relaxed">{comment.text}</p>
+                          <CommentText text={comment.text} travelers={travelers} />
                         )}
                       </div>
                     </div>
@@ -465,12 +469,13 @@ export default function ActivityDrawer({ activity, dayId, onClose, onViewOnMap }
         <div className="border-t border-border px-4 py-3 bg-bg-card">
           <div className="flex items-center gap-3">
             <AvatarCircle profile={currentUserProfile} size={28} />
-            <input
+            <MentionTextarea
               value={draftComment}
-              onChange={e => setDraftComment(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handlePost() } }}
-              onFocus={() => hapticSelection()}
-              placeholder={isReadOnly ? 'Updates are read-only' : 'Write an update…'}
+              onChange={setDraftComment}
+              onMentionsChange={setDraftMentions}
+              travelers={travelers}
+              onEnter={handlePost}
+              placeholder={isReadOnly ? 'Updates are read-only' : 'Write an update… (@ to mention)'}
               disabled={isReadOnly}
               className="flex-1 bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-muted font-heading"
             />

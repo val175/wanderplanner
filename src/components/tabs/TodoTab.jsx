@@ -402,7 +402,7 @@ export default function TodoTab() {
           todo={todos.find(t => t.id === selectedTodoId)}
           travelers={tripTravelers}
           onUpdate={(id, updates) => dispatch({ type: ACTIONS.UPDATE_TODO, payload: { id, updates } })}
-          onAddComment={(todoId, text, actorId) => dispatch({ type: ACTIONS.ADD_TODO_COMMENT, payload: { todoId, text, actorId } })}
+          onAddComment={(todoId, text, actorId, mentions) => dispatch({ type: ACTIONS.ADD_TODO_COMMENT, payload: { todoId, text, actorId, mentions } })}
           onUpdateComment={(todoId, commentId, text) => dispatch({ type: ACTIONS.UPDATE_TODO_COMMENT, payload: { todoId, commentId, text } })}
           onDeleteComment={(todoId, commentId) => dispatch({ type: ACTIONS.DELETE_TODO_COMMENT, payload: { todoId, commentId } })}
           onClose={() => setSelectedTodoId(null)}

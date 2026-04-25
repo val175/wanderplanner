@@ -68,6 +68,7 @@ export const todoCases = {
           id: generateId(),
           authorId: payload.actorId || null,
           text: payload.text.trim(),
+          mentions: Array.isArray(payload.mentions) ? payload.mentions : [],
           timestamp: new Date().toISOString(),
         }
         const comments = Array.isArray(t.comments) ? t.comments : []

@@ -19,6 +19,7 @@ import { useTripTravelers } from '../../hooks/useTripTravelers'
 import { Search as SearchIcon } from 'lucide-react'
 import ShareTripModal from '../modal/ShareTripModal'
 import PresentationMode from '../shared/PresentationMode'
+import NotificationBell from '../shared/NotificationBell'
 
 /* ─────────────────────────────────────────────────────────────
    TravelerPicker — portal-based dropdown (unchanged logic)
@@ -719,7 +720,9 @@ function HeaderOptionsDropdown({ trip, dispatch, isReadOnly, onRenameRequest }) 
 ───────────────────────────────────────────────────────────── */
 export default function TripHeader({ onOpenSidebar, isMobile }) {
   const { activeTrip, dispatch, isReadOnly, effectiveStatus, showToast } = useTripContext()
+  const { currentUserProfile } = useProfiles()
   const travelerProfiles = useTripTravelers()
+  const myUid = currentUserProfile?.uid || currentUserProfile?.id
   const readiness = useMemo(() => calculateReadiness(activeTrip), [activeTrip])
 
   if (!activeTrip) return null
@@ -786,9 +789,10 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
                 }
               </div>
 
-              {/* Mobile main actions: Status, Search, Dots */}
+              {/* Mobile main actions: Status, Bell, Search, Dots */}
               <div className="flex items-center gap-1 lg:hidden">
                 <StatusBadge />
+                <NotificationBell myUid={myUid} />
                 <button
                   onClick={() => window.dispatchEvent(new CustomEvent('open-global-search'))}
                   className="flex items-center justify-center w-10 h-10 text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors"
@@ -867,6 +871,8 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
                 </div>
               </div>
             </div>
+
+            <NotificationBell myUid={myUid} />
 
             {/* Search */}
             <button

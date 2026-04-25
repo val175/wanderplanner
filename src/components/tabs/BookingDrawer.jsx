@@ -17,6 +17,8 @@ import { hapticImpact, hapticSelection } from '../../utils/haptics'
 import LocationAutocomplete from '../shared/LocationAutocomplete'
 import AirportAutocomplete from '../shared/AirportAutocomplete'
 import Label from '../shared/Label'
+import MentionTextarea from '../shared/MentionTextarea'
+import CommentText from '../shared/CommentText'
 
 // ── Cost Input ──────────────────────────────────────────────────────────────
 function CostInput({ value, currency, onChange, disabled }) {
@@ -100,6 +102,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
   const [notesDraft, setNotesDraft] = useState('')
   const [editingLocation, setEditingLocation] = useState(false)
   const [draftComment, setDraftComment] = useState('')
+  const [draftMentions, setDraftMentions] = useState([])
   const [editingCommentId, setEditingCommentId] = useState(null)
   const [editDraft, setEditDraft] = useState('')
   const feedRef = useRef(null)
@@ -158,8 +161,9 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
     if (isReadOnly) return
     const text = draftComment.trim()
     if (!text) return
-    dispatch({ type: ACTIONS.ADD_BOOKING_COMMENT, payload: { bookingId: booking.id, text, actorId } })
+    dispatch({ type: ACTIONS.ADD_BOOKING_COMMENT, payload: { bookingId: booking.id, text, actorId, mentions: draftMentions } })
     setDraftComment('')
+    setDraftMentions([])
     hapticImpact('medium')
   }
 
@@ -617,7 +621,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
                             </div>
                           </div>
                         ) : (
-                          <p className="mt-2 text-sm text-text-secondary leading-relaxed">{comment.text}</p>
+                          <CommentText text={comment.text} travelers={travelers} />
                         )}
                       </div>
                     </div>
@@ -633,12 +637,13 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
         <div className="border-t border-border px-4 py-3 bg-bg-card">
           <div className="flex items-center gap-3">
             <AvatarCircle profile={currentUserProfile} size={28} />
-            <input
+            <MentionTextarea
               value={draftComment}
-              onChange={e => setDraftComment(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handlePost() } }}
-              onFocus={() => hapticSelection()}
-              placeholder={isReadOnly ? 'Updates are read-only' : 'Write an update…'}
+              onChange={setDraftComment}
+              onMentionsChange={setDraftMentions}
+              travelers={travelers}
+              onEnter={handlePost}
+              placeholder={isReadOnly ? 'Updates are read-only' : 'Write an update… (@ to mention)'}
               disabled={isReadOnly}
               className="flex-1 bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-muted font-heading"
             />

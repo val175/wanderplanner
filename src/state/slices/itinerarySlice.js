@@ -283,6 +283,7 @@ export const itineraryCases = {
               id: generateId(),
               authorId: payload.actorId || null,
               text: payload.text.trim(),
+              mentions: Array.isArray(payload.mentions) ? payload.mentions : [],
               timestamp: new Date().toISOString(),
             }
             return { ...a, comments: [...(a.comments || []), comment] }
