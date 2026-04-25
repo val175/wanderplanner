@@ -7,7 +7,7 @@ import Select, { SelectItem } from '../shared/Select'
 import Button from '../shared/Button'
 import DatePicker from '../shared/DatePicker'
 import AvatarCircle from '../shared/AvatarCircle'
-import TravelerMultiSelect from '../shared/TravelerMultiSelect'
+import WanderersPicker from '../shared/WanderersPicker'
 import { useProfiles } from '../../context/ProfileContext'
 import { useTripContext } from '../../context/TripContext'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
@@ -409,25 +409,19 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
                   </div>
                 </div>
 
-                <div className="px-3 py-3">
-                  <div className="flex items-center justify-between gap-3 mb-2">
-                    <Label className="w-20 shrink-0">Travelers</Label>
-                    <span className="text-xs text-text-muted font-medium">
-                      {booking.paxCount || bookingTravelerIds.length || 1} pax
-                    </span>
+                <div className="flex items-center gap-3 px-3 min-h-[42px]">
+                  <Label className="w-20 shrink-0">Travelers</Label>
+                  <div className="flex-1 py-1.5">
+                    <WanderersPicker
+                      travelers={travelers}
+                      selectedIds={booking.travelerIds || []}
+                      onChange={next => onUpdate(booking.id, {
+                        travelerIds: next,
+                        paxCount: next.length > 0 ? next.length : (travelers.length || 1),
+                      }, actorId)}
+                      disabled={isReadOnly}
+                    />
                   </div>
-                  <TravelerMultiSelect
-                    travelers={travelers}
-                    selectedIds={bookingTravelerIds}
-                    onChange={next => onUpdate(booking.id, {
-                      travelerIds: next,
-                      paxCount: next.length || tripTravelerIds.length || 1,
-                    }, actorId)}
-                    label="Included travelers"
-                    helperText="Select the travelers covered by this booking."
-                    disabled={isReadOnly}
-                    className="!mb-0"
-                  />
                 </div>
 
                 <div className="flex items-center gap-3 px-3 min-h-[42px]">
@@ -643,7 +637,7 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
               onMentionsChange={setDraftMentions}
               travelers={travelers}
               onEnter={handlePost}
-              placeholder={isReadOnly ? 'Updates are read-only' : 'Write an update… (@ to mention)'}
+              placeholder={isReadOnly ? 'Updates are read-only' : 'Write an update… (@ to tag)'}
               disabled={isReadOnly}
               className="flex-1 bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-muted font-heading"
             />

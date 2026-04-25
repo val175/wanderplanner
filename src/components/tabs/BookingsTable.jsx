@@ -68,12 +68,26 @@ function TypeDropdown({ value, onChange, disabled }) {
     )
 }
 
-function getBookingScopeLabel(booking) {
-    const explicitCount = Array.isArray(booking?.travelerIds) && booking.travelerIds.length > 0
-        ? booking.travelerIds.length
-        : Number(booking?.paxCount) || 0
-    if (explicitCount > 0) return `${explicitCount} pax`
-    return 'Whole trip'
+function getBookingScopeLabel(booking, allTravelers = []) {
+    const ids = Array.isArray(booking?.travelerIds) && booking.travelerIds.length > 0
+        ? booking.travelerIds
+        : null
+    if (!ids) return 'Whole group'
+    if (!allTravelers.length) return `${ids.length} travelers`
+    const names = ids
+        .map(id => allTravelers.find(t => t.id === id || t.uid === id))
+        .filter(Boolean)
+        .map(t => t.name?.split(' ')[0] || t.name)
+    if (!names.length) return `${ids.length} travelers`
+    if (names.length <= 2) return names.join(' & ')
+    return `${names[0]} +${names.length - 1}`
+}
+
+function isExcluded(booking, currentUserId) {
+    if (!currentUserId) return false
+    const ids = booking?.travelerIds
+    if (!Array.isArray(ids) || ids.length === 0) return false // whole group
+    return !ids.includes(currentUserId)
 }
 
 // ── Main Table Component ───────────────────────────────────────────────────
@@ -84,7 +98,9 @@ export default function BookingsTable({
     onUpdate,
     onDelete,
     onRowClick,
-    isReadOnly
+    isReadOnly,
+    allTravelers = [],
+    currentUserId = null,
 }) {
     const data = useMemo(() => bookings, [bookings])
 
@@ -107,13 +123,13 @@ export default function BookingsTable({
             cell: info => (
                 <div className="min-w-0">
                     <span className="text-[13px] font-medium text-text-primary truncate block">{info.getValue()}</span>
-                    <span className="text-[11px] text-text-muted mt-0.5 block">{getBookingScopeLabel(info.row.original)}</span>
+                    <span className="text-[11px] text-text-muted mt-0.5 block">{getBookingScopeLabel(info.row.original, allTravelers)}</span>
                 </div>
             ),
         },
         {
             id: 'scope',
-            accessorFn: row => getBookingScopeLabel(row),
+            accessorFn: row => getBookingScopeLabel(row, allTravelers),
             header: 'Scope',
             size: 100,
             cell: info => (
@@ -277,6 +293,19 @@ export default function BookingsTable({
                         const booking = group.bookings[0]
                         const categoryConfig = BOOKING_CATEGORIES.find(c => c.id === booking.category) || BOOKING_CATEGORIES[0]
                         const status = MONDAY_STATUSES.find(s => s.value === migrateStatus(booking.status)) || MONDAY_STATUSES[0]
+                        if (isExcluded(booking, currentUserId)) {
+                            const scopeLabel = getBookingScopeLabel(booking, allTravelers)
+                            return (
+                                <Card key={booking.id} className="p-3 border border-border opacity-40 select-none">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-lg shrink-0 grayscale">{categoryConfig.emoji}</span>
+                                        <p className="text-[12px] text-text-muted italic truncate">
+                                            {scopeLabel} · {booking.name || 'Untitled'}
+                                        </p>
+                                    </div>
+                                </Card>
+                            )
+                        }
                         return (
                             <Card key={booking.id} className="p-3 border border-border cursor-pointer" onClick={() => onRowClick?.(booking)}>
                                 {/* HEADER */}
@@ -344,6 +373,19 @@ export default function BookingsTable({
                                 {group.bookings.map(booking => {
                                     const categoryConfig = BOOKING_CATEGORIES.find(c => c.id === booking.category) || BOOKING_CATEGORIES[0]
                                     const status = MONDAY_STATUSES.find(s => s.value === migrateStatus(booking.status)) || MONDAY_STATUSES[0]
+                                    if (isExcluded(booking, currentUserId)) {
+                                        const scopeLabel = getBookingScopeLabel(booking, allTravelers)
+                                        return (
+                                            <div key={booking.id} className="p-3 opacity-40 select-none">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-lg shrink-0 grayscale">{categoryConfig.emoji}</span>
+                                                    <p className="text-[12px] text-text-muted italic truncate">
+                                                        {scopeLabel} · {booking.name || 'Untitled'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )
+                                    }
                                     return (
                                         <div key={booking.id} className="p-3 cursor-pointer hover:bg-bg-hover/40 transition-colors" onClick={() => onRowClick?.(booking)}>
                                             <div className="flex items-start justify-between gap-2 mb-2">
@@ -351,7 +393,7 @@ export default function BookingsTable({
                                                     <span className="text-xl shrink-0">{categoryConfig.emoji}</span>
                                                     <div className="min-w-0">
                                                         <p className="font-semibold text-[13px] text-text-primary truncate">{booking.name || 'Untitled'}</p>
-                                                        <p className="text-[11px] text-text-muted mt-0.5">{getBookingScopeLabel(booking)}</p>
+                                                        <p className="text-[11px] text-text-muted mt-0.5">{getBookingScopeLabel(booking, allTravelers)}</p>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
@@ -451,6 +493,21 @@ export default function BookingsTable({
                                         </tr>
                                     )}
 
+                                    {isExcluded(row.original, currentUserId) ? (
+                                        <tr
+                                            key={row.id}
+                                            className={`border-t opacity-40 select-none ${sid ? 'border-accent/10' : 'border-border/20'}`}
+                                        >
+                                            <td className="px-2 py-2 text-lg grayscale">
+                                                {(BOOKING_CATEGORIES.find(c => c.id === row.original.category) || BOOKING_CATEGORIES[0]).emoji}
+                                            </td>
+                                            <td colSpan={row.getVisibleCells().length - 1} className="px-2 py-2">
+                                                <span className="text-xs text-text-muted italic">
+                                                    {getBookingScopeLabel(row.original, allTravelers)} · {row.original.name || 'Untitled'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ) : (
                                     <tr
                                         key={row.id}
                                         className={`group hover:bg-bg-hover/50 transition-colors border-t cursor-pointer ${
@@ -468,6 +525,7 @@ export default function BookingsTable({
                                             </td>
                                         ))}
                                     </tr>
+                                    )}
 
                                     {/* Series subtotal row — appears after last row of each series group */}
                                     {isLastInSeries && seriesTotal > 0 && (

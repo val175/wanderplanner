@@ -273,6 +273,7 @@ export default function ActivityDrawer({ activity, dayId, onClose, onViewOnMap }
                 label="Included travelers"
                 helperText="Select everyone who is part of this activity."
                 disabled={isReadOnly}
+                collapsible
                 className="!mb-0"
               />
             </div>
@@ -475,7 +476,7 @@ export default function ActivityDrawer({ activity, dayId, onClose, onViewOnMap }
               onMentionsChange={setDraftMentions}
               travelers={travelers}
               onEnter={handlePost}
-              placeholder={isReadOnly ? 'Updates are read-only' : 'Write an update… (@ to mention)'}
+              placeholder={isReadOnly ? 'Updates are read-only' : 'Write an update… (@ to tag)'}
               disabled={isReadOnly}
               className="flex-1 bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-muted font-heading"
             />

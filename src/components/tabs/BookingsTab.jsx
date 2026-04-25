@@ -9,6 +9,7 @@ import { ACTIONS } from '../../state/tripReducer'
 import { BOOKING_CATEGORIES } from '../../constants/tabs'
 import { hapticImpact } from '../../utils/haptics'
 import { LayoutGrid, LayoutList, Plus } from 'lucide-react'
+import { useTripTravelers } from '../../hooks/useTripTravelers'
 
 import BookingsTable from './BookingsTable'
 import BookingsKanban from './BookingsKanban'
@@ -25,6 +26,7 @@ const TOGGLEABLE_COLUMNS = [
 export default function BookingsTab() {
   const { activeTrip, dispatch, showToast, isReadOnly } = useTripContext()
   const { currentUserProfile } = useProfiles()
+  const allTravelers = useTripTravelers()
   const [filter, setFilter] = useState('all')
   const [viewMode, setViewMode] = useState('table')
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -236,6 +238,8 @@ export default function BookingsTab() {
           onAdd={isReadOnly ? null : () => setIsAddModalOpen(true)}
           onRowClick={(booking) => setSelectedBookingId(booking.id)}
           isReadOnly={isReadOnly}
+          allTravelers={allTravelers}
+          currentUserId={actorId}
         />
       ) : (
         <BookingsKanban

@@ -459,7 +459,7 @@ export default function TodoDrawer({ todo, travelers, onUpdate, onAddComment, on
               onMentionsChange={setDraftMentions}
               travelers={travelers}
               onEnter={handlePost}
-              placeholder={isReadOnly ? 'Updates are read-only' : 'Write an update… (@ to mention)'}
+              placeholder={isReadOnly ? 'Updates are read-only' : 'Write an update… (@ to tag)'}
               disabled={isReadOnly}
               className="flex-1 bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-muted font-heading"
             />

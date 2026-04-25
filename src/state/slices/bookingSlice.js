@@ -92,10 +92,13 @@ export const bookingCases = {
         currency: trip.currency,
         ...payload,
       }
+      // Empty array = whole group (default). Explicit subset = sub-group booking.
       next.travelerIds = Array.isArray(payload.travelerIds)
         ? Array.from(new Set(payload.travelerIds.filter(Boolean)))
-        : travelerIds
-      next.paxCount = Number(payload.paxCount || next.travelerIds.length || trip.travelers || 1)
+        : []
+      next.paxCount = next.travelerIds.length > 0
+        ? next.travelerIds.length
+        : Number(trip.travelers || normalizeTravelerIds(trip, {}).length || 1)
       next.seriesId = payload.seriesId || null
       const { spendingLog, budget } = syncBookingBudget(trip, null, next, payload.actorId)
       return { ...trip, bookings: [next, ...trip.bookings], spendingLog, budget }

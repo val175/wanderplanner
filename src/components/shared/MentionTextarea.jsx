@@ -1,6 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import AvatarCircle from './AvatarCircle'
 
+function getHighlightedParts(text, travelerNames) {
+  if (!text || !travelerNames.length) return [{ text, highlight: false }]
+  const escaped = [...travelerNames].sort((a, b) => b.length - a.length)
+    .map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  const pattern = new RegExp(`(@(?:${escaped.join('|')}))`, 'g')
+  return text.split(pattern).map(part => ({
+    text: part,
+    highlight: part.startsWith('@') && travelerNames.includes(part.slice(1)),
+  }))
+}
+
 export default function MentionTextarea({
   value,
   onChange,
@@ -15,17 +26,25 @@ export default function MentionTextarea({
   const [mentionStart, setMentionStart] = useState(-1)
   const [mentionedIds, setMentionedIds] = useState([])
   const [activeIdx, setActiveIdx] = useState(0)
-  const inputRef = useRef(null)
+  const textareaRef = useRef(null)
 
+  const travelerNames = travelers.map(t => t.name).filter(Boolean)
   const filtered = mentionQuery !== null
     ? travelers.filter(t => t.name && t.name.toLowerCase().startsWith(mentionQuery.toLowerCase()))
     : []
+
+  // Auto-resize to content height
+  useEffect(() => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [value])
 
   const handleChange = (e) => {
     const text = e.target.value
     const cursor = e.target.selectionStart
     onChange(text)
-
     const beforeCursor = text.slice(0, cursor)
     const lastAt = beforeCursor.lastIndexOf('@')
     if (lastAt !== -1) {
@@ -49,10 +68,9 @@ export default function MentionTextarea({
     setMentionedIds(next)
     onMentionsChange?.(next)
     setMentionQuery(null)
-    setTimeout(() => inputRef.current?.focus(), 0)
+    setTimeout(() => textareaRef.current?.focus(), 0)
   }
 
-  // Reset when value is cleared externally (after post)
   useEffect(() => {
     if (!value) {
       setMentionedIds([])
@@ -73,17 +91,58 @@ export default function MentionTextarea({
     }
   }
 
+  // Shared metrics applied to both overlay and textarea
+  const sharedStyle = {
+    fontSize: 'inherit',
+    fontFamily: 'inherit',
+    fontWeight: 'inherit',
+    lineHeight: '1.5',
+    letterSpacing: 'inherit',
+    padding: 0,
+    margin: 0,
+    border: 0,
+    wordBreak: 'break-word',
+  }
+
   return (
-    <div className="relative flex-1">
-      <input
-        ref={inputRef}
+    <div className="relative flex-1 min-w-0">
+
+      {/* Highlight overlay — renders @mentions in accent, all other text transparent */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 pointer-events-none overflow-hidden whitespace-pre-wrap"
+        style={{ ...sharedStyle }}
+      >
+        {value ? (
+          getHighlightedParts(value + ' ', travelerNames).map((part, i) =>
+            part.highlight
+              ? <span key={i} className="text-accent font-semibold">{part.text}</span>
+              : <span key={i} style={{ color: 'transparent' }}>{part.text}</span>
+          )
+        ) : (
+          // Placeholder rendered here so textarea can stay color:transparent
+          <span className="text-text-muted">{placeholder}</span>
+        )}
+      </div>
+
+      {/* Actual textarea — transparent text so overlay shows through, caret stays visible */}
+      <textarea
+        ref={textareaRef}
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
-        placeholder={placeholder}
         disabled={disabled}
-        className={className}
+        rows={1}
+        className={`relative w-full resize-none overflow-hidden bg-transparent outline-none border-none ${className}`}
+        style={{
+          ...sharedStyle,
+          color: 'transparent',
+          caretColor: 'var(--color-text-primary, currentColor)',
+          minHeight: '1.5em',
+        }}
       />
+
+      {/* @ mention dropdown */}
       {mentionQuery !== null && filtered.length > 0 && (
         <div className="absolute bottom-full left-0 mb-2 bg-bg-card border border-border rounded-[var(--radius-lg)] shadow-xl z-50 min-w-[160px] py-1 overflow-hidden">
           {filtered.map((t, i) => (

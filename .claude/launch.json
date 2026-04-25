@@ -4,7 +4,7 @@
     {
       "name": "Wanderplan Dev",
       "runtimeExecutable": "/opt/homebrew/bin/node",
-      "runtimeArgs": ["node_modules/.bin/vite"],
+      "runtimeArgs": ["/Users/val/Documents/Claude Projects/Trip Planner/node_modules/.bin/vite"],
       "port": 5173,
       "autoPort": true
     },
