@@ -1,4 +1,5 @@
 import CityCombobox, { COUNTRY_FLAGS_MAP } from '../../shared/CityCombobox'
+import Input from '../../shared/Input'
 
 export default function StepDestinations({ form, setForm }) {
   const handleAdd = () => {
@@ -45,14 +46,13 @@ export default function StepDestinations({ form, setForm }) {
               flag={dest.flag}
               onChange={updates => handleDestChange(index, updates)}
             />
-            <input
+            <Input
               type="text"
+              size="sm"
               value={dest.country}
               onChange={e => handleCountryChange(index, e.target.value)}
               placeholder="Country"
-              className="flex-1 px-3 py-2 bg-bg-input border border-border rounded-[var(--radius-sm)]
-                         text-text-primary placeholder:text-text-muted text-sm
-                         focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-colors"
+              className="flex-1"
             />
             <button type="button" onClick={() => handleRemove(index)}
               disabled={form.destinations.length <= 1}

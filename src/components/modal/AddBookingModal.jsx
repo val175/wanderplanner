@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useDropzone } from 'react-dropzone'
 import Modal from '../shared/Modal'
 import Button from '../shared/Button'
+import Input from '../shared/Input'
 import Select, { SelectItem } from '../shared/Select'
 import TravelerMultiSelect from '../shared/TravelerMultiSelect'
 import { useTripContext } from '../../context/TripContext'
@@ -243,7 +244,7 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Add Booking">
+    <Modal isOpen={isOpen} onClose={onClose} title="Add Booking" closeOnOutsideClick={false}>
       <div className="p-6 space-y-5">
 
         {/* ── PROCESSING ── */}
@@ -312,13 +313,13 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
               <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">
                 Booking Name
               </label>
-              <input
+              <Input
                 value={form.name}
                 onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                 onKeyDown={e => e.key === 'Enter' && handleManualAdd()}
                 placeholder="e.g. Flight to Tokyo"
-                className={inputCls}
                 autoFocus
+                autoComplete="off"
               />
             </div>
 
@@ -340,12 +341,13 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
                 <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">
                   Est. Cost
                 </label>
-                <input
+                <Input
                   type="number"
                   value={form.estimatedCost}
                   onChange={e => setForm(p => ({ ...p, estimatedCost: e.target.value }))}
                   placeholder="0.00"
-                  className={inputCls}
+                  inputMode="decimal"
+                  pattern="[0-9]*"
                 />
               </div>
             </div>
@@ -354,11 +356,11 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
               <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">
                 Series / Group ID
               </label>
-              <input
+              <Input
                 value={form.seriesId}
                 onChange={e => setForm(p => ({ ...p, seriesId: e.target.value }))}
                 placeholder="e.g. flights-kul or hotel-sg"
-                className={inputCls}
+                autoComplete="off"
               />
             </div>
 
@@ -393,11 +395,11 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
               <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">
                 Booking Name
               </label>
-              <input
+              <Input
                 value={reviewForm.name}
                 onChange={e => setReviewForm(p => ({ ...p, name: e.target.value }))}
-                className={inputCls}
                 autoFocus
+                autoComplete="off"
               />
             </div>
 
@@ -435,22 +437,22 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
                 <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">
                   Date
                 </label>
-                <input
+                <Input
                   type="date"
                   value={reviewForm.startDate}
                   onChange={e => setReviewForm(p => ({ ...p, startDate: e.target.value }))}
-                  className={inputCls}
                 />
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">
                   Amount
                 </label>
-                <input
+                <Input
                   type="number"
                   value={reviewForm.amountPaid}
                   onChange={e => setReviewForm(p => ({ ...p, amountPaid: e.target.value }))}
-                  className={inputCls}
+                  inputMode="decimal"
+                  pattern="[0-9]*"
                 />
               </div>
             </div>
@@ -460,22 +462,22 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
                 <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">
                   Confirmation #
                 </label>
-                <input
+                <Input
                   value={reviewForm.confirmationNumber}
                   onChange={e => setReviewForm(p => ({ ...p, confirmationNumber: e.target.value }))}
                   placeholder="e.g. ABC123"
-                  className={inputCls}
+                  autoComplete="off"
                 />
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">
                   Location
                 </label>
-                <input
+                <Input
                   value={reviewForm.location}
                   onChange={e => setReviewForm(p => ({ ...p, location: e.target.value }))}
                   placeholder="e.g. Narita Airport"
-                  className={inputCls}
+                  autoComplete="off"
                 />
               </div>
             </div>
@@ -484,11 +486,11 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
               <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">
                 Series / Group ID
               </label>
-              <input
+              <Input
                 value={reviewForm.seriesId || ''}
                 onChange={e => setReviewForm(p => ({ ...p, seriesId: e.target.value }))}
                 placeholder="e.g. flights-kul or hotel-sg"
-                className={inputCls}
+                autoComplete="off"
               />
             </div>
 

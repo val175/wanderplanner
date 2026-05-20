@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { createPortal } from 'react-dom'
+import Modal from '../shared/Modal'
 import { useTripContext } from '../../context/TripContext'
 import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
@@ -29,32 +29,15 @@ export default function SettleUpModal({ tripId, onClose }) {
         onClose()
     }
 
-    return createPortal(
-        <div
-            className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center"
-            onMouseDown={onClose}
+    return (
+        <Modal
+            isOpen={true}
+            onClose={onClose}
+            title="💸 Settle Up"
+            description="Confirm everyone's square before archiving."
+            maxWidth="max-w-md"
         >
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-            <div
-                className="relative w-full sm:max-w-md bg-bg-card border border-border rounded-t-[var(--radius-xl)] sm:rounded-[var(--radius-xl)] p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6"
-                onMouseDown={e => e.stopPropagation()}
-                style={{ animation: 'wanda-pop 0.2s cubic-bezier(0.34,1.56,0.64,1)' }}
-            >
-                <style>{`@keyframes wanda-pop{from{opacity:0;transform:translateY(8px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}`}</style>
-
-                {/* Header */}
-                <div className="flex items-start justify-between mb-5">
-                    <div>
-                        <h2 className="text-base font-semibold text-text-primary font-heading">💸 Settle Up</h2>
-                        <p className="text-xs text-text-muted mt-0.5 leading-relaxed">
-                            Confirm everyone's square before archiving.
-                        </p>
-                    </div>
-                    <button type="button" onClick={onClose} className="p-1.5 rounded-full text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                    </button>
-                </div>
-
+            <div className="px-6 pb-6 pt-2">
                 {/* Transactions */}
                 <div className="mb-5">
                     {allSettled ? (
@@ -111,7 +94,6 @@ export default function SettleUpModal({ tripId, onClose }) {
                     )}
                 </div>
             </div>
-        </div>,
-        document.body
+        </Modal>
     )
 }

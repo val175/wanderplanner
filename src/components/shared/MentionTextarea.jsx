@@ -107,17 +107,17 @@ export default function MentionTextarea({
   return (
     <div className="relative flex-1 min-w-0">
 
-      {/* Highlight overlay — renders @mentions in accent, all other text transparent */}
+      {/* Highlight overlay — renders @mentions in accent, all other text visible */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 pointer-events-none overflow-hidden whitespace-pre-wrap"
+        className={`absolute inset-0 pointer-events-none overflow-hidden whitespace-pre-wrap ${className}`}
         style={{ ...sharedStyle }}
       >
         {value ? (
           getHighlightedParts(value + ' ', travelerNames).map((part, i) =>
             part.highlight
               ? <span key={i} className="text-accent font-semibold">{part.text}</span>
-              : <span key={i} style={{ color: 'transparent' }}>{part.text}</span>
+              : <span key={i}>{part.text}</span>
           )
         ) : (
           // Placeholder rendered here so textarea can stay color:transparent

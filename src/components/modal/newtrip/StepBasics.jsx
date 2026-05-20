@@ -120,7 +120,13 @@ export default function StepBasics({ form, setForm }) {
           <label className="block text-sm font-medium text-text-secondary mb-1.5">Start Date</label>
           <DatePicker
             value={form.startDate}
-            onChange={val => setForm(f => ({ ...f, startDate: val }))}
+            onChange={val => setForm(f => {
+              const next = { ...f, startDate: val }
+              if (val && f.endDate && val > f.endDate) {
+                next.endDate = ''
+              }
+              return next
+            })}
             placeholder="Pick a date"
             className="w-full px-3 py-2.5 bg-bg-input border border-border rounded-[var(--radius-md)] hover:border-accent/50"
           />

@@ -13,6 +13,7 @@ export default function Modal({
   maxWidth = 'max-w-xl',
   title,
   description,
+  closeOnOutsideClick = true,
 }) {
   return (
     <Dialog.Root open={isOpen} onOpenChange={open => !open && onClose()}>
@@ -21,7 +22,11 @@ export default function Modal({
 
         <Dialog.Content
           onEscapeKeyDown={onClose}
-          onPointerDownOutside={e => e.preventDefault()}
+          onPointerDownOutside={e => {
+            if (!closeOnOutsideClick) {
+              e.preventDefault()
+            }
+          }}
           className={`
             ${dialogContentClass}
             ${maxWidth}

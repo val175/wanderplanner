@@ -57,24 +57,26 @@ const LevelUpModal = lazy(() => import('./components/shared/LevelUpModal'))
 function TabPanel({ activeTab, onTabSwitch }) {
   return (
     <Suspense fallback={<TabLoadingState activeTab={activeTab} />}>
-      {(() => {
-        switch (activeTab) {
-          case 'overview': return <OverviewTab onTabSwitch={onTabSwitch} />
-          case 'wandermap': return <WanderMapTab />
-          case 'itinerary': return <ItineraryTab />
-          case 'bookings': return <BookingsTab />
-          case 'budget': return <BudgetTab />
-          case 'todo': return <TodoTab />
-          case 'documents': return <DocumentsTab />
-          case 'voting': return <VotingTab />
-          case 'videos': return <HowToVideosTab />
-          case 'cities': return <CitiesTab />
-          case 'packing': return <PackingTab />
-          case 'concert': return <ConcertTab />
-          case 'wrap-up': return <WrapUpTab />
-          default: return <OverviewTab onTabSwitch={onTabSwitch} />
-        }
-      })()}
+      <div key={activeTab} className="animate-tab-enter w-full h-full">
+        {(() => {
+          switch (activeTab) {
+            case 'overview': return <OverviewTab onTabSwitch={onTabSwitch} />
+            case 'wandermap': return <WanderMapTab />
+            case 'itinerary': return <ItineraryTab />
+            case 'bookings': return <BookingsTab />
+            case 'budget': return <BudgetTab />
+            case 'todo': return <TodoTab />
+            case 'documents': return <DocumentsTab />
+            case 'voting': return <VotingTab />
+            case 'videos': return <HowToVideosTab />
+            case 'cities': return <CitiesTab />
+            case 'packing': return <PackingTab />
+            case 'concert': return <ConcertTab />
+            case 'wrap-up': return <WrapUpTab />
+            default: return <OverviewTab onTabSwitch={onTabSwitch} />
+          }
+        })()}
+      </div>
     </Suspense>
   )
 }

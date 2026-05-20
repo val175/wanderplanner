@@ -178,6 +178,8 @@ export const bookingCases = {
           text: payload.text.trim(),
           mentions: Array.isArray(payload.mentions) ? payload.mentions : [],
           timestamp: new Date().toISOString(),
+          likes: [],
+          replies: [],
         }
         return { ...b, comments: [...(b.comments || []), comment] }
       }),
@@ -192,7 +194,14 @@ export const bookingCases = {
         b.id !== payload.bookingId ? b : {
           ...b,
           comments: (b.comments || []).map(c =>
-            c.id === payload.commentId ? { ...c, text: payload.text?.trim() || c.text } : c
+            c.id === payload.commentId
+              ? {
+                  ...c,
+                  text: payload.text !== undefined ? payload.text.trim() : c.text,
+                  likes: payload.likes !== undefined ? payload.likes : (c.likes || []),
+                  replies: payload.replies !== undefined ? payload.replies : (c.replies || []),
+                }
+              : c
           ),
         }
       ),

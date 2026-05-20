@@ -70,6 +70,8 @@ export const todoCases = {
           text: payload.text.trim(),
           mentions: Array.isArray(payload.mentions) ? payload.mentions : [],
           timestamp: new Date().toISOString(),
+          likes: [],
+          replies: [],
         }
         const comments = Array.isArray(t.comments) ? t.comments : []
         return { ...t, comments: [...comments, nextComment] }
@@ -88,7 +90,12 @@ export const todoCases = {
           ...t,
           comments: comments.map(c =>
             c.id === payload.commentId
-              ? { ...c, text: payload.text?.trim() || c.text }
+              ? {
+                  ...c,
+                  text: payload.text !== undefined ? payload.text.trim() : c.text,
+                  likes: payload.likes !== undefined ? payload.likes : (c.likes || []),
+                  replies: payload.replies !== undefined ? payload.replies : (c.replies || []),
+                }
               : c
           ),
         }

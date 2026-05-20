@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@variant dark (&:where(.dark, .dark *));
 
 /* ─── Anthropic Proprietary Fonts (exact same files as anthropic.com) ─── */
 /* Anthropic Sans — variable sans-serif, used for headings, UI labels, buttons */
@@ -55,6 +56,10 @@
   /* hover over rows / list items */
   --color-bg-input: #FFFFFF;
   /* form inputs */
+  --color-bg-note: #FDFBF7;
+  /* Moleskine cream note background */
+  --color-border-note: #EBE6DC;
+  /* Moleskine border */
 
   --color-accent: #D97757;
   --color-accent-hover: #C15F3C;
@@ -128,6 +133,10 @@
   /* card — most elevated surface */
   --color-bg-hover: #302F2C;
   --color-bg-input: #2C2B28;
+  --color-bg-note: #23211E;
+  /* dark note background */
+  --color-border-note: #363430;
+  /* dark note border */
 
   --color-accent-muted: oklch(0.70 0.14 45 / 0.15);
 

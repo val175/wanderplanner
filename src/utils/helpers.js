@@ -49,7 +49,8 @@ export function formatDateRange(startDate, endDate) {
 export function formatCurrency(amount, currencyCode = 'PHP', showDecimals = false) {
   if (amount == null || isNaN(amount)) return ''
   const symbol = getCurrencySymbol(currencyCode)
-  const options = showDecimals
+  const hasDecimals = showDecimals || (Number(amount) % 1 !== 0)
+  const options = hasDecimals
     ? { minimumFractionDigits: 2, maximumFractionDigits: 2 }
     : { minimumFractionDigits: 0, maximumFractionDigits: 0 }
   return `${symbol}${Number(amount).toLocaleString('en-US', options)}`

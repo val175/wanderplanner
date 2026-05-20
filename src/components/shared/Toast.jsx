@@ -65,6 +65,8 @@ function ToastContent({ message, type }) {
   return (
     <motion.div
       layout
+      role="status"
+      aria-live="polite"
       initial={{ y: 20, opacity: 0, scale: 0.95 }}
       animate={{ y: 0, opacity: 1, scale: 1 }}
       exit={{ y: 12, opacity: 0, scale: 0.95 }}

@@ -342,7 +342,7 @@ export default function NewTripModal({ isOpen, onClose }) {
   const maxWidth = mode === 'wanda' ? 'max-w-xl' : 'max-w-lg'
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} maxWidth={maxWidth}>
+    <Modal isOpen={isOpen} onClose={handleClose} maxWidth={maxWidth} closeOnOutsideClick={false}>
       <div className={mode === 'wanda' ? '' : 'px-6 pt-6 pb-2'}>
         <button type="button" onClick={handleClose}
           className="absolute top-4 right-4 p-1.5 rounded-[var(--radius-sm)] text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors z-10"

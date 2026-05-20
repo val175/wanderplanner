@@ -71,6 +71,63 @@ export default function DatePicker({
     }
   }, [value, min])
 
+  const [focusedDay, setFocusedDay] = useState(null)
+
+  // Reset focusedDay when view month/year changes or popover closes/opens
+  useEffect(() => {
+    setFocusedDay(null)
+  }, [viewMonth, viewYear, open])
+
+  const activeDay = focusedDay !== null
+    ? focusedDay
+    : (selected && selected.getFullYear() === viewYear && selected.getMonth() === viewMonth
+        ? selected.getDate()
+        : (today.getFullYear() === viewYear && today.getMonth() === viewMonth ? today.getDate() : 1))
+
+  const handleKeyDown = (e) => {
+    const active = document.activeElement
+    if (!active || active.tagName !== 'BUTTON') return
+
+    const currentDay = parseInt(active.getAttribute('data-day'), 10)
+    if (isNaN(currentDay)) return
+
+    let nextDay = null
+    switch (e.key) {
+      case 'ArrowLeft':
+        nextDay = currentDay - 1
+        break
+      case 'ArrowRight':
+        nextDay = currentDay + 1
+        break
+      case 'ArrowUp':
+        nextDay = currentDay - 7
+        break
+      case 'ArrowDown':
+        nextDay = currentDay + 7
+        break
+      case 'Home':
+        nextDay = 1
+        break
+      case 'End':
+        nextDay = daysInMonth
+        break
+      default:
+        return
+    }
+
+    if (nextDay !== null) {
+      e.preventDefault()
+      if (nextDay < 1) nextDay = 1
+      if (nextDay > daysInMonth) nextDay = daysInMonth
+
+      const nextBtn = e.currentTarget.querySelector(`[data-day="${nextDay}"]`)
+      if (nextBtn && !nextBtn.disabled) {
+        setFocusedDay(nextDay)
+        nextBtn.focus()
+      }
+    }
+  }
+
   const prevMonth = () => {
     if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1) }
     else setViewMonth(m => m - 1)
@@ -169,17 +226,24 @@ export default function DatePicker({
           </div>
 
           {/* Day grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+          <div
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}
+            onKeyDown={handleKeyDown}
+          >
             {Array.from({ length: firstDow }).map((_, i) => <div key={`e${i}`} />)}
 
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1
               const iso = toISO(new Date(viewYear, viewMonth, day))
               const isDisabled = !!(minDate && new Date(viewYear, viewMonth, day) < minDate)
+              const isFocusable = day === activeDay
               return (
                 <button
                   key={day}
                   type="button"
+                  data-day={day}
+                  tabIndex={isDisabled ? -1 : (isFocusable ? 0 : -1)}
+                  onFocus={() => !isDisabled && setFocusedDay(day)}
                   onClick={() => !isDisabled && selectDay(day)}
                   disabled={isDisabled}
                   style={dayStyle(iso, isDisabled)}

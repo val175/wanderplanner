@@ -44,7 +44,11 @@ export default function BottomNav() {
 
     return (
         <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-bg-primary)] border-t border-[var(--color-border)] pb-[env(safe-area-inset-bottom)] md:hidden pointer-events-auto">
-            <div className="flex items-center justify-around h-14 px-2">
+            <div
+                role="tablist"
+                aria-label="Mobile Navigation"
+                className="flex items-center justify-around h-14 px-2"
+            >
                 {coreTabs.map(tabId => {
                     const tab = tabId === 'ai'
                         ? { id: 'ai', label: 'Wanda', emoji: '🪄' }
@@ -61,6 +65,8 @@ export default function BottomNav() {
                     return (
                         <button
                             key={tabId}
+                            role="tab"
+                            aria-selected={isActive}
                             onClick={() => {
                                 if (tabId === 'ai') {
                                     const ev = new CustomEvent('toggle-wanda-mobile')
