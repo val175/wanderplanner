@@ -12,7 +12,7 @@ import { getDayLocationMap } from '../utils/tripGeo'
 const VERCEL_API = 'https://wanderplan-rust.vercel.app'
 const PROXY_URL = `${VERCEL_API}/api/gemini`
 
-const DEFAULT_MODEL = 'gemini-3.1-flash-lite-preview'
+const DEFAULT_MODEL = 'gemini-3.1-flash-lite'
 
 /**
  * Build a trip-aware system prompt scoped to the user's active tab.

@@ -1,6 +1,6 @@
 // api/_openrouter.js — Gemini-only AI caller for all non-grounding text tasks.
 // Google AI Studio free tier (Wanderplanner project):
-//   gemini-3.1-flash-lite-preview: primary model for all non-grounding AI.
+//   gemini-3.1-flash-lite: primary model for all non-grounding AI.
 //
 // NOTE: This file keeps the historical callOpenRouter() alias so existing
 // extract-*.js callers do not need to change. The implementation no longer
@@ -10,7 +10,7 @@ const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/openai
 
 // Single-provider list — Gemini 3.1 Flash Lite only.
 export const PROVIDERS = [
-    { model: 'gemini-3.1-flash-lite-preview', endpoint: GEMINI_ENDPOINT, keyType: 'gemini' },
+    { model: 'gemini-3.1-flash-lite', endpoint: GEMINI_ENDPOINT, keyType: 'gemini' },
 ]
 
 // Kept for any code that reads the model name list

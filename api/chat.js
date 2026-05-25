@@ -186,7 +186,7 @@ export default async function handler(req) {
             apiKey: geminiKey,
         })
         const result = await streamText({
-            model: google('gemini-3.1-flash-lite-preview'),
+            model: google('gemini-3.1-flash-lite'),
             system: systemPrompt,
             messages: modelMessages,
             tools: WANDA_TOOLS,

@@ -35,3 +35,4 @@ yarn-error.log*
 
 # Add this to your .gitignore
 everything-claude-code/
+.claude/

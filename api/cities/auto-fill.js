@@ -43,7 +43,7 @@ export default async function handler(req, res) {
         const google = createGoogleGenerativeAI({
             apiKey: geminiKey,
         })
-        const model = google('gemini-3.1-flash-lite-preview')
+        const model = google('gemini-3.1-flash-lite')
 
         const { object } = await generateObject({
             model,

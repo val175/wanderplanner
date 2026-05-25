@@ -72,7 +72,7 @@ export default async function handler(req) {
     const today = new Date().toISOString().split('T')[0]
 
     const { object } = await generateObject({
-      model: google('gemini-3.1-flash-lite-preview'),
+      model: google('gemini-3.1-flash-lite'),
       schema: WandaPlanSchema,
       temperature: 0.1,
       maxTokens: 2500,

@@ -41,7 +41,7 @@ export default async function handler(req) {
 
     const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY })
     const { object } = await generateObject({
-      model: google('gemini-3.1-flash-lite-preview'),
+      model: google('gemini-3.1-flash-lite'),
       schema: TripSchema,
       prompt: `Extract trip details from this description. Today's date is ${new Date().toISOString().split('T')[0]}. Description: "${description}"`,
     })
