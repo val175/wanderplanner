@@ -129,8 +129,10 @@ export default function AddActivityModal({ isOpen, onClose, itinerary, onAdd, tr
           <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Duration (minutes)</label>
           <input
             type="number"
+            min="1"
+            step="1"
             value={activityData.duration}
-            onChange={e => setActivityData(prev => ({ ...prev, duration: parseInt(e.target.value) || 0 }))}
+            onChange={e => setActivityData(prev => ({ ...prev, duration: Math.max(1, parseInt(e.target.value) || 1) }))}
             className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors"
           />
         </div>

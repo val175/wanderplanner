@@ -335,14 +335,12 @@ function buildAttentionItems(trip) {
     items.push({ id: 'packing', urgency: daysOut <= 7 ? URGENCY_HIGH : URGENCY_MED, icon: '🧳', title: 'Packing not started', subtitle: `${daysOut}d to go`, tab: 'packing' })
   }
 
-  // Budget overruns — show over-100% first, then 80%+ approaching
-  const sym = { USD: '$', EUR: '€', GBP: '£', JPY: '¥', PHP: '₱', AUD: 'A$', CAD: 'C$', SGD: 'S$' }[trip.currency] || trip.currency || '₱'
   ;(trip.budget || []).filter(b => b.max > 0 && (b.actual || 0) > b.max).slice(0, 2).forEach(b => {
     items.push({
       id: `budget-over-${b.name}`, urgency: URGENCY_HIGH,
       icon: b.emoji || '💸',
       title: `${b.name} over budget`,
-      subtitle: `${sym}${Math.round(b.actual || 0).toLocaleString()} of ${sym}${Math.round(b.max).toLocaleString()} (${Math.round((b.actual || 0) / b.max * 100)}%)`,
+      subtitle: `${formatCurrency(Math.round(b.actual || 0), trip.currency)} of ${formatCurrency(Math.round(b.max), trip.currency)} (${Math.round((b.actual || 0) / b.max * 100)}%)`,
       tab: 'budget',
     })
   })
@@ -351,7 +349,7 @@ function buildAttentionItems(trip) {
       id: `budget-near-${b.name}`, urgency: URGENCY_MED,
       icon: b.emoji || '⚠️',
       title: `${b.name} at ${Math.round((b.actual || 0) / b.max * 100)}%`,
-      subtitle: `${sym}${Math.round(b.max - (b.actual || 0)).toLocaleString()} remaining`,
+      subtitle: `${formatCurrency(Math.round(b.max - (b.actual || 0)), trip.currency)} remaining`,
       tab: 'budget',
     })
   })

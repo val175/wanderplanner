@@ -97,7 +97,7 @@ function AddExpenseModal({ isOpen, onClose, onAdd, travelers, categories, curren
 
   const handleSubmit = (e) => {
     e?.preventDefault()
-    if (!expenseData.description.trim() || !expenseData.amount) return
+    if (!expenseData.description.trim() || Number(expenseData.amount) <= 0) return
     if (!customValid) return
     const splitMembers = memberIds.length > 0 ? memberIds : allTravelerIds
     const mode = splitMode === 'custom' ? 'amount' : 'equal'
@@ -136,6 +136,8 @@ function AddExpenseModal({ isOpen, onClose, onAdd, travelers, categories, curren
             <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Amount</label>
             <Input
               type="number"
+              min="0.01"
+              step="any"
               value={expenseData.amount}
               onChange={e => setExpenseData(prev => ({ ...prev, amount: e.target.value }))}
               placeholder="0.00"
@@ -150,6 +152,7 @@ function AddExpenseModal({ isOpen, onClose, onAdd, travelers, categories, curren
               ))}
             </Select>
           </div>
+
         </div>
 
         <div className="space-y-1.5">
@@ -193,8 +196,8 @@ function AddExpenseModal({ isOpen, onClose, onAdd, travelers, categories, curren
                 setSplitMode('custom')
                 if (selectedTravelerIds.length === 0) setSelectedTravelerIds(nextIds)
                 if (nextIds.length > 0) {
-                  const equalShare = amountValue ? amountValue / nextIds.length : 0
-                  setCustomShares(Object.fromEntries(nextIds.map(id => [id, Number(equalShare.toFixed(2))])))
+                   const equalShare = amountValue ? amountValue / nextIds.length : 0
+                   setCustomShares(Object.fromEntries(nextIds.map(id => [id, Number(equalShare.toFixed(2))])))
                 }
               }}
               className={`px-3 py-2 rounded-[var(--radius-md)] border text-xs font-semibold transition-colors ${
@@ -239,6 +242,8 @@ function AddExpenseModal({ isOpen, onClose, onAdd, travelers, categories, curren
                     </span>
                     <Input
                       type="number"
+                      min="0"
+                      step="any"
                       value={customShares[id] ?? ''}
                       onChange={e => setCustomShares(prev => ({ ...prev, [id]: e.target.value }))}
                       placeholder="0"
@@ -260,7 +265,7 @@ function AddExpenseModal({ isOpen, onClose, onAdd, travelers, categories, curren
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-      <Button onClick={handleSubmit} disabled={!expenseData.description.trim() || !expenseData.amount || !customValid}>
+          <Button onClick={handleSubmit} disabled={!expenseData.description.trim() || Number(expenseData.amount) <= 0 || !customValid}>
             Log Expense
           </Button>
         </div>
@@ -502,6 +507,11 @@ function BudgetHealthCard({ budget, totals, currency, isReadOnly, viewMode, onVi
           emoji="💰"
           title="No budget limits defined"
           compact
+          action={
+            <Button size="sm" onClick={() => setIsAdding(true)}>
+              + Add Limit
+            </Button>
+          }
         />
       )}
     </Card>
@@ -640,7 +650,7 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
     setEditData({ description: entry.description, amount: entry.amount, category: entry.category })
   }
   const commitEdit = () => {
-    if (onEdit && editId) {
+    if (onEdit && editId && editData.description?.trim() && Number(editData.amount) > 0) {
       onEdit(editId, { description: editData.description.trim(), amount: Number(editData.amount), category: editData.category })
     }
     setEditId(null)
@@ -725,7 +735,7 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                     {formatCurrency(entry.amount, currency)}
                   </span>
                   {onDelete && (
-                    <button onClick={() => onDelete(entry.id)} className="p-1.5 text-text-muted hover:text-danger touch-target">
+                    <button onClick={() => onDelete(entry.id)} aria-label="Delete expense" className="p-1.5 text-text-muted hover:text-danger touch-target">
 
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                     </button>
@@ -826,6 +836,8 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                   <td className="py-2 px-2 text-right">
                     <input
                       type="number"
+                      min="0.01"
+                      step="any"
                       value={editData.amount}
                       onChange={e => setEditData(p => ({ ...p, amount: e.target.value }))}
                       className="w-24 text-xs bg-bg-input border border-border rounded-[var(--radius-sm)] px-2 py-1 font-mono text-text-primary focus:outline-none text-right"
@@ -852,7 +864,7 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                   )}
                   <td className="py-2 px-3">
                     <div className="flex gap-1">
-                      <button onClick={commitEdit} className="p-1 text-success hover:text-success/80 touch-target"><Check size={14} /></button>
+                      <button onClick={commitEdit} disabled={!editData.description?.trim() || Number(editData.amount) <= 0} className="p-1 text-success hover:text-success/80 touch-target disabled:opacity-40"><Check size={14} /></button>
                       <button onClick={() => setEditId(null)} className="p-1 text-text-muted hover:text-danger touch-target"><X size={14} /></button>
                     </div>
                   </td>
@@ -925,11 +937,12 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                       {onDelete && (
                         <button
                           onClick={() => onDelete(entry.id)}
+                          aria-label="Delete expense"
                           className="p-2 flex items-center justify-center text-text-muted hover:text-danger touch-target"
                           title="Delete log"
                         >
 
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2 2v2"></path></svg>
                         </button>
                       )}
                     </div>

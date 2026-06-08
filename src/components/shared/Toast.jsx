@@ -72,7 +72,7 @@ function ToastContent({ message, type }) {
       exit={{ y: 12, opacity: 0, scale: 0.95 }}
       transition={spring.bouncy}
       className={`
-        fixed bottom-6 md:bottom-6 left-1/2 -translate-x-1/2 z-[60]
+        fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-[60]
         min-w-[240px] max-w-sm overflow-hidden
         rounded-[var(--radius-lg)] border
         font-medium text-sm

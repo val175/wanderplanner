@@ -635,46 +635,6 @@ export default function AIAssistant() {
         } bg-bg-card shadow-none font-heading text-text-primary flex flex-col overflow-hidden`}
       style={{ zIndex: 100, animation: isSidebarMode ? undefined : 'wanda-pop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
     >
-      <style>{`
-        @keyframes wanda-pop {
-          from { opacity: 0; transform: translateY(10px) scale(0.97); }
-          to   { opacity: 1; transform: translateY(0)   scale(1);    }
-        }
-        .wanda-msg-scroll::-webkit-scrollbar { width: 4px; }
-        .wanda-msg-scroll::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }
-        @keyframes wanda-msg-fade {
-          from { opacity: 0; transform: translateY(4px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        .animate-msg-fade {
-          animation: wanda-msg-fade 0.25s ease-out forwards;
-        }
-        .wanda-markdown p { margin-bottom: 0.75rem; }
-        .wanda-markdown p:last-child { margin-bottom: 0; }
-        .wanda-markdown ul, .wanda-markdown ol { margin-bottom: 0.75rem; padding-left: 1.25rem; }
-        .wanda-markdown li { margin-bottom: 0.25rem; }
-        .wanda-markdown strong { font-weight: 700; color: var(--color-accent, inherit); }
-        @keyframes wanda-pill-pop {
-          0% { transform: scale(1); }
-          35% { transform: scale(1.18); }
-          65% { transform: scale(0.94); }
-          100% { transform: scale(1); }
-        }
-        .wanda-pill-pop { animation: wanda-pill-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        @keyframes wanda-continuity-fade {
-          0% { opacity: 0; transform: translateY(-4px); }
-          20% { opacity: 1; transform: translateY(0); }
-          80% { opacity: 1; transform: translateY(0); }
-          100% { opacity: 0; transform: translateY(-4px); }
-        }
-        .wanda-continuity { animation: wanda-continuity-fade 2.5s ease-in-out forwards; }
-        @keyframes wanda-trigger-pulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(var(--color-accent-rgb, 99 102 241) / 0.4); }
-          50% { box-shadow: 0 0 0 8px rgba(var(--color-accent-rgb, 99 102 241) / 0); }
-        }
-        .wanda-trigger-pulse { animation: wanda-trigger-pulse 2s ease-in-out infinite; }
-      `}</style>
-
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-bg-card flex-shrink-0">
         <div className="flex items-center gap-3">
@@ -901,20 +861,6 @@ export default function AIAssistant() {
             <div className="italic text-[11px] text-accent/80 animate-pulse font-medium">
               {getLocationSpells(allCities)[currentSpellIndex % getLocationSpells(allCities).length]}
             </div>
-            <style>{`
-              @keyframes wanda-wiggle-fast {
-                0% { transform: rotate(0deg); }
-                25% { transform: rotate(15deg); }
-                50% { transform: rotate(-12deg); }
-                75% { transform: rotate(8deg); }
-                100% { transform: rotate(0deg); }
-              }
-              .wanda-wiggle-slow {
-                display: inline-block;
-                transform-origin: 70% 80%;
-                animation: wanda-wiggle-fast 0.6s ease-in-out infinite;
-              }
-            `}</style>
           </div>
         )}
 
@@ -998,22 +944,6 @@ export default function AIAssistant() {
       {/* Floating trigger button - Hidden on mobile as it's in BottomNav */}
       {!isMobile && !isSidebarMode && (
         <div className="fixed bottom-[24px] right-[24px] z-50 group">
-          <style>{`
-            @keyframes wand-wiggle {
-              0% { transform: rotate(0deg); }
-              25% { transform: rotate(10deg); }
-              50% { transform: rotate(-8deg); }
-              75% { transform: rotate(6deg); }
-              100% { transform: rotate(0deg); }
-            }
-            .wanda-wiggle {
-              display: inline-block;
-              transform-origin: 70% 80%;
-            }
-            .group:hover .wanda-wiggle {
-              animation: wand-wiggle 700ms ease-in-out;
-            }
-          `}</style>
           <div className="pointer-events-none absolute right-full mr-3 top-1/2 -translate-y-1/2 opacity-0 scale-95 transition-all duration-150 ease-out group-hover:opacity-100 group-hover:scale-100">
             <div className="flex items-center gap-2 rounded-[var(--radius-lg)] border border-border bg-bg-card px-5 py-2 text-sm text-text-primary shadow-none whitespace-nowrap">
               Chat with <span className="wanda-serif">Wanda</span>

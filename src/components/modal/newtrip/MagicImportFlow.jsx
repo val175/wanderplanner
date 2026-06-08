@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { auth } from '../../../firebase/config'
+import Button from '../../shared/Button'
 
 const LOADING_MESSAGES = [
   "Reading the travel blog...",
@@ -170,14 +171,14 @@ export default function MagicImportFlow({ onPlanReady, onBack }) {
         </div>
         {importError && <p className="text-xs text-danger mt-2">{importError}</p>}
         
-        <button
+        <Button
           type="button"
           onClick={handleImport}
           disabled={isImporting || (!importUrl && !selectedFile)}
-          className="mt-4 w-full px-4 py-2 text-sm font-medium bg-accent hover:bg-accent-hover text-text-inverse rounded-[var(--radius-md)] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+          className="mt-4 w-full"
         >
           Generate
-        </button>
+        </Button>
       </div>
     </div>
   )

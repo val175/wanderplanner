@@ -27,6 +27,7 @@ import JoinTripModal from './components/modal/JoinTripModal'
 // Shared
 import Toast from './components/shared/Toast'
 import CursorManager from './components/shared/CursorManager'
+import ErrorBoundary from './components/shared/ErrorBoundary'
 
 // Tab components
 import OverviewTab from './components/tabs/OverviewTab'
@@ -58,24 +59,29 @@ function TabPanel({ activeTab, onTabSwitch }) {
   return (
     <Suspense fallback={<TabLoadingState activeTab={activeTab} />}>
       <div key={activeTab} className="animate-tab-enter w-full h-full">
-        {(() => {
-          switch (activeTab) {
-            case 'overview': return <OverviewTab onTabSwitch={onTabSwitch} />
-            case 'wandermap': return <WanderMapTab />
-            case 'itinerary': return <ItineraryTab />
-            case 'bookings': return <BookingsTab />
-            case 'budget': return <BudgetTab />
-            case 'todo': return <TodoTab />
-            case 'documents': return <DocumentsTab />
-            case 'voting': return <VotingTab />
-            case 'videos': return <HowToVideosTab />
-            case 'cities': return <CitiesTab />
-            case 'packing': return <PackingTab />
-            case 'concert': return <ConcertTab />
-            case 'wrap-up': return <WrapUpTab />
-            default: return <OverviewTab onTabSwitch={onTabSwitch} />
-          }
-        })()}
+        <ErrorBoundary
+          onReset={() => console.log('Resetting tab:', activeTab)}
+          fallbackAction={activeTab !== 'overview' ? () => onTabSwitch('overview') : undefined}
+        >
+          {(() => {
+            switch (activeTab) {
+              case 'overview': return <OverviewTab onTabSwitch={onTabSwitch} />
+              case 'wandermap': return <WanderMapTab />
+              case 'itinerary': return <ItineraryTab />
+              case 'bookings': return <BookingsTab />
+              case 'budget': return <BudgetTab />
+              case 'todo': return <TodoTab />
+              case 'documents': return <DocumentsTab />
+              case 'voting': return <VotingTab />
+              case 'videos': return <HowToVideosTab />
+              case 'cities': return <CitiesTab />
+              case 'packing': return <PackingTab />
+              case 'concert': return <ConcertTab />
+              case 'wrap-up': return <WrapUpTab />
+              default: return <OverviewTab onTabSwitch={onTabSwitch} />
+            }
+          })()}
+        </ErrorBoundary>
       </div>
     </Suspense>
   )

@@ -159,7 +159,7 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
       payload: {
         name: form.name.trim(),
         category: form.category,
-        amountPaid: Number(form.estimatedCost) || 0,
+        amountPaid: Math.max(0, Number(form.estimatedCost)) || 0,
         status: 'to_book',
         confirmationNumber: '',
         providerLink: '',
@@ -214,7 +214,7 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
         startDate: reviewForm.startDate,
         location: reviewForm.location,
         confirmationNumber: reviewForm.confirmationNumber,
-        amountPaid: Number(reviewForm.amountPaid) || 0,
+        amountPaid: Math.max(0, Number(reviewForm.amountPaid)) || 0,
         status: reviewForm.status || 'confirmed',
         notes: reviewForm.notes,
         providerLink: reviewForm.providerLink || null,
@@ -343,6 +343,8 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
                 </label>
                 <Input
                   type="number"
+                  min="0"
+                  step="any"
                   value={form.estimatedCost}
                   onChange={e => setForm(p => ({ ...p, estimatedCost: e.target.value }))}
                   placeholder="0.00"
@@ -449,6 +451,8 @@ export default function AddBookingModal({ isOpen, onClose, initialCategory }) {
                 </label>
                 <Input
                   type="number"
+                  min="0"
+                  step="any"
                   value={reviewForm.amountPaid}
                   onChange={e => setReviewForm(p => ({ ...p, amountPaid: e.target.value }))}
                   inputMode="decimal"

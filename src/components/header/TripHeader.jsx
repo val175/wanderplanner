@@ -20,6 +20,8 @@ import { Search as SearchIcon } from 'lucide-react'
 import ShareTripModal from '../modal/ShareTripModal'
 import PresentationMode from '../shared/PresentationMode'
 import NotificationBell from '../shared/NotificationBell'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
+import CelebrationEffect from '../shared/CelebrationEffect'
 
 /* ─────────────────────────────────────────────────────────────
    TravelerPicker — portal-based dropdown (unchanged logic)
@@ -531,54 +533,16 @@ function DateRangeEditor({ trip, dispatch, isReadOnly }) {
 ───────────────────────────────────────────────────────────── */
 function HeaderOptionsDropdown({ trip, dispatch, isReadOnly, onRenameRequest }) {
   const { showToast } = useTripContext()
-  const [open, setOpen] = useState(false)
-  const [coords, setCoords] = useState({ top: 0, left: 0 })
-  const btnRef = useRef(null)
-  const dropdownRef = useRef(null)
-
   const [showShareModal, setShowShareModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showPresentation, setShowPresentation] = useState(false)
 
-  const handleOpen = () => {
-    if (btnRef.current) {
-      const r = btnRef.current.getBoundingClientRect()
-      setCoords({ top: r.bottom + 6, left: r.right - 180 })
-    }
-    setOpen(o => !o)
-  }
-
-  useEffect(() => {
-    if (!open) return
-    const handler = (e) => {
-      if (showDeleteConfirm || showShareModal || showPresentation) return
-      if (
-        btnRef.current && !btnRef.current.contains(e.target) &&
-        dropdownRef.current && !dropdownRef.current.contains(e.target)
-      ) setOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open, showDeleteConfirm, showShareModal])
-
-  useEffect(() => {
-    if (!open) return
-    const close = () => {
-      if (!showDeleteConfirm && !showShareModal && !showPresentation) setOpen(false)
-    }
-    window.addEventListener('scroll', close, true)
-    window.addEventListener('resize', close)
-    return () => { window.removeEventListener('scroll', close, true); window.removeEventListener('resize', close) }
-  }, [open, showDeleteConfirm, showShareModal])
-
   const handleShare = () => { setShowShareModal(true) }
-  const handleRename = () => { setOpen(false); onRenameRequest() }
+  const handleRename = () => { onRenameRequest() }
   const handleDuplicate = () => {
     dispatch({ type: ACTIONS.DUPLICATE_TRIP, payload: trip.id })
     showToast('Trip duplicated')
-    setOpen(false)
   }
-  const handleDeleteClick = () => { setShowDeleteConfirm(true) }
   const handleDeleteConfirm = async () => {
     try {
       await updateDoc(doc(db, 'trips', trip.id), {
@@ -593,7 +557,6 @@ function HeaderOptionsDropdown({ trip, dispatch, isReadOnly, onRenameRequest }) 
       showToast('Failed to delete trip', 'error')
     }
     setShowDeleteConfirm(false)
-    setOpen(false)
   }
 
   const ShareIcon = () => (
@@ -609,82 +572,78 @@ function HeaderOptionsDropdown({ trip, dispatch, isReadOnly, onRenameRequest }) 
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
   )
 
+  const itemCls = `
+    flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer
+    select-none outline-none rounded-[var(--radius-sm)]
+    text-text-secondary
+    data-[highlighted]:bg-bg-hover data-[highlighted]:text-text-primary
+    transition-colors duration-100
+  `
+  const dangerItemCls = `
+    flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer
+    select-none outline-none rounded-[var(--radius-sm)]
+    text-danger data-[highlighted]:bg-danger/10
+    transition-colors duration-100
+  `
+
   return (
     <>
-      <button
-        ref={btnRef}
-        onClick={handleOpen}
-        className="flex items-center justify-center min-w-[44px] min-h-[44px] rounded-[var(--radius-md)] bg-bg-primary hover:bg-bg-hover text-text-primary border border-border transition-colors"
-        aria-label="Trip actions"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="1.5" />
-          <circle cx="12" cy="5" r="1.5" />
-          <circle cx="12" cy="19" r="1.5" />
-        </svg>
-      </button>
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger asChild>
+          <button
+            className="flex items-center justify-center min-w-[44px] min-h-[44px] rounded-[var(--radius-md)] bg-bg-primary hover:bg-bg-hover text-text-primary border border-border transition-colors"
+            aria-label="Trip actions"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="1.5" />
+              <circle cx="12" cy="5" r="1.5" />
+              <circle cx="12" cy="19" r="1.5" />
+            </svg>
+          </button>
+        </DropdownMenu.Trigger>
 
-      {open && createPortal(
-        <div
-          ref={dropdownRef}
-          style={{ position: 'fixed', top: coords.top, left: coords.left }}
-          className="z-[9999] min-w-[180px] bg-bg-card border border-border rounded-[var(--radius-lg)]"
-        >
-          <div className="py-1">
-            <button
-              onClick={handleShare}
-              className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-text-primary font-medium hover:bg-bg-hover transition-colors text-left"
-            >
+        <DropdownMenu.Portal>
+          <DropdownMenu.Content
+            align="end"
+            sideOffset={6}
+            className="z-[9999] min-w-[180px] bg-bg-card border border-border rounded-[var(--radius-md)] py-1 shadow-lg animate-scale-in focus:outline-none"
+          >
+            <DropdownMenu.Item className={itemCls} onSelect={handleShare}>
               <ShareIcon />
               Share trip
-            </button>
-            <button
-              onClick={() => { setShowPresentation(true); setOpen(false) }}
-              className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-text-primary font-medium hover:bg-bg-hover transition-colors text-left"
-            >
+            </DropdownMenu.Item>
+            <DropdownMenu.Item className={itemCls} onSelect={() => setShowPresentation(true)}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
               Present to group
-            </button>
-          </div>
-          {!isReadOnly && (
-            <>
-              <div className="h-px bg-border mx-2"></div>
-              <div className="py-1">
-                <button
-                  onClick={handleRename}
-                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors text-left font-medium"
-                >
+            </DropdownMenu.Item>
+
+            {!isReadOnly && (
+              <>
+                <DropdownMenu.Separator className="my-1 h-px bg-border mx-2" />
+                <DropdownMenu.Item className={itemCls} onSelect={handleRename}>
                   <EditIcon />
                   Rename trip
-                </button>
-                <button
-                  onClick={handleDuplicate}
-                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors text-left font-medium"
-                >
+                </DropdownMenu.Item>
+                <DropdownMenu.Item className={itemCls} onSelect={handleDuplicate}>
                   <CopyIcon />
                   Duplicate
-                </button>
-              </div>
-            </>
-          )}
-          <div className="h-px bg-border mx-2"></div>
-          <div className="py-1">
-            <button
-              onClick={handleDeleteClick}
-              className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-danger hover:bg-danger/10 transition-colors text-left font-medium"
-            >
+                </DropdownMenu.Item>
+              </>
+            )}
+
+            <DropdownMenu.Separator className="my-1 h-px bg-border mx-2" />
+            <DropdownMenu.Item className={dangerItemCls} onSelect={() => setShowDeleteConfirm(true)}>
               <TrashIcon />
               Delete trip
-            </button>
-          </div>
-        </div>,
-        document.body
-      )}
+            </DropdownMenu.Item>
+          </DropdownMenu.Content>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
 
       {showShareModal && trip && (
         <ShareTripModal
           trip={trip}
-          onClose={() => { setShowShareModal(false); setOpen(false); }}
+          onClose={() => setShowShareModal(false)}
         />
       )}
 
@@ -724,6 +683,15 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
   const travelerProfiles = useTripTravelers()
   const myUid = currentUserProfile?.uid || currentUserProfile?.id
   const readiness = useMemo(() => calculateReadiness(activeTrip), [activeTrip])
+  const [celebrationTrigger, setCelebrationTrigger] = useState(0)
+  const prevReadinessRef = useRef(readiness)
+
+  useEffect(() => {
+    if (readiness === 100 && prevReadinessRef.current < 100) {
+      setCelebrationTrigger(prev => prev + 1)
+    }
+    prevReadinessRef.current = readiness
+  }, [readiness])
 
   if (!activeTrip) return null
 
@@ -759,8 +727,10 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
   )
 
   return (
-    <header className="animate-fade-in border-b border-border bg-bg-primary/95 backdrop-blur-sm sticky top-0 z-20">
-      <div className="max-w-[1400px] mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-4">
+    <>
+      <CelebrationEffect trigger={celebrationTrigger} />
+      <header className="animate-fade-in border-b border-border bg-bg-primary/95 backdrop-blur-sm sticky top-0 z-20">
+        <div className="max-w-[1400px] mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 lg:gap-4">
 
           {/* ── LEFT — Title + Meta ── */}
@@ -893,5 +863,6 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
         </div>
       </div>
     </header>
+    </>
   )
 }

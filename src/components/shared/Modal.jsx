@@ -21,6 +21,7 @@ export default function Modal({
         <Dialog.Overlay className={dialogOverlayClass} />
 
         <Dialog.Content
+          aria-describedby={description ? undefined : null}
           onEscapeKeyDown={onClose}
           onPointerDownOutside={e => {
             if (!closeOnOutsideClick) {

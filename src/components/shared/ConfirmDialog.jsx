@@ -43,7 +43,7 @@ export default function ConfirmDialog({
               <Button
                 variant={danger ? 'danger' : 'primary'}
                 size="md"
-                onClick={() => { onConfirm(); onClose() }}
+                onClick={onConfirm}
               >
                 {confirmLabel}
               </Button>
