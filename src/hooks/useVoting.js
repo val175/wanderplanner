@@ -17,6 +17,8 @@ export function useVoting() {
   const [selectedIdeaIds, setSelectedIdeaIds] = useState(new Set())
   const [pollTitle, setPollTitle] = useState('')
   const [isCreatingPoll, setIsCreatingPoll] = useState(false)
+  const [pendingDeletePollId, setPendingDeletePollId] = useState(null)
+  const [pendingCancelPollId, setPendingCancelPollId] = useState(null)
 
   const ideas = activeTrip?.ideas || []
   const polls = activeTrip?.polls || []
@@ -98,17 +100,21 @@ export function useVoting() {
     }
   }
 
-  const handleDeletePoll = (pollId) => {
-    if (window.confirm('Are you sure you want to delete this poll? The ideas will be permanently removed.')) {
-      dispatch({ type: ACTIONS.DELETE_POLL, payload: pollId })
-    }
+  const handleDeletePoll = (pollId) => setPendingDeletePollId(pollId)
+
+  const confirmDeletePoll = () => {
+    if (pendingDeletePollId) dispatch({ type: ACTIONS.DELETE_POLL, payload: pendingDeletePollId })
+    setPendingDeletePollId(null)
   }
 
-  const handleCancelPoll = (pollId) => {
-    if (window.confirm('Are you sure you want to cancel this poll? All tokens will be refunded and ideas will return to the pool.')) {
-      dispatch({ type: ACTIONS.CANCEL_POLL, payload: pollId })
+  const handleCancelPoll = (pollId) => setPendingCancelPollId(pollId)
+
+  const confirmCancelPoll = () => {
+    if (pendingCancelPollId) {
+      dispatch({ type: ACTIONS.CANCEL_POLL, payload: pendingCancelPollId })
       showToast('Poll cancelled and contents returned to idea pool.')
     }
+    setPendingCancelPollId(null)
   }
 
   const handleResolvePoll = (poll) => {
@@ -160,7 +166,13 @@ export function useVoting() {
     handleCreatePoll,
     handlePollVote,
     handleDeletePoll,
+    confirmDeletePoll,
+    pendingDeletePollId,
+    setPendingDeletePollId,
     handleCancelPoll,
+    confirmCancelPoll,
+    pendingCancelPollId,
+    setPendingCancelPollId,
     handleResolvePoll,
   }
 }

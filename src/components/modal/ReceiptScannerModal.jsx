@@ -62,7 +62,7 @@ const resizeImage = (file, maxDimension = 1280) => {
 }
 
 export default function ReceiptScannerModal({ isOpen, onClose }) {
-    const { activeTrip, dispatch } = useTripContext()
+    const { activeTrip, dispatch, showToast } = useTripContext()
     const { currentUserProfile } = useProfiles()
     const travelerProfiles = useTripTravelers()
 
@@ -201,7 +201,7 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
             setStep(2)
         } catch (err) {
             console.error('Scan Error:', err)
-            alert(err.message)
+            showToast(err.message || 'Scan failed. Try again.', 'error')
         } finally {
             setIsScanning(false)
             if (fileInputRef.current) fileInputRef.current.value = ''
@@ -350,7 +350,7 @@ export default function ReceiptScannerModal({ isOpen, onClose }) {
                                                 <div className="w-32 relative">
                                                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-text-muted">₱</span>
                                                     <input
-                                                        type="number"
+                                                        type="number" inputMode="decimal"
                                                         value={item.amountPHP}
                                                         onChange={e => updateItem(idx, 'amountPHP', Number(e.target.value))}
                                                         className={inputCls + ' !pl-6 text-right font-mono'}

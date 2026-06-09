@@ -29,6 +29,10 @@ export default function EditableText({
   const handleSave = () => {
     setEditing(false)
     const trimmed = draft?.trim() ?? ''
+    if (!trimmed) {
+      setDraft(value) // revert — don't save empty
+      return
+    }
     if (trimmed !== value) {
       onSave(trimmed)
     }

@@ -7,6 +7,7 @@ import { useTripContext } from '../../context/TripContext'
 import { useProfiles } from '../../context/ProfileContext'
 import { hapticImpact } from '../../utils/haptics'
 import IdeaExtractorModal from '../modal/IdeaExtractorModal'
+import ConfirmDialog from '../shared/ConfirmDialog'
 import Select, { SelectItem } from '../shared/Select'
 import EmptyState from '../shared/EmptyState'
 import IdeaTableView from './voting/IdeaTableView'
@@ -32,7 +33,9 @@ export default function VotingTab() {
     handleDeleteIdea, handleUpdateIdea,
     toggleIdeaSelection, handleSelectAll,
     handleCreatePoll, handlePollVote,
-    handleDeletePoll, handleCancelPoll, handleResolvePoll,
+    handleDeletePoll, confirmDeletePoll, pendingDeletePollId, setPendingDeletePollId,
+    handleCancelPoll, confirmCancelPoll, pendingCancelPollId, setPendingCancelPollId,
+    handleResolvePoll,
   } = useVoting()
 
   function switchView(v) { setIdeaView(v); localStorage.setItem('votingTab_view', v) }
@@ -224,6 +227,25 @@ export default function VotingTab() {
       </div>
 
       <IdeaExtractorModal isOpen={showIdeaExtractor} onClose={() => setShowIdeaExtractor(false)} />
+
+      <ConfirmDialog
+        isOpen={!!pendingDeletePollId}
+        onClose={() => setPendingDeletePollId(null)}
+        onConfirm={confirmDeletePoll}
+        title="Delete poll?"
+        message="The ideas will be permanently removed. This cannot be undone."
+        confirmLabel="Delete"
+        danger
+      />
+      <ConfirmDialog
+        isOpen={!!pendingCancelPollId}
+        onClose={() => setPendingCancelPollId(null)}
+        onConfirm={confirmCancelPoll}
+        title="Cancel poll?"
+        message="All tokens will be refunded and ideas will return to the pool."
+        confirmLabel="Cancel Poll"
+        danger={false}
+      />
 
       <FloatingActionBar
         count={selectedIdeaIds.size}

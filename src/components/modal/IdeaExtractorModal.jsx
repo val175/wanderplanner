@@ -16,7 +16,7 @@ const TYPE_MAP = {
 }
 
 export default function IdeaExtractorModal({ isOpen, onClose }) {
-    const { dispatch } = useTripContext()
+    const { dispatch, showToast } = useTripContext()
     const { currentUserProfile } = useProfiles()
     const [url, setUrl] = useState('')
     const [isExtracting, setIsExtracting] = useState(false)
@@ -69,7 +69,7 @@ export default function IdeaExtractorModal({ isOpen, onClose }) {
             setUrl('')
             onClose()
         } catch (err) {
-            alert(err.message || 'Could not parse link. Try again.')
+            showToast(err.message || 'Could not parse link. Try again.', 'error')
         } finally {
             setIsExtracting(false)
         }

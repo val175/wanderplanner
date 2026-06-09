@@ -77,7 +77,7 @@ function AddPackingModal({ isOpen, onClose, onAdd, defaultAssignee }) {
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Quantity</label>
             <input
-              type="number"
+              type="number" inputMode="decimal"
               value={itemData.qty}
               onChange={e => setItemData(prev => ({ ...prev, qty: e.target.value }))}
               className="w-full text-sm bg-bg-input border border-border rounded-[var(--radius-md)] text-text-primary px-3 py-2 focus:outline-none focus:border-accent transition-colors"

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
+import { MotionConfig } from 'framer-motion'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from './firebase/config'
 import { TripContext, useTripContext } from './context/TripContext'
@@ -281,6 +282,10 @@ function AuthenticatedApp({ user, signOutUser }) {
     })
   }, [effectiveTab, activeTrip?.id])
 
+  useEffect(() => {
+    document.title = activeTrip?.name ? `${activeTrip.name} · Wanderplan` : 'Wanderplan'
+  }, [activeTrip?.name])
+
   const handleNewTrip = useCallback(() => {
     setShowNewTripModal(true)
     if (isMobile) dispatch({ type: ACTIONS.SET_SIDEBAR, payload: false })
@@ -392,6 +397,7 @@ function AuthenticatedApp({ user, signOutUser }) {
   }
 
   return (
+    <MotionConfig reducedMotion="user">
     <TripContext.Provider value={{ state, dispatch, activeTrip, sortedTrips, showToast, signOutUser, isReadOnly, effectiveStatus }}>
       <div className="flex h-screen overflow-hidden bg-bg-primary text-text-secondary antialiased">
         {isOffline && (
@@ -479,9 +485,11 @@ function AuthenticatedApp({ user, signOutUser }) {
           message={state.toast.message}
           type={state.toast.type}
           visible={state.toast.visible}
+          onDismiss={() => dispatch({ type: ACTIONS.HIDE_TOAST })}
         />
       </div>
     </TripContext.Provider>
+    </MotionConfig>
   )
 }
 

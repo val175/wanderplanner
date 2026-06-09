@@ -474,7 +474,7 @@ export default function ActivityDrawer({ activity, dayId, onClose, onViewOnMap }
                     <Label className="text-[10px] uppercase tracking-wider text-text-muted font-bold">Duration</Label>
                     <div className="flex items-center gap-1.5">
                       <input
-                        type="number"
+                        type="number" inputMode="decimal"
                         value={activity.duration || 60}
                         onChange={e => update({ duration: Math.max(5, parseInt(e.target.value) || 60) })}
                         disabled={isReadOnly}

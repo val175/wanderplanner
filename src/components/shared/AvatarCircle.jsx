@@ -1,9 +1,12 @@
+import { useState } from 'react'
+
 // Renders a single avatar circle — photo or initials fallback.
 // Pass `levelColor` (CSS color string) to render a glowing level ring.
 export default function AvatarCircle({ profile, size = 28, className = '', ring = false, levelColor }) {
   const initial = profile?.name?.trim()?.[0]?.toUpperCase() || '?'
 
   const photo = profile?.customPhoto || profile?.photo
+  const [imgError, setImgError] = useState(false)
 
   const style = {
     width: size,
@@ -28,8 +31,8 @@ export default function AvatarCircle({ profile, size = 28, className = '', ring 
       style={style}
       title={profile?.name}
     >
-      {photo
-        ? <img src={photo} alt={profile.name} className="w-full h-full object-cover" />
+      {photo && !imgError
+        ? <img src={photo} alt={profile.name} className="w-full h-full object-cover" onError={() => setImgError(true)} />
         : <span style={{ fontSize: size * 0.38 }}>{initial}</span>
       }
     </div>

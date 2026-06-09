@@ -309,6 +309,8 @@ export function useFirestoreTrips(userId) {
   // ── 3. Dark mode ─────────────────────────────────────────────────────────
   useEffect(() => {
     document.documentElement.classList.toggle('dark', state.darkMode)
+    const themeColor = state.darkMode ? '#1A1918' : '#F4F2EF'
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColor)
     // Persist UI prefs in localStorage (not trip data)
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
@@ -320,10 +322,11 @@ export function useFirestoreTrips(userId) {
   // ── 4. Toast auto-dismiss ────────────────────────────────────────────────
   useEffect(() => {
     if (state.toast.visible) {
-      const timer = setTimeout(() => dispatch({ type: ACTIONS.HIDE_TOAST }), 3000)
+      const ms = state.toast.type === 'error' ? 5000 : state.toast.type === 'warning' ? 4000 : 3000
+      const timer = setTimeout(() => dispatch({ type: ACTIONS.HIDE_TOAST }), ms)
       return () => clearTimeout(timer)
     }
-  }, [state.toast.visible])
+  }, [state.toast.visible, state.toast.type])
 
   // ── Return shape — identical to useTrips so no components need to change ─
   const activeTrip = state.activeTripId ? state.trips[state.activeTripId] : null

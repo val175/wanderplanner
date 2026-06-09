@@ -4,6 +4,7 @@ import TabHeader from '../common/TabHeader'
 import Card from '../shared/Card'
 import Button from '../shared/Button'
 import Modal from '../shared/Modal'
+import ConfirmDialog from '../shared/ConfirmDialog'
 import EmptyState from '../shared/EmptyState'
 import Select, { SelectItem } from '../shared/Select'
 import { useTripContext } from '../../context/TripContext'
@@ -127,7 +128,7 @@ function PreviewModal({ doc, isOpen, onClose }) {
 
         <div className="rounded-[var(--radius-lg)] border border-border bg-bg-secondary/30 overflow-hidden min-h-[280px]">
           {isImage && (
-            <img src={doc.previewUrl || doc.downloadUrl} alt={doc.title} className="w-full h-full object-contain max-h-[70vh]" />
+            <img src={doc.previewUrl || doc.downloadUrl} alt={doc.title} className="w-full h-full object-contain max-h-[70vh]" loading="lazy" />
           )}
           {isPdf && (
             <iframe title={doc.title} src={doc.downloadUrl} className="w-full h-[70vh] border-0" />
@@ -172,6 +173,7 @@ export default function DocumentsTab() {
   const [selectedDocId, setSelectedDocId] = useState(null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadMsgIndex, setUploadMsgIndex] = useState(0)
+  const [docToDelete, setDocToDelete] = useState(null)
 
   useEffect(() => {
     if (isUploading) {
@@ -439,23 +441,23 @@ export default function DocumentsTab() {
       hapticImpact('light')
     } catch (err) {
       console.error('[DocumentsTab] Upload failed:', err)
-      window.alert(err.message || 'Upload failed')
+      showToast(err.message || 'Upload failed', 'error')
     } finally {
       setIsUploading(false)
       event.target.value = ''
     }
   }
 
-  const handleDelete = async (doc) => {
+  const handleDeleteConfirmed = async () => {
+    const doc = docToDelete
+    setDocToDelete(null)
     if (!doc) return
-    const ok = window.confirm(`Delete "${doc.title}" from the vault?`)
-    if (!ok) return
     try {
       await deleteDocumentFromStorage(doc.storagePath)
       dispatch({ type: ACTIONS.DELETE_DOCUMENT, payload: { id: doc.id, tripId: doc.tripId } })
     } catch (err) {
       console.error('[DocumentsTab] Delete failed:', err)
-      window.alert(err.message || 'Could not delete document')
+      showToast(err.message || 'Could not delete document', 'error')
     }
   }
 
@@ -564,7 +566,7 @@ export default function DocumentsTab() {
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-9 h-9 rounded-[var(--radius-md)] bg-bg-secondary border border-border flex items-center justify-center overflow-hidden shrink-0">
                           {doc.mimeType?.startsWith('image/') ? (
-                            <img src={doc.previewUrl || doc.downloadUrl} alt="" className="w-full h-full object-cover" />
+                            <img src={doc.previewUrl || doc.downloadUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
                           ) : (
                             <span className="text-base">{doc.kind === 'pdf' ? '📕' : doc.kind === 'text' ? '📝' : '📎'}</span>
                           )}
@@ -602,7 +604,7 @@ export default function DocumentsTab() {
                           <Download size={15} />
                         </button>
                         {!isReadOnly && (
-                          <button className="p-1.5 text-text-muted hover:text-danger transition-colors" title="Delete" onClick={() => handleDelete(doc)}>
+                          <button className="p-1.5 text-text-muted hover:text-danger transition-colors" title="Delete" onClick={() => setDocToDelete(doc)}>
                             <Trash2 size={15} />
                           </button>
                         )}
@@ -615,6 +617,16 @@ export default function DocumentsTab() {
           </div>
         </Card>
       )}
+
+      <ConfirmDialog
+        isOpen={!!docToDelete}
+        onClose={() => setDocToDelete(null)}
+        onConfirm={handleDeleteConfirmed}
+        title="Delete document?"
+        message={`Delete "${docToDelete?.title}" from the vault? This cannot be undone.`}
+        confirmLabel="Delete"
+        danger
+      />
     </div>
   )
 }

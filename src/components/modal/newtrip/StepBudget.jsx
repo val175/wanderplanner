@@ -42,7 +42,7 @@ export default function StepBudget({ form, setForm }) {
               <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-2">
                 <div className="relative">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-text-muted">{symbol}</span>
-                  <Input type="number" min="0" value={cat.min || ''}
+                  <Input type="number" inputMode="decimal" min="0" value={cat.min || ''}
                     onChange={e => handleCategoryUpdate(i, 'min', e.target.value)}
                     placeholder="Min"
                     className="pl-7 pr-2 text-right"
@@ -50,7 +50,7 @@ export default function StepBudget({ form, setForm }) {
                 </div>
                 <div className="relative">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-text-muted">{symbol}</span>
-                  <Input type="number" min="0" value={cat.max || ''}
+                  <Input type="number" inputMode="decimal" min="0" value={cat.max || ''}
                     onChange={e => handleCategoryUpdate(i, 'max', e.target.value)}
                     placeholder="Max"
                     className="pl-7 pr-2 text-right"

@@ -43,6 +43,7 @@ export default function LocationPill({ location, onClick, isResolving, readOnly 
                 <img
                     src={photoUrl}
                     alt=""
+                    loading="lazy"
                     className="w-4 h-4 rounded-full object-cover border border-border/10 grayscale-[0.5] group-hover:grayscale-0 transition-all"
                 />
             ) : (

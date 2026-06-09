@@ -119,6 +119,7 @@ export default function NewTripModal({ isOpen, onClose }) {
   const [mode, setMode] = useState('chooser')
   const [step, setStep] = useState(1)
   const [form, setForm] = useState(() => getInitialForm())
+  const [isCreating, setIsCreating] = useState(false)
 
   function getInitialForm() {
     const myId = currentUserProfile?.uid
@@ -218,6 +219,8 @@ export default function NewTripModal({ isOpen, onClose }) {
   }, [step, form])
 
   const handleCreate = () => {
+    if (isCreating) return
+    setIsCreating(true)
     const destinations = form.destinations
       .filter(d => d.city.trim() && d.selected !== false)
       .map(d => resolveCity(d.city, d.country, d.flag))
@@ -336,6 +339,7 @@ export default function NewTripModal({ isOpen, onClose }) {
       })()
     }
     showToast(`"${newTrip.name}" created! Let's plan this trip. 🗺️`)
+    setIsCreating(false)
     handleClose()
   }
 
@@ -415,11 +419,11 @@ export default function NewTripModal({ isOpen, onClose }) {
                 </svg>
               </Button>
             ) : (
-              <Button size="lg" onClick={handleCreate}>
+              <Button size="lg" onClick={handleCreate} disabled={isCreating}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
-                Create Trip
+                {isCreating ? 'Creating…' : 'Create Trip'}
               </Button>
             )}
           </div>

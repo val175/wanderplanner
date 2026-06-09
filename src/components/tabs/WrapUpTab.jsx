@@ -416,7 +416,7 @@ export default function WrapUpTab() {
                                                 }}
                                             >
                                                 {p.customPhoto || p.photo ? (
-                                                    <img src={p.customPhoto || p.photo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    <img src={p.customPhoto || p.photo} alt={p.name || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
                                                 ) : (
                                                     <span style={{ fontSize: '18px', fontWeight: 700, color: '#D97757', lineHeight: '1' }}>
                                                         {p.name?.[0].toUpperCase()}

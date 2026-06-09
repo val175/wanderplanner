@@ -640,3 +640,28 @@ body {
   animation: wand-wiggle 700ms ease-in-out;
 }
 
+/* ─── Touch: always show hover-only reveals ─── */
+/* Elements that are hidden until hover should be visible on touch devices */
+@media (hover: none) {
+  .hover-reveal,
+  .group-hover\:opacity-100 {
+    opacity: 1 !important;
+  }
+}
+
+/* ─── Reduced Motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .wanda-wiggle-slow,
+  .wanda-trigger-pulse,
+  .wanda-continuity {
+    animation: none !important;
+  }
+}
+

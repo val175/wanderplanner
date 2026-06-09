@@ -82,6 +82,7 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
   const [isSearchingAI, setIsSearchingAI] = useState(false)
   const [aiResults, setAiResults] = useState([])
   const inputRef = useRef(null)
+  const listRef = useRef(null)
 
   // Reset state on open
   useEffect(() => {
@@ -92,6 +93,13 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
       setTimeout(() => inputRef.current?.focus(), 50)
     }
   }, [isOpen])
+
+  // Scroll selected item into view on keyboard navigation
+  useEffect(() => {
+    if (!listRef.current) return
+    const selected = listRef.current.querySelector('[data-selected="true"]')
+    selected?.scrollIntoView({ block: 'nearest' })
+  }, [selectedIndex])
 
   // Handle Cmd+K globally
   useEffect(() => {
@@ -308,6 +316,9 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search and navigation"
         className="relative w-full max-w-2xl bg-bg-card border border-border rounded-2xl overflow-hidden animate-scale-in"
         onClick={e => e.stopPropagation()}
       >
@@ -334,7 +345,7 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
         </div>
 
         {/* Results Body */}
-        <div className="max-h-[60vh] overflow-y-auto scrollbar-hide py-2">
+        <div ref={listRef} className="max-h-[60vh] overflow-y-auto scrollbar-hide py-2" role="listbox" aria-label="Results">
           {query.trim() === '' ? (
             // Command list (empty state)
             <div className="flex flex-col px-2 py-2">
@@ -344,6 +355,7 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
                 return (
                   <button
                     key={cmd.id}
+                    data-selected={isSelected}
                     onClick={() => handleSelect(cmd)}
                     onMouseEnter={() => setSelectedIndex(idx)}
                     className={`flex items-center gap-4 w-full text-left px-4 py-3 rounded-xl transition-all ${
@@ -403,6 +415,7 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
                       <Label className="block px-4 pt-3 pb-1">Results</Label>
                     )}
                     <button
+                      data-selected={isSelected}
                       onClick={() => handleSelect(item)}
                       onMouseEnter={() => setSelectedIndex(idx)}
                       className={`flex items-center gap-4 w-full text-left px-4 py-3 rounded-xl transition-all ${

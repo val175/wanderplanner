@@ -135,7 +135,7 @@ function AddExpenseModal({ isOpen, onClose, onAdd, travelers, categories, curren
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Amount</label>
             <Input
-              type="number"
+              type="number" inputMode="decimal"
               min="0.01"
               step="any"
               value={expenseData.amount}
@@ -241,7 +241,7 @@ function AddExpenseModal({ isOpen, onClose, onAdd, travelers, categories, curren
                       {traveler?.name || 'Traveler'}
                     </span>
                     <Input
-                      type="number"
+                      type="number" inputMode="decimal"
                       min="0"
                       step="any"
                       value={customShares[id] ?? ''}
@@ -835,7 +835,7 @@ function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onD
                   </td>
                   <td className="py-2 px-2 text-right">
                     <input
-                      type="number"
+                      type="number" inputMode="decimal"
                       min="0.01"
                       step="any"
                       value={editData.amount}

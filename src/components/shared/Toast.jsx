@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { spring } from '../../lib/motion'
 
-const DISMISS_MS = 3000
+const DISMISS_MS = { success: 3000, info: 3000, warning: 4000, error: 5000 }
 
 const CONFIG = {
   success: {
@@ -43,24 +43,39 @@ const CONFIG = {
   },
 }
 
-function ToastContent({ message, type }) {
+function ToastContent({ message, type, onDismiss }) {
   const cfg = CONFIG[type] || CONFIG.success
-  // Countdown bar shrinks from 100% → 0% over DISMISS_MS
+  const duration = DISMISS_MS[type] || DISMISS_MS.success
   const [progress, setProgress] = useState(100)
+  const pausedRef = useRef(false)
+  const elapsedRef = useRef(0)
+  const lastTickRef = useRef(null)
 
   useEffect(() => {
     setProgress(100)
-    const start = performance.now()
+    elapsedRef.current = 0
+    pausedRef.current = false
+    lastTickRef.current = null
     let raf
     function tick(now) {
-      const elapsed = now - start
-      const remaining = Math.max(0, 100 - (elapsed / DISMISS_MS) * 100)
-      setProgress(remaining)
-      if (remaining > 0) raf = requestAnimationFrame(tick)
+      if (!pausedRef.current) {
+        if (lastTickRef.current !== null) {
+          elapsedRef.current += now - lastTickRef.current
+        }
+        lastTickRef.current = now
+        const remaining = Math.max(0, 100 - (elapsedRef.current / duration) * 100)
+        setProgress(remaining)
+        if (remaining > 0) {
+          raf = requestAnimationFrame(tick)
+        }
+      } else {
+        lastTickRef.current = null
+        raf = requestAnimationFrame(tick)
+      }
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [message]) // reset when a new toast fires
+  }, [message, duration])
 
   return (
     <motion.div
@@ -71,9 +86,12 @@ function ToastContent({ message, type }) {
       animate={{ y: 0, opacity: 1, scale: 1 }}
       exit={{ y: 12, opacity: 0, scale: 0.95 }}
       transition={spring.bouncy}
+      onClick={onDismiss}
+      onMouseEnter={() => { pausedRef.current = true }}
+      onMouseLeave={() => { pausedRef.current = false }}
       className={`
         fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-[60]
-        min-w-[240px] max-w-sm overflow-hidden
+        min-w-[240px] max-w-sm overflow-hidden cursor-pointer
         rounded-[var(--radius-lg)] border
         font-medium text-sm
         shadow-lg
@@ -98,13 +116,13 @@ function ToastContent({ message, type }) {
   )
 }
 
-export default function Toast({ message, type = 'success', visible }) {
+export default function Toast({ message, type = 'success', visible, onDismiss }) {
   if (!message) return null
 
   return (
     <AnimatePresence mode="wait">
       {visible && (
-        <ToastContent key={message + type} message={message} type={type} />
+        <ToastContent key={message + type} message={message} type={type} onDismiss={onDismiss} />
       )}
     </AnimatePresence>
   )

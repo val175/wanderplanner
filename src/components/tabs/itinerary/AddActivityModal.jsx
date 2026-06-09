@@ -128,7 +128,7 @@ export default function AddActivityModal({ isOpen, onClose, itinerary, onAdd, tr
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Duration (minutes)</label>
           <input
-            type="number"
+            type="number" inputMode="decimal"
             min="1"
             step="1"
             value={activityData.duration}
