@@ -1,18 +1,25 @@
+import {
+  LayoutDashboard, Map, CalendarDays, Ticket, Wallet, ListChecks,
+  Vote, Clapperboard, Building2, FileText, Luggage, Music,
+} from 'lucide-react'
 import { GLOBAL_CATEGORIES } from './categories'
 
+// `icon` (lucide component) is the canonical nav glyph — render at 16–20px,
+// strokeWidth 1.75. `emoji` is retained for content surfaces (e.g. search
+// result chips) and as a fallback, never for primary nav chrome.
 export const TAB_CONFIG = [
-  { id: 'overview', label: 'Overview', emoji: '🗺️' },
-  { id: 'wandermap', label: 'Map', emoji: '📍' },
-  { id: 'itinerary', label: 'Itinerary', emoji: '📅' },
-  { id: 'bookings', label: 'Bookings', emoji: '🎫' },
-  { id: 'budget', label: 'Budget', emoji: '💰' },
-  { id: 'todo', label: 'To-Do', emoji: '✅' },
-  { id: 'voting', label: 'Voting', emoji: '🗳️' },
-  { id: 'videos', label: 'How-To', emoji: '🎬' },
-  { id: 'cities', label: 'Cities', emoji: '🏙️' },
-  { id: 'documents', label: 'Documents', emoji: '📄' },
-  { id: 'packing', label: 'Packing', emoji: '🧳' },
-  { id: 'concert', label: 'Concert', emoji: '🎵', conditional: true },
+  { id: 'overview', label: 'Overview', emoji: '🗺️', icon: LayoutDashboard },
+  { id: 'wandermap', label: 'Map', emoji: '📍', icon: Map },
+  { id: 'itinerary', label: 'Itinerary', emoji: '📅', icon: CalendarDays },
+  { id: 'bookings', label: 'Bookings', emoji: '🎫', icon: Ticket },
+  { id: 'budget', label: 'Budget', emoji: '💰', icon: Wallet },
+  { id: 'todo', label: 'To-Do', emoji: '✅', icon: ListChecks },
+  { id: 'voting', label: 'Voting', emoji: '🗳️', icon: Vote },
+  { id: 'videos', label: 'How-To', emoji: '🎬', icon: Clapperboard },
+  { id: 'cities', label: 'Cities', emoji: '🏙️', icon: Building2 },
+  { id: 'documents', label: 'Documents', emoji: '📄', icon: FileText },
+  { id: 'packing', label: 'Packing', emoji: '🧳', icon: Luggage },
+  { id: 'concert', label: 'Concert', emoji: '🎵', icon: Music, conditional: true },
 ]
 
 export const BOOKING_CATEGORIES = GLOBAL_CATEGORIES

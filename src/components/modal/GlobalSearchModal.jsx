@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { Search, X } from 'lucide-react'
+import { Search, X, Plane, Receipt, Vote, CalendarDays, Ticket, ListChecks, Wallet } from 'lucide-react'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { TAB_CONFIG } from '../../constants/tabs'
@@ -10,11 +10,17 @@ import Input from '../shared/Input'
 import Label from '../shared/Label'
 
 const TABS = {
-  itinerary: { label: 'Itinerary', emoji: '📅' },
-  bookings: { label: 'Bookings', emoji: '🎫' },
-  todos: { label: 'To Do', emoji: '✅' },
-  budget: { label: 'Budget', emoji: '💰' },
-  voting: { label: 'Voting', emoji: '🗳️' }
+  itinerary: { label: 'Itinerary', icon: CalendarDays },
+  bookings: { label: 'Bookings', icon: Ticket },
+  todos: { label: 'To Do', icon: ListChecks },
+  budget: { label: 'Budget', icon: Wallet },
+  voting: { label: 'Voting', icon: Vote }
+}
+
+/** Renders a lucide icon component when present, otherwise the emoji string (brand/content). */
+function ItemGlyph({ icon: Icon, emoji }) {
+  if (Icon) return <Icon size={18} strokeWidth={1.75} className="text-text-secondary" aria-hidden="true" />
+  return emoji || null
 }
 
 const SLASH_COMMANDS = [
@@ -24,7 +30,7 @@ const SLASH_COMMANDS = [
     isSlash: true,
     title: '/flight',
     subtitle: 'Add a flight booking',
-    emoji: '✈️',
+    icon: Plane,
     action: (dispatch) => {
       dispatch({ type: ACTIONS.SET_TAB, payload: 'bookings' })
       setTimeout(() => window.dispatchEvent(new CustomEvent('open-add-booking', { detail: { category: 'flight' } })), 150)
@@ -36,7 +42,7 @@ const SLASH_COMMANDS = [
     isSlash: true,
     title: '/expense',
     subtitle: 'Log a new expense',
-    emoji: '💸',
+    icon: Receipt,
     action: (dispatch) => {
       dispatch({ type: ACTIONS.SET_TAB, payload: 'budget' })
       setTimeout(() => window.dispatchEvent(new CustomEvent('open-add-expense')), 150)
@@ -48,7 +54,7 @@ const SLASH_COMMANDS = [
     isSlash: true,
     title: '/vote',
     subtitle: 'Start a new poll',
-    emoji: '🗳️',
+    icon: Vote,
     action: (dispatch) => {
       dispatch({ type: ACTIONS.SET_TAB, payload: 'voting' })
       setTimeout(() => window.dispatchEvent(new CustomEvent('open-add-vote')), 150)
@@ -62,7 +68,7 @@ const COMMANDS = [
     isCommand: true,
     title: `Go to ${t.label}`,
     subtitle: 'Navigate',
-    emoji: t.emoji,
+    icon: t.icon,
     action: (dispatch) => dispatch({ type: ACTIONS.SET_TAB, payload: t.id }),
   })),
   {
@@ -362,7 +368,7 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
                       isSelected ? 'bg-bg-hover border border-border/50' : 'bg-transparent border border-transparent'
                     }`}
                   >
-                    <div className="p-2 rounded-lg bg-bg-input shrink-0 border border-border/50 flex items-center justify-center text-lg w-9 h-9">{cmd.emoji}</div>
+                    <div className="p-2 rounded-lg bg-bg-input shrink-0 border border-border/50 flex items-center justify-center text-lg w-9 h-9"><ItemGlyph icon={cmd.icon} emoji={cmd.emoji} /></div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-text-primary">{cmd.title}</p>
                       <p className="text-xs text-text-muted mt-0.5">{cmd.subtitle}</p>
@@ -403,7 +409,9 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
               )}
               {allItems.map((item, idx) => {
                 const isSelected = idx === selectedIndex
-                const icon = item.isCommand ? item.emoji : TABS[item.tab]?.emoji
+                const glyph = item.isCommand
+                  ? <ItemGlyph icon={item.icon} emoji={item.emoji} />
+                  : <ItemGlyph icon={TABS[item.tab]?.icon} emoji={item.emoji} />
 
                 // Insert "Results" section header before first non-command item
                 const prevIsCommand = idx > 0 && allItems[idx - 1].isCommand
@@ -423,7 +431,7 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
                       }`}
                     >
                       <div className="p-2 rounded-lg bg-bg-input shrink-0 border border-border/50 flex items-center justify-center text-lg w-9 h-9">
-                        {icon}
+                        {glyph}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-text-primary truncate">{item.title}</p>

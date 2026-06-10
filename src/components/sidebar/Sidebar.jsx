@@ -125,7 +125,7 @@ function TripSwitcher({ trips, activeTrip, activeTripId, onSelect, onNewTrip }) 
 // NavLink
 // ─────────────────────────────────────────────────
 
-function NavLink({ tabId, label, emoji, isActive, onClick, hasNotification }) {
+function NavLink({ tabId, label, icon: Icon, isActive, onClick, hasNotification }) {
   return (
     <motion.button
       onClick={() => onClick(tabId)}
@@ -134,7 +134,7 @@ function NavLink({ tabId, label, emoji, isActive, onClick, hasNotification }) {
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
     >
       <div className="flex items-center gap-2.5">
-        <span className="text-base">{emoji}</span>
+        <Icon size={16} strokeWidth={1.75} className={isActive ? 'text-accent' : 'text-text-muted'} aria-hidden="true" />
         <span>{label}</span>
       </div>
       {hasNotification && (
@@ -278,7 +278,7 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
                     key={tab.id}
                     tabId={tab.id}
                     label={tab.label}
-                    emoji={tab.emoji}
+                    icon={tab.icon}
                     isActive={state.activeTab === tab.id}
                     onClick={handleTabClick}
                   />
@@ -297,7 +297,7 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
                     key={tab.id}
                     tabId={tab.id}
                     label={tab.label}
-                    emoji={tab.emoji}
+                    icon={tab.icon}
                     isActive={state.activeTab === tab.id}
                     onClick={handleTabClick}
                     hasNotification={tab.id === 'voting' && activeTrip?.polls?.filter(p => !p.resolved).length > 0}

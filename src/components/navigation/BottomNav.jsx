@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { MoreHorizontal, Mic } from 'lucide-react'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
@@ -36,7 +37,7 @@ function useBadges(trip) {
     return { overview: overviewCount > 0 ? overviewCount : null, budget: overBudget }
 }
 
-function NavButton({ label, emoji, isActive, onClick, badge, dot }) {
+function NavButton({ label, icon: Icon, isActive, onClick, badge, dot }) {
     return (
         <button
             role="tab"
@@ -49,7 +50,7 @@ function NavButton({ label, emoji, isActive, onClick, badge, dot }) {
                 }`}
         >
             <span className="relative inline-flex">
-                <span className={`text-xl ${isActive ? 'scale-110' : ''} transition-transform`}>{emoji}</span>
+                <Icon size={20} strokeWidth={1.75} className={`${isActive ? 'scale-110' : ''} transition-transform`} aria-hidden="true" />
                 {badge && (
                     <span className="absolute -top-1 -right-2 min-w-[16px] h-[16px] flex items-center justify-center rounded-[var(--radius-pill)] bg-danger px-[4px] text-xs font-bold leading-none text-white">
                         {badge > 9 ? '9+' : badge}
@@ -100,7 +101,7 @@ export default function BottomNav() {
                         <NavButton
                             key={tab.id}
                             label={tab.label}
-                            emoji={tab.emoji}
+                            icon={tab.icon}
                             isActive={state.activeTab === tab.id}
                             onClick={() => goTo(tab.id)}
                             badge={tab.id === 'overview' ? badges.overview : null}
@@ -109,7 +110,7 @@ export default function BottomNav() {
                     ))}
                     <NavButton
                         label="More"
-                        emoji="⋯"
+                        icon={MoreHorizontal}
                         isActive={moreActive || showMore}
                         onClick={() => setShowMore(true)}
                     />
@@ -119,19 +120,22 @@ export default function BottomNav() {
             {/* More sheet — the rest of the destinations, plus Voice */}
             <Modal isOpen={showMore} onClose={() => setShowMore(false)} title="More" maxWidth="max-w-md">
                 <div className="grid grid-cols-3 gap-2 p-4 pb-6">
-                    {moreTabs.map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => goTo(tab.id)}
-                            className={`flex flex-col items-center gap-1.5 rounded-[var(--radius-md)] px-2 py-3 transition-colors ${state.activeTab === tab.id
-                                ? 'bg-accent/10 text-accent'
-                                : 'text-text-secondary hover:bg-bg-hover active:bg-bg-hover'
-                                }`}
-                        >
-                            <span className="text-2xl">{tab.emoji}</span>
-                            <span className="text-xs font-medium">{tab.label}</span>
-                        </button>
-                    ))}
+                    {moreTabs.map(tab => {
+                        const Icon = tab.icon
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => goTo(tab.id)}
+                                className={`flex flex-col items-center gap-1.5 rounded-[var(--radius-md)] px-2 py-3 transition-colors ${state.activeTab === tab.id
+                                    ? 'bg-accent/10 text-accent'
+                                    : 'text-text-secondary hover:bg-bg-hover active:bg-bg-hover'
+                                    }`}
+                            >
+                                <Icon size={22} strokeWidth={1.75} aria-hidden="true" />
+                                <span className="text-xs font-medium">{tab.label}</span>
+                            </button>
+                        )
+                    })}
                     <button
                         onClick={() => {
                             window.dispatchEvent(new CustomEvent('toggle-walkie'))
@@ -139,7 +143,7 @@ export default function BottomNav() {
                         }}
                         className="flex flex-col items-center gap-1.5 rounded-[var(--radius-md)] px-2 py-3 text-text-secondary hover:bg-bg-hover active:bg-bg-hover transition-colors"
                     >
-                        <span className="text-2xl">🎙️</span>
+                        <Mic size={22} strokeWidth={1.75} aria-hidden="true" />
                         <span className="text-xs font-medium">Voice</span>
                     </button>
                 </div>
