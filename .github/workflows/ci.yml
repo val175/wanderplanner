@@ -1,0 +1,29 @@
+name: CI
+
+# This repo commits straight to main — CI is the safety net.
+# Note: no untrusted input (issue titles, PR bodies, etc.) is ever
+# interpolated into run commands in this workflow.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
