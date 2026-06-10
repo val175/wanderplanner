@@ -16,9 +16,14 @@ import { db } from '../firebase/config'
 import { tripReducer, ACTIONS } from '../state/tripReducer'
 import { DEFAULT_TRIP } from '../data/defaultTrip'
 import { generateId } from '../utils/helpers'
+import { parseTripPath } from '../utils/urlState'
 
 const STORAGE_KEY = 'wanderplan_data'
 const REVERSE_MIGRATION_FLAG = 'wanderplan_root_migrated'
+
+// Captured once at module load, before any effect can rewrite the URL.
+// ?trip=<shareId> is the invite entry point (see useShareTrip).
+const INITIAL_SHARE_ID = new URLSearchParams(window.location.search).get('trip')
 
 function getInitialState() {
   let darkMode = false
@@ -34,11 +39,16 @@ function getInitialState() {
     }
   } catch { /* ignore */ }
 
+  // Deep link: /trips/:tripId/:tab seeds navigation before first render.
+  // SET_TRIPS_FROM_FIRESTORE validates the tripId once data arrives and
+  // falls back to its priority pick when the trip doesn't exist.
+  const deepLink = parseTripPath(window.location.pathname)
+
   return {
     trips: {},
     documentsByTrip: {},
-    activeTripId: null,
-    activeTab: 'overview',
+    activeTripId: deepLink?.tripId || null,
+    activeTab: deepLink?.tab || 'overview',
     sidebarOpen: false,
     aiViewMode,
     aiOpen,
@@ -100,7 +110,7 @@ export function useFirestoreTrips(userId) {
 
           // Arriving via an invite link? Don't seed a default trip — the
           // user is here to join an existing one.
-          if (new URLSearchParams(window.location.search).has('trip')) {
+          if (INITIAL_SHARE_ID) {
             setFirestoreLoading(false)
             return
           }
@@ -147,15 +157,19 @@ export function useFirestoreTrips(userId) {
   // Resolved via the shareLinks/{shareId} capability doc — non-members have
   // no read access to /trips, so the invite preview comes from the snapshot
   // stored alongside the link (see useShareTrip.buildShareSnapshot).
+  const shareHandledRef = useRef(false)
   useEffect(() => {
     if (!userId || firestoreLoading) return // wait for trips to load
 
-    const params = new URLSearchParams(window.location.search)
-    const shareId = params.get('trip')
-    if (!shareId) return
+    const shareId = INITIAL_SHARE_ID
+    if (!shareId || shareHandledRef.current) return
+    shareHandledRef.current = true
 
-    // Clear the URL parameter immediately so it doesn't re-run
-    window.history.replaceState({}, '', window.location.pathname)
+    // Strip the parameter from the address bar (keeps the path intact)
+    const cleaned = new URLSearchParams(window.location.search)
+    cleaned.delete('trip')
+    const rest = cleaned.toString()
+    window.history.replaceState({}, '', window.location.pathname + (rest ? `?${rest}` : ''))
 
       ; (async () => {
         try {

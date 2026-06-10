@@ -12,9 +12,9 @@ function generateShareId() {
     return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
 }
 
-/** Get the base URL for sharing (handles both dev and prod) */
+/** Base URL for sharing — always the app root, never the current trip path */
 function getBaseUrl() {
-    return window.location.origin + window.location.pathname
+    return window.location.origin + '/'
 }
 
 /**

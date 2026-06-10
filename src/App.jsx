@@ -33,6 +33,10 @@ import ErrorBoundary from './components/shared/ErrorBoundary'
 // Tab components
 import OverviewTab from './components/tabs/OverviewTab'
 import { wandaRuntime, setWandaRuntime } from './utils/wandaRuntime'
+import { useUrlSync } from './hooks/useUrlSync'
+
+// Invite entry point — read once before any history rewrites
+const HAS_INVITE_PARAM = new URLSearchParams(window.location.search).has('trip')
 
 const ItineraryTab = lazy(() => import('./components/tabs/ItineraryTab'))
 const BookingsTab = lazy(() => import('./components/tabs/BookingsTab'))
@@ -279,6 +283,9 @@ function AuthenticatedApp({ user, signOutUser }) {
   const isReadOnly = effectiveStatus === 'completed' || effectiveStatus === 'archived'
   const effectiveTab = isReadOnly && state.activeTab === 'overview' ? 'wrap-up' : state.activeTab
 
+  // Keep the address bar in sync: deep links, refresh, and Back/Forward all work
+  useUrlSync({ state, dispatch, firestoreLoading, effectiveTab })
+
   useEffect(() => {
     setWandaRuntime({
       activeTab: effectiveTab,
@@ -522,7 +529,8 @@ function useAccessCheck(uid) {
     ;(async () => {
       try {
         // 2. Invite link present — let them through to the join flow.
-        if (new URLSearchParams(window.location.search).has('trip')) {
+        // (Captured at module load so later URL rewrites can't race it.)
+        if (HAS_INVITE_PARAM) {
           if (!cancelled) { setIsAllowed(true); setChecking(false) }
           return
         }
