@@ -76,7 +76,7 @@ function TripSwitcher({ trips, activeTrip, activeTripId, onSelect, onNewTrip }) 
             <span className="text-lg shrink-0">{activeTrip.emoji}</span>
           )}
           <div className="flex flex-col overflow-hidden">
-            <span className="text-[9px] text-text-muted font-bold uppercase tracking-widest leading-none mb-0.5">
+            <span className="text-[10px] text-text-muted font-semibold uppercase tracking-wider leading-none mb-0.5">
               Active Trip
             </span>
             <span className="text-sm font-semibold text-text-primary truncate leading-tight">
@@ -153,6 +153,17 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
   const { user, signOutUser } = useAuth()
   const { currentUserProfile } = useProfiles()
   const [showProfiles, setShowProfiles] = useState(false)
+  // Visual tiering: the five core destinations stay prominent; the Tools
+  // group is collapsible (persisted) so the default view stays calm.
+  const [toolsOpen, setToolsOpen] = useState(() => {
+    try { return localStorage.getItem('wanderplan_tools_open') !== 'false' } catch { return true }
+  })
+  const toggleTools = () => {
+    setToolsOpen(prev => {
+      try { localStorage.setItem('wanderplan_tools_open', String(!prev)) } catch { /* ignore */ }
+      return !prev
+    })
+  }
 
   // XP / level derived values
   const xp = currentUserProfile?.xp || 0
@@ -288,22 +299,38 @@ export default function Sidebar({ isMobile, isOpen, onNewTrip }) {
 
             {/* Collaborate (renamed from "Tools & Collab", How-To removed) */}
             <div>
-              <div className="px-3 mb-1">
+              <button
+                onClick={toggleTools}
+                aria-expanded={toolsOpen}
+                className="w-full flex items-center justify-between px-3 mb-1 group/tools"
+              >
                 <Label>Tools</Label>
-              </div>
-              <nav className="flex flex-col gap-[2px]">
-                {collaborateTabs.map(tab => (
-                  <NavLink
-                    key={tab.id}
-                    tabId={tab.id}
-                    label={tab.label}
-                    icon={tab.icon}
-                    isActive={state.activeTab === tab.id}
-                    onClick={handleTabClick}
-                    hasNotification={tab.id === 'voting' && activeTrip?.polls?.filter(p => !p.resolved).length > 0}
-                  />
-                ))}
-              </nav>
+                <svg
+                  className={`w-3 h-3 text-text-muted opacity-0 group-hover/tools:opacity-100 transition-all ${toolsOpen ? '' : '-rotate-90'}`}
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+              {/* Keep the active tab reachable even while collapsed */}
+              {(toolsOpen
+                ? collaborateTabs
+                : collaborateTabs.filter(t => t.id === state.activeTab)
+              ).length > 0 && (
+                <nav className="flex flex-col gap-[2px]">
+                  {(toolsOpen ? collaborateTabs : collaborateTabs.filter(t => t.id === state.activeTab)).map(tab => (
+                    <NavLink
+                      key={tab.id}
+                      tabId={tab.id}
+                      label={tab.label}
+                      icon={tab.icon}
+                      isActive={state.activeTab === tab.id}
+                      onClick={handleTabClick}
+                      hasNotification={tab.id === 'voting' && activeTrip?.polls?.filter(p => !p.resolved).length > 0}
+                    />
+                  ))}
+                </nav>
+              )}
             </div>
           </>
         )}
