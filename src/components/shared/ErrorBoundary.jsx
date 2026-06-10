@@ -1,6 +1,7 @@
 import { Component } from 'react'
 import Button from './Button'
 import Card from './Card'
+import { reportError } from '../../utils/errorReporter'
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -14,6 +15,7 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(error, errorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo)
+    reportError(error, `ErrorBoundary${errorInfo?.componentStack ? ':' + errorInfo.componentStack.split('\n')[1]?.trim() : ''}`)
   }
 
   handleReset = () => {
