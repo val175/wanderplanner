@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import { MotionConfig } from 'framer-motion'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { doc, getDoc, getDocs, setDoc, collection, query, where, limit } from 'firebase/firestore'
 import { db } from './firebase/config'
 import { TripContext, useTripContext } from './context/TripContext'
 import { ProfileProvider, useProfiles } from './context/ProfileContext'
@@ -494,10 +494,16 @@ function AuthenticatedApp({ user, signOutUser }) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Hook: checks Firestore `users/{uid}` for `allowed: true`.
-   Returns { checking: bool, isAllowed: bool }.
-   To grant access to a user, set their uid doc to { allowed: true }
-   in the Firebase console — no code redeploy needed.
+   Hook: invite-only access gate.
+   A signed-in user may enter when any of these hold:
+     1. users/{uid}.allowed === true   (manual grant via Firebase console,
+        or cached from a previous successful check)
+     2. The URL carries a ?trip=<shareId> invite — they're here to join.
+     3. They're already a member of at least one trip.
+   Anyone else sees the "Access restricted" screen. No auto-grant.
+
+   NOTE: this gate is UX only. The real boundary is firestore.rules —
+   trips are readable exclusively by their memberIds.
 ───────────────────────────────────────────────────────────── */
 function useAccessCheck(uid) {
   const [checking, setChecking] = useState(true)
@@ -505,26 +511,42 @@ function useAccessCheck(uid) {
 
   useEffect(() => {
     if (!uid) return
-    getDoc(doc(db, 'users', uid))
-      .then(snap => {
-        if (snap.exists() && snap.data()?.allowed === true) {
-          setIsAllowed(true)
-          setChecking(false)
-        } else {
-          // Automate the whitelist: immediately grant access to new users who sign in.
-          setDoc(doc(db, 'users', uid), { allowed: true }, { merge: true })
-            .then(() => setIsAllowed(true))
-            .catch(err => {
-              console.error('Failed to auto-whitelist user:', err)
-              setIsAllowed(false)
-            })
-            .finally(() => setChecking(false))
+    let cancelled = false
+
+    ;(async () => {
+      try {
+        // 2. Invite link present — let them through to the join flow.
+        if (new URLSearchParams(window.location.search).has('trip')) {
+          if (!cancelled) { setIsAllowed(true); setChecking(false) }
+          return
         }
-      })
-      .catch(() => {
-        setIsAllowed(false)
-        setChecking(false)
-      })
+
+        // 1. Explicit / cached grant
+        const snap = await getDoc(doc(db, 'users', uid))
+        if (snap.exists() && snap.data()?.allowed === true) {
+          if (!cancelled) { setIsAllowed(true); setChecking(false) }
+          return
+        }
+
+        // 3. Member of any trip already?
+        const member = await getDocs(
+          query(collection(db, 'trips'), where('memberIds', 'array-contains', uid), limit(1))
+        )
+        if (!member.empty) {
+          // Cache so future loads skip the membership query
+          setDoc(doc(db, 'users', uid), { allowed: true }, { merge: true }).catch(() => {})
+          if (!cancelled) { setIsAllowed(true); setChecking(false) }
+          return
+        }
+
+        if (!cancelled) { setIsAllowed(false); setChecking(false) }
+      } catch (err) {
+        console.error('[Wanderplan] Access check failed:', err)
+        if (!cancelled) { setIsAllowed(false); setChecking(false) }
+      }
+    })()
+
+    return () => { cancelled = true }
   }, [uid])
 
   return { checking, isAllowed }
@@ -553,7 +575,7 @@ export default function App() {
         <EmptyState
           emoji="🔒"
           title="Access restricted"
-          subtitle={`This app is private. You signed in as ${user.email}, which isn't on the access list.`}
+          subtitle={`Wanderplan is invite-only. You signed in as ${user.email}, which isn't a member of any trip yet — ask a friend for an invite link to get started.`}
           action={
             <Button variant="secondary" onClick={signOutUser}>
               Sign out and try another account

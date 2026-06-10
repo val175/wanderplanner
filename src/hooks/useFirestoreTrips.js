@@ -2,7 +2,6 @@ import { useState, useReducer, useEffect, useRef, useCallback } from 'react'
 import {
   collection,
   doc,
-  getDocs,
   getDoc,
   onSnapshot,
   setDoc,
@@ -11,6 +10,7 @@ import {
   query,
   where,
   updateDoc,
+  arrayUnion,
 } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { tripReducer, ACTIONS } from '../state/tripReducer'
@@ -98,6 +98,13 @@ export function useFirestoreTrips(userId) {
           const migrated = await migrateToSharedRoot(userId)
           if (migrated) return // onSnapshot will fire again
 
+          // Arriving via an invite link? Don't seed a default trip — the
+          // user is here to join an existing one.
+          if (new URLSearchParams(window.location.search).has('trip')) {
+            setFirestoreLoading(false)
+            return
+          }
+
           // No data anywhere — seed with default trip
           const newId = generateId()
           await setDoc(doc(tripsRef, newId), {
@@ -137,6 +144,9 @@ export function useFirestoreTrips(userId) {
   }, [userId])
 
   // ── 1b. Share-link resolution: ?trip=<shareId> on page load ────────────────
+  // Resolved via the shareLinks/{shareId} capability doc — non-members have
+  // no read access to /trips, so the invite preview comes from the snapshot
+  // stored alongside the link (see useShareTrip.buildShareSnapshot).
   useEffect(() => {
     if (!userId || firestoreLoading) return // wait for trips to load
 
@@ -149,24 +159,28 @@ export function useFirestoreTrips(userId) {
 
       ; (async () => {
         try {
-          // Check if the trip is already in local state first
+          // Check if the trip is already in local state first (already a member)
           const localMatch = Object.values(state.trips).find(t => t.shareId === shareId)
           if (localMatch) {
             dispatch({ type: ACTIONS.SET_ACTIVE_TRIP, payload: localMatch.id })
             return
           }
 
-          // Otherwise query Firestore for a trip with this shareId
-          const q = query(tripsRef, where('shareId', '==', shareId))
-          const snapshot = await getDocs(q)
-
-          if (snapshot.empty) {
-            console.warn('[Wanderplan] Share link not found:', shareId)
+          const linkSnap = await getDoc(doc(db, 'shareLinks', shareId))
+          if (!linkSnap.exists()) {
+            console.warn('[Wanderplan] Share link not found or revoked:', shareId)
+            dispatch({ type: ACTIONS.SHOW_TOAST, payload: { message: 'This invite link is invalid or was revoked. Ask for a fresh one!', type: 'warning' } })
             return
           }
 
-          const tripDoc = snapshot.docs[0]
-          setPendingInvite({ id: tripDoc.id, ref: tripDoc.ref, ...tripDoc.data() })
+          const link = linkSnap.data()
+          // Already a member of the referenced trip? Just switch to it.
+          if (state.trips[link.tripId]) {
+            dispatch({ type: ACTIONS.SET_ACTIVE_TRIP, payload: link.tripId })
+            return
+          }
+
+          setPendingInvite({ id: link.tripId, shareId, ...link })
         } catch (err) {
           console.error('[Wanderplan] Share link resolution failed:', err)
         }
@@ -176,49 +190,44 @@ export function useFirestoreTrips(userId) {
   const acceptInvite = useCallback(async () => {
     if (!pendingInvite || !userId) return
     try {
-      const memberIds = pendingInvite.memberIds || []
-      const travelerIds = pendingInvite.travelerIds || []
+      const tripRef = doc(db, 'trips', pendingInvite.id)
 
-      const newMemberIds = Array.from(new Set([...memberIds, userId]))
-      const newTravelerIds = Array.from(new Set([...travelerIds, userId]))
-      const travelersCount = Math.max(newTravelerIds.length, 1)
+      // Step 1 — the join. This is the ONLY write security rules allow a
+      // non-member to make: append your own uid to memberIds/travelerIds.
+      // arrayUnion keeps the diff minimal so the rule's affectedKeys check passes.
+      await updateDoc(tripRef, {
+        memberIds: arrayUnion(userId),
+        travelerIds: arrayUnion(userId),
+      })
 
-      // Fetch this user's profile so we can inject them into travelersSnapshot immediately
-      let activeUserProfile = null
+      // Step 2 — now a member, read the full trip.
+      const tripSnap = await getDoc(tripRef)
+      if (!tripSnap.exists()) throw new Error('Trip vanished after join')
+      const { _updatedAt, ...tripData } = tripSnap.data()
+
+      // Step 3 — member-level cleanup: traveler count + snapshot visibility.
+      let newSnapshot = tripData.travelersSnapshot || []
       try {
-        const docRef = doc(db, 'users', userId, 'profile', 'data')
-        const snap = await getDoc(docRef)
-        if (snap.exists()) {
-          activeUserProfile = snap.data()
+        const profSnap = await getDoc(doc(db, 'users', userId, 'profile', 'data'))
+        if (profSnap.exists() && !newSnapshot.some(s => s.id === userId)) {
+          const p = profSnap.data()
+          newSnapshot = [...newSnapshot, {
+            id: userId,
+            name: p.name || 'Traveler',
+            avatar: p.customPhoto || p.photo || null
+          }]
         }
       } catch (err) {
         console.warn('[Wanderplan] Failed to prefetch joining user profile:', err)
       }
 
-      let newSnapshot = pendingInvite.travelersSnapshot || []
-      if (activeUserProfile && !newSnapshot.some(s => s.id === userId)) {
-        newSnapshot = [...newSnapshot, {
-          id: userId,
-          name: activeUserProfile.name || 'Traveler',
-          avatar: activeUserProfile.customPhoto || activeUserProfile.photo || null
-        }]
-      }
-
-      // Add user explicitly to both lists AND snapshot to guarantee access & visibility
-      await updateDoc(pendingInvite.ref, {
-        memberIds: newMemberIds,
-        travelerIds: newTravelerIds,
+      const travelersCount = Math.max((tripData.travelerIds || []).length, 1)
+      await updateDoc(tripRef, {
         travelers: travelersCount,
         travelersSnapshot: newSnapshot
       })
 
-      const updatedTrip = {
-        ...pendingInvite,
-        memberIds: newMemberIds,
-        travelerIds: newTravelerIds,
-        travelers: travelersCount,
-        travelersSnapshot: newSnapshot
-      }
+      const updatedTrip = { ...tripData, id: pendingInvite.id, travelers: travelersCount, travelersSnapshot: newSnapshot }
 
       // Prevent our optimistic UI injection from triggering a recursive setDoc
       isRemoteUpdateRef.current = true
