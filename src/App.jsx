@@ -228,13 +228,20 @@ function TabLoadingState({ activeTab }) {
 
 
 /* ─────────────────────────────────────────────────────────────
-   Loading screen — shown while auth or Firestore is initialising
+   Loading screen — shown ONLY while auth or Firestore is actually
+   initialising. It never blocks: the moment data is ready the app
+   renders, even mid-animation. The wordmark animation plays at most
+   once per page load; any later loading screens show the static mark.
 ───────────────────────────────────────────────────────────── */
-function LoadingScreen({ message = 'Loading…', onComplete }) {
+let splashPlayed = false
+
+function LoadingScreen({ message = 'Loading…' }) {
+  const [isStatic] = useState(() => splashPlayed)
+  useEffect(() => { splashPlayed = true }, [])
   return (
     <div className="flex h-screen items-center justify-center bg-bg-primary">
       <div className="text-center">
-        <WandWordmark onComplete={onComplete} />
+        <WandWordmark static={isStatic} />
         <p className="text-text-muted text-sm animate-pulse mt-6">{message}</p>
       </div>
     </div>
@@ -254,7 +261,6 @@ function AuthenticatedApp({ user, signOutUser }) {
   } = useFirestoreTrips(user.uid)
   const isMobile = useMediaQuery('(max-width: 767px)')
   const [showNewTripModal, setShowNewTripModal] = useState(false)
-  const [splashDone, setSplashDone] = useState(false)
   const [isOffline, setIsOffline] = useState(!navigator.onLine)
 
   useEffect(() => {
@@ -392,8 +398,8 @@ function AuthenticatedApp({ user, signOutUser }) {
     }
   }, [activeTrip?.id, currentUserProfile, dispatch])
 
-  if (firestoreLoading || !splashDone) {
-    return <LoadingScreen message="Eleka nahmen nahmen, ah tum ah tum, eleka nahmen..." onComplete={() => setSplashDone(true)} />
+  if (firestoreLoading) {
+    return <LoadingScreen message="Eleka nahmen nahmen, ah tum ah tum, eleka nahmen..." />
   }
 
   return (
@@ -559,10 +565,9 @@ function useAccessCheck(uid) {
 export default function App() {
   const { user, authLoading, signInWithGoogle, signOutUser } = useAuth()
   const { checking, isAllowed } = useAccessCheck(user?.uid)
-  const [splashDone, setSplashDone] = useState(false)
 
-  if (authLoading || (user && checking) || !splashDone) {
-    return <LoadingScreen message="Eleka nahmen nahmen, ah tum ah tum, eleka nahmen..." onComplete={() => setSplashDone(true)} />
+  if (authLoading || (user && checking)) {
+    return <LoadingScreen message="Eleka nahmen nahmen, ah tum ah tum, eleka nahmen..." />
   }
 
   if (!user) {
