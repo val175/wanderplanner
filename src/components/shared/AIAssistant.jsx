@@ -941,9 +941,10 @@ export default function AIAssistant() {
       {/* Chat panel */}
       {isSidebarMode ? (sidebarSlot ? createPortal(panel, sidebarSlot) : null) : panel}
 
-      {/* Floating trigger button - Hidden on mobile as it's in BottomNav */}
-      {!isMobile && !isSidebarMode && (
-        <div className="fixed bottom-[24px] right-[24px] z-50 group">
+      {/* Floating trigger button — above the bottom nav on mobile, corner on desktop.
+          Hidden while the mobile chat sheet is open. */}
+      {!isSidebarMode && !(isMobile && effectiveOpen) && (
+        <div className="fixed bottom-[calc(72px+env(safe-area-inset-bottom))] right-4 md:bottom-[24px] md:right-[24px] z-50 group">
           <div className="pointer-events-none absolute right-full mr-3 top-1/2 -translate-y-1/2 opacity-0 scale-95 transition-all duration-150 ease-out group-hover:opacity-100 group-hover:scale-100">
             <div className="flex items-center gap-2 rounded-[var(--radius-lg)] border border-border bg-bg-card px-5 py-2 text-sm text-text-primary shadow-none whitespace-nowrap">
               Chat with <span className="wanda-serif">Wanda</span>

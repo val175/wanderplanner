@@ -1,7 +1,13 @@
+import { useState } from 'react'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { TAB_CONFIG } from '../../constants/tabs'
+import Modal from '../shared/Modal'
+
+// The complete primary nav on mobile: four real destinations + More.
+// Wanda is a FAB (AIAssistant) — an assistant, not a destination.
+const CORE_TAB_IDS = ['overview', 'itinerary', 'bookings', 'budget']
 
 function useBadges(trip) {
     if (!trip) return {}
@@ -30,73 +36,114 @@ function useBadges(trip) {
     return { overview: overviewCount > 0 ? overviewCount : null, budget: overBudget }
 }
 
+function NavButton({ label, emoji, isActive, onClick, badge, dot }) {
+    return (
+        <button
+            role="tab"
+            aria-selected={isActive}
+            aria-label={label}
+            onClick={onClick}
+            className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-colors ${isActive
+                ? 'text-[var(--color-accent)]'
+                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                }`}
+        >
+            <span className="relative inline-flex">
+                <span className={`text-xl ${isActive ? 'scale-110' : ''} transition-transform`}>{emoji}</span>
+                {badge && (
+                    <span className="absolute -top-1 -right-2 min-w-[16px] h-[16px] flex items-center justify-center rounded-[var(--radius-pill)] bg-danger px-[4px] text-xs font-bold leading-none text-white">
+                        {badge > 9 ? '9+' : badge}
+                    </span>
+                )}
+                {dot && (
+                    <span className="absolute -top-0.5 -right-1 w-2 h-2 rounded-full bg-warning" />
+                )}
+            </span>
+            <span className="text-xs font-medium tracking-tight">{label}</span>
+        </button>
+    )
+}
+
 export default function BottomNav() {
-    const { state, dispatch } = useTripContext()
+    const { state, dispatch, activeTrip } = useTripContext()
     const isMobile = useMediaQuery('(max-width: 767px)')
-    const activeTrip = (state.activeTripId && state.trips?.[state.activeTripId]) || null
+    const [showMore, setShowMore] = useState(false)
     const badges = useBadges(activeTrip)
 
     // Only render on mobile
     if (!isMobile) return null
 
-    // The 5 core tabs for the bottom nav
-    const coreTabs = ['overview', 'itinerary', 'budget', 'ai', 'walkie']
+    const coreTabs = CORE_TAB_IDS.map(id => TAB_CONFIG.find(t => t.id === id)).filter(Boolean)
+
+    // Everything that isn't in the core row lives in the More sheet
+    const moreTabs = TAB_CONFIG.filter(t =>
+        !CORE_TAB_IDS.includes(t.id) &&
+        (!t.conditional || activeTrip?.concertTheme)
+    )
+
+    const goTo = (tabId) => {
+        dispatch({ type: ACTIONS.SET_TAB, payload: tabId })
+        setShowMore(false)
+    }
+
+    const moreActive = moreTabs.some(t => t.id === state.activeTab)
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-bg-primary)] border-t border-[var(--color-border)] pb-[env(safe-area-inset-bottom)] md:hidden pointer-events-auto">
-            <div
-                role="tablist"
-                aria-label="Mobile Navigation"
-                className="flex items-center justify-around h-14 px-2"
-            >
-                {coreTabs.map(tabId => {
-                    const tab = tabId === 'ai'
-                        ? { id: 'ai', label: 'Wanda', emoji: '🪄' }
-                        : tabId === 'walkie'
-                          ? { id: 'walkie', label: 'Voice', emoji: '🎙️' }
-                          : TAB_CONFIG.find(t => t.id === tabId)
+        <>
+            <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-bg-primary)] border-t border-[var(--color-border)] pb-[env(safe-area-inset-bottom)] md:hidden pointer-events-auto">
+                <div
+                    role="tablist"
+                    aria-label="Mobile Navigation"
+                    className="flex items-center justify-around h-14 px-2"
+                >
+                    {coreTabs.map(tab => (
+                        <NavButton
+                            key={tab.id}
+                            label={tab.label}
+                            emoji={tab.emoji}
+                            isActive={state.activeTab === tab.id}
+                            onClick={() => goTo(tab.id)}
+                            badge={tab.id === 'overview' ? badges.overview : null}
+                            dot={tab.id === 'budget' && badges.budget}
+                        />
+                    ))}
+                    <NavButton
+                        label="More"
+                        emoji="⋯"
+                        isActive={moreActive || showMore}
+                        onClick={() => setShowMore(true)}
+                    />
+                </div>
+            </nav>
 
-                    const isActive = tabId === 'ai'
-                        ? state.showAIAssistant
-                        : tabId === 'walkie'
-                          ? false // modal manages its own open state
-                          : state.activeTab === tabId
-
-                    return (
+            {/* More sheet — the rest of the destinations, plus Voice */}
+            <Modal isOpen={showMore} onClose={() => setShowMore(false)} title="More" maxWidth="max-w-md">
+                <div className="grid grid-cols-3 gap-2 p-4 pb-6">
+                    {moreTabs.map(tab => (
                         <button
-                            key={tabId}
-                            role="tab"
-                            aria-selected={isActive}
-                            onClick={() => {
-                                if (tabId === 'ai') {
-                                    const ev = new CustomEvent('toggle-wanda-mobile')
-                                    window.dispatchEvent(ev)
-                                } else if (tabId === 'walkie') {
-                                    const ev = new CustomEvent('toggle-walkie-mobile')
-                                    window.dispatchEvent(ev)
-                                } else {
-                                    dispatch({ type: ACTIONS.SET_TAB, payload: tabId })
-                                }
-                            }}
-                            className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-colors ${isActive ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                            key={tab.id}
+                            onClick={() => goTo(tab.id)}
+                            className={`flex flex-col items-center gap-1.5 rounded-[var(--radius-md)] px-2 py-3 transition-colors ${state.activeTab === tab.id
+                                ? 'bg-accent/10 text-accent'
+                                : 'text-text-secondary hover:bg-bg-hover active:bg-bg-hover'
                                 }`}
                         >
-                            <span className="relative inline-flex">
-                                <span className={`text-xl ${isActive ? 'scale-110' : ''} transition-transform`}>{tab.emoji}</span>
-                                {tabId === 'overview' && badges.overview && (
-                                    <span className="absolute -top-1 -right-2 min-w-[16px] h-[16px] flex items-center justify-center rounded-[var(--radius-pill)] bg-danger px-[4px] text-xs font-bold leading-none text-white">
-                                        {badges.overview > 9 ? '9+' : badges.overview}
-                                    </span>
-                                )}
-                                {tabId === 'budget' && badges.budget && (
-                                    <span className="absolute -top-0.5 -right-1 w-2 h-2 rounded-full bg-warning" />
-                                )}
-                            </span>
-                            <span className="text-xs font-medium tracking-tight">{tab.label}</span>
+                            <span className="text-2xl">{tab.emoji}</span>
+                            <span className="text-xs font-medium">{tab.label}</span>
                         </button>
-                    )
-                })}
-            </div>
-        </nav>
+                    ))}
+                    <button
+                        onClick={() => {
+                            window.dispatchEvent(new CustomEvent('toggle-walkie'))
+                            setShowMore(false)
+                        }}
+                        className="flex flex-col items-center gap-1.5 rounded-[var(--radius-md)] px-2 py-3 text-text-secondary hover:bg-bg-hover active:bg-bg-hover transition-colors"
+                    >
+                        <span className="text-2xl">🎙️</span>
+                        <span className="text-xs font-medium">Voice</span>
+                    </button>
+                </div>
+            </Modal>
+        </>
     )
 }
