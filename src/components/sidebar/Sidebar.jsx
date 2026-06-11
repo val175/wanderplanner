@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { TAB_CONFIG } from '../../constants/tabs'
@@ -27,16 +28,16 @@ function TripGroup({ title, trips, activeTripId, onSelect }) {
         <Label>{title}</Label>
       </div>
       {trips.map(trip => (
-        <button
+        <DropdownMenu.Item
           key={trip.id}
-          onClick={() => onSelect(trip.id)}
-          className={`w-full text-left px-3 py-1.5 text-sm transition-colors flex items-center justify-between rounded-[var(--radius-sm)] ${trip.id === activeTripId ? 'bg-accent/10 text-accent font-medium' : 'text-text-primary hover:bg-bg-hover'}`}
+          onSelect={() => onSelect(trip.id)}
+          className={`w-full text-left px-3 py-1.5 text-sm transition-colors flex items-center justify-between rounded-[var(--radius-sm)] cursor-pointer outline-none data-[highlighted]:bg-bg-hover ${trip.id === activeTripId ? 'bg-accent/10 text-accent font-medium' : 'text-text-primary'}`}
         >
           <span className="truncate">{trip.emoji} {trip.name || 'Untitled Trip'}</span>
           {trip.id === activeTripId && (
             <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
           )}
-        </button>
+        </DropdownMenu.Item>
       ))}
     </div>
   )
@@ -44,19 +45,6 @@ function TripGroup({ title, trips, activeTripId, onSelect }) {
 
 function TripSwitcher({ trips, activeTrip, activeTripId, onSelect, onNewTrip }) {
   const [isOpen, setIsOpen] = useState(false)
-  const dropdownRef = useRef(null)
-
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setIsOpen(false)
-      }
-    }
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isOpen])
 
   const upcomingTrips = trips.filter(t => getEffectiveStatus(t) === 'upcoming')
   const ongoingTrips = trips.filter(t => getEffectiveStatus(t) === 'ongoing')
@@ -66,10 +54,12 @@ function TripSwitcher({ trips, activeTrip, activeTripId, onSelect, onNewTrip }) 
   })
 
   return (
-    <div className="relative px-3 py-2.5" ref={dropdownRef}>
+    <div className="relative px-3 py-2.5">
+      <DropdownMenu.Root open={isOpen} onOpenChange={setIsOpen}>
+      <DropdownMenu.Trigger asChild>
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-2 py-1.5 rounded-[var(--radius-md)] hover:bg-bg-hover transition-colors text-left group"
+        className="w-full flex items-center justify-between px-2 py-1.5 rounded-[var(--radius-md)] hover:bg-bg-hover transition-colors text-left group focus-ring"
+        aria-label="Switch trip"
       >
         <div className="flex items-center gap-2 overflow-hidden">
           {activeTrip && (
@@ -91,32 +81,37 @@ function TripSwitcher({ trips, activeTrip, activeTripId, onSelect, onNewTrip }) 
           <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
       </button>
+      </DropdownMenu.Trigger>
 
-      {isOpen && (
-        <div className="absolute top-[90%] left-3 right-3 mt-1 bg-bg-card border border-border rounded-[var(--radius-md)] z-50 py-1.5 max-h-[60vh] overflow-y-auto">
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          align="start"
+          sideOffset={4}
+          className="w-[var(--radix-dropdown-menu-trigger-width)] bg-bg-card border border-border rounded-[var(--radius-md)] z-50 py-1.5 max-h-[60vh] overflow-y-auto"
+        >
           {trips.length > 0 ? (
             <>
-              <TripGroup title="Ongoing" trips={ongoingTrips} activeTripId={activeTripId} onSelect={(id) => { onSelect(id); setIsOpen(false) }} />
-              <TripGroup title="Upcoming" trips={upcomingTrips} activeTripId={activeTripId} onSelect={(id) => { onSelect(id); setIsOpen(false) }} />
-              <TripGroup title="Completed" trips={completedTrips} activeTripId={activeTripId} onSelect={(id) => { onSelect(id); setIsOpen(false) }} />
+              <TripGroup title="Ongoing" trips={ongoingTrips} activeTripId={activeTripId} onSelect={onSelect} />
+              <TripGroup title="Upcoming" trips={upcomingTrips} activeTripId={activeTripId} onSelect={onSelect} />
+              <TripGroup title="Completed" trips={completedTrips} activeTripId={activeTripId} onSelect={onSelect} />
             </>
           ) : (
             <div className="px-3 py-2 text-xs text-text-muted text-center">No trips available</div>
           )}
-          <div className="border-t border-border mt-1 pt-1">
-            <button
-              onClick={() => { onNewTrip(); setIsOpen(false) }}
-              className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors flex items-center gap-2"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              Create New Trip
-            </button>
-          </div>
-        </div>
-      )}
+          <DropdownMenu.Separator className="border-t border-border mt-1 pt-1" />
+          <DropdownMenu.Item
+            onSelect={onNewTrip}
+            className="w-full text-left px-3 py-2 text-sm text-text-secondary transition-colors flex items-center gap-2 cursor-pointer outline-none data-[highlighted]:text-text-primary data-[highlighted]:bg-bg-hover"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Create New Trip
+          </DropdownMenu.Item>
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+      </DropdownMenu.Root>
     </div>
   )
 }
@@ -129,7 +124,7 @@ function NavLink({ tabId, label, icon: Icon, isActive, onClick, hasNotification 
   return (
     <motion.button
       onClick={() => onClick(tabId)}
-      className={`w-full flex items-center justify-between px-3 py-1.5 rounded-[var(--radius-sm)] transition-colors text-sm ${isActive ? 'bg-accent/10 text-accent font-semibold' : 'text-text-secondary hover:text-text-primary hover:bg-bg-hover'}`}
+      className={`w-full flex items-center justify-between px-3 py-1.5 rounded-[var(--radius-sm)] transition-colors text-sm focus-ring ${isActive ? 'bg-accent/10 text-accent font-semibold' : 'text-text-secondary hover:text-text-primary hover:bg-bg-hover'}`}
       whileTap={{ scale: 0.97 }}
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
     >

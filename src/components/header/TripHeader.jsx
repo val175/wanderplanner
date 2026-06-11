@@ -20,6 +20,7 @@ import { Search as SearchIcon } from 'lucide-react'
 import ShareTripModal from '../modal/ShareTripModal'
 import NotificationBell from '../shared/NotificationBell'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
+import * as Popover from '@radix-ui/react-popover'
 import CelebrationEffect from '../shared/CelebrationEffect'
 
 // Heavy (html2canvas, AI calls, image fetchers) and only shown on demand —
@@ -27,14 +28,11 @@ import CelebrationEffect from '../shared/CelebrationEffect'
 const PresentationMode = lazy(() => import('../shared/PresentationMode'))
 
 /* ─────────────────────────────────────────────────────────────
-   TravelerPicker — portal-based dropdown (unchanged logic)
+   TravelerPicker — Radix Popover (keyboard nav, focus management,
+   Escape/outside-click handled by the primitive)
 ───────────────────────────────────────────────────────────── */
 function TravelerPicker({ trip, travelerProfiles, dispatch, isReadOnly }) {
   const { profiles, resolveProfile } = useProfiles()
-  const [open, setOpen] = useState(false)
-  const [coords, setCoords] = useState({ top: 0, left: 0 })
-  const btnRef = useRef(null)
-  const dropdownRef = useRef(null)
 
   const toggleProfile = (id) => {
     const current = trip.travelerIds || []
@@ -50,34 +48,6 @@ function TravelerPicker({ trip, travelerProfiles, dispatch, isReadOnly }) {
     dispatch({ type: ACTIONS.UPDATE_TRIP, payload: { id: trip.id, updates: { travelerIds: next, travelers: Math.max(next.length, 1), memberIds: nextMemberIds } } })
   }
 
-  const handleOpen = () => {
-    if (btnRef.current) {
-      const r = btnRef.current.getBoundingClientRect()
-      setCoords({ top: r.bottom + 6, left: r.left })
-    }
-    setOpen(o => !o)
-  }
-
-  useEffect(() => {
-    if (!open) return
-    const handler = (e) => {
-      if (
-        btnRef.current && !btnRef.current.contains(e.target) &&
-        dropdownRef.current && !dropdownRef.current.contains(e.target)
-      ) setOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
-
-  useEffect(() => {
-    if (!open) return
-    const close = () => setOpen(false)
-    window.addEventListener('scroll', close, true)
-    window.addEventListener('resize', close)
-    return () => { window.removeEventListener('scroll', close, true); window.removeEventListener('resize', close) }
-  }, [open])
-
   const travelerCount = trip.travelers || 1
   const visibleProfiles = travelerProfiles.slice(0, 4)
   const hiddenCount = Math.max(travelerProfiles.length - visibleProfiles.length, 0)
@@ -87,14 +57,14 @@ function TravelerPicker({ trip, travelerProfiles, dispatch, isReadOnly }) {
     : travelerProfiles.map(p => (p.name || 'Anonymous').split(' ')[0]).join(' & ')
 
   return (
-    <>
+    <Popover.Root>
+      <Popover.Trigger asChild disabled={isReadOnly}>
       <button
-        ref={btnRef}
-        onClick={isReadOnly ? undefined : handleOpen}
         className={`inline-flex items-center gap-2 rounded-[var(--radius-sm)]
-                   py-0.5 transition-colors group
+                   py-0.5 transition-colors group focus-ring
                    ${isReadOnly ? 'cursor-default' : 'hover:bg-bg-hover'}`}
         title={isReadOnly ? "Wanderers" : "Edit wanderers"}
+        aria-label="Edit wanderers"
       >
         {travelerProfiles.length > 0 ? (
           <>
@@ -137,12 +107,13 @@ function TravelerPicker({ trip, travelerProfiles, dispatch, isReadOnly }) {
           </svg>
         )}
       </button>
+      </Popover.Trigger>
 
-      {open && createPortal(
-        <div
-          ref={dropdownRef}
-          style={{ position: 'fixed', top: coords.top, left: coords.left }}
-          className="z-[9999] bg-bg-card border border-border rounded-[var(--radius-lg)] p-2 min-w-[180px]"
+      <Popover.Portal>
+        <Popover.Content
+          align="start"
+          sideOffset={6}
+          className="z-[9999] bg-bg-card border border-border rounded-[var(--radius-lg)] p-2 min-w-[180px] focus:outline-none"
         >
           {profiles.length === 0 ? (
             <p className="text-xs text-text-muted px-2 py-1.5">No profiles yet — add wanderers from the sidebar.</p>
@@ -154,7 +125,9 @@ function TravelerPicker({ trip, travelerProfiles, dispatch, isReadOnly }) {
                   <button
                     key={p.id}
                     onClick={() => toggleProfile(p.id)}
-                    className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-[var(--radius-md)] text-sm transition-colors
+                    role="checkbox"
+                    aria-checked={selected}
+                    className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-[var(--radius-md)] text-sm transition-colors focus-ring
                       ${selected ? 'bg-accent/10 text-text-primary' : 'hover:bg-bg-hover text-text-secondary'}`}
                   >
                     <AvatarCircle profile={p} size={24} />
@@ -170,10 +143,9 @@ function TravelerPicker({ trip, travelerProfiles, dispatch, isReadOnly }) {
               })}
             </div>
           )}
-        </div>,
-        document.body
-      )}
-    </>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   )
 }
 
