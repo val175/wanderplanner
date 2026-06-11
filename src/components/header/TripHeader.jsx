@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect } from 'react'
+import { useMemo, useState, useRef, useEffect, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
 import AnimatedNumber from '../shared/AnimatedNumber'
 import { TRIP_EMOJIS } from '../../constants/emojis'
@@ -18,10 +18,13 @@ import { useCountdown } from '../../hooks/useCountdown'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
 import { Search as SearchIcon } from 'lucide-react'
 import ShareTripModal from '../modal/ShareTripModal'
-import PresentationMode from '../shared/PresentationMode'
 import NotificationBell from '../shared/NotificationBell'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import CelebrationEffect from '../shared/CelebrationEffect'
+
+// Heavy (html2canvas, AI calls, image fetchers) and only shown on demand —
+// keep it out of the main bundle.
+const PresentationMode = lazy(() => import('../shared/PresentationMode'))
 
 /* ─────────────────────────────────────────────────────────────
    TravelerPicker — portal-based dropdown (unchanged logic)
@@ -648,7 +651,9 @@ function HeaderOptionsDropdown({ trip, dispatch, isReadOnly, onRenameRequest }) 
       )}
 
       {showPresentation && (
-        <PresentationMode onClose={() => setShowPresentation(false)} />
+        <Suspense fallback={null}>
+          <PresentationMode onClose={() => setShowPresentation(false)} />
+        </Suspense>
       )}
 
       <ConfirmDialog

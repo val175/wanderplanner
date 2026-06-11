@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import html2canvas from 'html2canvas'
 import { useTripContext } from '../../context/TripContext'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
 import { formatDateRange, formatCurrency, daysUntil, geocodeCity } from '../../utils/helpers'
@@ -666,6 +665,7 @@ export default function PresentationMode({ onClose }) {
         setIsExporting(true)
         try {
             await new Promise(r => setTimeout(r, 100))
+            const { default: html2canvas } = await import('html2canvas') // loaded on demand — keeps it out of the chunk
             const canvas = await html2canvas(exportRef.current, {
                 scale: 2, useCORS: true, backgroundColor: null, logging: false,
                 width: PRESENTATION_EXPORT.width, height: PRESENTATION_EXPORT.height,

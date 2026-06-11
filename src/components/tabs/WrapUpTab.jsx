@@ -7,7 +7,6 @@ import { useTripTravelers } from '../../hooks/useTripTravelers'
 import Button from '../shared/Button'
 import AvatarCircle from '../shared/AvatarCircle'
 import WandWordmark from '../shared/WandWordmark'
-import html2canvas from 'html2canvas'
 import TripRecapVideo from '../../remotion/TripRecapVideo'
 
 const RemotionPlayer = lazy(() =>
@@ -180,6 +179,7 @@ export default function WrapUpTab() {
             // Wait a tiny bit for any potential re-renders
             await new Promise(r => setTimeout(r, 100))
 
+            const { default: html2canvas } = await import('html2canvas') // loaded on demand — keeps it out of the chunk
             const canvas = await html2canvas(exportRef.current, {
                 scale: 2,
                 useCORS: true,
