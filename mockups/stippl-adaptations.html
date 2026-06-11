@@ -1,0 +1,265 @@
+<!-- Paste everything below the script tag into https://play.tailwindcss.com (HTML panel). -->
+<!-- The script tag makes this file viewable standalone (e.g. open directly in a browser) — the playground doesn't need it. -->
+<meta charset="utf-8">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<div class="min-h-screen bg-[#F4F2EF] p-8 font-sans text-[#1A1A18] [font-family:Arial,sans-serif] space-y-12">
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- 1. TRIP HEADER — cost + nights + readiness rollup            -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div>
+    <p class="text-[11px] uppercase tracking-[0.08em] text-[#9B9A93] font-semibold mb-3">1 · Trip header with cost &amp; nights rollup</p>
+    <div class="bg-white border border-[#E0DDD6] rounded-[16px] px-5 py-4 flex items-center gap-4 flex-wrap">
+      <div class="w-11 h-11 rounded-[12px] bg-[#ECEAE5] flex items-center justify-center text-xl shrink-0">🇮🇹</div>
+      <div class="min-w-0 flex-1">
+        <h1 class="font-semibold text-lg leading-tight truncate">An Italian Adventure</h1>
+        <p class="text-xs text-[#9B9A93]">9 – 25 June · 4 travelers</p>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-white border border-[#E0DDD6] text-[#3D3929] tabular-nums">
+          💶 €4,598 <span class="text-[#9B9A93] font-medium">· €1,150 pp</span>
+        </span>
+        <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#D97757]/10 border border-[#D97757]/25 text-[#9A4B2E] tabular-nums">
+          🌙 12/16 nights planned
+        </span>
+        <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#788C5D]/10 border border-[#788C5D]/25 text-[#788C5D] tabular-nums">
+          <svg class="w-3.5 h-3.5 -rotate-90" viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="8" stroke="#788C5D" stroke-opacity="0.25" stroke-width="3"/>
+            <circle cx="10" cy="10" r="8" stroke="#788C5D" stroke-width="3" stroke-dasharray="42 50" stroke-linecap="round"/>
+          </svg>
+          84% ready
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- 2. ROUTE PLANNER — Cities tab redesign                       -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div>
+    <p class="text-[11px] uppercase tracking-[0.08em] text-[#9B9A93] font-semibold mb-3">2 · Route planner — nights allocation + transit legs</p>
+    <div class="flex gap-4 items-stretch flex-wrap">
+
+      <!-- Destination list -->
+      <div class="flex-[1.6] min-w-[340px] bg-white border border-[#E0DDD6] rounded-[12px] p-5">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-[11px] uppercase tracking-[0.08em] text-[#9B9A93] font-semibold">Cities &amp; Route</span>
+          <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#D97757]/10 border border-[#D97757]/25 text-[#9A4B2E] tabular-nums">12/16 nights planned</span>
+        </div>
+        <div class="h-1 bg-[#ECEAE5] rounded-full mt-2.5 mb-4">
+          <div class="h-full w-3/4 bg-[#D97757] rounded-full"></div>
+        </div>
+
+        <!-- Stop 1 -->
+        <div class="flex items-center gap-3 py-2 group hover:bg-[#F0EEE9]/60 -mx-2 px-2 rounded-[8px] transition-colors">
+          <div class="w-[22px] h-[22px] rounded-full bg-[#ECEAE5] text-[#3D3929] text-[11px] font-semibold flex items-center justify-center shrink-0">1</div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-semibold">Rome</div>
+            <div class="text-[11px] text-[#9B9A93]">Tue 9 Jun – Fri 12 Jun</div>
+          </div>
+          <div class="inline-flex items-center border border-[#E0DDD6] rounded-full bg-white">
+            <button class="px-2.5 py-0.5 text-[#9B9A93] hover:text-[#1A1A18] text-sm">−</button>
+            <span class="text-sm font-semibold min-w-[16px] text-center tabular-nums">3</span>
+            <button class="px-2.5 py-0.5 text-[#9B9A93] hover:text-[#1A1A18] text-sm">+</button>
+          </div>
+          <span class="text-[11px] text-[#9B9A93]">nights</span>
+          <span title="Stay booked" class="text-sm">🛏️</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-[#788C5D]" title="Booked"></span>
+        </div>
+
+        <!-- Transit leg 1→2 -->
+        <div class="ml-[10px] pl-5 py-1 border-l-2 border-dashed border-[#E0DDD6]">
+          <span class="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#9B9A93] bg-[#ECEAE5]/60 border border-[#E0DDD6] rounded-full px-2.5 py-0.5">
+            🚆 1h 32m · Frecciarossa <span class="text-[#C8C6BF]">· 232 km</span>
+          </span>
+        </div>
+
+        <!-- Stop 2 -->
+        <div class="flex items-center gap-3 py-2 group hover:bg-[#F0EEE9]/60 -mx-2 px-2 rounded-[8px] transition-colors">
+          <div class="w-[22px] h-[22px] rounded-full bg-[#ECEAE5] text-[#3D3929] text-[11px] font-semibold flex items-center justify-center shrink-0">2</div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-semibold">Florence</div>
+            <div class="text-[11px] text-[#9B9A93]">Fri 12 Jun – Tue 16 Jun</div>
+          </div>
+          <div class="inline-flex items-center border border-[#E0DDD6] rounded-full bg-white">
+            <button class="px-2.5 py-0.5 text-[#9B9A93] hover:text-[#1A1A18] text-sm">−</button>
+            <span class="text-sm font-semibold min-w-[16px] text-center tabular-nums">4</span>
+            <button class="px-2.5 py-0.5 text-[#9B9A93] hover:text-[#1A1A18] text-sm">+</button>
+          </div>
+          <span class="text-[11px] text-[#9B9A93]">nights</span>
+          <span title="Stay booked" class="text-sm">🛏️</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-[#788C5D]" title="Booked"></span>
+        </div>
+
+        <!-- Transit leg 2→3 (empty state) -->
+        <div class="ml-[10px] pl-5 py-1 border-l-2 border-dashed border-[#E0DDD6]">
+          <button class="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#C8C6BF] border border-dashed border-[#E0DDD6] rounded-full px-2.5 py-0.5 hover:text-[#9B9A93] hover:border-[#9B9A93] transition-colors">
+            + Add transit
+          </button>
+        </div>
+
+        <!-- Stop 3 -->
+        <div class="flex items-center gap-3 py-2 group hover:bg-[#F0EEE9]/60 -mx-2 px-2 rounded-[8px] transition-colors">
+          <div class="w-[22px] h-[22px] rounded-full bg-[#ECEAE5] text-[#3D3929] text-[11px] font-semibold flex items-center justify-center shrink-0">3</div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-semibold">Venice</div>
+            <div class="text-[11px] text-[#9B9A93]">Tue 16 Jun – Sun 21 Jun</div>
+          </div>
+          <div class="inline-flex items-center border border-[#E0DDD6] rounded-full bg-white">
+            <button class="px-2.5 py-0.5 text-[#9B9A93] hover:text-[#1A1A18] text-sm">−</button>
+            <span class="text-sm font-semibold min-w-[16px] text-center tabular-nums">5</span>
+            <button class="px-2.5 py-0.5 text-[#9B9A93] hover:text-[#1A1A18] text-sm">+</button>
+          </div>
+          <span class="text-[11px] text-[#9B9A93]">nights</span>
+          <span title="No stay booked" class="text-sm opacity-50">🛏️</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-[#D4A72C]" title="No stay booked"></span>
+        </div>
+
+        <!-- Add destination -->
+        <div class="flex items-center gap-2 mt-3 border border-[#E0DDD6] rounded-[8px] px-3 py-2 text-[#9B9A93] text-sm hover:border-[#CCC8BF] transition-colors cursor-text">
+          🔍 Add new destination…
+        </div>
+      </div>
+
+      <!-- Route panel -->
+      <div class="flex-1 min-w-[220px] bg-[#ECEAE5] border border-[#E0DDD6] rounded-[12px] relative overflow-hidden">
+        <svg viewBox="0 0 240 290" class="w-full h-full block" role="img" aria-label="Route map">
+          <path d="M40 250 C 70 200, 90 190, 110 150" fill="none" stroke="#D97757" stroke-width="2" stroke-dasharray="5 4"/>
+          <path d="M110 150 C 130 110, 160 90, 185 60" fill="none" stroke="#D97757" stroke-width="2" stroke-dasharray="5 4"/>
+          <circle cx="40" cy="250" r="7" fill="#D97757"/><circle cx="40" cy="250" r="3" fill="#fff"/>
+          <circle cx="110" cy="150" r="7" fill="#D97757"/><circle cx="110" cy="150" r="3" fill="#fff"/>
+          <circle cx="185" cy="60" r="7" fill="#D97757"/><circle cx="185" cy="60" r="3" fill="#fff"/>
+          <text x="54" y="255" font-size="11" fill="#3D3929" font-weight="600">Rome</text>
+          <text x="124" y="155" font-size="11" fill="#3D3929" font-weight="600">Florence</text>
+          <text x="130" y="65" font-size="11" fill="#3D3929" font-weight="600">Venice</text>
+          <text x="62" y="208" font-size="9" fill="#9B9A93">232 km</text>
+          <text x="142" y="112" font-size="9" fill="#9B9A93">258 km</text>
+        </svg>
+        <span class="absolute top-2.5 left-2.5 inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-white border border-[#E0DDD6] text-[#3D3929]">🧭 490 km total</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- 3. PACKING TEMPLATES                                          -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div>
+    <p class="text-[11px] uppercase tracking-[0.08em] text-[#9B9A93] font-semibold mb-3">3 · Packing templates</p>
+    <div class="bg-white border border-[#E0DDD6] rounded-[12px] p-5">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-[11px] uppercase tracking-[0.08em] text-[#9B9A93] font-semibold">Start from a template</span>
+        <span class="text-xs text-[#9B9A93]">Adds items you can edit freely</span>
+      </div>
+      <div class="flex gap-2 flex-wrap mb-5">
+        <button class="inline-flex items-center gap-1.5 text-[13px] font-medium px-3.5 py-1.5 rounded-full bg-[#D97757]/10 border border-[#D97757]/40 text-[#9A4B2E]">
+          🏖️ Beach <span class="text-[11px] text-[#B06A4A]">+24 items</span>
+        </button>
+        <button class="inline-flex items-center gap-1.5 text-[13px] font-medium px-3.5 py-1.5 rounded-full bg-white border border-[#E0DDD6] text-[#3D3929] hover:border-[#CCC8BF] transition-colors">🏙️ City break</button>
+        <button class="inline-flex items-center gap-1.5 text-[13px] font-medium px-3.5 py-1.5 rounded-full bg-white border border-[#E0DDD6] text-[#3D3929] hover:border-[#CCC8BF] transition-colors">⛷️ Winter sports</button>
+        <button class="inline-flex items-center gap-1.5 text-[13px] font-medium px-3.5 py-1.5 rounded-full bg-white border border-[#E0DDD6] text-[#3D3929] hover:border-[#CCC8BF] transition-colors">⛺ Camping</button>
+        <button class="inline-flex items-center gap-1.5 text-[13px] font-medium px-3.5 py-1.5 rounded-full bg-white border border-[#E0DDD6] text-[#3D3929] hover:border-[#CCC8BF] transition-colors">🎪 Festival</button>
+        <button class="inline-flex items-center gap-1.5 text-[13px] font-medium px-3.5 py-1.5 rounded-full bg-white border border-[#E0DDD6] text-[#3D3929] hover:border-[#CCC8BF] transition-colors">💼 Business</button>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="bg-[#FAFAF8] border border-[#E0DDD6] rounded-[12px] p-4 text-center">
+          <svg class="w-[52px] h-[52px] mx-auto mb-2 -rotate-90" viewBox="0 0 52 52">
+            <circle cx="26" cy="26" r="22" fill="none" stroke="#ECEAE5" stroke-width="4"/>
+            <circle cx="26" cy="26" r="22" fill="none" stroke="#D97757" stroke-width="4" stroke-dasharray="79 59" stroke-linecap="round"/>
+            <text x="26" y="-20" transform="rotate(90)" text-anchor="middle" font-size="16">👕</text>
+          </svg>
+          <div class="text-sm font-semibold">Clothes</div>
+          <div class="text-[11px] text-[#9B9A93] tabular-nums">16 / 28</div>
+        </div>
+        <div class="bg-[#FAFAF8] border border-[#E0DDD6] rounded-[12px] p-4 text-center">
+          <svg class="w-[52px] h-[52px] mx-auto mb-2 -rotate-90" viewBox="0 0 52 52">
+            <circle cx="26" cy="26" r="22" fill="none" stroke="#ECEAE5" stroke-width="4"/>
+            <circle cx="26" cy="26" r="22" fill="none" stroke="#6A9BCC" stroke-width="4" stroke-dasharray="17 121" stroke-linecap="round"/>
+            <text x="26" y="-20" transform="rotate(90)" text-anchor="middle" font-size="16">🧴</text>
+          </svg>
+          <div class="text-sm font-semibold">Toiletries</div>
+          <div class="text-[11px] text-[#9B9A93] tabular-nums">2 / 16</div>
+        </div>
+        <div class="bg-[#FAFAF8] border border-[#E0DDD6] rounded-[12px] p-4 text-center">
+          <svg class="w-[52px] h-[52px] mx-auto mb-2 -rotate-90" viewBox="0 0 52 52">
+            <circle cx="26" cy="26" r="22" fill="none" stroke="#ECEAE5" stroke-width="4"/>
+            <circle cx="26" cy="26" r="22" fill="none" stroke="#788C5D" stroke-width="4" stroke-dasharray="7 131" stroke-linecap="round"/>
+            <text x="26" y="-20" transform="rotate(90)" text-anchor="middle" font-size="16">🔌</text>
+          </svg>
+          <div class="text-sm font-semibold">Electronics</div>
+          <div class="text-[11px] text-[#9B9A93] tabular-nums">1 / 19</div>
+        </div>
+        <div class="border-2 border-dashed border-[#E0DDD6] rounded-[12px] p-4 flex flex-col items-center justify-center text-[#9B9A93] hover:border-[#CCC8BF] transition-colors cursor-pointer">
+          <span class="text-xl mb-1">🧑‍🤝‍🧑</span>
+          <div class="text-[13px] font-medium">Shared packing</div>
+          <div class="text-[11px]">Assign items to travelers</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- 4. BUDGET INSIGHTS + CSV EXPORT                               -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div>
+    <p class="text-[11px] uppercase tracking-[0.08em] text-[#9B9A93] font-semibold mb-3">4 · Budget insights &amp; export</p>
+    <div class="bg-white border border-[#E0DDD6] rounded-[12px] p-5">
+      <div class="flex items-center justify-between mb-4">
+        <span class="text-[11px] uppercase tracking-[0.08em] text-[#9B9A93] font-semibold">Budget insights</span>
+        <button class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-[8px] bg-white border border-[#E0DDD6] text-[#3D3929] hover:bg-[#F0EEE9] transition-colors">
+          ⬇️ Export CSV
+        </button>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3 mb-5">
+        <div class="bg-[#ECEAE5]/50 rounded-[8px] p-3.5">
+          <div class="text-[11px] uppercase tracking-[0.08em] text-[#9B9A93] font-semibold mb-1">Total spent</div>
+          <div class="text-xl font-semibold tabular-nums">€2,960</div>
+          <div class="text-[11px] text-[#9B9A93]">of €4,598 budget</div>
+        </div>
+        <div class="bg-[#ECEAE5]/50 rounded-[8px] p-3.5">
+          <div class="text-[11px] uppercase tracking-[0.08em] text-[#9B9A93] font-semibold mb-1">Per person</div>
+          <div class="text-xl font-semibold tabular-nums">€740</div>
+          <div class="text-[11px] text-[#9B9A93]">4 travelers</div>
+        </div>
+        <div class="bg-[#ECEAE5]/50 rounded-[8px] p-3.5">
+          <div class="text-[11px] uppercase tracking-[0.08em] text-[#9B9A93] font-semibold mb-1">Per day</div>
+          <div class="text-xl font-semibold tabular-nums">€185</div>
+          <div class="text-[11px] text-[#788C5D]">€42 under daily target</div>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="font-medium text-[#3D3929]">🏨 Stays</span>
+            <span class="text-[#9B9A93] tabular-nums">€1,240 · 42%</span>
+          </div>
+          <div class="h-1.5 bg-[#ECEAE5] rounded-full"><div class="h-full w-[42%] bg-[#6A9BCC] rounded-full"></div></div>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="font-medium text-[#3D3929]">🚆 Transport</span>
+            <span class="text-[#9B9A93] tabular-nums">€980 · 33%</span>
+          </div>
+          <div class="h-1.5 bg-[#ECEAE5] rounded-full"><div class="h-full w-[33%] bg-[#D97757] rounded-full"></div></div>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="font-medium text-[#3D3929]">🍝 Food &amp; drink</span>
+            <span class="text-[#9B9A93] tabular-nums">€430 · 15%</span>
+          </div>
+          <div class="h-1.5 bg-[#ECEAE5] rounded-full"><div class="h-full w-[15%] bg-[#788C5D] rounded-full"></div></div>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="font-medium text-[#3D3929]">🎟️ Activities</span>
+            <span class="text-[#9B9A93] tabular-nums">€310 · 10%</span>
+          </div>
+          <div class="h-1.5 bg-[#ECEAE5] rounded-full"><div class="h-full w-[10%] bg-[#D4A72C] rounded-full"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
