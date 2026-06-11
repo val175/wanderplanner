@@ -571,12 +571,20 @@ function TripHealthCard({ trip, onTabSwitch }) {
         </div>
 
         {/* ── Readiness ── */}
-        <div
-          className="px-4 py-4 cursor-pointer hover:bg-bg-hover transition-colors rounded-[var(--radius-md)]"
+        <button
+          type="button"
+          className="group/readiness w-full text-left px-4 py-4 cursor-pointer hover:bg-bg-hover/50 transition-colors focus-visible:outline-none focus-visible:bg-bg-hover/50"
           onClick={() => onTabSwitch('todo')}
         >
           <div className="flex items-center justify-between">
-            <Label>TRIP READINESS</Label>
+            <span className="inline-flex items-center gap-1">
+              <Label>TRIP READINESS</Label>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                className="text-text-muted opacity-0 -translate-x-0.5 group-hover/readiness:opacity-70 group-hover/readiness:translate-x-0 transition-all duration-150">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </span>
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-[var(--radius-pill)] tabular-nums border inline-flex items-center gap-0.5 ${readinessPill.color}`}>
               {readiness === 100 ? '✅ Complete' : (
                 <><AnimatedNumber value={readiness} suffix="%" stiffness={60} damping={18} /> complete</>
@@ -592,7 +600,7 @@ function TripHealthCard({ trip, onTabSwitch }) {
             <ProgressBar value={breakdown.packing.done} max={breakdown.packing.total}
               label="Packing" showLabel height="h-1.5" colorClass="bg-warning" />
           </div>
-        </div>
+        </button>
 
         {/* ── Budget ── */}
         <div className="px-4 py-4">

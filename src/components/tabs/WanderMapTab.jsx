@@ -8,6 +8,7 @@ import { useTripContext } from '../../context/TripContext';
 import { useMapDiscovery } from '../../hooks/useMapDiscovery';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import LocationDrawer from '../shared/LocationDrawer';
+import Select, { SelectItem } from '../shared/Select';
 import { hapticImpact, hapticSelection } from '../../utils/haptics';
 import { ACTIONS } from '../../state/tripReducer';
 import { wandaRuntime, setWandaRuntime } from '../../utils/wandaRuntime';
@@ -825,19 +826,21 @@ export default function WanderMapTab() {
                         {sortedDays.length > 1 && (
                             <>
                                 <div className="h-px bg-border/50 mx-2 my-0.5" />
-                                <select
-                                    value={filterDayId || ''}
-                                    onChange={e => { hapticSelection(); setFilterDayId(e.target.value || null); }}
-                                    className="mx-1.5 my-1 text-xs font-heading font-medium bg-bg-secondary border border-border rounded-[var(--radius-sm)] px-2 py-1.5 text-text-primary focus:outline-none focus:border-accent cursor-pointer"
-                                    title="Filter map to a specific day"
-                                >
-                                    <option value="">All Days</option>
-                                    {sortedDays.map(day => (
-                                        <option key={day.id} value={day.id}>
-                                            Day {day.dayNumber}{day.location ? ` · ${day.location.split(' →')[0].trim()}` : ''}
-                                        </option>
-                                    ))}
-                                </select>
+                                <div className="mx-1.5 my-1">
+                                    <Select
+                                        value={filterDayId || 'all'}
+                                        onValueChange={val => { hapticSelection(); setFilterDayId(val === 'all' ? null : val); }}
+                                        size="sm"
+                                        className="text-xs font-heading font-medium text-text-primary !h-8"
+                                    >
+                                        <SelectItem value="all">All Days</SelectItem>
+                                        {sortedDays.map(day => (
+                                            <SelectItem key={day.id} value={day.id}>
+                                                Day {day.dayNumber}{day.location ? ` · ${day.location.split(' →')[0].trim()}` : ''}
+                                            </SelectItem>
+                                        ))}
+                                    </Select>
+                                </div>
                             </>
                         )}
                     </div>

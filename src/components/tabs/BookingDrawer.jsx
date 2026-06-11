@@ -555,16 +555,16 @@ export default function BookingDrawer({ booking, currency, onUpdate, onClose, is
                       {/* Category Card */}
                       <div className="bg-bg-secondary/40 border border-border/40 rounded-[var(--radius-md)] p-3 flex flex-col gap-1.5">
                         <Label className="text-[10px] uppercase tracking-wider text-text-muted font-bold">Category</Label>
-                        <select
+                        <Select
                           value={booking.category || BOOKING_CATEGORIES[0].id}
-                          onChange={e => { hapticSelection(); onUpdate(booking.id, { category: e.target.value }, actorId) }}
+                          onValueChange={val => { hapticSelection(); onUpdate(booking.id, { category: val }, actorId) }}
                           disabled={isReadOnly}
-                          className="bg-bg-input border border-border rounded-[var(--radius-sm)] text-xs font-medium text-text-secondary px-2 py-1.5 focus:outline-none focus:border-accent transition-colors w-full"
+                          className="text-left font-semibold text-xs w-full"
                         >
                           {BOOKING_CATEGORIES.map(c => (
-                            <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>
+                            <SelectItem key={c.id} value={c.id}>{c.emoji} {c.label}</SelectItem>
                           ))}
-                        </select>
+                        </Select>
                       </div>
                     </div>
 

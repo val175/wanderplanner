@@ -8,6 +8,7 @@ import Button from '../shared/Button'
 import TimePicker from '../shared/TimePicker'
 import AvatarCircle from '../shared/AvatarCircle'
 import TravelerMultiSelect from '../shared/TravelerMultiSelect'
+import Select, { SelectItem } from '../shared/Select'
 import LocationAutocomplete from '../shared/LocationAutocomplete'
 import { hapticImpact, hapticSelection } from '../../utils/haptics'
 import { GLOBAL_CATEGORIES } from '../../constants/categories'
@@ -21,16 +22,17 @@ import { generateId } from '../../utils/helpers'
 
 function CategorySelect({ value, onChange, disabled }) {
   return (
-    <select
+    <Select
       value={value || 'other'}
-      onChange={e => { hapticSelection(); onChange(e.target.value) }}
+      onValueChange={v => { hapticSelection(); onChange(v) }}
       disabled={disabled}
-      className="bg-bg-input border border-border rounded-[var(--radius-sm)] text-xs font-medium text-text-secondary px-2 py-1.5 focus:outline-none focus:border-accent transition-colors w-full"
+      size="sm"
+      className="text-xs font-medium text-text-secondary"
     >
       {GLOBAL_CATEGORIES.map(c => (
-        <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>
+        <SelectItem key={c.id} value={c.id}>{c.emoji} {c.label}</SelectItem>
       ))}
-    </select>
+    </Select>
   )
 }
 

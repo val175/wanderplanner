@@ -9,6 +9,8 @@ import { popoverSurfaceClass } from './surfaceStyles'
    - value / onValueChange: controlled state
    - placeholder: shown when no value selected
    - size: 'sm' | 'md' | 'lg' (default 'md')
+   - bare: renders a minimal inline trigger (no input chrome) for
+     embedding inside pills, table rows, and other compact contexts
    - className: applied to the trigger button
    - disabled
 ───────────────────────────────────────────────────────────── */
@@ -30,21 +32,34 @@ const baseTriggerCls = `
   disabled:opacity-60 disabled:cursor-default
 `
 
+const bareTriggerCls = `
+  inline-flex items-center gap-1
+  leading-none text-inherit
+  rounded-[var(--radius-sm)]
+  focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40
+  transition-colors cursor-pointer
+  disabled:opacity-60 disabled:cursor-default
+`
+
 export default function Select({
   value,
   onValueChange,
   placeholder,
   children,
   size = 'md',
+  bare = false,
   className = '',
   disabled = false,
 }) {
+  const triggerCls = bare
+    ? `${bareTriggerCls} ${className}`
+    : `${baseTriggerCls} ${sizeClasses[size]} ${className}`
   return (
     <RadixSelect.Root value={value} onValueChange={onValueChange} disabled={disabled}>
-      <RadixSelect.Trigger className={`${baseTriggerCls} ${sizeClasses[size]} ${className}`}>
+      <RadixSelect.Trigger className={triggerCls}>
         <RadixSelect.Value placeholder={placeholder ?? <span className="text-text-muted">Select…</span>} />
         <RadixSelect.Icon asChild>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          <svg width={bare ? 9 : 12} height={bare ? 9 : 12} viewBox="0 0 24 24" fill="none" stroke="currentColor"
             strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
             className="text-text-muted opacity-70 shrink-0">
             <polyline points="6 9 12 15 18 9" />
@@ -57,7 +72,7 @@ export default function Select({
           position="popper"
           sideOffset={6}
           avoidCollisions
-          className={`${popoverSurfaceClass} min-w-[var(--radix-select-trigger-width)] max-h-72 animate-scale-in`}
+          className={`${popoverSurfaceClass} min-w-[max(var(--radix-select-trigger-width),8rem)] max-h-72 animate-scale-in`}
         >
           <RadixSelect.ScrollUpButton className="flex items-center justify-center h-6 bg-bg-input text-text-muted">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

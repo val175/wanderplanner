@@ -348,13 +348,13 @@ export default function DayGroupTable({ day, itinerary, onReorderDay, trip, reso
                             </td>
                             <td colSpan={3} className="py-1 pl-2">
                               <div className="flex items-center gap-3">
-                                <div className={`inline-flex items-center gap-1 text-xs font-medium text-text-muted bg-bg-secondary/30 border border-border/50 rounded-full px-2 py-0 hover:border-text-primary transition-all duration-150 relative z-10 ${!activity.transit ? 'opacity-0 group-hover/transit:opacity-100' : ''}`}>
+                                <div className={`inline-flex items-center gap-1.5 text-xs font-medium text-text-muted bg-bg-secondary/30 border border-border/50 rounded-full pl-1.5 pr-2.5 py-0.5 hover:border-text-primary transition-all duration-150 relative z-10 ${!activity.transit ? 'opacity-0 group-hover/transit:opacity-100' : ''}`}>
                                   <Select
                                     value={activity.transitEmoji || '🚕'}
                                     onValueChange={v => dispatch({ type: ACTIONS.UPDATE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id, updates: { transitEmoji: v } } })}
                                     disabled={isReadOnly}
-                                    size="sm"
-                                    className="bg-transparent border-transparent !px-0 !py-0 text-xs font-medium text-text-muted hover:bg-transparent leading-none"
+                                    bare
+                                    className="text-xs font-medium text-text-muted hover:text-text-primary px-0.5 py-0.5"
                                   >
                                     <SelectItem value="🚕">🚕</SelectItem>
                                     <SelectItem value="🚶">🚶</SelectItem>

@@ -114,7 +114,7 @@ export default function KanbanColumn({ day, trip, resolveLocation, isResolving, 
                 <div className="flex flex-col gap-1 flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-[14px] shrink-0">{activity.emoji || '📍'}</span>
-                    <div className="flex-1 min-w-0 pr-12">
+                    <div className="flex-1 min-w-0">
                       <EditableText
                         value={activity.name}
                         onSave={async (val) => {
@@ -127,31 +127,33 @@ export default function KanbanColumn({ day, trip, resolveLocation, isResolving, 
                         readOnly={isReadOnly}
                       />
                     </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onOpenDrawer({ activityId: activity.id, dayId: day.id }) }}
-                      className={`absolute top-3 ${isReadOnly ? 'right-3' : 'right-16'} opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out p-1 rounded hover:bg-bg-hover ${activity.comments?.length ? 'text-accent' : 'text-text-muted hover:text-text-primary'}`}
-                      title={activity.comments?.length ? `${activity.comments.length} update${activity.comments.length > 1 ? 's' : ''}` : 'Open notes & updates'}
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-                    </button>
-                    {!isReadOnly && onViewOnMap && (
+                    <div className="flex items-center shrink-0 -my-1 -mr-1">
                       <button
-                        onClick={(e) => { e.stopPropagation(); onViewOnMap(day, activity) }}
-                        className="absolute top-3 right-10 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out text-text-muted hover:text-accent p-1 rounded hover:bg-bg-hover"
-                        title="View on Map"
+                        onClick={(e) => { e.stopPropagation(); onOpenDrawer({ activityId: activity.id, dayId: day.id }) }}
+                        className={`p-1 rounded hover:bg-bg-hover transition-colors ${activity.comments?.length ? 'text-accent' : 'text-text-muted hover:text-text-primary opacity-0 group-hover:opacity-100 focus-visible:opacity-100'}`}
+                        title={activity.comments?.length ? `${activity.comments.length} update${activity.comments.length > 1 ? 's' : ''}` : 'Open notes & updates'}
                       >
-                        <MapPin size={13} />
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                       </button>
-                    )}
-                    {!isReadOnly && (
-                      <button
-                        onClick={() => { triggerHaptic('medium'); dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } }) }}
-                        className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 blur-sm group-hover:blur-none transition-all duration-150 ease-out text-text-muted hover:text-danger p-1 rounded hover:bg-bg-hover"
-                        title="Delete"
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                      </button>
-                    )}
+                      {!isReadOnly && onViewOnMap && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onViewOnMap(day, activity) }}
+                          className="p-1 rounded hover:bg-bg-hover transition-colors text-text-muted hover:text-accent opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                          title="View on Map"
+                        >
+                          <MapPin size={13} />
+                        </button>
+                      )}
+                      {!isReadOnly && (
+                        <button
+                          onClick={() => { triggerHaptic('medium'); dispatch({ type: ACTIONS.DELETE_ACTIVITY, payload: { dayId: day.id, activityId: activity.id } }) }}
+                          className="p-1 rounded hover:bg-bg-hover transition-colors text-text-muted hover:text-danger opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                          title="Delete"
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="text-[11px] text-text-muted font-medium truncate uppercase tracking-tight">
