@@ -11,6 +11,7 @@ import { ACTIONS } from '../../state/tripReducer'
 import { generateCityGuide } from '../../hooks/useAI'
 import { Plus, Check, X, Pencil } from 'lucide-react'
 import { triggerHaptic, hapticImpact } from '../../utils/haptics'
+import RoutePlanner from './cities/RoutePlanner'
 
 function AddCityModal({ isOpen, onClose, onAdd }) {
   const [cityData, setCityData] = useState({ city: '', country: '', flag: '' })
@@ -359,6 +360,16 @@ export default function CitiesTab() {
   const [editId, setEditId] = useState(null)
   const [editData, setEditData] = useState({})
 
+  // Route / Guides view — persisted per trip
+  const viewKey = `cities-view-${activeTrip?.id}`
+  const [cityView, setCityView] = useState(() => {
+    try { return localStorage.getItem(viewKey) || 'route' } catch { return 'route' }
+  })
+  const changeView = (v) => {
+    setCityView(v)
+    try { localStorage.setItem(viewKey, v) } catch { /* ignore */ }
+  }
+
   if (!activeTrip) return null
 
   const cities = activeTrip.cities || []
@@ -406,6 +417,20 @@ export default function CitiesTab() {
               {/* No category filters for Cities yet */}
             </div>
             <div className="flex overflow-x-auto scrollbar-hide md:overflow-visible w-full md:w-auto pb-2 md:pb-0 items-center gap-2">
+              <div className="flex bg-bg-secondary p-0.5 rounded-[var(--radius-md)] border border-border shrink-0 h-9">
+                <button
+                  onClick={() => changeView('route')}
+                  className={`px-3 text-sm font-medium rounded-[var(--radius-sm)] transition-all ${cityView === 'route' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+                >
+                  Route
+                </button>
+                <button
+                  onClick={() => changeView('guides')}
+                  className={`px-3 text-sm font-medium rounded-[var(--radius-sm)] transition-all ${cityView === 'guides' ? 'bg-bg-card text-accent' : 'text-text-muted hover:text-text-secondary'}`}
+                >
+                  Guides
+                </button>
+              </div>
               {!isReadOnly && (
                 <div className="hidden md:block shrink-0">
                   <Button size="sm" onClick={() => setIsAddModalOpen(true)}>
@@ -436,14 +461,28 @@ export default function CitiesTab() {
         document.body
       )}
 
-      {/* ── Mobile card view ── */}
+      {/* ── Route view ── */}
+      {cityView === 'route' && (
+        <div className="animate-tab-enter stagger-2">
+          <RoutePlanner
+            cities={cities}
+            trip={activeTrip}
+            onOpenAdd={() => setIsAddModalOpen(true)}
+          />
+        </div>
+      )}
+
+      {/* ── Guides: Mobile card view ── */}
+      {cityView === 'guides' && (
       <div className="flex flex-col gap-3 md:hidden">
         {cities.map(city => (
           <CityMobileCard key={city.id} city={city} />
         ))}
       </div>
+      )}
 
-      {/* ── Desktop table view ── */}
+      {/* ── Guides: Desktop table view ── */}
+      {cityView === 'guides' && (
       <div className="animate-tab-enter stagger-2">
       <Card className="hidden md:block border border-border overflow-hidden w-full max-w-full">
 
@@ -482,9 +521,10 @@ export default function CitiesTab() {
         </div>
       </Card>
       </div>
+      )}
 
 
-      {cities.length === 0 && (
+      {cityView === 'guides' && cities.length === 0 && (
         <div className="text-center py-12">
           <p className="text-4xl mb-3">🏙️</p>
           <p className="text-text-muted text-balance">No cities added yet.</p>

@@ -13,7 +13,7 @@ import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { calculateReadiness } from '../../utils/readiness'
 import { getTripStatus } from '../../utils/tripStatus'
-import { formatDateRange } from '../../utils/helpers'
+import { formatDateRange, formatCurrency, daysBetween } from '../../utils/helpers'
 import { useCountdown } from '../../hooks/useCountdown'
 import { useTripTravelers } from '../../hooks/useTripTravelers'
 import { Search as SearchIcon } from 'lucide-react'
@@ -676,6 +676,17 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
   const tripStatus = getTripStatus(trip.startDate, trip.endDate)
   const destinations = trip.destinations || []
 
+  // Trip rollup — nights allocated across cities vs total trip nights, and total
+  // logged spend. Both render as quiet inline stats in the desktop identity strip.
+  const nightsPlanned = (trip.cities || []).reduce((s, c) => s + (Number(c.nights) || 0), 0)
+  const tripNights = trip.startDate && trip.endDate
+    ? Math.max(0, daysBetween(trip.startDate, trip.endDate) - 1)
+    : 0
+  const totalSpent = (trip.spendingLog || []).reduce((s, e) => s + (Number(e.amount) || 0), 0)
+  const nightsLabel = tripNights > 0
+    ? `${nightsPlanned}/${tripNights} nights`
+    : nightsPlanned > 0 ? `${nightsPlanned} nights` : null
+
   const statusLabel =
     effectiveStatus === 'archived' ? 'Archived' :
     effectiveStatus === 'completed' ? 'Memory' :
@@ -785,6 +796,26 @@ export default function TripHeader({ onOpenSidebar, isMobile }) {
                 <div className="hidden lg:flex shrink-0 items-center">
                   <TravelerPicker trip={trip} travelerProfiles={travelerProfiles} dispatch={dispatch} isReadOnly={isReadOnly} />
                 </div>
+
+                {/* Nights planned — trip rollup */}
+                {nightsLabel && (
+                  <>
+                    <span className="hidden lg:inline opacity-40 text-xs shrink-0">·</span>
+                    <span className="hidden lg:inline-flex shrink-0 items-center gap-1 text-sm text-text-muted tabular-nums whitespace-nowrap">
+                      <span aria-hidden="true">🌙</span>{nightsLabel}
+                    </span>
+                  </>
+                )}
+
+                {/* Total spend — trip rollup */}
+                {totalSpent > 0 && (
+                  <>
+                    <span className="hidden lg:inline opacity-40 text-xs shrink-0">·</span>
+                    <span className="hidden lg:inline-flex shrink-0 items-center gap-1 text-sm font-medium text-text-secondary tabular-nums whitespace-nowrap" title="Total logged spend">
+                      {formatCurrency(Math.round(totalSpent), trip.currency)}
+                    </span>
+                  </>
+                )}
 
               </div>
             </div>

@@ -8,7 +8,8 @@ import EditableText from '../shared/EditableText'
 import { useTripContext } from '../../context/TripContext'
 import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
-import { formatCurrency, formatDate } from '../../utils/helpers'
+import { formatCurrency, formatDate, daysBetween } from '../../utils/helpers'
+import { toCsv, downloadCsv } from '../../utils/csv'
 import Button from '../shared/Button'
 import Input from '../shared/Input'
 import EmptyState from '../shared/EmptyState'
@@ -621,6 +622,71 @@ function GroupBalancesCard({ spendingLog, travelers, currency }) {
 }
 
 
+// ── Spending Insights Card ─────────────────────────────────────────────────────
+// Total / per-person / per-day metrics plus a category breakdown, all derived
+// from the actual spending log (not budget limits).
+function SpendingInsightsCard({ spendingLog, travelerCount, currency, tripDays }) {
+  const insights = useMemo(() => {
+    const total = spendingLog.reduce((s, e) => s + (Number(e.amount) || 0), 0)
+
+    const byCategory = {}
+    spendingLog.forEach(e => {
+      const key = e.category || 'Uncategorized'
+      byCategory[key] = (byCategory[key] || 0) + (Number(e.amount) || 0)
+    })
+    const categories = Object.entries(byCategory)
+      .map(([name, amount]) => ({ name, amount, pct: total > 0 ? (amount / total) * 100 : 0 }))
+      .sort((a, b) => b.amount - a.amount)
+
+    return { total, categories }
+  }, [spendingLog])
+
+  if (insights.total <= 0) return null
+
+  const perPerson = insights.total / (travelerCount || 1)
+  const perDay = tripDays > 0 ? insights.total / tripDays : 0
+
+  const metric = (label, value, sub) => (
+    <div className="bg-bg-secondary/50 rounded-[var(--radius-md)] p-3">
+      <div className="text-[10px] uppercase tracking-wider text-text-muted font-bold mb-1">{label}</div>
+      <div className="text-lg font-heading font-semibold text-text-primary tabular-nums leading-tight">{value}</div>
+      {sub && <div className="text-[11px] text-text-muted mt-0.5">{sub}</div>}
+    </div>
+  )
+
+  return (
+    <Card className="border-border bg-bg-card p-4">
+      <h3 className="font-heading font-semibold text-sm text-text-primary text-balance mb-3">Spending Insights</h3>
+
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        {metric('Total', formatCurrency(Math.round(insights.total), currency))}
+        {metric('Per person', formatCurrency(Math.round(perPerson), currency), travelerCount > 1 ? `${travelerCount} travelers` : null)}
+        {metric('Per day', perDay > 0 ? formatCurrency(Math.round(perDay), currency) : '—', tripDays > 0 ? `${tripDays} days` : 'Set dates')}
+      </div>
+
+      <div className="space-y-3">
+        {insights.categories.map((cat, i) => {
+          const color = CHART_COLORS[i % CHART_COLORS.length]
+          return (
+            <div key={cat.name}>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="font-medium text-text-secondary truncate pr-2">{cat.name}</span>
+                <span className="text-text-muted tabular-nums shrink-0">
+                  {formatCurrency(Math.round(cat.amount), currency)} · {Math.round(cat.pct)}%
+                </span>
+              </div>
+              <div className="h-1.5 bg-bg-secondary rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${cat.pct}%`, backgroundColor: color }} />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </Card>
+  )
+}
+
 function SpendingLogTable({ spendingLog, budget, travelers, currency, onAdd, onDelete, onEdit, search, onSearch, onShowScan, isReadOnly }) {
   const showPaidBy = travelers.length > 1
   const [editId, setEditId] = useState(null)
@@ -1007,6 +1073,28 @@ export default function BudgetTab() {
     dispatch({ type: ACTIONS.DELETE_SPENDING, payload: id })
   }
 
+  const tripDays = useMemo(
+    () => (trip.startDate && trip.endDate ? daysBetween(trip.startDate, trip.endDate) : 0),
+    [trip.startDate, trip.endDate]
+  )
+
+  const handleExportCsv = () => {
+    const log = trip.spendingLog || []
+    if (log.length === 0) return
+    const headers = ['Date', 'Description', 'Category', `Amount (${currency})`, 'Paid by']
+    const rows = [...log]
+      .sort((a, b) => (new Date(b.date || 0)) - (new Date(a.date || 0)))
+      .map(e => [
+        e.date ? formatDate(e.date, 'medium') : '',
+        e.description || '',
+        e.category || '',
+        Number(e.amount) || 0,
+        travelers.find(t => t.id === e.paidBy)?.name || '',
+      ])
+    const safeName = (trip.name || 'trip').replace(/[^a-z0-9]+/gi, '-').toLowerCase()
+    downloadCsv(`${safeName}-expenses`, toCsv(headers, rows))
+  }
+
   return (
     <div className="space-y-5 animate-tab-enter stagger-1 pb-24 w-full">
 
@@ -1040,6 +1128,17 @@ export default function BudgetTab() {
                 </SelectItem>
               ))}
             </Select>
+            {(trip.spendingLog || []).length > 0 && (
+              <Button
+                onClick={handleExportCsv}
+                variant="secondary"
+                size="sm"
+                className="shrink-0"
+                title="Export expenses to CSV"
+              >
+                ⬇️ Export CSV
+              </Button>
+            )}
             {!isReadOnly && (
               <>
                 <Button
@@ -1119,6 +1218,13 @@ export default function BudgetTab() {
 
         {/* Right Column (1/3 width) - Analytics & Health */}
         <div className="lg:col-span-1 space-y-5 lg:sticky lg:top-0">
+          <SpendingInsightsCard
+            spendingLog={trip.spendingLog || []}
+            travelerCount={travelerCount}
+            currency={currency}
+            tripDays={tripDays}
+          />
+
           <GroupBalancesCard
             spendingLog={trip.spendingLog || []}
             travelers={travelers}

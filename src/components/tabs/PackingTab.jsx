@@ -175,6 +175,88 @@ const STARTER_ITEMS = [
   { name: 'Travel pillow', category: 'misc', qty: 1 },
 ]
 
+// ── Trip-type templates ───────────────────────────────────────────────────────
+// Each adds a focused set of items on top of whatever's already in the list.
+// Names are deduped (case-insensitive) so chips can be tapped freely.
+const PACKING_TEMPLATES = [
+  {
+    id: 'beach', label: 'Beach', emoji: '🏖️',
+    items: [
+      { name: 'Swimsuit', category: 'clothing', qty: 2 },
+      { name: 'Beach towel', category: 'misc', qty: 1 },
+      { name: 'Flip-flops / sandals', category: 'clothing', qty: 1 },
+      { name: 'Sunscreen SPF 50+', category: 'toiletries', qty: 1 },
+      { name: 'After-sun / aloe', category: 'toiletries', qty: 1 },
+      { name: 'Sunglasses', category: 'misc', qty: 1 },
+      { name: 'Sun hat', category: 'clothing', qty: 1 },
+      { name: 'Dry bag', category: 'misc', qty: 1 },
+      { name: 'Snorkel mask', category: 'misc', qty: 1 },
+    ],
+  },
+  {
+    id: 'city', label: 'City break', emoji: '🏙️',
+    items: [
+      { name: 'Comfortable walking shoes', category: 'clothing', qty: 1 },
+      { name: 'Day backpack', category: 'misc', qty: 1 },
+      { name: 'Smart-casual outfit', category: 'clothing', qty: 1 },
+      { name: 'Reusable water bottle', category: 'misc', qty: 1 },
+      { name: 'Portable battery pack', category: 'tech', qty: 1 },
+      { name: 'Travel umbrella', category: 'misc', qty: 1 },
+      { name: 'Transit card / metro pass', category: 'documents', qty: 1 },
+    ],
+  },
+  {
+    id: 'winter', label: 'Winter sports', emoji: '⛷️',
+    items: [
+      { name: 'Ski jacket', category: 'clothing', qty: 1 },
+      { name: 'Thermal base layers', category: 'clothing', qty: 2 },
+      { name: 'Waterproof gloves', category: 'clothing', qty: 1 },
+      { name: 'Beanie', category: 'clothing', qty: 1 },
+      { name: 'Wool socks', category: 'clothing', qty: 3 },
+      { name: 'Ski goggles', category: 'misc', qty: 1 },
+      { name: 'Lip balm SPF', category: 'toiletries', qty: 1 },
+      { name: 'Hand warmers', category: 'misc', qty: 2 },
+    ],
+  },
+  {
+    id: 'camping', label: 'Camping', emoji: '⛺',
+    items: [
+      { name: 'Tent', category: 'misc', qty: 1 },
+      { name: 'Sleeping bag', category: 'misc', qty: 1 },
+      { name: 'Headlamp / flashlight', category: 'tech', qty: 1 },
+      { name: 'Camping stove', category: 'misc', qty: 1 },
+      { name: 'Insect repellent', category: 'toiletries', qty: 1 },
+      { name: 'First-aid kit', category: 'toiletries', qty: 1 },
+      { name: 'Multi-tool', category: 'misc', qty: 1 },
+      { name: 'Refillable water filter', category: 'misc', qty: 1 },
+    ],
+  },
+  {
+    id: 'festival', label: 'Festival', emoji: '🎪',
+    items: [
+      { name: 'Festival tickets / wristband', category: 'documents', qty: 1 },
+      { name: 'Earplugs', category: 'misc', qty: 1 },
+      { name: 'Portable battery pack', category: 'tech', qty: 1 },
+      { name: 'Poncho / rain jacket', category: 'clothing', qty: 1 },
+      { name: 'Bumbag / crossbody bag', category: 'misc', qty: 1 },
+      { name: 'Reusable water bottle', category: 'misc', qty: 1 },
+      { name: 'Wet wipes', category: 'toiletries', qty: 1 },
+    ],
+  },
+  {
+    id: 'business', label: 'Business', emoji: '💼',
+    items: [
+      { name: 'Laptop & charger', category: 'tech', qty: 1 },
+      { name: 'Blazer / suit', category: 'clothing', qty: 1 },
+      { name: 'Dress shirts', category: 'clothing', qty: 3 },
+      { name: 'Dress shoes', category: 'clothing', qty: 1 },
+      { name: 'Business cards', category: 'documents', qty: 1 },
+      { name: 'Notebook & pen', category: 'misc', qty: 1 },
+      { name: 'Universal power adapter', category: 'tech', qty: 1 },
+    ],
+  },
+]
+
 // ── Category pill + dropdown ────────────────────────────────────────────────
 function CategoryPill({ value, onChange, disabled }) {
   const cat = CATEGORIES.find(c => c.id === value) || CATEGORIES[4]
@@ -454,23 +536,28 @@ export default function PackingTab() {
     dispatch({ type: ACTIONS.ADD_PACKING_ITEM, payload: data })
   }, [dispatch])
 
-  const handleStarterList = () => {
-    // Deduplicate: skip items whose name already exists (case-insensitive)
+  // Shared injector — adds a list of {name, category, qty}, skipping items whose
+  // name already exists (case-insensitive). Used by both the Starter List and the
+  // trip-type template chips.
+  const addItems = (list, label) => {
     const existingNames = new Set(items.map(i => i.name.toLowerCase()))
-    const newItems = STARTER_ITEMS.filter(item => !existingNames.has(item.name.toLowerCase()))
+    const newItems = list.filter(item => !existingNames.has(item.name.toLowerCase()))
     if (newItems.length === 0) {
-      showToast("All starter items are already in your list!", "info")
+      showToast(`All ${label} items are already in your list!`, 'info')
       return
     }
     newItems.forEach(item =>
       dispatch({ type: ACTIONS.ADD_PACKING_ITEM, payload: { ...item, assignee: travelerIds } })
     )
-    const skipped = STARTER_ITEMS.length - newItems.length
-    const msg = skipped > 0
-      ? `Added ${newItems.length} items (${skipped} already present) 🧳`
-      : "Starter list added! Remove what you don't need 🧳"
-    showToast(msg)
+    const skipped = list.length - newItems.length
+    showToast(
+      skipped > 0
+        ? `Added ${newItems.length} items (${skipped} already present) 🧳`
+        : `Added ${newItems.length} ${label} items 🧳`
+    )
   }
+
+  const handleStarterList = () => addItems(STARTER_ITEMS, 'starter')
 
   // Filters — only show categories that have at least one visible item
   const filters = useMemo(() => [
@@ -706,6 +793,26 @@ export default function PackingTab() {
           </>
         }
       />
+
+      {/* ── Template chips — quick-add focused item sets ── */}
+      {!isReadOnly && (
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide -mt-1">
+          <span className="text-xs font-semibold text-text-muted uppercase tracking-wider shrink-0 pr-0.5">
+            Quick add
+          </span>
+          {PACKING_TEMPLATES.map(t => (
+            <button
+              key={t.id}
+              onClick={() => { hapticImpact('light'); addItems(t.items, t.label.toLowerCase()) }}
+              className="inline-flex items-center gap-1.5 text-[13px] font-medium px-3 py-1.5 rounded-[var(--radius-pill)] bg-bg-card border border-border text-text-secondary hover:border-border-strong hover:text-text-primary transition-colors shrink-0"
+              title={`Add ${t.items.length} ${t.label} items`}
+            >
+              <span>{t.emoji}</span>
+              <span>{t.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="animate-tab-enter stagger-2">
 
