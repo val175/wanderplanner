@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import Card from '../../shared/Card'
+import Label from '../../shared/Label'
 import EditableText from '../../shared/EditableText'
 import Select, { SelectItem } from '../../shared/Select'
 import { useTripContext } from '../../../context/TripContext'
@@ -8,6 +9,18 @@ import { formatDate, daysBetween, haversineDistance } from '../../../utils/helpe
 import { triggerHaptic } from '../../../utils/haptics'
 
 const TRANSIT_EMOJIS = ['🚕', '🚶', '🚇', '🚌', '🚆', '🚲', '✈️', '⛴️', '🚗']
+
+// Per-city accent so the allocation bar, the map markers, and the stop rows all
+// read as the same city. Mirrors the Budget tab's stacked-bar language.
+const CITY_COLORS = [
+  'var(--color-accent)',
+  'var(--color-info)',
+  'var(--color-success)',
+  'var(--color-warning)',
+  'var(--color-accent-hover)',
+  'var(--color-text-muted)',
+]
+const cityColor = (i) => CITY_COLORS[i % CITY_COLORS.length]
 
 // Add `n` days to a plain YYYY-MM-DD string without timezone drift.
 function addDays(dateStr, n) {
@@ -19,7 +32,7 @@ function addDays(dateStr, n) {
 // ── Nights stepper ────────────────────────────────────────────────────────────
 function NightsStepper({ value, onChange, disabled }) {
   return (
-    <div className="inline-flex items-center border border-border rounded-[var(--radius-pill)] bg-bg-card">
+    <div className="inline-flex items-center border border-border rounded-[var(--radius-pill)] bg-bg-card shrink-0">
       <button
         onClick={() => !disabled && onChange(Math.max(0, value - 1))}
         disabled={disabled || value <= 0}
@@ -37,18 +50,59 @@ function NightsStepper({ value, onChange, disabled }) {
   )
 }
 
-// ── Route mini-map ────────────────────────────────────────────────────────────
-// Plots cities with coordinates into a normalized SVG. Honest about missing
-// data: needs at least two geocoded stops, otherwise the panel shows a hint.
+// ── Nights allocation bar ─────────────────────────────────────────────────────
+// The signature element: total trip nights as a pool, each city a proportional
+// segment, with a "free" remainder or an "over" warning.
+function AllocationBar({ cities, schedule, nightsPlanned, tripNights }) {
+  const remaining = tripNights - nightsPlanned
+  const denom = tripNights > 0 ? Math.max(tripNights, nightsPlanned) : (nightsPlanned || 1)
+
+  const status = (() => {
+    if (tripNights <= 0) return { text: `${nightsPlanned} nights`, cls: 'text-text-muted' }
+    if (remaining > 0) return { text: `${nightsPlanned}/${tripNights} planned · ${remaining} free`, cls: 'text-text-muted' }
+    if (remaining < 0) return { text: `${nightsPlanned}/${tripNights} planned · ${-remaining} over`, cls: 'text-danger' }
+    return { text: `${nightsPlanned}/${tripNights} planned · balanced`, cls: 'text-success' }
+  })()
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <Label>Nights allocation</Label>
+        <span className={`text-xs font-semibold tabular-nums ${status.cls}`}>{status.text}</span>
+      </div>
+
+      <div className="flex h-3 w-full rounded-[var(--radius-pill)] overflow-hidden bg-bg-secondary border border-border/40">
+        {cities.map((c, i) => {
+          const n = Number(c.nights) || 0
+          if (n <= 0) return null
+          return (
+            <div
+              key={c.id}
+              className="h-full border-r border-bg-card/60 last:border-r-0"
+              style={{ width: `${(n / denom) * 100}%`, backgroundColor: cityColor(i) }}
+              title={`${c.city}: ${n} ${n === 1 ? 'night' : 'nights'}`}
+            />
+          )
+        })}
+      </div>
+
+      {nightsPlanned === 0 && (
+        <p className="text-[11px] text-text-muted mt-2">Add nights to each city to plan your stays.</p>
+      )}
+    </div>
+  )
+}
+
+// ── Route map (hero) ──────────────────────────────────────────────────────────
 function RouteMiniMap({ cities, totalKm }) {
-  const W = 240, H = 290, pad = 34
-  const pts = cities.filter(c => c.lat != null && c.lng != null)
+  const W = 320, H = 360, pad = 40
+  const pts = cities.map((c, i) => ({ ...c, _i: i })).filter(c => c.lat != null && c.lng != null)
 
   if (pts.length < 2) {
     return (
-      <div className="flex-1 min-w-[200px] bg-bg-secondary/40 border border-border rounded-[var(--radius-md)] flex items-center justify-center p-6 min-h-[200px]">
-        <p className="text-xs text-text-muted text-center text-balance">
-          Add at least two cities with locations to see the route map.
+      <div className="h-full bg-bg-secondary/40 border border-border rounded-[var(--radius-lg)] flex items-center justify-center p-8 min-h-[260px]">
+        <p className="text-sm text-text-muted text-center text-balance max-w-[220px]">
+          Add at least two cities with locations to see your route on the map.
         </p>
       </div>
     )
@@ -68,19 +122,20 @@ function RouteMiniMap({ cities, totalKm }) {
   const path = projected.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
 
   return (
-    <div className="flex-1 min-w-[200px] bg-bg-secondary/40 border border-border rounded-[var(--radius-md)] relative overflow-hidden min-h-[200px]">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-full block" role="img" aria-label="Trip route map">
-        <path d={path} fill="none" stroke="var(--color-accent)" strokeWidth="2" strokeDasharray="5 4" />
-        {projected.map((p, i) => (
+    <div className="h-full bg-bg-secondary/40 border border-border rounded-[var(--radius-lg)] relative overflow-hidden min-h-[260px]">
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" className="w-full h-full block" role="img" aria-label="Trip route map">
+        <path d={path} fill="none" stroke="var(--color-accent)" strokeWidth="2.5" strokeDasharray="6 5" strokeLinejoin="round" strokeLinecap="round" />
+        {projected.map((p) => (
           <g key={p.id}>
-            <circle cx={p.x} cy={p.y} r="6" fill="var(--color-accent)" />
+            <circle cx={p.x} cy={p.y} r="9" fill={cityColor(p._i)} opacity="0.18" />
+            <circle cx={p.x} cy={p.y} r="6" fill={cityColor(p._i)} />
             <circle cx={p.x} cy={p.y} r="2.5" fill="var(--color-bg-card)" />
-            <text x={p.x + 10} y={p.y + 4} fontSize="11" fontWeight="600" fill="var(--color-text-secondary)">{p.city}</text>
+            <text x={p.x + 11} y={p.y + 4} fontSize="12" fontWeight="600" fill="var(--color-text-secondary)">{p.city}</text>
           </g>
         ))}
       </svg>
       {totalKm > 0 && (
-        <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-[var(--radius-pill)] bg-bg-card border border-border text-text-secondary">
+        <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-[var(--radius-pill)] bg-bg-card border border-border text-text-secondary">
           🧭 {Math.round(totalKm).toLocaleString()} km total
         </span>
       )}
@@ -129,17 +184,12 @@ export default function RoutePlanner({ cities, trip, onOpenAdd }) {
   const tripNights = trip.startDate && trip.endDate
     ? Math.max(0, daysBetween(trip.startDate, trip.endDate) - 1)
     : 0
-  const pct = tripNights > 0 ? Math.min(100, (nightsPlanned / tripNights) * 100) : 0
 
-  // Distance per leg + total, only where both endpoints are geocoded.
   const legKm = (a, b) =>
     (a?.lat != null && a?.lng != null && b?.lat != null && b?.lng != null)
       ? haversineDistance(a.lat, a.lng, b.lat, b.lng)
       : null
-  const totalKm = cities.reduce((sum, c, i) => {
-    const d = i < cities.length - 1 ? legKm(c, cities[i + 1]) : null
-    return sum + (d || 0)
-  }, 0)
+  const totalKm = cities.reduce((sum, c, i) => sum + (i < cities.length - 1 ? (legKm(c, cities[i + 1]) || 0) : 0), 0)
 
   const handleDrop = (targetId) => {
     setDragOverId(null)
@@ -153,124 +203,109 @@ export default function RoutePlanner({ cities, trip, onOpenAdd }) {
     }
   }
 
-  return (
-    <div className="flex flex-col lg:flex-row gap-4 items-stretch">
-      {/* Destination list */}
-      <Card className="flex-[1.6] min-w-0 border border-border p-4">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Cities &amp; Route</span>
-          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-[var(--radius-pill)] bg-accent/10 border border-accent/20 text-accent tabular-nums">
-            {tripNights > 0 ? `${nightsPlanned}/${tripNights} nights planned` : `${nightsPlanned} nights`}
-          </span>
-        </div>
-        {tripNights > 0 && (
-          <div className="h-1 bg-bg-secondary rounded-[var(--radius-pill)] mt-2.5 mb-3 overflow-hidden">
-            <div className="h-full bg-accent rounded-[var(--radius-pill)] transition-all duration-500" style={{ width: `${pct}%` }} />
-          </div>
+  if (cities.length === 0) {
+    return (
+      <Card className="border border-border p-10 text-center">
+        <p className="text-3xl mb-2">🗺️</p>
+        <p className="text-text-muted text-sm text-balance mb-4">No cities yet — add your first destination to start shaping the route.</p>
+        {!isReadOnly && (
+          <button onClick={onOpenAdd} className="inline-flex items-center gap-2 px-3 py-2 rounded-[var(--radius-md)] bg-accent text-white text-sm font-semibold hover:bg-accent-hover transition-colors">
+            + Add destination
+          </button>
         )}
+      </Card>
+    )
+  }
 
-        {cities.map((city, i) => {
-          const sched = schedule[i]
-          const next = cities[i + 1]
-          const dist = next ? legKm(city, next) : null
-          const isLast = i === cities.length - 1
-          return (
-            <div key={city.id}>
-              {/* Stop row */}
-              <div
-                draggable={!isReadOnly}
-                onDragStart={() => !isReadOnly && setDragId(city.id)}
-                onDragOver={e => { if (!isReadOnly && dragId) { e.preventDefault(); setDragOverId(city.id) } }}
-                onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverId(null) }}
-                onDrop={() => handleDrop(city.id)}
-                className={`flex items-center gap-3 py-2 px-2 -mx-2 rounded-[var(--radius-md)] transition-colors ${dragOverId === city.id ? 'ring-2 ring-inset ring-accent' : 'hover:bg-bg-hover/50'} ${dragId === city.id ? 'opacity-40' : ''}`}
-              >
-                {!isReadOnly && (
-                  <div className="cursor-grab active:cursor-grabbing text-text-muted opacity-20 hover:opacity-100 transition-opacity select-none shrink-0" title="Drag to reorder">⠿</div>
-                )}
-                <div className="w-[22px] h-[22px] rounded-full bg-bg-secondary text-text-secondary text-[11px] font-semibold flex items-center justify-center shrink-0 tabular-nums">
-                  {i + 1}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-text-primary truncate flex items-center gap-1.5">
-                    <span>{city.flag || '📍'}</span>{city.city}
-                  </div>
-                  {sched.start && (
-                    <div className="text-[11px] text-text-muted tabular-nums">
-                      {formatDate(sched.start, 'short')}
-                      {sched.nights > 0 && sched.end ? ` – ${formatDate(sched.end, 'short')}` : ''}
-                    </div>
-                  )}
-                </div>
-                <NightsStepper
-                  value={Number(city.nights) || 0}
-                  onChange={n => update(city.id, { nights: n })}
-                  disabled={isReadOnly}
-                />
-                <span className="text-[11px] text-text-muted shrink-0 hidden sm:inline">nights</span>
-                <span
-                  className="text-sm shrink-0"
-                  title={bookedStayCities.has(city.id) ? 'Stay booked' : 'No stay booked yet'}
+  return (
+    <div className="space-y-4">
+      {/* Allocation pool — the signature framing */}
+      <Card className="border border-border p-4">
+        <AllocationBar cities={cities} schedule={schedule} nightsPlanned={nightsPlanned} tripNights={tripNights} />
+      </Card>
+
+      {/* Map-first body: map is the hero, stops are the sidebar */}
+      <div className="flex flex-col lg:flex-row gap-4 lg:h-[460px]">
+        <div className="lg:flex-[1.7] min-h-[280px] lg:min-h-0">
+          <RouteMiniMap cities={cities} totalKm={totalKm} />
+        </div>
+
+        <Card className="lg:flex-1 border border-border p-3 overflow-y-auto scrollbar-thin">
+          {cities.map((city, i) => {
+            const sched = schedule[i]
+            const next = cities[i + 1]
+            const dist = next ? legKm(city, next) : null
+            const isLast = i === cities.length - 1
+            const booked = bookedStayCities.has(city.id)
+            return (
+              <div key={city.id}>
+                <div
+                  draggable={!isReadOnly}
+                  onDragStart={() => !isReadOnly && setDragId(city.id)}
+                  onDragOver={e => { if (!isReadOnly && dragId) { e.preventDefault(); setDragOverId(city.id) } }}
+                  onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverId(null) }}
+                  onDrop={() => handleDrop(city.id)}
+                  className={`flex items-center gap-2.5 py-2 px-2 -mx-0 rounded-[var(--radius-md)] transition-colors ${dragOverId === city.id ? 'ring-2 ring-inset ring-accent' : 'hover:bg-bg-hover/50'} ${dragId === city.id ? 'opacity-40' : ''}`}
                 >
-                  <span className={bookedStayCities.has(city.id) ? '' : 'opacity-30 grayscale'}>🛏️</span>
-                </span>
-                <span
-                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${bookedStayCities.has(city.id) ? 'bg-success' : 'bg-warning'}`}
-                  aria-hidden="true"
-                />
-              </div>
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: cityColor(i) }} aria-hidden="true" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-text-primary truncate flex items-center gap-1.5">
+                      <span>{city.flag || '📍'}</span>{city.city}
+                      {booked && <span className="text-[10px]" title="Stay booked">🛏️</span>}
+                    </div>
+                    {sched.start && (
+                      <div className="text-[11px] text-text-muted tabular-nums">
+                        {formatDate(sched.start, 'short')}
+                        {sched.nights > 0 && sched.end ? ` – ${formatDate(sched.end, 'short')}` : ''}
+                      </div>
+                    )}
+                  </div>
+                  <NightsStepper
+                    value={Number(city.nights) || 0}
+                    onChange={n => update(city.id, { nights: n })}
+                    disabled={isReadOnly}
+                  />
+                </div>
 
-              {/* Transit leg to next stop */}
-              {!isLast && (
-                <div className="ml-[10px] pl-5 py-1 border-l-2 border-dashed border-border/40">
-                  <div className="inline-flex items-center gap-1.5 text-xs font-medium text-text-muted bg-bg-secondary/40 border border-border/50 rounded-[var(--radius-pill)] pl-1.5 pr-2.5 py-0.5 hover:border-text-primary transition-colors">
+                {/* Inter-city leg — borderless connector, deliberately unlike the
+                    itinerary's bordered transit pill on a dashed timeline. */}
+                {!isLast && (
+                  <div className="flex items-center gap-1.5 pl-4 py-0.5 text-[11px] text-text-muted/80">
                     <Select
                       value={city.transitEmoji || '🚆'}
                       onValueChange={v => update(city.id, { transitEmoji: v })}
                       disabled={isReadOnly}
                       bare
-                      className="text-xs text-text-muted hover:text-text-primary px-0.5 py-0.5"
+                      className="text-[11px] text-text-muted hover:text-text-primary"
                     >
                       {TRANSIT_EMOJIS.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
                     </Select>
                     <EditableText
                       value={city.transit || ''}
                       onSave={val => update(city.id, { transit: val })}
-                      className="min-w-[60px] inline-flex items-center"
-                      inputClassName="px-0 py-0 text-xs font-medium w-[120px] bg-transparent"
-                      placeholder="Add transit"
+                      className="inline-flex items-center"
+                      inputClassName="px-0 py-0 text-[11px] w-[110px] bg-transparent"
+                      placeholder="add leg"
                       readOnly={isReadOnly}
                     />
-                    {dist != null && (
-                      <span className="text-text-muted/70 tabular-nums">· {Math.round(dist).toLocaleString()} km</span>
-                    )}
+                    {dist != null && <span className="tabular-nums">· {Math.round(dist).toLocaleString()} km</span>}
                   </div>
-                </div>
-              )}
-            </div>
-          )
-        })}
+                )}
+              </div>
+            )
+          })}
 
-        {!isReadOnly && (
-          <button
-            onClick={onOpenAdd}
-            className="flex items-center gap-2 mt-3 w-full border border-border rounded-[var(--radius-md)] px-3 py-2 text-text-muted text-sm hover:border-border-strong hover:text-text-secondary transition-colors"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>
-            Add new destination…
-          </button>
-        )}
-
-        {cities.length === 0 && (
-          <div className="text-center py-10">
-            <p className="text-3xl mb-2">🗺️</p>
-            <p className="text-text-muted text-sm text-balance">No cities yet — add your first destination to start building the route.</p>
-          </div>
-        )}
-      </Card>
-
-      {/* Route map */}
-      <RouteMiniMap cities={cities} totalKm={totalKm} />
+          {!isReadOnly && (
+            <button
+              onClick={onOpenAdd}
+              className="flex items-center gap-2 mt-2 w-full border border-border rounded-[var(--radius-md)] px-3 py-2 text-text-muted text-sm hover:border-border-strong hover:text-text-secondary transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>
+              Add destination…
+            </button>
+          )}
+        </Card>
+      </div>
     </div>
   )
 }
