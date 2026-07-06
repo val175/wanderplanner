@@ -1,8 +1,11 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    // The app stores files via the Hostinger storage API, not Firebase
+    // Storage — lock the bucket down entirely. If Firebase Storage is
+    // adopted later, scope rules per-trip like firestore.rules.
     match /{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if false;
     }
   }
 }

@@ -1,4 +1,14 @@
 import { generateId } from './helpers'
+import { auth } from '../firebase/config'
+
+async function getAuthHeaders() {
+  try {
+    const token = await auth.currentUser?.getIdToken()
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  } catch {
+    return {}
+  }
+}
 
 const IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'])
 const TEXT_MIME_TYPES = new Set(['text/plain', 'text/markdown', 'application/json', 'text/markdown; charset=utf-8'])
@@ -189,6 +199,7 @@ export async function uploadDocumentToStorage({
   const apiUrl = import.meta.env.VITE_STORAGE_API_URL || 'http://localhost:3001'
   const response = await fetch(`${apiUrl}/upload`, {
     method: 'POST',
+    headers: await getAuthHeaders(),
     body: formData,
   })
 
@@ -232,6 +243,7 @@ export async function deleteDocumentFromStorage(storagePath) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(await getAuthHeaders()),
       },
       body: JSON.stringify({ path: storagePath }),
     })
