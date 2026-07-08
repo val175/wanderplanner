@@ -345,11 +345,13 @@ export function useFirestoreTrips(userId) {
   // ── 4. Toast auto-dismiss ────────────────────────────────────────────────
   useEffect(() => {
     if (state.toast.visible) {
-      const ms = state.toast.type === 'error' ? 5000 : state.toast.type === 'warning' ? 4000 : 3000
+      // Toasts with an action button (e.g. Undo) get a longer window
+      const ms = state.toast.action ? 6000
+        : state.toast.type === 'error' ? 5000 : state.toast.type === 'warning' ? 4000 : 3000
       const timer = setTimeout(() => dispatch({ type: ACTIONS.HIDE_TOAST }), ms)
       return () => clearTimeout(timer)
     }
-  }, [state.toast.visible, state.toast.type])
+  }, [state.toast.visible, state.toast.type, state.toast.action])
 
   // ── Return shape — identical to useTrips so no components need to change ─
   const activeTrip = state.activeTripId ? state.trips[state.activeTripId] : null
@@ -360,8 +362,9 @@ export function useFirestoreTrips(userId) {
     return new Date(a.startDate) - new Date(b.startDate)
   })
 
-  const showToast = useCallback((message, type = 'success') => {
-    dispatch({ type: ACTIONS.SHOW_TOAST, payload: { message, type } })
+  // action: optional { label, onClick } — renders a button in the toast (e.g. Undo)
+  const showToast = useCallback((message, type = 'success', action = null) => {
+    dispatch({ type: ACTIONS.SHOW_TOAST, payload: { message, type, action } })
   }, [])
 
   return {

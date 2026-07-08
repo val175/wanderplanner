@@ -1,6 +1,17 @@
 @import "tailwindcss";
 @variant dark (&:where(.dark, .dark *));
 
+/* ─── iOS / standalone PWA polish ───
+   Stop rubber-band pull-to-refresh from hijacking in-app scrollers, and
+   keep the browser from restyling form controls in dark mode. */
+html, body {
+  overscroll-behavior-y: none;
+}
+body {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
 /* ─── Anthropic Proprietary Fonts (exact same files as anthropic.com) ─── */
 /* Anthropic Sans — variable sans-serif, used for headings, UI labels, buttons */
 @font-face {

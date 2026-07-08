@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider } from 'firebase/auth'
 import { getStorage } from 'firebase/storage'
-import { initializeFirestore, memoryLocalCache } from 'firebase/firestore'
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore'
 import { getDatabase } from 'firebase/database'
 
 const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID
@@ -22,8 +22,11 @@ const app = initializeApp(firebaseConfig)
 
 export const auth = getAuth(app)
 export const storage = getStorage(app)
+// Offline-first: IndexedDB cache makes trips load instantly from disk and
+// keeps the app usable without connectivity — writes queue and sync on
+// reconnect. Multi-tab manager keeps several open tabs consistent.
 export const db = initializeFirestore(app, {
-  localCache: memoryLocalCache()
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 })
 export const rtdb = getDatabase(app)
 export const googleProvider = new GoogleAuthProvider()

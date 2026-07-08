@@ -243,7 +243,7 @@ function LoadingScreen({ message = 'Loading…' }) {
   const [isStatic] = useState(() => splashPlayed)
   useEffect(() => { splashPlayed = true }, [])
   return (
-    <div className="flex h-screen items-center justify-center bg-bg-primary">
+    <div className="flex h-dvh items-center justify-center bg-bg-primary">
       <div className="text-center">
         <WandWordmark static={isStatic} />
         <p className="text-text-muted text-sm animate-pulse mt-6">{message}</p>
@@ -412,19 +412,22 @@ function AuthenticatedApp({ user, signOutUser }) {
   return (
     <MotionConfig reducedMotion="user">
     <TripContext.Provider value={{ state, dispatch, activeTrip, sortedTrips, showToast, signOutUser, isReadOnly, effectiveStatus }}>
-      <div className="flex h-screen overflow-hidden bg-bg-primary text-text-secondary antialiased">
+      <div className="flex h-dvh overflow-hidden bg-bg-primary text-text-secondary antialiased">
         {isOffline && (
-          <div className="fixed top-0 left-0 right-0 z-[10000] bg-orange-500 text-white text-[11px] font-semibold px-4 py-1 text-center shadow-md animate-fade-in">
+          <div className="fixed top-0 left-0 right-0 z-[10000] bg-orange-500 text-white text-[11px] font-semibold px-4 py-1 pt-[max(0.25rem,env(safe-area-inset-top))] text-center shadow-md animate-fade-in">
             Offline Mode: Working locally (changes will sync when reconnected)
           </div>
         )}
         {activeTrip && <CursorManager tripId={activeTrip.id} userId={user.uid} tabId={effectiveTab} />}
 
-        <Sidebar
-          isMobile={isMobile}
-          isOpen={state.sidebarOpen}
-          onNewTrip={handleNewTrip}
-        />
+        {/* Own boundary: a sidebar crash must not take down the whole app */}
+        <ErrorBoundary>
+          <Sidebar
+            isMobile={isMobile}
+            isOpen={state.sidebarOpen}
+            onNewTrip={handleNewTrip}
+          />
+        </ErrorBoundary>
 
         <div className="flex flex-1 overflow-hidden">
           <main
@@ -497,6 +500,7 @@ function AuthenticatedApp({ user, signOutUser }) {
         <Toast
           message={state.toast.message}
           type={state.toast.type}
+          action={state.toast.action}
           visible={state.toast.visible}
           onDismiss={() => dispatch({ type: ACTIONS.HIDE_TOAST })}
         />
@@ -584,7 +588,7 @@ export default function App() {
 
   if (!isAllowed) {
     return (
-      <div className="flex h-screen items-center justify-center bg-bg-primary px-6">
+      <div className="flex h-dvh items-center justify-center bg-bg-primary px-6">
         <EmptyState
           emoji="🔒"
           title="Access restricted"

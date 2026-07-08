@@ -43,9 +43,10 @@ const CONFIG = {
   },
 }
 
-function ToastContent({ message, type, onDismiss }) {
+function ToastContent({ message, type, action, onDismiss }) {
   const cfg = CONFIG[type] || CONFIG.success
-  const duration = DISMISS_MS[type] || DISMISS_MS.success
+  // Toasts with an action (e.g. Undo) stay up longer so it can be hit
+  const duration = action ? 6000 : (DISMISS_MS[type] || DISMISS_MS.success)
   const [progress, setProgress] = useState(100)
   const pausedRef = useRef(false)
   const elapsedRef = useRef(0)
@@ -103,6 +104,18 @@ function ToastContent({ message, type, onDismiss }) {
       <div className="flex items-center gap-3 px-4 py-3">
         <span className="shrink-0 opacity-90">{cfg.icon}</span>
         <span className="flex-1 leading-snug">{message}</span>
+        {action && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              action.onClick?.()
+              onDismiss()
+            }}
+            className="shrink-0 px-2.5 py-1 -my-1 rounded-[var(--radius-sm)] font-semibold text-xs uppercase tracking-wide bg-current/10 hover:bg-current/20 transition-colors"
+          >
+            {action.label}
+          </button>
+        )}
       </div>
 
       {/* Countdown bar */}
@@ -116,13 +129,13 @@ function ToastContent({ message, type, onDismiss }) {
   )
 }
 
-export default function Toast({ message, type = 'success', visible, onDismiss }) {
+export default function Toast({ message, type = 'success', action = null, visible, onDismiss }) {
   if (!message) return null
 
   return (
     <AnimatePresence mode="wait">
       {visible && (
-        <ToastContent key={message + type} message={message} type={type} onDismiss={onDismiss} />
+        <ToastContent key={message + type} message={message} type={type} action={action} onDismiss={onDismiss} />
       )}
     </AnimatePresence>
   )

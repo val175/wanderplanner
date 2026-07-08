@@ -4,7 +4,6 @@ import TabHeader from '../common/TabHeader'
 import Card from '../shared/Card'
 import Button from '../shared/Button'
 import Modal from '../shared/Modal'
-import ConfirmDialog from '../shared/ConfirmDialog'
 import EmptyState from '../shared/EmptyState'
 import Select, { SelectItem } from '../shared/Select'
 import { useTripContext } from '../../context/TripContext'
@@ -173,7 +172,6 @@ export default function DocumentsTab() {
   const [selectedDocId, setSelectedDocId] = useState(null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadMsgIndex, setUploadMsgIndex] = useState(0)
-  const [docToDelete, setDocToDelete] = useState(null)
 
   useEffect(() => {
     if (isUploading) {
@@ -448,17 +446,25 @@ export default function DocumentsTab() {
     }
   }
 
-  const handleDeleteConfirmed = async () => {
-    const doc = docToDelete
-    setDocToDelete(null)
-    if (!doc) return
-    try {
-      await deleteDocumentFromStorage(doc.storagePath)
-      dispatch({ type: ACTIONS.DELETE_DOCUMENT, payload: { id: doc.id, tripId: doc.tripId } })
-    } catch (err) {
-      console.error('[DocumentsTab] Delete failed:', err)
-      showToast(err.message || 'Could not delete document', 'error')
-    }
+  // Undo-first delete: remove from state immediately, keep the stored file
+  // alive for the undo window, and only hard-delete storage once it expires.
+  const pendingDeletesRef = useRef(new Map())
+  const handleDeleteDoc = (doc) => {
+    dispatch({ type: ACTIONS.DELETE_DOCUMENT, payload: { id: doc.id, tripId: doc.tripId } })
+    hapticImpact('light')
+    const timeoutId = setTimeout(() => {
+      pendingDeletesRef.current.delete(doc.id)
+      deleteDocumentFromStorage(doc.storagePath)
+    }, 6500)
+    pendingDeletesRef.current.set(doc.id, timeoutId)
+    showToast(`Deleted "${doc.title}"`, 'info', {
+      label: 'Undo',
+      onClick: () => {
+        clearTimeout(pendingDeletesRef.current.get(doc.id))
+        pendingDeletesRef.current.delete(doc.id)
+        dispatch({ type: ACTIONS.ADD_DOCUMENT, payload: doc })
+      },
+    })
   }
 
   const getKindLabel = (doc) => {
@@ -604,7 +610,7 @@ export default function DocumentsTab() {
                           <Download size={15} />
                         </button>
                         {!isReadOnly && (
-                          <button className="p-1.5 text-text-muted hover:text-danger transition-colors" title="Delete" onClick={() => setDocToDelete(doc)}>
+                          <button className="p-1.5 text-text-muted hover:text-danger transition-colors" title="Delete" onClick={() => handleDeleteDoc(doc)}>
                             <Trash2 size={15} />
                           </button>
                         )}
@@ -618,15 +624,6 @@ export default function DocumentsTab() {
         </Card>
       )}
 
-      <ConfirmDialog
-        isOpen={!!docToDelete}
-        onClose={() => setDocToDelete(null)}
-        onConfirm={handleDeleteConfirmed}
-        title="Delete document?"
-        message={`Delete "${docToDelete?.title}" from the vault? This cannot be undone.`}
-        confirmLabel="Delete"
-        danger
-      />
     </div>
   )
 }

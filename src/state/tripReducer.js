@@ -155,7 +155,7 @@ const uiCases = {
     ({ ...state, aiViewMode: state.aiViewMode === 'sidebar' ? 'floating' : 'sidebar' }),
   SET_AI_OPEN: (state, payload) => ({ ...state, aiOpen: !!payload }),
   SHOW_TOAST: (state, payload) =>
-    ({ ...state, toast: { message: payload.message, type: payload.type || 'success', visible: true } }),
+    ({ ...state, toast: { message: payload.message, type: payload.type || 'success', action: payload.action || null, visible: true } }),
   HIDE_TOAST: (state) => ({ ...state, toast: { ...state.toast, visible: false } }),
   TOGGLE_DARK_MODE: (state) => ({ ...state, darkMode: !state.darkMode }),
 }
