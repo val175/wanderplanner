@@ -4,6 +4,12 @@ export function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
 }
 
+// Local-timezone YYYY-MM-DD. toISOString() returns the UTC date, which is
+// yesterday before 08:00 in UTC+8 — always use this for "today".
+export function localISODate(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
 export function formatDate(dateStr, style = 'medium') {
   if (!dateStr) return ''
   // Only append T00:00:00 for plain date strings (YYYY-MM-DD) to avoid timezone shifting.

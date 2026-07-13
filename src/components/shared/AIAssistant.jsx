@@ -8,7 +8,7 @@ import { auth } from '../../firebase/config';
 import { TripContext } from '../../context/TripContext';
 import { buildTripSystemPrompt } from '../../hooks/useAI';
 import { getEffectiveStatus } from '../../utils/tripStatus';
-import { generateId } from '../../utils/helpers';
+import { generateId, localISODate } from '../../utils/helpers';
 import { ACTIONS } from '../../state/tripReducer';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { hapticSelection } from '../../utils/haptics';
@@ -432,7 +432,7 @@ export default function AIAssistant() {
 
     const city = firstCity || 'your destination'
     const flag = firstCityFlag ? ` ${firstCityFlag}` : ''
-    const todayStr = new Date().toISOString().split('T')[0]
+    const todayStr = localISODate()
     const todaysPlan = activeTrip?.itinerary?.find(d => d.date === todayStr)
     const actCount = todaysPlan?.activities?.length || 0
     const hour = new Date().getHours()

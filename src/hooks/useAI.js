@@ -5,6 +5,7 @@
  * so every response is grounded in the user's actual trip data.
  */
 import { auth } from '../firebase/config'
+import { localISODate } from '../utils/helpers'
 import { getEffectiveStatus } from '../utils/tripStatus'
 import { getDayLocationMap } from '../utils/tripGeo'
 
@@ -26,7 +27,7 @@ Help users plan trips, suggest activities, recommend restaurants, give packing a
 Be concise and practical. Use emojis sparingly. The user hasn't selected a trip yet, so give general travel advice.`
   }
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = localISODate()
   const tripStatus = getEffectiveStatus(trip)
   const cities = trip.cities?.map(c => `${c.flag} ${c.city}, ${c.country}`).join(' → ') || 'Not specified'
   const travelers = trip.travelers || 1
@@ -65,7 +66,7 @@ Be concise and practical. Use emojis sparingly. The user hasn't selected a trip 
     const itinerary = trip.itinerary || []
     const itinerarySummary = (() => {
       if (!itinerary.length) return 'No itinerary yet'
-      const todayStr = new Date().toISOString().split('T')[0]
+      const todayStr = localISODate()
       let pivot = itinerary.findIndex(d => d.date >= todayStr)
       if (pivot === -1) pivot = itinerary.length - 1
       const past = itinerary.slice(0, pivot)
@@ -119,7 +120,7 @@ Be concise and practical. Use emojis sparingly. The user hasn't selected a trip 
     // overview / other: include a brief upcoming-days snapshot for location context
     const itinerary = trip.itinerary || []
     if (itinerary.length) {
-      const todayStr = new Date().toISOString().split('T')[0]
+      const todayStr = localISODate()
       let pivot = itinerary.findIndex(d => d.date >= todayStr)
       if (pivot === -1) pivot = itinerary.length - 1
       const focus = itinerary.slice(pivot, pivot + 2)

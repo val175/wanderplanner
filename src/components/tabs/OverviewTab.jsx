@@ -4,7 +4,7 @@ import AnimatedNumber from '../shared/AnimatedNumber'
 import { useTripContext } from '../../context/TripContext'
 import { auth } from '../../firebase/config'
 import { calculateReadiness, getReadinessBreakdown } from '../../utils/readiness'
-import { formatCurrency, daysUntil, formatDate, daysBetween } from '../../utils/helpers'
+import { formatCurrency, daysUntil, formatDate, daysBetween, localISODate } from '../../utils/helpers'
 import { getEffectiveStatus } from '../../utils/tripStatus'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
@@ -48,7 +48,7 @@ function extractMessageText(message) {
    Today at a Glance — AI summary for the current trip day
 ───────────────────────────────────────────────────────────── */
 function TodayAtAGlance({ trip }) {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localISODate()
   const currentDayNumber = daysBetween(trip.startDate, today)
   const todayDay = trip.itinerary?.find(d => d.dayNumber === currentDayNumber)
 
@@ -149,7 +149,7 @@ function QuickItineraryCell({ trip, status, onTabSwitch }) {
   const itinerary = trip.itinerary || []
   if (itinerary.length === 0) return null
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localISODate()
   const startDayNumber = status === 'ongoing'
     ? daysBetween(trip.startDate, today) + 1
     : 1

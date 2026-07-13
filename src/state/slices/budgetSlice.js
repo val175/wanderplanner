@@ -1,4 +1,4 @@
-import { generateId } from '../../utils/helpers'
+import { generateId, localISODate } from '../../utils/helpers'
 import { updateTrip } from '../reducerUtils'
 
 // Alias groups: each entry is [canonical id, terms[] that map to it].
@@ -88,7 +88,7 @@ export const budgetCases = {
       const resolvedCategory = resolveToBudgetName(payload.category, trip.budget)
       const entry = {
         id: payload.id || generateId(),
-        date: new Date().toISOString().slice(0, 10),
+        date: localISODate(),
         ...payload,
         category: resolvedCategory, // store the normalised name so the table shows correctly
       }

@@ -12,7 +12,7 @@ import { useTripTravelers } from '../../hooks/useTripTravelers'
 import { ACTIONS } from '../../state/tripReducer'
 import { getDocumentsForTrip, uploadDocumentToStorage, deleteDocumentFromStorage, prepareDocumentForStorage } from '../../utils/documentVault'
 import { parseDocumentIntake } from '../../utils/documentIntake'
-import { generateId } from '../../utils/helpers'
+import { generateId, localISODate } from '../../utils/helpers'
 import { buildSplits } from '../../utils/splitwise'
 import { BOOKING_CATEGORIES } from '../../constants/tabs'
 import { formatDate } from '../../utils/helpers'
@@ -331,7 +331,7 @@ export default function DocumentsTab() {
               source: 'booking',
               bookingId,
               documentId: bookingRecord.id,
-              date: parsed.date ? parsed.date.split('T')[0] : new Date().toISOString().slice(0, 10),
+              date: parsed.date ? parsed.date.split('T')[0] : localISODate(),
             }
           })
         }

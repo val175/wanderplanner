@@ -1,4 +1,4 @@
-import { generateId } from '../../utils/helpers'
+import { generateId, localISODate } from '../../utils/helpers'
 import { updateTrip, STATUS_CYCLE } from '../reducerUtils'
 
 function normalizeTravelerIds(trip, booking = {}) {
@@ -63,7 +63,7 @@ export function syncBookingBudget(trip, prev, next, actorId = null) {
       paxCount: bookingPaxCount,
       splits: {},
       splitMode: 'equal',
-      date: new Date().toISOString().slice(0, 10),
+      date: localISODate(),
       source: 'booking',
     }
     spendingLog = [...spendingLog, entry]

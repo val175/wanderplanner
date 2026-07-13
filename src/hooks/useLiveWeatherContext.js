@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { geocodeCity, daysBetween } from '../utils/helpers'
+import { geocodeCity, daysBetween, localISODate } from '../utils/helpers'
 import { getEffectiveStatus } from '../utils/tripStatus'
 
 const weatherCache = new Map()
@@ -20,7 +20,7 @@ function wmoToDescription(code) {
 function getWeatherTarget(trip) {
   if (!trip) return null
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localISODate()
   const status = getEffectiveStatus(trip)
   const destinations = trip.destinations || trip.cities || []
   const itinerary = trip.itinerary || []
