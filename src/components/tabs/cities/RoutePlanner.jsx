@@ -26,7 +26,9 @@ const cityColor = (i) => CITY_COLORS[i % CITY_COLORS.length]
 function addDays(dateStr, n) {
   const d = new Date(dateStr + 'T00:00:00')
   d.setDate(d.getDate() + n)
-  return d.toISOString().slice(0, 10)
+  // Format in LOCAL time — toISOString() converts to UTC, which shifts the
+  // date back a day in any UTC+ timezone (e.g. PHT) and compounds per stop.
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 // ── Nights stepper ────────────────────────────────────────────────────────────
