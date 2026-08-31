@@ -36,3 +36,6 @@ yarn-error.log*
 # Add this to your .gitignore
 everything-claude-code/
 .claude/.firecrawl/
+
+# Claude Code scratch worktrees (registered via git worktree)
+.claude/worktrees/
