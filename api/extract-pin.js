@@ -18,6 +18,49 @@ const BROWSER_HEADERS = {
     'Referer': 'https://www.google.com/',
 }
 
+// Pull the first http(s) link out of the pasted value — share sheets routinely
+// prepend a caption ("Check out this hotel! https://...") which would otherwise
+// blow up on `new URL()` and surface as a raw 500.
+function extractUrl(raw) {
+    if (typeof raw !== 'string') return null
+    const match = raw.trim().match(/https?:\/\/[^\s<>"']+/i)
+    if (!match) return null
+    try {
+        const parsed = new URL(match[0].replace(/[.,)\]]+$/, ''))
+        return parsed.href
+    } catch {
+        return null
+    }
+}
+
+function safeHost(u) {
+    try { return new URL(u).hostname.replace('www.', '') } catch { return '' }
+}
+
+// Some pages are JS-only shells with an empty <title> and no OG tags — Agoda's
+// /sh-app/ share links are the common case. The resolved path is then the only
+// readable signal: /fragrance-hotel-emerald-h30150584/hotel/singapore-sg.html
+function slugContext(u) {
+    let parsed
+    try { parsed = new URL(u) } catch { return '' }
+    const words = parsed.pathname
+        .replace(/\.(html?|php|aspx)$/i, '')
+        .split('/')
+        .filter(Boolean)
+        .flatMap(seg => seg.split(/[-_+.]/))
+        .filter(w => w.length > 1 && !/^\d+$/.test(w) && !/^[a-z]\d{3,}$/i.test(w))
+    return words.length ? `Page path keywords: ${words.join(' ')}` : ''
+}
+
+// Microlink sometimes echoes the redirect target back as the "title" (AppsFlyer
+// onelink query strings, for one). That is worse than no context at all, because
+// it beats the URL-only fallback and poisons the prompt.
+function looksLikeJunkTitle(s) {
+    if (!s) return true
+    const t = String(s).trim()
+    return /^https?:\/\//i.test(t) || /%3a%2f%2f|[?&][a-z_]+=/i.test(t)
+}
+
 export default async function handler(req, res) {
     setCorsHeaders(req, res)
     if (req.method === 'OPTIONS') return res.status(200).end()
@@ -31,12 +74,15 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { url } = req.body || {}
-        if (!url) return res.status(400).json({ error: 'URL is required' })
+        const url = extractUrl((req.body || {}).url)
+        if (!url) {
+            return res.status(400).json({ error: 'That doesn\'t look like a link. Paste a URL starting with http:// or https://' })
+        }
 
         let contextText = ''
         let thumbnail_url = null
         let sourceName = 'Link'
+        let resolvedUrl = url
 
         const SOCIAL_DOMAINS = {
             'facebook.com': 'Facebook', 'fb.com': 'Facebook',
@@ -96,6 +142,7 @@ export default async function handler(req, res) {
             // Attempt 1: direct scrape with browser-like headers
             try {
                 const htmlRes = await fetch(url, { headers: BROWSER_HEADERS, redirect: 'follow' })
+                resolvedUrl = htmlRes.url || url
                 if (htmlRes.ok) {
                     const html = await htmlRes.text()
                     const $ = cheerio.load(html)
@@ -114,26 +161,29 @@ export default async function handler(req, res) {
             // Attempt 2: Microlink fallback
             if (!contextText || !thumbnail_url) {
                 try {
-                    const ml = await fetch(`https://api.microlink.io?url=${encodeURIComponent(url)}`)
+                    const ml = await fetch(`https://api.microlink.io?url=${encodeURIComponent(resolvedUrl)}`)
                     if (ml.ok) {
                         const mlData = (await ml.json()).data || {}
-                        if (!contextText) contextText = [mlData.title, mlData.description].filter(Boolean).join('\n')
+                        const mlTitle = looksLikeJunkTitle(mlData.title) ? '' : mlData.title
+                        if (!contextText) contextText = [mlTitle, mlData.description].filter(Boolean).join('\n')
                         if (!thumbnail_url) thumbnail_url = mlData.image?.url || null
                     }
                 } catch (_) { }
             }
 
-            // Attempt 3: URL-only fallback
-            if (!contextText) contextText = url
+            // Attempt 3: fall back to the resolved URL's slug, then the URL itself
+            if (!contextText) contextText = slugContext(resolvedUrl) || resolvedUrl
 
-            // Infer source name from hostname
+            // Infer source name from the resolved hostname (short links redirect
+            // off their own domain, so the original host can be misleading)
             try {
-                if (host.includes('tripadvisor')) sourceName = 'TripAdvisor'
-                else if (host.includes('airbnb')) sourceName = 'Airbnb'
-                else if (host.includes('booking.com')) sourceName = 'Booking.com'
-                else if (host.includes('agoda')) sourceName = 'Agoda'
+                const finalHost = safeHost(resolvedUrl) || host
+                if (finalHost.includes('tripadvisor')) sourceName = 'TripAdvisor'
+                else if (finalHost.includes('airbnb')) sourceName = 'Airbnb'
+                else if (finalHost.includes('booking.com')) sourceName = 'Booking.com'
+                else if (finalHost.includes('agoda')) sourceName = 'Agoda'
                 else {
-                    const name = host.split('.')[0]
+                    const name = finalHost.split('.')[0]
                     sourceName = name.charAt(0).toUpperCase() + name.slice(1)
                 }
             } catch (_) { }
@@ -157,7 +207,7 @@ export default async function handler(req, res) {
 CONTENT:
 ${contextText}
 
-URL: ${url}
+URL: ${resolvedUrl}
 
 RULES:
 1. Use the ₱ (Pesos) symbol for estimatedCost. Format: "₱500 - ₱1000/person" or "₱3000/night".
@@ -167,7 +217,11 @@ RULES:
    - Do NOT use wide category ranges if you recognize the specific business name.
    - If you don't know the specific business, make a realistic estimate based on the location: a Hotel in the PH is ₱2500-₱6000, a Hostel is ₱800-₱1500, a Meal is ₱300-₱800.
    - NEVER guess ₱50-₱150 for lodging.
-4. If exact prices aren't found, append " (est.)" to your estimate.`,
+4. If exact prices aren't found, append " (est.)" to your estimate.
+5. The CONTENT may be thin or missing. In that case read the URL itself — booking
+   sites encode the business and city in the path (e.g.
+   "/fragrance-hotel-emerald-h30150584/hotel/singapore-sg.html" is Fragrance Hotel
+   Emerald in Singapore). Never output a raw URL, slug, or ID as the title.`,
         })
 
         return res.status(200).json({ ...object, url, thumbnail_url, sourceName })
