@@ -6,6 +6,11 @@ import { useTripContext } from '../../context/TripContext'
 import { useProfiles } from '../../context/ProfileContext'
 import { ACTIONS } from '../../state/tripReducer'
 
+// The app is served from Hostinger; the functions live on Vercel. A relative
+// /api/ path hits the static host's SPA fallback and comes back as index.html
+// with a 200, which slips straight past the !res.ok guard below.
+const VERCEL_API = 'https://wanderplan-rust.vercel.app'
+
 const TYPE_MAP = {
     food: 'food', restaurant: 'food', cafe: 'food', dining: 'food', bar: 'food',
     activity: 'activity', tour: 'activity', experience: 'activity',
@@ -38,7 +43,7 @@ export default function IdeaExtractorModal({ isOpen, onClose }) {
                 if (auth.currentUser) token = await auth.currentUser.getIdToken()
             } catch (_) {}
 
-            const res = await fetch('/api/extract-pin', {
+            const res = await fetch(`${VERCEL_API}/api/extract-pin`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -50,7 +55,8 @@ export default function IdeaExtractorModal({ isOpen, onClose }) {
                 const err = await res.json().catch(() => ({}))
                 throw new Error(err.error || `Error ${res.status}`)
             }
-            const data = await res.json()
+            const data = await res.json().catch(() => null)
+            if (!data) throw new Error('The extractor sent back an unexpected response. Please try again.')
 
             dispatch({
                 type: ACTIONS.ADD_IDEA,
