@@ -10,6 +10,7 @@ import AddActivityModal from './itinerary/AddActivityModal'
 import DayGroupTable from './itinerary/DayGroupTable'
 import KanbanColumn from './itinerary/KanbanColumn'
 import CalendarView from './itinerary/CalendarView'
+import ImportItineraryModal from './itinerary/ImportItineraryModal'
 import { useTripContext } from '../../context/TripContext'
 import { ACTIONS } from '../../state/tripReducer'
 import { triggerHaptic, hapticImpact } from '../../utils/haptics'
@@ -89,6 +90,7 @@ export default function ItineraryTab() {
   const [viewMode, setViewMode] = useState('table')
   const [activeDayIndex, setActiveDayIndex] = useState(0)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [activeSearchActivity, setActiveSearchActivity] = useState(null)
   const [selectedActivity, setSelectedActivity] = useState(null)
   const { resolveLocation, isResolving } = useSmartLocation()
@@ -199,12 +201,22 @@ export default function ItineraryTab() {
               </button>
             </div>
             {!isReadOnly && (
-              <div className="hidden md:flex items-center gap-2 shrink-0">
-                <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="shrink-0">📍 New Activity</Button>
-                <span title={atDayLimit ? `Day limit reached (${itinerary.length}/${maxDays} days)` : undefined} className="shrink-0">
-                  <Button size="sm" onClick={handleAddDay} disabled={atDayLimit} className="shrink-0">✨ New Day</Button>
-                </span>
-              </div>
+              <>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setIsImportModalOpen(true)}
+                  className="shrink-0"
+                >
+                  📥 Import
+                </Button>
+                <div className="hidden md:flex items-center gap-2 shrink-0">
+                  <Button size="sm" onClick={() => setIsAddModalOpen(true)} className="shrink-0">📍 New Activity</Button>
+                  <span title={atDayLimit ? `Day limit reached (${itinerary.length}/${maxDays} days)` : undefined} className="shrink-0">
+                    <Button size="sm" onClick={handleAddDay} disabled={atDayLimit} className="shrink-0">✨ New Day</Button>
+                  </span>
+                </div>
+              </>
             )}
           </div>
         }
@@ -218,6 +230,11 @@ export default function ItineraryTab() {
         onAdd={({ dayId, activity }) => {
           dispatch({ type: ACTIONS.ADD_ACTIVITY, payload: { dayId, activity } })
         }}
+      />
+
+      <ImportItineraryModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
       />
 
       <Modal isOpen={!!activeSearchActivity} onClose={() => setActiveSearchActivity(null)} title="📍 Update Location">
@@ -354,7 +371,12 @@ export default function ItineraryTab() {
           title="Build your perfect trip"
           subtitle="Start outlining your days and dragging activities around until your schedule is air-tight."
           wandaPrompt={`Plan Day 1 of my trip to ${trip.cities?.map(c => c.city).join(', ') || 'my destinations'} — use the generate_day_itinerary tool to create a schedule I can add.\n\n[INSTRUCTION]:\nLook at our itinerary and find the next day that has few or no activities. Call the "generate_day_itinerary" tool to plan it with 4-5 time-slotted activities appropriate for our destination and budget.`}
-          action={!isReadOnly && <Button variant="primary" size="sm" onClick={handleAddDay}>+ Add First Day</Button>}
+          action={!isReadOnly && (
+            <>
+              <Button variant="primary" size="sm" onClick={handleAddDay}>+ Add First Day</Button>
+              <Button variant="secondary" size="sm" onClick={() => setIsImportModalOpen(true)}>📥 Import Itinerary</Button>
+            </>
+          )}
         />
       )}
     </div>

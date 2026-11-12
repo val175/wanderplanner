@@ -1,6 +1,7 @@
 import { generateId } from '../../utils/helpers'
 import { addMinutesToTime, normalizeTimeString, calculateDuration } from '../../utils/helpers'
 import { updateTrip, parseToMins, sortActivities, sortItineraryDays } from '../reducerUtils'
+import { mergeImportedItinerary } from '../../utils/itineraryImport'
 
 export const itineraryCases = {
   ADD_DAY: (state, payload) => {
@@ -267,6 +268,30 @@ export const itineraryCases = {
         ]),
       }
     })
+  },
+
+  IMPORT_ITINERARY: (state, payload) => {
+    const activeTripId = state.activeTripId
+    const { days, mode = 'merge' } = payload || {}
+    return updateTrip(state, activeTripId, trip => {
+      const defaultParticipantIds = Array.isArray(trip.travelerIds)
+        ? trip.travelerIds.filter(Boolean)
+        : []
+      return {
+        ...trip,
+        itinerary: mergeImportedItinerary(trip.itinerary || [], days, mode, defaultParticipantIds),
+      }
+    })
+  },
+
+  RESTORE_ITINERARY: (state, payload) => {
+    const activeTripId = state.activeTripId
+    const { itinerary } = payload || {}
+    if (!Array.isArray(itinerary)) return state
+    return updateTrip(state, activeTripId, trip => ({
+      ...trip,
+      itinerary,
+    }))
   },
 
   ADD_ACTIVITY_COMMENT: (state, payload) => {
